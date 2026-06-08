@@ -1,0 +1,11 @@
+node_modules
+.next
+.venv
+__pycache__
+*.pyc
+command_center.db
+uploads/*
+!uploads/.gitkeep
+.env
+.env.local
+.DS_Store

@@ -1,0 +1,36 @@
+services:
+  backend:
+    build: ./backend
+    container_name: command-center-backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/command_center.db}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/uploads}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      ALLOW_DEMO_SEED: ${ALLOW_DEMO_SEED:-true}
+      SESSION_SECRET: ${SESSION_SECRET:-local-command-center-secret}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    ports:
+      - "8000:8000"
+    volumes:
+      - command_center_uploads:/uploads
+      - command_center_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build: ./frontend
+    container_name: command-center-frontend
+    environment:
+      NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8000/api}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  command_center_uploads:
+  command_center_data:
