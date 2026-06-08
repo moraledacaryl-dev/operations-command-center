@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_, inspect
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -41,6 +42,7 @@ RESOURCE_MODELS = {
     "approvals": models.Approval,
     "memos": models.Memo,
     "submissions": models.Submission,
+    "external-review-items": models.ExternalReviewItem,
 }
 
 SEARCH_COLUMNS = {
@@ -61,6 +63,7 @@ SEARCH_COLUMNS = {
     "approvals": ["title", "source_type", "status", "decision_note", "note"],
     "memos": ["title", "message", "status"],
     "submissions": ["title", "source_app", "source_type", "review_status", "payload_json", "note"],
+    "external-review-items": ["title", "source_app", "event_type", "status", "summary", "payload_json"],
 }
 
 
@@ -92,6 +95,45 @@ class WorkflowPayload(BaseModel):
     create_task: bool = False
     proof_url: Optional[str] = None
     filename: Optional[str] = None
+
+
+STAFF_EVENTS = {
+    "staff.operations.snapshot",
+    "payroll.ready_for_owner_review",
+    "employee.status.changed",
+    "attendance.exception.created",
+    "ot.review.pending",
+    "leave.request.pending",
+    "cash_advance.request.pending",
+    "payroll.qa.warning",
+    "annual_review.due",
+    "memo.acknowledgment.pending",
+}
+ACCOUNTING_EVENTS = {
+    "payroll_import.pending_review",
+    "pos_sales_import.pending_review",
+    "purchase_request.pending",
+    "purchase_order.pending",
+    "cash_advance_accounting.pending",
+    "drawer_reconciliation.pending",
+    "payable.due",
+    "receivable.issue",
+    "journal_review.pending",
+}
+POS_EVENTS = {
+    "daily_sales_context",
+    "drawer_variance.alert",
+    "room_charge.pending_frontdesk_post",
+    "refund.review_needed",
+    "void.review_needed",
+    "open_orders.warning",
+    "unpaid_orders.warning",
+}
+SENSITIVE_KEYS = {
+    "salary", "rate", "hourly_rate", "daily_rate", "declared_monthly_base", "gross_pay", "net_pay",
+    "government_id", "sss_number", "philhealth_number", "pagibig_number", "tin", "infractions",
+    "annual_reviews", "hr_notes", "notes_private", "memo_body",
+}
 
 
 def _b64(data: bytes) -> str:
@@ -240,9 +282,161 @@ def create_followup_task(
     log_activity(db, "tasks", task.id, "created", "Created from workflow", actor_id=user.id, metadata=links)
     return task
 
+
+def scrub_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        clean = {}
+        for key, item in value.items():
+            normalized = key.lower()
+            if normalized in SENSITIVE_KEYS or any(token in normalized for token in ["salary", "government", "sss_number", "philhealth_number", "pagibig_number", "hourly_rate", "daily_rate"]):
+                continue
+            clean[key] = scrub_payload(item)
+        return clean
+    if isinstance(value, list):
+        return [scrub_payload(item) for item in value]
+    return value
+
+
+def require_integration_event(payload: Dict[str, Any], allowed: set[str]):
+    required = ["external_source", "external_id", "event_type"]
+    missing = [field for field in required if not payload.get(field)]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Missing required fields: {', '.join(missing)}")
+    if payload["event_type"] not in allowed:
+        raise HTTPException(status_code=400, detail="Unsupported event_type")
+
+
+def item_title(payload: Dict[str, Any]) -> str:
+    body = payload.get("payload") if isinstance(payload.get("payload"), dict) else payload
+    if payload.get("event_type") == "staff.operations.snapshot":
+        return "Staff operations snapshot"
+    if payload.get("event_type") == "daily_sales_context":
+        return f"POS daily context {body.get('business_date') or payload.get('business_date') or ''}".strip()
+    return body.get("title") or payload.get("event_type", "External review item").replace(".", " ").title()
+
+
+def item_summary(payload: Dict[str, Any]) -> str:
+    body = payload.get("payload") if isinstance(payload.get("payload"), dict) else payload
+    if isinstance(body.get("counts"), dict):
+        return ", ".join(f"{key}: {value}" for key, value in body["counts"].items())
+    if isinstance(body.get("totals"), dict):
+        return ", ".join(f"{key}: {value}" for key, value in body["totals"].items())
+    return body.get("summary") or body.get("privacy_note") or ""
+
+
+def store_external_review_item(db: Session, payload: Dict[str, Any], allowed: set[str], source_app: str):
+    require_integration_event(payload, allowed)
+    existing = db.query(models.ExternalReviewItem).filter(
+        models.ExternalReviewItem.external_source == payload["external_source"],
+        models.ExternalReviewItem.external_id == payload["external_id"],
+    ).first()
+    if existing:
+        existing.status = "Already Applied"
+        db.commit()
+        return {"status": "already_applied", "id": existing.id}
+    clean = scrub_payload(payload)
+    item = models.ExternalReviewItem(
+        external_source=payload["external_source"],
+        external_id=payload["external_id"],
+        event_type=payload["event_type"],
+        source_app=source_app,
+        source_record_type=str(payload.get("source_record_type") or ""),
+        source_record_id=str(payload.get("source_record_id") or ""),
+        department_id=payload.get("department_id"),
+        title=item_title(clean),
+        summary=item_summary(clean),
+        priority=payload.get("priority") or "Normal",
+        status=payload.get("status") or "For Review",
+        payload_json=json.dumps(clean, default=str),
+    )
+    db.add(item)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = db.query(models.ExternalReviewItem).filter(
+            models.ExternalReviewItem.external_source == payload["external_source"],
+            models.ExternalReviewItem.external_id == payload["external_id"],
+        ).first()
+        return {"status": "already_applied", "id": existing.id if existing else None}
+    db.refresh(item)
+    return {"status": "accepted", "id": item.id}
+
+
+def overview_cards(db: Session):
+    rows = db.query(models.ExternalReviewItem).filter(models.ExternalReviewItem.status != "Rejected").order_by(models.ExternalReviewItem.updated_at.desc()).limit(300).all()
+    cards = {
+        "staff": {},
+        "pos": {},
+        "accounting": {},
+        "pending_review_count": 0,
+    }
+    for row in rows:
+        payload = json.loads(row.payload_json or "{}")
+        body = payload.get("payload") if isinstance(payload.get("payload"), dict) else payload
+        if row.status in {"For Review", "Ready to Post"}:
+            cards["pending_review_count"] += 1
+        if row.event_type == "staff.operations.snapshot":
+            cards["staff"].update(body.get("counts") or {})
+        elif row.event_type == "daily_sales_context":
+            cards["pos"].update({
+                "sales": (body.get("totals") or {}).get("sales", 0),
+                "orders": (body.get("totals") or {}).get("orders", 0),
+                "pending_room_charges": (body.get("counts") or {}).get("pending_room_charges", 0),
+                "drawer_variance": body.get("drawer_variance", 0),
+            })
+        elif row.source_app == "accounting_program":
+            cards["accounting"][row.event_type] = cards["accounting"].get(row.event_type, 0) + 1
+    return cards
+
 @router.get("/health")
 def health():
     return {"status": "ok", "app": "Manager Operations Command Center"}
+
+
+@router.post("/integrations/staff/events")
+async def receive_staff_event(payload: Dict[str, Any], db: Session = Depends(get_db)):
+    return store_external_review_item(db, payload, STAFF_EVENTS, "hidden_oasis_staff_payroll")
+
+
+@router.post("/integrations/accounting/status")
+async def receive_accounting_status(payload: Dict[str, Any], db: Session = Depends(get_db)):
+    return store_external_review_item(db, payload, ACCOUNTING_EVENTS, "accounting_program")
+
+
+@router.post("/integrations/pos/status")
+async def receive_pos_status(payload: Dict[str, Any], db: Session = Depends(get_db)):
+    return store_external_review_item(db, payload, POS_EVENTS, "dedicated_pos_cloud")
+
+
+@router.get("/integrations/overview")
+async def integrations_overview(db: Session = Depends(get_db)):
+    return overview_cards(db)
+
+
+@router.post("/integrations/review-items/{item_id}/create-task")
+async def create_task_from_external_item(
+    item_id: int,
+    payload: WorkflowPayload,
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    item = fetch_or_404(db, models.ExternalReviewItem, item_id)
+    assert_department_access(db, user, item.department_id)
+    task = create_followup_task(
+        db,
+        user,
+        item.title,
+        payload.department_id or item.department_id,
+        item.priority,
+        payload.note or item.summary or f"Created from external review item #{item.id}.",
+    )
+    item.linked_task_id = task.id
+    item.status = "Ready to Post" if item.source_app == "accounting_program" else "In Progress"
+    log_activity(db, "external-review-items", item.id, "created_task", f"Created task #{task.id}", actor_id=user.id)
+    db.commit()
+    db.refresh(task)
+    return {"task": model_to_dict(task), "review_item": model_to_dict(item)}
 
 
 @router.post("/auth/login")

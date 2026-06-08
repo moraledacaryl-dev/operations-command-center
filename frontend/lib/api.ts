@@ -60,6 +60,7 @@ export const api = {
     Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
     return request<Entity>(`/dashboard${qs.toString() ? `?${qs}` : ''}`);
   },
+  integrationOverview: () => request<Entity>('/integrations/overview'),
   history: (params: Record<string, any> = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => { if (v) qs.set(k, String(v)); });

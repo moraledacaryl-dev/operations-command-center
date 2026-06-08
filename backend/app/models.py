@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -222,6 +222,26 @@ class Submission(Base, TimestampMixin, ArchiveMixin):
     linked_post_id = Column(Integer, ForeignKey("posts.id"), nullable=True)
     linked_room_area_id = Column(Integer, ForeignKey("rooms_areas.id"), nullable=True)
     note = Column(Text, nullable=True)
+
+
+class ExternalReviewItem(Base, TimestampMixin):
+    __tablename__ = "external_review_items"
+    id = Column(Integer, primary_key=True)
+    external_source = Column(String(80), nullable=False)
+    external_id = Column(String(200), nullable=False)
+    event_type = Column(String(120), nullable=False)
+    source_app = Column(String(80), nullable=False)
+    source_record_type = Column(String(120), nullable=True)
+    source_record_id = Column(String(120), nullable=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    title = Column(String(180), nullable=False)
+    summary = Column(Text, nullable=True)
+    priority = Column(String(20), default="Normal", nullable=False)
+    status = Column(String(40), default="For Review", nullable=False)
+    payload_json = Column(Text, nullable=True)
+    linked_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    linked_approval_id = Column(Integer, ForeignKey("approvals.id"), nullable=True)
+    __table_args__ = (UniqueConstraint("external_source", "external_id", name="uq_external_review_item_external_event"),)
 
 
 class Request(Base, TimestampMixin, ArchiveMixin):

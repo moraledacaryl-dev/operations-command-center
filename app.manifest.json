@@ -1,0 +1,7 @@
+{
+  "app_key": "operations",
+  "app_name": "Operations Command Center",
+  "app_description": "Hidden Oasis operations dashboard, tasks, approvals, reviews and cross-app status cards.",
+  "production_url": "https://operations.hiddenoasis.app",
+  "health_endpoint": "/api/health"
+}

@@ -21,11 +21,24 @@ function MiniCard({ item, href }: { item: Entity; href: string }) {
 
 export default function Home() {
   const [data, setData] = useState<Entity | null>(null);
-  useEffect(() => { const user = getStoredUser(); api.dashboard({ department_id: getCurrentDepartmentId(user) }).then(setData); }, []);
+  const [crossApp, setCrossApp] = useState<Entity | null>(null);
+  async function loadHome() {
+    const user = getStoredUser();
+    const [dashboard, overview] = await Promise.all([
+      api.dashboard({ department_id: getCurrentDepartmentId(user) }),
+      api.integrationOverview(),
+    ]);
+    setData(dashboard);
+    setCrossApp(overview);
+  }
+  useEffect(() => { loadHome(); }, []);
   const counts = data?.counts || {};
+  const staff = crossApp?.staff || {};
+  const pos = crossApp?.pos || {};
+  const accounting = crossApp?.accounting || {};
   return (
     <>
-      <Top eyebrow="Home" title="Today" right={<button className="btn secondary" onClick={() => { const user = getStoredUser(); api.dashboard({ department_id: getCurrentDepartmentId(user) }).then(setData); }}>Refresh</button>} />
+      <Top eyebrow="Home" title="Today" right={<button className="btn secondary" onClick={loadHome}>Refresh</button>} />
       <div className="ops-strip">
         <Stat label="Late" value={counts.late} href="/tasks" tone={counts.late ? 'urgent-stat' : ''} />
         <Stat label="Approve" value={counts.approve} href="/review" tone={counts.approve ? 'warn-stat' : ''} />
@@ -33,6 +46,14 @@ export default function Home() {
         <Stat label="Guests" value={counts.guests} href="/guests" />
         <Stat label="Posts" value={counts.posts} href="/posts" />
         <Stat label="Tasks" value={counts.tasks} href="/tasks" />
+      </div>
+      <div className="ops-strip">
+        <Stat label="Staff on duty" value={staff.staff_on_duty_today} href="/review" />
+        <Stat label="Attendance" value={staff.attendance_exceptions} href="/review" tone={staff.attendance_exceptions ? 'warn-stat' : ''} />
+        <Stat label="OT pending" value={staff.ot_pending} href="/review" />
+        <Stat label="POS sales" value={pos.sales ? `PHP ${Number(pos.sales).toLocaleString()}` : 0} href="/review" />
+        <Stat label="Room charges" value={pos.pending_room_charges} href="/review" tone={pos.pending_room_charges ? 'warn-stat' : ''} />
+        <Stat label="Acct review" value={Object.values(accounting).reduce((sum: number, value: any) => sum + Number(value || 0), 0)} href="/review" />
       </div>
       <div className="command-band">
         <Link className="btn" href="/review">Open review queue</Link>
