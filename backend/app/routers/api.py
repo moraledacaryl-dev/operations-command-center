@@ -132,7 +132,8 @@ POS_EVENTS = {
 SENSITIVE_KEYS = {
     "salary", "rate", "hourly_rate", "daily_rate", "declared_monthly_base", "gross_pay", "net_pay",
     "government_id", "sss_number", "philhealth_number", "pagibig_number", "tin", "infractions",
-    "annual_reviews", "hr_notes", "notes_private", "memo_body",
+    "annual_reviews", "annual_review_content", "hr_notes", "private_hr_notes", "notes_private", "memo_body",
+    "benefits", "payroll_lines", "cash_advance_balance",
 }
 
 
@@ -331,8 +332,6 @@ def store_external_review_item(db: Session, payload: Dict[str, Any], allowed: se
         models.ExternalReviewItem.external_id == payload["external_id"],
     ).first()
     if existing:
-        existing.status = "Already Applied"
-        db.commit()
         return {"status": "already_applied", "id": existing.id}
     clean = scrub_payload(payload)
     item = models.ExternalReviewItem(
@@ -389,6 +388,10 @@ def overview_cards(db: Session):
             cards["accounting"][row.event_type] = cards["accounting"].get(row.event_type, 0) + 1
     return cards
 
+
+def external_item_or_404(db: Session, item_id: int) -> models.ExternalReviewItem:
+    return fetch_or_404(db, models.ExternalReviewItem, item_id)
+
 @router.get("/health")
 def health():
     return {"status": "ok", "app": "Manager Operations Command Center"}
@@ -437,6 +440,71 @@ async def create_task_from_external_item(
     db.commit()
     db.refresh(task)
     return {"task": model_to_dict(task), "review_item": model_to_dict(item)}
+
+
+@router.post("/integrations/review-items/{item_id}/mark-seen")
+async def mark_external_item_seen(
+    item_id: int,
+    payload: WorkflowPayload,
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    item = external_item_or_404(db, item_id)
+    assert_department_access(db, user, item.department_id)
+    item.status = "Seen"
+    if payload.note:
+        item.summary = f"{item.summary or ''}\n\nManager note: {payload.note}".strip()
+    log_activity(db, "external-review-items", item.id, "seen", payload.note or "Marked seen", actor_id=user.id)
+    db.commit()
+    return model_to_dict(item)
+
+
+@router.post("/integrations/review-items/{item_id}/reject")
+async def reject_external_item(
+    item_id: int,
+    payload: WorkflowPayload,
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    if not payload.note:
+        raise HTTPException(status_code=400, detail="Rejection note is required")
+    item = external_item_or_404(db, item_id)
+    assert_department_access(db, user, item.department_id)
+    item.status = "Rejected"
+    item.summary = f"{item.summary or ''}\n\nRejected: {payload.note}".strip()
+    log_activity(db, "external-review-items", item.id, "rejected", payload.note, actor_id=user.id)
+    db.commit()
+    return model_to_dict(item)
+
+
+@router.post("/integrations/review-items/{item_id}/create-approval")
+async def create_approval_from_external_item(
+    item_id: int,
+    payload: WorkflowPayload,
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    item = external_item_or_404(db, item_id)
+    department_id = payload.department_id or item.department_id
+    assert_department_access(db, user, department_id)
+    approval = models.Approval(
+        title=item.title,
+        source_type="external_review_item",
+        source_id=item.id,
+        requested_by_id=user.id,
+        department_id=department_id,
+        status="Pending",
+        priority=item.priority or "Normal",
+        note=payload.note or item.summary,
+    )
+    db.add(approval)
+    db.flush()
+    item.linked_approval_id = approval.id
+    item.status = "Pending Approval"
+    log_activity(db, "external-review-items", item.id, "created_approval", f"Created approval #{approval.id}", actor_id=user.id)
+    db.commit()
+    db.refresh(approval)
+    return {"approval": model_to_dict(approval), "review_item": model_to_dict(item)}
 
 
 @router.post("/auth/login")
@@ -1017,6 +1085,7 @@ def review_queue(department_id: Optional[int] = Query(default=None), user: model
         "requests": serialize_many(maybe_dept(db.query(models.Request), models.Request).filter(models.Request.hidden_from_active == False, models.Request.status.in_(["Draft", "Review", "Planned"])).order_by(models.Request.updated_at.desc()).limit(25).all()),
         "posts": serialize_many(maybe_dept(db.query(models.Post), models.Post).filter(models.Post.hidden_from_active == False, models.Post.status.in_(["Review", "Fix"])).order_by(models.Post.updated_at.desc()).limit(25).all()),
         "fixes": serialize_many(maybe_dept(db.query(models.Fix), models.Fix).filter(models.Fix.hidden_from_active == False, models.Fix.status == "Done").order_by(models.Fix.updated_at.desc()).limit(25).all()),
+        "external": serialize_many(maybe_dept(db.query(models.ExternalReviewItem), models.ExternalReviewItem).filter(models.ExternalReviewItem.status.in_(["For Review", "Ready to Post", "Seen", "Pending Approval", "In Progress"])).order_by(models.ExternalReviewItem.updated_at.desc()).limit(50).all()),
     }
 
 @router.post("/auto-archive/run")

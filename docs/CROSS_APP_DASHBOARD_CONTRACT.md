@@ -54,6 +54,17 @@ Staff payloads must contain operational status only. Salary, rates, benefits, go
 - `POST /api/integrations/pos/status`
 - `GET /api/integrations/overview`
 - `POST /api/integrations/review-items/{item_id}/create-task`
+- `POST /api/integrations/review-items/{item_id}/mark-seen`
+- `POST /api/integrations/review-items/{item_id}/reject`
+- `POST /api/integrations/review-items/{item_id}/create-approval`
+
+## Review Behavior
+
+Operations may show status, record a manager note, mark an imported item seen, reject/close an imported item, create a local task, or create a local approval. It may route the user to the source app when a source link is available. It must not directly compute payroll, edit payroll results, edit POS sales/payments, or post Accounting journals.
+
+`ExternalReviewItem` stores `external_source`, `external_id`, `event_type`, `source_app`, `source_record_type`, `source_record_id`, `department_id`, `title`, `summary`, `priority`, `status`, scrubbed `payload_json`, `linked_task_id`, `linked_approval_id`, `created_at`, and `updated_at`.
+
+Duplicate events return `already_applied` and do not overwrite existing review status.
 
 ## Outcome Vocabulary
 
@@ -64,3 +75,29 @@ Staff payloads must contain operational status only. Salary, rates, benefits, go
 - `Posted`: downstream app reports completion.
 - `Rejected`: manager rejected local follow-up.
 - `Errors`: payload could not be processed.
+
+## Example Staff Snapshot
+
+```json
+{
+  "external_source": "hidden_oasis_staff_payroll",
+  "external_id": "ops-snapshot:2026-06-08",
+  "event_type": "staff.operations.snapshot",
+  "schema_version": "2026-06-v1",
+  "payload": {
+    "counts": {
+      "staff_on_duty_today": 8,
+      "attendance_exceptions": 1,
+      "ot_pending": 2,
+      "leave_pending": 1,
+      "cash_advance_pending": 1,
+      "payroll_qa_warnings": 0,
+      "payroll_ready_for_owner_review": 1,
+      "annual_reviews_due": 2,
+      "memo_acknowledgments_pending": 4
+    }
+  }
+}
+```
+
+Sensitive keys such as salary, rates, government IDs, private HR notes, annual review content, memo bodies, payroll lines, net pay, and cash advance balances are scrubbed before storage.

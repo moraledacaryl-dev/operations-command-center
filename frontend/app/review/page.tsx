@@ -7,10 +7,11 @@ import { Pill } from '@/components/Pill';
 import { Drawer } from '@/components/Drawer';
 
 const sections = [
-  ['requests', 'Requests'], ['approvals', 'Approvals'], ['submissions', 'Inbox'], ['posts', 'Posts'], ['fixes', 'Verify']
+  ['external', 'Imported'], ['requests', 'Requests'], ['approvals', 'Approvals'], ['submissions', 'Inbox'], ['posts', 'Posts'], ['fixes', 'Verify']
 ];
 
 function resourceFor(kind: string) {
+  if (kind === 'Imported') return 'external-review-items';
   return kind === 'Inbox' ? 'submissions' : kind === 'Verify' ? 'fixes' : kind.toLowerCase();
 }
 
@@ -52,6 +53,11 @@ export default function ReviewPage() {
     try {
       if (selectedKind === 'Approvals') {
         await api.decideApproval(selected.id, status, { note: note.trim(), create_task: status === 'Approved' });
+      } else if (selectedKind === 'Imported') {
+        if (status === 'Seen') await api.externalMarkSeen(selected.id, { note: note.trim() || undefined });
+        else if (status === 'Rejected') await api.externalReject(selected.id, { note: note.trim() });
+        else if (status === 'Task') await api.externalCreateTask(selected.id, { note: note.trim() || undefined });
+        else if (status === 'Approval') await api.externalCreateApproval(selected.id, { note: note.trim() || undefined });
       } else if (selectedKind === 'Verify') {
         await api.verifyFix(selected.id, { note: note.trim() });
       } else {
@@ -82,6 +88,7 @@ export default function ReviewPage() {
           <textarea className="textarea" placeholder="Decision note" value={note} onChange={e => setNote(e.target.value)} />
           <div className="toolbar" style={{ marginBottom: 0 }}>
             {selectedKind === 'Requests' || selectedKind === 'Approvals' ? <><button className="btn small" onClick={() => move('Approved')}>Approve</button><button className="btn small secondary" onClick={() => move('Rejected')}>Reject</button></> : null}
+            {selectedKind === 'Imported' ? <><button className="btn small" onClick={() => move('Seen')}>Seen</button><button className="btn small secondary" onClick={() => move('Task')}>Task</button><button className="btn small secondary" onClick={() => move('Approval')}>Approval</button><button className="btn small secondary" onClick={() => move('Rejected')}>Reject</button></> : null}
             {selectedKind === 'Verify' ? <button className="btn small" onClick={() => move('Verified')}>Verify</button> : null}
             {selectedKind === 'Inbox' ? <><button className="btn small" onClick={() => move('Accepted')}>Accept</button><button className="btn small secondary" onClick={() => move('Rejected')}>Reject</button></> : null}
             {selectedKind === 'Posts' ? <><button className="btn small" onClick={() => move('OK')}>OK</button><button className="btn small secondary" onClick={() => move('Fix')}>Needs fix</button></> : null}

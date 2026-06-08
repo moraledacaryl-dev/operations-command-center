@@ -1,8 +1,10 @@
+import asyncio
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.routers.api import STAFF_EVENTS, overview_cards, store_external_review_item
+from app.routers.api import STAFF_EVENTS, WorkflowPayload, create_approval_from_external_item, mark_external_item_seen, overview_cards, reject_external_item, store_external_review_item
 from app import models
 
 
@@ -40,10 +42,14 @@ def staff_snapshot(external_id="snap-1"):
 def test_staff_events_are_stored_and_deduped_with_sensitive_fields_scrubbed():
     db = make_session()
     first = store_external_review_item(db, staff_snapshot(), STAFF_EVENTS, "hidden_oasis_staff_payroll")
+    item = db.get(models.ExternalReviewItem, first["id"])
+    item.status = "Seen"
+    db.commit()
     second = store_external_review_item(db, staff_snapshot(), STAFF_EVENTS, "hidden_oasis_staff_payroll")
     item = db.query(models.ExternalReviewItem).one()
     assert first["status"] == "accepted"
     assert second["status"] == "already_applied"
+    assert item.status == "Seen"
     assert "hourly_rate" not in (item.payload_json or "")
 
 
@@ -77,3 +83,22 @@ def test_external_review_item_can_link_to_task_without_computing_payroll():
     db.commit()
     assert item.linked_task_id == task.id
     assert not hasattr(models.ExternalReviewItem, "compute_payroll")
+
+
+def test_external_review_item_actions_mark_seen_reject_and_create_approval():
+    db = make_session()
+    dept = models.Department(name="Admin")
+    user = models.User(name="Owner", email="owner@test", role="owner", department=dept)
+    db.add_all([dept, user])
+    db.commit()
+    result = store_external_review_item(db, staff_snapshot("snap-actions"), STAFF_EVENTS, "hidden_oasis_staff_payroll")
+    item = db.get(models.ExternalReviewItem, result["id"])
+    item.department_id = dept.id
+    db.commit()
+
+    seen = asyncio.run(mark_external_item_seen(item.id, WorkflowPayload(note="Checked"), user=user, db=db))
+    assert seen["status"] == "Seen"
+    approval_result = asyncio.run(create_approval_from_external_item(item.id, WorkflowPayload(note="Needs owner"), user=user, db=db))
+    assert approval_result["approval"]["status"] == "Pending"
+    rejected = asyncio.run(reject_external_item(item.id, WorkflowPayload(note="Handled elsewhere"), user=user, db=db))
+    assert rejected["status"] == "Rejected"
