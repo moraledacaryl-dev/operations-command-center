@@ -7,7 +7,7 @@ import { landingPathForUser, setStoredUser } from '@/lib/session';
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('caryl@example.com');
-  const [password, setPassword] = useState('command123');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +38,7 @@ export default function LoginPage() {
         <label className="label">Password<input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') login(); }} /></label>
         {error ? <div className="pill urgent">{error}</div> : null}
         <button className="btn" onClick={login} disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
-        <small className="muted">Local starter login: caryl@example.com / command123</small>
+        <small className="muted">Use the password configured for this command center.</small>
       </section>
     </main>
   );

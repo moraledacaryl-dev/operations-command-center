@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.routers.api import STAFF_EVENTS, WorkflowPayload, create_approval_from_external_item, mark_external_item_seen, overview_cards, reject_external_item, store_external_review_item
+from app.routers.api import STAFF_EVENTS, WorkflowPayload, create_approval_from_external_item, mark_external_item_seen, overview_cards, readiness_warnings, reject_external_item, store_external_review_item
 from app import models
 
 
@@ -102,3 +102,9 @@ def test_external_review_item_actions_mark_seen_reject_and_create_approval():
     assert approval_result["approval"]["status"] == "Pending"
     rejected = asyncio.run(reject_external_item(item.id, WorkflowPayload(note="Handled elsewhere"), user=user, db=db))
     assert rejected["status"] == "Rejected"
+
+
+def test_readiness_warnings_flag_starter_auth_settings():
+    warnings = readiness_warnings()
+    assert any("SESSION_SECRET" in warning for warning in warnings)
+    assert any("COMMAND_CENTER_PASSWORD" in warning for warning in warnings)

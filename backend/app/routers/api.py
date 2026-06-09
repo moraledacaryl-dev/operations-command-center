@@ -21,8 +21,10 @@ from ..auto_archive import run_auto_archive
 router = APIRouter(prefix="/api")
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
 SESSION_SECRET = os.getenv("SESSION_SECRET", "local-command-center-secret")
 TOKEN_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", str(60 * 60 * 24 * 14)))
+COMMAND_CENTER_PASSWORD = os.getenv("COMMAND_CENTER_PASSWORD", "command123")
 
 RESOURCE_MODELS = {
     "departments": models.Department,
@@ -392,9 +394,27 @@ def overview_cards(db: Session):
 def external_item_or_404(db: Session, item_id: int) -> models.ExternalReviewItem:
     return fetch_or_404(db, models.ExternalReviewItem, item_id)
 
+
+def readiness_warnings() -> list[str]:
+    warnings = []
+    if SESSION_SECRET in {"", "local-command-center-secret"} or len(SESSION_SECRET) < 16:
+        warnings.append("SESSION_SECRET is unset or using the local starter value.")
+    if COMMAND_CENTER_PASSWORD == "command123":
+        warnings.append("COMMAND_CENTER_PASSWORD is still the starter password.")
+    if ENVIRONMENT == "production" and warnings:
+        warnings.append("Production must use real auth secrets before go-live.")
+    return warnings
+
+
 @router.get("/health")
 def health():
-    return {"status": "ok", "app": "Manager Operations Command Center"}
+    warnings = readiness_warnings()
+    return {
+        "status": "ok" if not warnings else "needs_attention",
+        "app": "Manager Operations Command Center",
+        "environment": ENVIRONMENT,
+        "readiness": {"ok": not warnings, "warnings": warnings},
+    }
 
 
 @router.post("/integrations/staff/events")
@@ -509,9 +529,10 @@ async def create_approval_from_external_item(
 
 @router.post("/auth/login")
 def login(payload: LoginPayload, db: Session = Depends(get_db)):
+    if ENVIRONMENT == "production" and COMMAND_CENTER_PASSWORD == "command123":
+        raise HTTPException(status_code=503, detail="Command center auth is not configured for production")
     user = db.query(models.User).filter(models.User.email == payload.email, models.User.is_active == True).first()
-    # Starter-local login: seeded users use command123 unless production auth is replaced later.
-    if not user or payload.password != "command123":
+    if not user or payload.password != COMMAND_CENTER_PASSWORD:
         raise HTTPException(status_code=401, detail="Invalid login")
     data = serialize_user(db, user)
     data["token"] = sign_token({"sub": user.id, "role": user.role, "exp": int(time.time()) + TOKEN_TTL_SECONDS})
