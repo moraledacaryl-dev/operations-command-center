@@ -4,12 +4,11 @@ After=network.target postgresql.service
 
 [Service]
 User=root
-WorkingDirectory=/root/operations-command-center/backend
-EnvironmentFile=/etc/hiddenoasis/operations-backend.env
-ExecStart=/root/operations-command-center/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8200
+WorkingDirectory=/opt/operations-command-center/current/backend
+EnvironmentFile=/etc/hiddenoasis/operations.env
+ExecStart=/opt/operations-command-center/current/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8200
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
-

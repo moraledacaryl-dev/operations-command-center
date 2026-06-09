@@ -10,8 +10,8 @@
       --ink: #1c1917;
       --muted: #625b52;
       --line: #ddd6cc;
-      --paper: #fffaf2;
-      --soft: #f4efe7;
+      --paper: #fbfaf7;
+      --soft: #eef3f0;
       --accent: #0f766e;
     }
     * { box-sizing: border-box; }
@@ -20,9 +20,7 @@
       min-height: 100vh;
       font-family: ui-serif, Georgia, "Times New Roman", serif;
       color: var(--ink);
-      background:
-        radial-gradient(circle at 20% 15%, rgba(15,118,110,.14), transparent 32rem),
-        linear-gradient(135deg, #fffaf2, #e9f2ee);
+      background: linear-gradient(135deg, #fbfaf7, #e8f0ed);
     }
     main {
       width: min(1080px, calc(100% - 32px));
@@ -78,29 +76,28 @@
   <main>
     <header>
       <div class="eyebrow">Hidden Oasis</div>
-      <h1>Business Apps</h1>
-      <p>Choose the system you need. Each app keeps its own login and permissions.</p>
+      <h1>Hidden Oasis</h1>
+      <p>Choose an app.</p>
     </header>
     <section class="grid" aria-label="Hidden Oasis applications">
       <a href="https://accounting.hiddenoasis.app">
-        <strong>Accounting Program</strong>
-        <span>Books, purchasing, payables, receivables, reconciliations, and review queues.</span>
+        <strong>Accounting</strong>
+        <span>Books &middot; PR/PO &middot; Reports</span>
       </a>
       <a href="https://pos.hiddenoasis.app">
-        <strong>POS Cloud</strong>
-        <span>Orders, tenders, room charges, drawer sessions, refunds, and voids.</span>
+        <strong>POS</strong>
+        <span>Orders &middot; Drawer &middot; Room Charges</span>
       </a>
       <a href="https://operations.hiddenoasis.app">
-        <strong>Operations Command Center</strong>
-        <span>Manager dashboard, tasks, approvals, shift notes, fixes, posts, and status cards.</span>
+        <strong>Operations</strong>
+        <span>Tasks &middot; Requests &middot; Reviews</span>
       </a>
       <a href="https://staff.hiddenoasis.app">
-        <strong>Staff & Payroll</strong>
-        <span>Attendance, leaves, cash advances, payroll, payslips, 13th month, and HR records.</span>
+        <strong>Staff</strong>
+        <span>Attendance &middot; Payroll &middot; Leaves</span>
       </a>
     </section>
-    <footer>No shared session or SSO. Sign in separately where needed.</footer>
+    <footer>Hidden Oasis Systems &middot; by C.M.</footer>
   </main>
 </body>
 </html>
-

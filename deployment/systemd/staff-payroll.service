@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/root/hidden-oasis-staff-payroll
+WorkingDirectory=/opt/hidden-oasis-staff-payroll/current
 EnvironmentFile=/etc/hiddenoasis/staff-payroll.env
-ExecStart=/root/hidden-oasis-staff-payroll/.venv/bin/streamlit run app.py --server.address 127.0.0.1 --server.port 8501 --server.headless true
+ExecStart=/opt/hidden-oasis-staff-payroll/current/.venv/bin/streamlit run app.py --server.address 127.0.0.1 --server.port 8501 --server.headless true
 Restart=always
 RestartSec=5
 

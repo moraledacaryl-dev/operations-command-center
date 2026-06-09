@@ -6,7 +6,7 @@ Operations is the manager command layer. These scenarios assume Accounting, POS,
 
 | Scenario | Steps | Expected Result | Actual Result | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| POS sale to Accounting | Finalize POS order, sync to Accounting, replay event | Accounting creates one review/import item and duplicate replay is idempotent | Accounting and POS contracts/code exist; live replay not executed in this shell | Partial | Requires deployed POS and Accounting credentials/data |
+| POS sale to Accounting | Finalize POS order, sync to Accounting, replay event | Accounting creates one review/import item and duplicate replay is idempotent | POS live config now uses `https://accounting.hiddenoasis.app/api`; full sample sale replay not executed | Partial | Requires controlled live POS fixture |
 | POS refund | Refund paid order, sync refund | Accounting creates outgoing cashflow/review item without duplicate replay | Contract exists; live replay not executed | Partial | Needs live POS sample order |
 | POS void/reversal | Void finalized order, sync reversal | Accounting marks sale voided once and preserves audit trail | Contract exists; live replay not executed | Partial | Needs live order fixture |
 | Drawer/session reconciliation | Close POS register session | Accounting receives reconciliation context; Operations shows variance alert if nonzero | POS daily context includes drawer variance; live cross-post not executed | Partial | Needs deployed POS route and Operations key |
@@ -20,4 +20,4 @@ Operations is the manager command layer. These scenarios assume Accounting, POS,
 | Department request to PR/PO | Create Operations request, route to Accounting PR/PO | Operations shows pending PR/PO statuses without owning Accounting records | Operations status event contract exists | Partial | Needs Accounting PR/PO workflow data |
 | Employee sync | Send employee sync to Accounting/Operations | Safe identity fields only; no pay/rates/government IDs | Staff unit tests pass safe employee sync; Accounting scrub compile check passed | Pass for local unit logic | Live POST still needs real key |
 | Failed integration retry | Simulate receiver unavailable, retry later | Staff outbox marks Error, retries without duplicate receiver records | Staff direct-post tests pass status/attempt updates and destination filtering | Pass for local unit logic | Live receiver unavailable case not executed |
-| Launcher routing | Open root and all four subdomains | Root static launcher; each app retains own login | Static launcher and nginx templates prepared; live root not switched | Partial | Root stays Accounting until Accounting subdomain is verified |
+| Launcher routing | Open root and all four subdomains | Root static launcher; each app retains own login | Static launcher, nginx templates, and deploy scripts prepared; live root not switched | Partial | Root stays Accounting until Operations and Staff subdomains pass |

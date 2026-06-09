@@ -13,11 +13,11 @@ Use `hiddenoasis.app` as the production root domain. The root should eventually 
 
 Each app keeps its own login, permissions, and database. There is no SSO, no shared session, and no shared permission store.
 
-Current Hetzner audit on 2026-06-09 found Accounting already running on `127.0.0.1:3000` and `127.0.0.1:8000`, POS on `127.0.0.1:3100` and `127.0.0.1:8100`, and no live Operations/Staff services yet. Keep `hiddenoasis.app` on the current Accounting app until `accounting.hiddenoasis.app` is verified with UI, API, login, and critical routes.
+Current Hetzner audit on 2026-06-09 found Accounting running on `127.0.0.1:3000` and `127.0.0.1:8000`, POS on `127.0.0.1:3100` and `127.0.0.1:8100`, and no live Operations/Staff services yet. `accounting.hiddenoasis.app` and `pos.hiddenoasis.app` passed health checks during the final pass. Keep `hiddenoasis.app` on the current Accounting app until Operations and Staff also pass HTTPS, login, and critical route checks.
 
 ## Launcher
 
-Use static HTML or a minimal static Next.js export with four clear cards: Accounting Program, POS Cloud, Operations Command Center, and Staff & Payroll. Serve it with Nginx/CDN edge caching. The launcher must perform no server-side app API calls and should load in under one second.
+Use static HTML with four clear cards: Accounting, POS, Operations, and Staff. Serve it with Nginx/CDN edge caching. The launcher must perform no server-side app API calls and should load in under one second.
 
 ## Reverse Proxy
 
@@ -51,6 +51,8 @@ Use the same real `INTEGRATION_API_KEY` value across Staff/Payroll, Operations, 
 3. Operations
 4. Staff/Payroll
 5. Static launcher
+
+Use `/root/repos` for source, build/test before touching live paths, and deploy to `/opt` with release directories or backups. The scripts in `deployment/scripts/` are the current starting point.
 
 ## Backup And Rollback
 
