@@ -10,6 +10,8 @@ Operations receives review/status events from separate Hidden Oasis apps. It sto
 
 `external_source + external_id` is unique and idempotent.
 
+Inbound Staff, POS, and Accounting integration POSTs require `X-Integration-Api-Key` when `INTEGRATION_API_KEY` is configured. Production rejects integration imports if the shared key is missing or still a placeholder.
+
 ## Staff/Payroll Events
 
 - `staff.operations.snapshot`

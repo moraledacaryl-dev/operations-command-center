@@ -13,6 +13,8 @@ Use `hiddenoasis.app` as the production root domain. The root should eventually 
 
 Each app keeps its own login, permissions, and database. There is no SSO, no shared session, and no shared permission store.
 
+Current Hetzner audit on 2026-06-09 found Accounting already running on `127.0.0.1:3000` and `127.0.0.1:8000`, POS on `127.0.0.1:3100` and `127.0.0.1:8100`, and no live Operations/Staff services yet. Keep `hiddenoasis.app` on the current Accounting app until `accounting.hiddenoasis.app` is verified with UI, API, login, and critical routes.
+
 ## Launcher
 
 Use static HTML or a minimal static Next.js export with four clear cards: Accounting Program, POS Cloud, Operations Command Center, and Staff & Payroll. Serve it with Nginx/CDN edge caching. The launcher must perform no server-side app API calls and should load in under one second.
@@ -32,6 +34,8 @@ Use subdomains for the cleanest routing and least app complexity. Nginx should r
 - `ALLOWED_ORIGINS`
 - `CORS_ORIGINS`
 - `INTEGRATION_API_KEY`
+
+Use the same real `INTEGRATION_API_KEY` value across Staff/Payroll, Operations, POS daily context, and Accounting payroll imports. Do not commit the real value; install it only in server environment files or protected app settings.
 
 ## Health Checks
 

@@ -30,6 +30,7 @@ UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
 SESSION_SECRET = os.getenv("SESSION_SECRET", "local-command-center-secret")
+INTEGRATION_API_KEY = os.getenv("INTEGRATION_API_KEY", "").strip()
 TOKEN_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", str(60 * 60 * 24 * 14)))
 ALLOW_DEFAULT_ADMIN_BOOTSTRAP = os.getenv("ALLOW_DEFAULT_ADMIN_BOOTSTRAP", "false").strip().lower() == "true"
 BOOTSTRAP_OWNER_EMAIL = normalize_email(os.getenv("BOOTSTRAP_OWNER_EMAIL"))
@@ -353,6 +354,22 @@ def require_integration_event(payload: Dict[str, Any], allowed: set[str]):
         raise HTTPException(status_code=400, detail="Unsupported event_type")
 
 
+def integration_key_is_placeholder(value: str) -> bool:
+    normalized = (value or "").strip().lower()
+    if not normalized:
+        return True
+    return normalized in {"replace-with-shared-secret", "change-me", "changeme", "placeholder", "default"} or normalized.startswith(("change_me", "changeme", "replace"))
+
+
+def require_integration_key(x_integration_api_key: Optional[str] = Header(default=None, alias="X-Integration-Api-Key")):
+    if integration_key_is_placeholder(INTEGRATION_API_KEY):
+        if ENVIRONMENT == "production":
+            raise HTTPException(status_code=503, detail="Integration API key is not configured")
+        return
+    if not x_integration_api_key or not hmac.compare_digest(str(x_integration_api_key), INTEGRATION_API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid integration API key")
+
+
 def item_title(payload: Dict[str, Any]) -> str:
     body = payload.get("payload") if isinstance(payload.get("payload"), dict) else payload
     if payload.get("event_type") == "staff.operations.snapshot":
@@ -443,6 +460,8 @@ def readiness_warnings(db: Optional[Session] = None) -> list[str]:
     warnings = []
     if SESSION_SECRET in {"", "local-command-center-secret"} or len(SESSION_SECRET) < 16:
         warnings.append("SESSION_SECRET is unset or using the local starter value.")
+    if integration_key_is_placeholder(INTEGRATION_API_KEY):
+        warnings.append("INTEGRATION_API_KEY is unset or using the placeholder value.")
     if ENVIRONMENT == "production" and db is not None:
         active_users = db.query(models.User).filter(models.User.is_active == True).count()
         password_ready_users = db.query(models.User).filter(models.User.is_active == True, models.User.password_hash.isnot(None)).count()
@@ -471,17 +490,17 @@ def health(db: Session = Depends(get_db)):
 
 
 @router.post("/integrations/staff/events")
-async def receive_staff_event(payload: Dict[str, Any], db: Session = Depends(get_db)):
+async def receive_staff_event(payload: Dict[str, Any], db: Session = Depends(get_db), _=Depends(require_integration_key)):
     return store_external_review_item(db, payload, STAFF_EVENTS, "hidden_oasis_staff_payroll")
 
 
 @router.post("/integrations/accounting/status")
-async def receive_accounting_status(payload: Dict[str, Any], db: Session = Depends(get_db)):
+async def receive_accounting_status(payload: Dict[str, Any], db: Session = Depends(get_db), _=Depends(require_integration_key)):
     return store_external_review_item(db, payload, ACCOUNTING_EVENTS, "accounting_program")
 
 
 @router.post("/integrations/pos/status")
-async def receive_pos_status(payload: Dict[str, Any], db: Session = Depends(get_db)):
+async def receive_pos_status(payload: Dict[str, Any], db: Session = Depends(get_db), _=Depends(require_integration_key)):
     return store_external_review_item(db, payload, POS_EVENTS, "dedicated_pos_cloud")
 
 

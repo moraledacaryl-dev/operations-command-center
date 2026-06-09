@@ -1,0 +1,15 @@
+[Unit]
+Description=Operations Command Center Frontend
+After=network.target operations-backend.service
+
+[Service]
+User=root
+WorkingDirectory=/root/operations-command-center/frontend
+EnvironmentFile=/etc/hiddenoasis/operations-frontend.env
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1 --port 3200
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
