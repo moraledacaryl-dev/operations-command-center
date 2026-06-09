@@ -6,7 +6,7 @@ import { Entity } from '@/lib/api';
 import { clearStoredUser, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
 const groups = [
-  { label: 'Main', items: [['/', 'Home'], ['/departments', 'Departments']] },
+  { label: 'Main', items: [['/', 'Home'], ['/departments', 'Departments'], ['/account', 'Account']] },
   { label: 'Work', items: [['/projects', 'Projects'], ['/tasks', 'Tasks'], ['/requests', 'Requests']] },
   { label: 'Ops', items: [['/shift', 'Shift'], ['/guests', 'Guests'], ['/fixes', 'Fixes'], ['/rooms', 'Rooms']] },
   { label: 'Market', items: [['/posts', 'Posts']] },

@@ -1,10 +1,69 @@
+import os
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from . import models
+from .auth import hash_password, normalize_email, validate_password_strength
+
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
+ALLOW_DEMO_SEED = os.getenv("ALLOW_DEMO_SEED", "true").strip().lower() == "true"
+ALLOW_DEFAULT_ADMIN_BOOTSTRAP = os.getenv("ALLOW_DEFAULT_ADMIN_BOOTSTRAP", "false").strip().lower() == "true"
+LOCAL_SEED_PASSWORD = os.getenv("LOCAL_SEED_PASSWORD", "command123")
+BOOTSTRAP_OWNER_EMAIL = normalize_email(os.getenv("BOOTSTRAP_OWNER_EMAIL"))
+BOOTSTRAP_OWNER_NAME = (os.getenv("BOOTSTRAP_OWNER_NAME", "Operations Owner") or "Operations Owner").strip()
+BOOTSTRAP_OWNER_PASSWORD = os.getenv("BOOTSTRAP_OWNER_PASSWORD", "")
+
+
+def _management_department(db: Session):
+    dept = db.query(models.Department).filter(models.Department.name == "Management").first()
+    if dept:
+        return dept
+    dept = models.Department(name="Management", short_name="MGMT")
+    db.add(dept)
+    db.flush()
+    return dept
+
+
+def ensure_bootstrap_owner(db: Session):
+    if not ALLOW_DEFAULT_ADMIN_BOOTSTRAP:
+        return
+    if not BOOTSTRAP_OWNER_EMAIL or not BOOTSTRAP_OWNER_PASSWORD:
+        return
+    validate_password_strength(BOOTSTRAP_OWNER_PASSWORD)
+    management = _management_department(db)
+    user = db.query(models.User).filter(models.User.email == BOOTSTRAP_OWNER_EMAIL).first()
+    if not user:
+        user = models.User(
+            name=BOOTSTRAP_OWNER_NAME,
+            email=BOOTSTRAP_OWNER_EMAIL,
+            role="owner",
+            department_id=management.id,
+            is_active=True,
+        )
+        db.add(user)
+        db.flush()
+        db.add(models.UserDepartment(user_id=user.id, department_id=management.id, is_primary=True))
+    if not user.password_hash:
+        user.password_hash = hash_password(BOOTSTRAP_OWNER_PASSWORD)
+        user.password_set_at = datetime.utcnow()
+    db.commit()
+
+
+def backfill_local_user_passwords(db: Session):
+    if ENVIRONMENT == "production":
+        return
+    for user in db.query(models.User).all():
+        user.email = normalize_email(user.email)
+        if not user.password_hash:
+            user.password_hash = hash_password(LOCAL_SEED_PASSWORD)
+            user.password_set_at = datetime.utcnow()
+    db.commit()
 
 
 def seed_if_empty(db: Session):
     if db.query(models.Department).count() > 0:
+        return
+    if not ALLOW_DEMO_SEED:
         return
 
     departments = [
@@ -17,12 +76,12 @@ def seed_if_empty(db: Session):
         db.flush()
         dept_map[name] = dept
 
-    caryl = models.User(name="Caryl", email="caryl@example.com", role="owner", department_id=dept_map["Management"].id)
-    manager = models.User(name="Manager", email="manager@example.com", role="manager", department_id=dept_map["Management"].id)
-    marketing = models.User(name="Marketing Lead", email="marketing@example.com", role="lead", department_id=dept_map["Marketing"].id)
-    maintenance = models.User(name="Maintenance", email="fix@example.com", role="lead", department_id=dept_map["Maintenance"].id)
-    frontdesk = models.User(name="Front Desk Lead", email="frontdesk@example.com", role="lead", department_id=dept_map["Front Desk"].id)
-    cafelead = models.User(name="Café Lead", email="cafe@example.com", role="lead", department_id=dept_map["Café"].id)
+    caryl = models.User(name="Caryl", email=normalize_email("caryl@example.com"), role="owner", department_id=dept_map["Management"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
+    manager = models.User(name="Manager", email=normalize_email("manager@example.com"), role="manager", department_id=dept_map["Management"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
+    marketing = models.User(name="Marketing Lead", email=normalize_email("marketing@example.com"), role="lead", department_id=dept_map["Marketing"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
+    maintenance = models.User(name="Maintenance", email=normalize_email("fix@example.com"), role="lead", department_id=dept_map["Maintenance"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
+    frontdesk = models.User(name="Front Desk Lead", email=normalize_email("frontdesk@example.com"), role="lead", department_id=dept_map["Front Desk"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
+    cafelead = models.User(name="Café Lead", email=normalize_email("cafe@example.com"), role="lead", department_id=dept_map["Café"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
     db.add_all([caryl, manager, marketing, maintenance, frontdesk, cafelead])
     db.flush()
 

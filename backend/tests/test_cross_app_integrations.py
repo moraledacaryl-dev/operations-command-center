@@ -107,4 +107,3 @@ def test_external_review_item_actions_mark_seen_reject_and_create_approval():
 def test_readiness_warnings_flag_starter_auth_settings():
     warnings = readiness_warnings()
     assert any("SESSION_SECRET" in warning for warning in warnings)
-    assert any("COMMAND_CENTER_PASSWORD" in warning for warning in warnings)

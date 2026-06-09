@@ -38,7 +38,7 @@ export default function LoginPage() {
         <label className="label">Password<input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') login(); }} /></label>
         {error ? <div className="pill urgent">{error}</div> : null}
         <button className="btn" onClick={login} disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
-        <small className="muted">Use the password configured for this command center.</small>
+        <small className="muted">Use your account password. Local demo mode uses the `LOCAL_SEED_PASSWORD` value.</small>
       </section>
     </main>
   );

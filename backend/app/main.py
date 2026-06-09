@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 from .database import Base, engine, SessionLocal
 from .routers.api import router
-from .seed import seed_if_empty
+from .seed import backfill_local_user_passwords, ensure_bootstrap_owner, seed_if_empty
 
 app = FastAPI(title="Manager Operations Command Center", version="2.9.0")
 
@@ -31,6 +31,11 @@ def ensure_local_schema():
         "guest_notes": ["department_id INTEGER"],
         "fixes": ["department_id INTEGER"],
         "posts": ["department_id INTEGER"],
+        "users": [
+            "password_hash VARCHAR(255)",
+            "password_set_at DATETIME",
+            "last_login_at DATETIME",
+        ],
     }
     with engine.begin() as conn:
         for table, columns in additions.items():
@@ -43,6 +48,8 @@ def ensure_local_schema():
 ensure_local_schema()
 with SessionLocal() as db:
     seed_if_empty(db)
+    ensure_bootstrap_owner(db)
+    backfill_local_user_passwords(db)
 
 def backfill_local_departments():
     with engine.begin() as conn:

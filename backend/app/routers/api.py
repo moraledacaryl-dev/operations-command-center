@@ -11,8 +11,15 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import or_, inspect
+from sqlalchemy import or_, inspect, func
 from sqlalchemy.orm import Session
+from ..auth import (
+    looks_like_starter_password,
+    normalize_email,
+    hash_password,
+    validate_password_strength,
+    verify_password,
+)
 from ..database import get_db
 from .. import models
 from ..utils import apply_payload, log_activity, mark_completed_if_needed, model_to_dict, serialize_many
@@ -24,7 +31,9 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
 SESSION_SECRET = os.getenv("SESSION_SECRET", "local-command-center-secret")
 TOKEN_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", str(60 * 60 * 24 * 14)))
-COMMAND_CENTER_PASSWORD = os.getenv("COMMAND_CENTER_PASSWORD", "command123")
+ALLOW_DEFAULT_ADMIN_BOOTSTRAP = os.getenv("ALLOW_DEFAULT_ADMIN_BOOTSTRAP", "false").strip().lower() == "true"
+BOOTSTRAP_OWNER_EMAIL = normalize_email(os.getenv("BOOTSTRAP_OWNER_EMAIL"))
+BOOTSTRAP_OWNER_PASSWORD = os.getenv("BOOTSTRAP_OWNER_PASSWORD", "")
 
 RESOURCE_MODELS = {
     "departments": models.Department,
@@ -72,6 +81,21 @@ SEARCH_COLUMNS = {
 class LoginPayload(BaseModel):
     email: str
     password: str = ""
+
+class PasswordChangePayload(BaseModel):
+    current_password: str
+    new_password: str
+
+class AdminUserCreatePayload(BaseModel):
+    name: str
+    email: str
+    role: str = "manager"
+    department_id: Optional[int] = None
+    password: str
+    is_active: bool = True
+
+class AdminResetPasswordPayload(BaseModel):
+    new_password: str
 
 class Payload(BaseModel):
     data: Dict[str, Any]
@@ -179,6 +203,26 @@ def require_user(authorization: Optional[str] = Header(default=None), db: Sessio
 
 def can_view_all(user: models.User) -> bool:
     return user.role in ["owner", "admin", "manager"]
+
+
+def require_admin_user(user: models.User):
+    if not can_view_all(user):
+        raise HTTPException(status_code=403, detail="Manager access required")
+    return user
+
+
+def find_user_by_email(db: Session, email: Optional[str]):
+    normalized = normalize_email(email)
+    if not normalized:
+        return None
+    return db.query(models.User).filter(func.lower(models.User.email) == normalized).first()
+
+
+def validate_password_or_400(password: str):
+    try:
+        validate_password_strength(password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 def department_ids_for(db: Session, user: models.User) -> set[int]:
@@ -395,20 +439,29 @@ def external_item_or_404(db: Session, item_id: int) -> models.ExternalReviewItem
     return fetch_or_404(db, models.ExternalReviewItem, item_id)
 
 
-def readiness_warnings() -> list[str]:
+def readiness_warnings(db: Optional[Session] = None) -> list[str]:
     warnings = []
     if SESSION_SECRET in {"", "local-command-center-secret"} or len(SESSION_SECRET) < 16:
         warnings.append("SESSION_SECRET is unset or using the local starter value.")
-    if COMMAND_CENTER_PASSWORD == "command123":
-        warnings.append("COMMAND_CENTER_PASSWORD is still the starter password.")
+    if ENVIRONMENT == "production" and db is not None:
+        active_users = db.query(models.User).filter(models.User.is_active == True).count()
+        password_ready_users = db.query(models.User).filter(models.User.is_active == True, models.User.password_hash.isnot(None)).count()
+        if active_users == 0:
+            warnings.append("No active users exist yet. Configure bootstrap owner credentials before go-live.")
+        elif password_ready_users == 0:
+            warnings.append("No active users have passwords yet. Run bootstrap owner setup or admin password reset first.")
+        if ALLOW_DEFAULT_ADMIN_BOOTSTRAP and not BOOTSTRAP_OWNER_EMAIL:
+            warnings.append("ALLOW_DEFAULT_ADMIN_BOOTSTRAP is enabled without BOOTSTRAP_OWNER_EMAIL.")
+        if BOOTSTRAP_OWNER_PASSWORD and looks_like_starter_password(BOOTSTRAP_OWNER_PASSWORD):
+            warnings.append("BOOTSTRAP_OWNER_PASSWORD is still using a starter value.")
     if ENVIRONMENT == "production" and warnings:
         warnings.append("Production must use real auth secrets before go-live.")
     return warnings
 
 
 @router.get("/health")
-def health():
-    warnings = readiness_warnings()
+def health(db: Session = Depends(get_db)):
+    warnings = readiness_warnings(db)
     return {
         "status": "ok" if not warnings else "needs_attention",
         "app": "Manager Operations Command Center",
@@ -529,14 +582,74 @@ async def create_approval_from_external_item(
 
 @router.post("/auth/login")
 def login(payload: LoginPayload, db: Session = Depends(get_db)):
-    if ENVIRONMENT == "production" and COMMAND_CENTER_PASSWORD == "command123":
-        raise HTTPException(status_code=503, detail="Command center auth is not configured for production")
-    user = db.query(models.User).filter(models.User.email == payload.email, models.User.is_active == True).first()
-    if not user or payload.password != COMMAND_CENTER_PASSWORD:
+    user = find_user_by_email(db, payload.email)
+    if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Invalid login")
+    if not user.password_hash:
+        raise HTTPException(status_code=403, detail="Password is not set for this account yet.")
+    if not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid login")
+    user.last_login_at = datetime.utcnow()
+    db.commit()
     data = serialize_user(db, user)
     data["token"] = sign_token({"sub": user.id, "role": user.role, "exp": int(time.time()) + TOKEN_TTL_SECONDS})
     return data
+
+
+@router.post("/auth/change-password")
+def change_password(payload: PasswordChangePayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    validate_password_or_400(payload.new_password)
+    user.password_hash = hash_password(payload.new_password)
+    user.password_set_at = datetime.utcnow()
+    db.commit()
+    return {"ok": True, "password_set_at": user.password_set_at.isoformat()}
+
+
+@router.post("/admin/users")
+def admin_create_user(payload: AdminUserCreatePayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    require_admin_user(user)
+    validate_password_or_400(payload.password)
+    email = normalize_email(payload.email)
+    name = (payload.name or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required.")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required.")
+    existing = find_user_by_email(db, email)
+    if existing:
+        raise HTTPException(status_code=400, detail="A user with that email already exists.")
+    new_user = models.User(
+        name=name,
+        email=email,
+        role=(payload.role or "manager").strip() or "manager",
+        department_id=payload.department_id,
+        is_active=bool(payload.is_active),
+        password_hash=hash_password(payload.password),
+        password_set_at=datetime.utcnow(),
+    )
+    db.add(new_user)
+    db.flush()
+    if payload.department_id:
+        db.add(models.UserDepartment(user_id=new_user.id, department_id=payload.department_id, is_primary=True))
+    log_activity(db, "users", new_user.id, "created", "Created user with password auth", actor_id=user.id)
+    db.commit()
+    db.refresh(new_user)
+    return serialize_user(db, new_user)
+
+
+@router.post("/admin/users/{user_id}/reset-password")
+def admin_reset_password(user_id: int, payload: AdminResetPasswordPayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    require_admin_user(user)
+    validate_password_or_400(payload.new_password)
+    target = fetch_or_404(db, models.User, user_id)
+    target.password_hash = hash_password(payload.new_password)
+    target.password_set_at = datetime.utcnow()
+    log_activity(db, "users", target.id, "password_reset", "Password reset by admin", actor_id=user.id)
+    db.commit()
+    return {"ok": True, "user_id": target.id, "password_set_at": target.password_set_at.isoformat()}
+
 
 @router.get("/auth/me")
 def me(user: models.User = Depends(require_user), db: Session = Depends(get_db)):
@@ -839,6 +952,8 @@ def create_resource(resource: str, payload: Dict[str, Any], user: models.User = 
     model = get_model(resource)
     if resource in ["users", "user-departments", "departments"] and not can_view_all(user):
         raise HTTPException(status_code=403, detail="Manager access required")
+    if resource == "users":
+        raise HTTPException(status_code=400, detail="Use the admin user route for account creation.")
     assert_department_access(db, user, payload.get("department_id"))
     obj = model()
     apply_payload(obj, payload)
@@ -866,7 +981,13 @@ def update_resource(resource: str, item_id: int, payload: Dict[str, Any], user: 
     obj = fetch_or_404(db, model, item_id)
     assert_resource_access(db, user, obj)
     assert_department_access(db, user, payload.get("department_id"))
-    apply_payload(obj, payload)
+    excluded = {"id", "created_at", "updated_at"}
+    if resource == "users":
+        payload = dict(payload)
+        if "email" in payload:
+            payload["email"] = normalize_email(payload.get("email"))
+        excluded = excluded | {"password_hash", "password_set_at", "last_login_at"}
+    apply_payload(obj, payload, excluded=excluded)
     db.flush()
     log_activity(db, resource, obj.id, "updated", f"Updated {resource}", actor_id=user.id)
     db.commit()

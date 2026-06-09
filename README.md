@@ -104,7 +104,15 @@ Recommended first run:
 Local login:
 
 - Email: `caryl@example.com`
-- Password: `command123`
+- Password: value from `LOCAL_SEED_PASSWORD` in local mode. The Mac example defaults to `command123`.
+
+Production bootstrap:
+
+- Set `ALLOW_DEMO_SEED=false`
+- Set `ALLOW_DEFAULT_ADMIN_BOOTSTRAP=true`
+- Set `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_NAME`, and a strong `BOOTSTRAP_OWNER_PASSWORD`
+- Set a real `SESSION_SECRET`
+- After first login, create/reset the rest of the team accounts in `Admin -> Users`
 
 Mac files included:
 

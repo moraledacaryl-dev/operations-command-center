@@ -29,4 +29,4 @@ for i in {1..90}; do
 done
 open http://localhost:3000/login
 echo "Open: http://localhost:3000/login"
-echo "Login: caryl@example.com / command123"
+echo "Login: caryl@example.com / password from LOCAL_SEED_PASSWORD (default command123)"

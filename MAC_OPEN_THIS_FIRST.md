@@ -5,7 +5,7 @@ Use **Open Operations Command Center.command** first. It opens Terminal, starts 
 Login for local testing:
 
 - Email: `caryl@example.com`
-- Password: `command123`
+- Password: value from `LOCAL_SEED_PASSWORD` in `.env.local.mac.example` or `.env`
 
 Files:
 
