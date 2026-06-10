@@ -6,7 +6,7 @@ import { landingPathForUser, setStoredUser } from '@/lib/session';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('caryl@example.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ export default function LoginPage() {
       setStoredUser(user);
       router.push(landingPathForUser(user));
     } catch (err: any) {
-      setError('Login failed. Check email/password.');
+      setError('Invalid email or password.');
     } finally {
       setLoading(false);
     }
@@ -28,17 +28,16 @@ export default function LoginPage() {
   return (
     <main className="login-screen">
       <section className="login-card">
-        <div className="logo big">CC</div>
+        <div className="logo big">HO</div>
         <div>
-          <div className="eyebrow">Command Center</div>
-          <h1>Sign in</h1>
-          <p className="muted">Personal login. Department access loads automatically.</p>
+          <div className="eyebrow">Hidden Oasis</div>
+          <h1>Operations</h1>
         </div>
-        <label className="label">Email<input className="input" value={email} onChange={e => setEmail(e.target.value)} /></label>
-        <label className="label">Password<input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') login(); }} /></label>
+        <label className="label">Email<input className="input" value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" /></label>
+        <label className="label">Password<input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') login(); }} autoComplete="current-password" /></label>
         {error ? <div className="pill urgent">{error}</div> : null}
         <button className="btn" onClick={login} disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
-        <small className="muted">Use your account password. Local demo mode uses the `LOCAL_SEED_PASSWORD` value.</small>
+        <small className="muted">by C.M.</small>
       </section>
     </main>
   );
