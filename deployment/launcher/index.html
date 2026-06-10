@@ -11,7 +11,6 @@
       --muted: #7b8179;
       --line: #e1e6df;
       --paper: rgba(255,255,255,.9);
-      --field: #f6f6f4;
       --shadow: 0 24px 70px rgba(26,38,30,.09);
       --green: #1f6a47;
       --blue: #243b68;
@@ -38,33 +37,21 @@
       margin: 0 auto;
       display: grid;
       align-content: center;
-      gap: 26px;
+      gap: 28px;
       padding: 42px 0;
     }
 
     header {
       display: grid;
-      gap: 16px;
+      gap: 8px;
       justify-items: start;
-    }
-
-    .mark {
-      width: 52px;
-      height: 52px;
-      display: grid;
-      place-items: center;
-      border-radius: 16px;
-      background: #111;
-      color: #fff;
-      font-weight: 760;
-      letter-spacing: .03em;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(44px, 8vw, 84px);
+      font-size: clamp(48px, 8vw, 88px);
       line-height: .92;
-      letter-spacing: -.06em;
+      letter-spacing: -.065em;
     }
 
     .grid {
@@ -75,10 +62,10 @@
 
     a {
       position: relative;
-      min-height: 210px;
+      min-height: 184px;
       display: grid;
-      align-content: space-between;
-      gap: 22px;
+      align-content: end;
+      gap: 14px;
       padding: 26px;
       border: 1px solid var(--line);
       border-radius: 24px;
@@ -104,28 +91,16 @@
       box-shadow: 0 30px 80px rgba(26,38,30,.13);
     }
 
-    .tile-mark {
-      width: 46px;
-      height: 46px;
-      display: grid;
-      place-items: center;
-      border-radius: 14px;
-      background: var(--accent);
-      color: #fff;
-      font-size: 15px;
-      font-weight: 760;
-      letter-spacing: .03em;
-    }
-
     strong {
       display: block;
       margin: 0;
-      font-size: 27px;
+      font-size: 29px;
       line-height: 1;
-      letter-spacing: -.045em;
+      letter-spacing: -.05em;
     }
 
     .open {
+      margin-top: 12px;
       color: var(--muted);
       font-size: 13px;
       font-weight: 650;
@@ -149,21 +124,19 @@
     @media (max-width: 560px) {
       main { width: min(420px, calc(100% - 32px)); padding: 32px 0; }
       .grid { grid-template-columns: 1fr; }
-      a { min-height: 160px; }
-      h1 { font-size: 48px; }
+      a { min-height: 148px; }
+      h1 { font-size: 50px; }
     }
   </style>
 </head>
 <body>
   <main>
     <header>
-      <div class="mark">HO</div>
       <h1>Hidden Oasis</h1>
     </header>
 
     <section class="grid" aria-label="Hidden Oasis applications">
       <a class="accounting" href="https://accounting.hiddenoasis.app">
-        <div class="tile-mark">HO</div>
         <div>
           <strong>Accounting</strong>
           <div class="open">Open app</div>
@@ -171,7 +144,6 @@
       </a>
 
       <a class="pos" href="https://pos.hiddenoasis.app">
-        <div class="tile-mark">HO</div>
         <div>
           <strong>POS</strong>
           <div class="open">Open app</div>
@@ -179,7 +151,6 @@
       </a>
 
       <a class="operations" href="https://operations.hiddenoasis.app">
-        <div class="tile-mark">HO</div>
         <div>
           <strong>Operations</strong>
           <div class="open">Open app</div>
@@ -187,7 +158,6 @@
       </a>
 
       <a class="staff" href="https://staff.hiddenoasis.app">
-        <div class="tile-mark">HO</div>
         <div>
           <strong>Staff</strong>
           <div class="open">Open app</div>
