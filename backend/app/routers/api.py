@@ -57,6 +57,8 @@ RESOURCE_MODELS = {
     "external-review-items": models.ExternalReviewItem,
 }
 
+ADMIN_ONLY_RESOURCES = {"users", "user-departments", "departments"}
+
 SEARCH_COLUMNS = {
     "departments": ["name", "short_name"],
     "users": ["name", "email", "role"],
@@ -210,6 +212,11 @@ def require_admin_user(user: models.User):
     if not can_view_all(user):
         raise HTTPException(status_code=403, detail="Manager access required")
     return user
+
+
+def require_admin_resource_access(resource: str, user: models.User):
+    if resource in ADMIN_ONLY_RESOURCES:
+        require_admin_user(user)
 
 
 def find_user_by_email(db: Session, email: Optional[str]):
@@ -868,6 +875,7 @@ def workflow_create_task(
     db: Session = Depends(get_db),
 ):
     model = get_model(resource)
+    require_admin_resource_access(resource, user)
     obj = fetch_or_404(db, model, item_id)
     assert_resource_access(db, user, obj)
     department_id = payload.department_id or getattr(obj, "department_id", None)
@@ -950,8 +958,7 @@ def list_resource(
     db: Session = Depends(get_db),
 ):
     model = get_model(resource)
-    if resource in ["users", "user-departments", "departments"] and not can_view_all(user):
-        raise HTTPException(status_code=403, detail="Manager access required")
+    require_admin_resource_access(resource, user)
     assert_department_access(db, user, department_id)
     query = db.query(model)
     query = active_filter(query, model, active)
@@ -969,8 +976,7 @@ def list_resource(
 @router.post("/{resource}")
 def create_resource(resource: str, payload: Dict[str, Any], user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
-    if resource in ["users", "user-departments", "departments"] and not can_view_all(user):
-        raise HTTPException(status_code=403, detail="Manager access required")
+    require_admin_resource_access(resource, user)
     if resource == "users":
         raise HTTPException(status_code=400, detail="Use the admin user route for account creation.")
     assert_department_access(db, user, payload.get("department_id"))
@@ -986,6 +992,7 @@ def create_resource(resource: str, payload: Dict[str, Any], user: models.User = 
 @router.get("/{resource}/{item_id}")
 def get_resource(resource: str, item_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
+    require_admin_resource_access(resource, user)
     obj = fetch_or_404(db, model, item_id)
     assert_resource_access(db, user, obj)
     data = model_to_dict(obj)
@@ -997,6 +1004,7 @@ def get_resource(resource: str, item_id: int, user: models.User = Depends(requir
 @router.patch("/{resource}/{item_id}")
 def update_resource(resource: str, item_id: int, payload: Dict[str, Any], user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
+    require_admin_resource_access(resource, user)
     obj = fetch_or_404(db, model, item_id)
     assert_resource_access(db, user, obj)
     assert_department_access(db, user, payload.get("department_id"))
@@ -1016,6 +1024,7 @@ def update_resource(resource: str, item_id: int, payload: Dict[str, Any], user: 
 @router.post("/{resource}/{item_id}/status")
 def set_status(resource: str, item_id: int, payload: StatusPayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
+    require_admin_resource_access(resource, user)
     obj = fetch_or_404(db, model, item_id)
     assert_resource_access(db, user, obj)
     if not hasattr(obj, "status") and not hasattr(obj, "review_status"):
@@ -1039,6 +1048,7 @@ def set_status(resource: str, item_id: int, payload: StatusPayload, user: models
 @router.post("/{resource}/{item_id}/archive")
 def archive_resource(resource: str, item_id: int, reason: str = "manual", user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
+    require_admin_resource_access(resource, user)
     obj = fetch_or_404(db, model, item_id)
     assert_resource_access(db, user, obj)
     if not hasattr(obj, "hidden_from_active"):
@@ -1054,6 +1064,7 @@ def archive_resource(resource: str, item_id: int, reason: str = "manual", user: 
 @router.post("/{resource}/{item_id}/comments")
 def add_comment(resource: str, item_id: int, payload: CommentPayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
+    require_admin_resource_access(resource, user)
     obj = fetch_or_404(db, model, item_id)
     assert_resource_access(db, user, obj)
     comment = models.Comment(parent_type=resource, parent_id=item_id, body=payload.body, author_id=payload.author_id or user.id, comment_type=payload.comment_type)
@@ -1066,6 +1077,7 @@ def add_comment(resource: str, item_id: int, payload: CommentPayload, user: mode
 @router.get("/{resource}/{item_id}/comments")
 def comments(resource: str, item_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
+    require_admin_resource_access(resource, user)
     obj = fetch_or_404(db, model, item_id)
     assert_resource_access(db, user, obj)
     return serialize_many(db.query(models.Comment).filter(models.Comment.parent_type == resource, models.Comment.parent_id == item_id).order_by(models.Comment.created_at.desc()).all())
@@ -1083,6 +1095,7 @@ def add_attachment(
     db: Session = Depends(get_db),
 ):
     model = get_model(resource)
+    require_admin_resource_access(resource, user)
     obj = fetch_or_404(db, model, item_id)
     assert_resource_access(db, user, obj)
     saved_url = file_url

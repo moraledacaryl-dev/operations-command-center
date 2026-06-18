@@ -56,7 +56,7 @@ export default function Home() {
         <Stat label="Acct review" value={Object.values(accounting).reduce((sum: number, value: any) => sum + Number(value || 0), 0)} href="/review" />
       </div>
       <div className="command-band">
-        <Link className="btn" href="/review">Open review queue</Link>
+        <Link className="btn" href="/review">Review</Link>
         <Link className="btn secondary" href="/shift">Add shift note</Link>
         <Link className="btn secondary" href="/requests">New request</Link>
         <Link className="btn secondary" href="/guests">Guest follow-up</Link>
@@ -81,8 +81,8 @@ export default function Home() {
           </div>
         </section>
         <section className="panel">
-          <h2>Rule</h2>
-          <p className="muted" style={{ lineHeight: 1.7 }}>Active first. Done, approved, verified, posted, and expired items hide into History. Nothing important is deleted.</p>
+          <h2>Memory</h2>
+          <p className="muted" style={{ lineHeight: 1.7 }}>Closed work moves to History. Nothing important is deleted.</p>
         </section>
       </div>
     </>

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { API_BASE, api, Entity } from '@/lib/api';
+import { api, assetUrl, Entity } from '@/lib/api';
 import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
@@ -21,13 +21,6 @@ function PostCard({ item, onOpen }: { item: Entity; onOpen: () => void }) {
       {item.caption ? <div className="muted" style={{ fontSize: 13 }}>{String(item.caption).slice(0, 90)}</div> : null}
     </div>
   );
-}
-
-function assetHref(url?: string) {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/uploads')) return `${API_BASE.replace('/api', '')}${url}`;
-  return url;
 }
 
 export default function PostsPage() {
@@ -162,7 +155,7 @@ export default function PostsPage() {
             <button className="btn secondary" onClick={addVersion}>Add V</button>
           </div>
           <div className="grid" style={{ marginTop: 12 }}>
-            {versions.map(v => <div className="version" key={v.id}><b>V{v.version_no} {v.is_current ? '· Current' : ''}</b><span>{v.filename}</span>{v.file_url ? <a className="btn small secondary" href={assetHref(v.file_url)} target="_blank" rel="noreferrer">Open asset</a> : null}<span className="muted">{v.note}</span></div>)}
+            {versions.map(v => <div className="version" key={v.id}><b>V{v.version_no} {v.is_current ? '· Current' : ''}</b><span>{v.filename}</span>{v.file_url ? <a className="btn small secondary" href={assetUrl(v.file_url)} target="_blank" rel="noreferrer">Open asset</a> : null}<span className="muted">{v.note}</span></div>)}
           </div>
         </div>
         <div className="panel" style={{ marginTop: 16 }}>

@@ -1,23 +1,19 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000/api';
+export const API_BASE = '/api/backend';
+export const ASSET_BASE = '/api/uploads';
 
 export type Entity = Record<string, any>;
 
-function authHeaders() {
-  if (typeof window === 'undefined') return {};
-  const raw = window.localStorage.getItem('cc_user');
-  if (!raw) return {};
-  try {
-    const user = JSON.parse(raw);
-    return user?.token ? { Authorization: `Bearer ${user.token}` } : {};
-  } catch {
-    return {};
-  }
+export function assetUrl(url?: string) {
+  if (!url) return '#';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/uploads/')) return `${ASSET_BASE}/${url.replace('/uploads/', '')}`;
+  return url;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = init?.body instanceof FormData
-    ? { ...authHeaders(), ...(init.headers || {}) }
-    : { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers || {}) };
+    ? { ...(init.headers || {}) }
+    : { 'Content-Type': 'application/json', ...(init?.headers || {}) };
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers,
@@ -50,6 +46,7 @@ export const api = {
   archive: (resource: string, id: number) => request<Entity>(`/${resource}/${id}/archive`, { method: 'POST' }),
   comment: (resource: string, id: number, body: string, comment_type = 'General') => request<Entity>(`/${resource}/${id}/comments`, { method: 'POST', body: JSON.stringify({ body, comment_type }) }),
   login: (email: string, password: string) => request<Entity>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  logout: () => request<Entity>('/auth/logout', { method: 'POST' }),
   me: () => request<Entity>('/auth/me'),
   health: () => request<Entity>('/health'),
   changePassword: (current_password: string, new_password: string) => request<Entity>('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),

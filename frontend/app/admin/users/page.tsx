@@ -13,11 +13,21 @@ const EMPTY_CREATE = {
   is_active: true,
 };
 
+function generatePassword() {
+  const bytes = new Uint8Array(12);
+  window.crypto.getRandomValues(bytes);
+  const token = Array.from(bytes, b => b.toString(36).padStart(2, '0')).join('').slice(0, 18);
+  return `HO-${token}-Aa1!`;
+}
+
 export default function UsersPage() {
   const [meta, setMeta] = useState<Entity>({ users: [], departments: [] });
   const [membership, setMembership] = useState<Entity>({ user_id: '', department_id: '', is_primary: false, role_override: '' });
   const [createForm, setCreateForm] = useState<Entity>(EMPTY_CREATE);
   const [resetForm, setResetForm] = useState<Entity>({ user_id: '', new_password: '' });
+  const [generatedCreatePassword, setGeneratedCreatePassword] = useState('');
+  const [generatedResetPassword, setGeneratedResetPassword] = useState('');
+  const [oneTimePassword, setOneTimePassword] = useState('');
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
 
@@ -58,7 +68,9 @@ export default function UsersPage() {
         department_id: createForm.department_id ? Number(createForm.department_id) : null,
       });
       setSaved('User created.');
+      setOneTimePassword(createForm.password === generatedCreatePassword ? createForm.password : '');
       setCreateForm(EMPTY_CREATE);
+      setGeneratedCreatePassword('');
       await load();
     } catch (err: any) {
       setError(err.message || 'Could not create user.');
@@ -72,17 +84,52 @@ export default function UsersPage() {
     try {
       await api.adminResetUserPassword(Number(resetForm.user_id), resetForm.new_password);
       setSaved('Password reset saved.');
+      setOneTimePassword(resetForm.new_password === generatedResetPassword ? resetForm.new_password : '');
       setResetForm({ user_id: '', new_password: '' });
+      setGeneratedResetPassword('');
       await load();
     } catch (err: any) {
       setError(err.message || 'Could not reset password.');
     }
   }
 
+  async function toggleActive(target: Entity) {
+    setError('');
+    setSaved('');
+    try {
+      await api.update('users', Number(target.id), { is_active: !target.is_active });
+      setSaved(`${target.name} ${target.is_active ? 'deactivated' : 'activated'}.`);
+      await load();
+    } catch (err: any) {
+      setError(err.message || 'Could not update user.');
+    }
+  }
+
+  function fillCreatePassword() {
+    const password = generatePassword();
+    setGeneratedCreatePassword(password);
+    setCreateForm({ ...createForm, password });
+  }
+
+  function fillResetPassword() {
+    const password = generatePassword();
+    setGeneratedResetPassword(password);
+    setResetForm({ ...resetForm, new_password: password });
+  }
+
   return <>
     <Top eyebrow="Admin" title="Users" />
     {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
     {saved ? <div className="pill ok" style={{ marginBottom: 12 }}>{saved}</div> : null}
+    {oneTimePassword ? (
+      <section className="panel one-time-password">
+        <div>
+          <h2>Temporary password</h2>
+          <p className="muted">Shown once. Share it privately.</p>
+        </div>
+        <code>{oneTimePassword}</code>
+      </section>
+    ) : null}
 
     <div className="grid cols-2" style={{ marginBottom: 16 }}>
       <section className="panel">
@@ -101,7 +148,12 @@ export default function UsersPage() {
               {meta.departments?.map((dept: Entity) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
             </select>
           </label>
-          <label className="label">Password<input className="input" type="password" value={createForm.password} onChange={e => setCreateForm({ ...createForm, password: e.target.value })} /></label>
+          <label className="label">Password
+            <div className="input-action">
+              <input className="input" type="text" value={createForm.password} onChange={e => { setGeneratedCreatePassword(''); setCreateForm({ ...createForm, password: e.target.value }); }} />
+              <button className="btn small secondary" type="button" onClick={fillCreatePassword}>Generate</button>
+            </div>
+          </label>
           <label className="label inline"><input type="checkbox" checked={!!createForm.is_active} onChange={e => setCreateForm({ ...createForm, is_active: e.target.checked })} /> Active</label>
         </div>
         <div className="toolbar"><button className="btn" onClick={createUser}>Create user</button></div>
@@ -116,7 +168,12 @@ export default function UsersPage() {
               {meta.users?.map((candidate: Entity) => <option key={candidate.id} value={candidate.id}>{candidate.name} · {candidate.email}</option>)}
             </select>
           </label>
-          <label className="label">New password<input className="input" type="password" value={resetForm.new_password} onChange={e => setResetForm({ ...resetForm, new_password: e.target.value })} /></label>
+          <label className="label">New password
+            <div className="input-action">
+              <input className="input" type="text" value={resetForm.new_password} onChange={e => { setGeneratedResetPassword(''); setResetForm({ ...resetForm, new_password: e.target.value }); }} />
+              <button className="btn small secondary" type="button" onClick={fillResetPassword}>Generate</button>
+            </div>
+          </label>
         </div>
         <div className="toolbar"><button className="btn secondary" onClick={resetPassword}>Reset password</button></div>
       </section>
@@ -157,6 +214,9 @@ export default function UsersPage() {
         </div>
         <div className="card-line">
           <span className="muted">Last login: {u.last_login_at || 'never'}</span>
+        </div>
+        <div className="toolbar" style={{ marginBottom: 0, marginTop: 4 }}>
+          <button className="btn small secondary" onClick={() => toggleActive(u)}>{u.is_active ? 'Deactivate' : 'Activate'}</button>
         </div>
       </div>)}
     </div>

@@ -56,6 +56,7 @@ h3 { margin: 0 0 8px; }
 .pill.blue { background:#dbeafe; color: var(--blue); border-color:#bfdbfe; }
 .pill.warn { background:#fef3c7; color: var(--warn); border-color:#fde68a; }
 .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom: 16px; }
+.toolbar.tight { margin-bottom: 0; }
 .btn { border:1px solid var(--line); background:var(--ink); color:white; border-radius: 8px; padding:10px 13px; cursor:pointer; font-weight:700; }
 .btn.secondary { background: var(--panel); color:#191714; }
 .btn.ghost { background: transparent; color:#191714; }
@@ -65,9 +66,13 @@ h3 { margin: 0 0 8px; }
 .form { display:grid; gap: 10px; }
 .form-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .label { font-size: 12px; color: var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:.08em; display:grid; gap:6px; }
+.input-action { display:grid; grid-template-columns: 1fr auto; gap: 8px; align-items:center; }
+.one-time-password { display:flex; justify-content:space-between; align-items:center; gap: 16px; margin-bottom: 16px; }
+.one-time-password p { margin: 4px 0 0; }
+.one-time-password code { background:#111; color:white; border-radius:8px; padding:10px 12px; font-size:14px; overflow:auto; max-width:100%; }
 .drawer-backdrop { position: fixed; inset:0; background: rgba(20, 17, 13, .22); display:flex; justify-content:flex-end; z-index:20; }
 .drawer { width: min(720px, 96vw); height:100vh; background: var(--panel); border-left:1px solid var(--line); padding: 20px; overflow:auto; box-shadow: -20px 0 60px rgba(0,0,0,.14); }
-.drawer-head { display:flex; justify-content:space-between; align-items:start; gap:14px; margin-bottom: 18px; }
+.drawer-head { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom: 18px; }
 .detail-row { display:grid; grid-template-columns: 120px 1fr; gap:12px; padding: 10px 0; border-bottom:1px solid var(--line); }
 .detail-row span:first-child { color:var(--muted); font-size: 12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
 .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
@@ -96,6 +101,7 @@ h3 { margin: 0 0 8px; }
   .ops-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .workflow-panel { display:grid; }
   .workflow-actions { justify-content:flex-start; }
+  .input-action, .one-time-password { grid-template-columns: 1fr; display:grid; }
 }
 
 .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at top, #fffdf9 0%, var(--bg) 48%, #eee6d9 100%); }

@@ -11,7 +11,8 @@ export function getStoredUser(): Entity | null {
 }
 
 export function setStoredUser(user: Entity) {
-  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+  const { token: _token, ...safeUser } = user;
+  window.localStorage.setItem(USER_KEY, JSON.stringify(safeUser));
   const primary = user.primary_department_id || user.departments?.[0]?.id;
   if (primary) window.localStorage.setItem(DEPT_KEY, String(primary));
 }
@@ -38,4 +39,8 @@ export function landingPathForUser(user: Entity): string {
   if (['owner', 'admin', 'manager'].includes(user.role)) return '/';
   if (departments.length) return `/departments?dept=${departments[0].id}`;
   return '/';
+}
+
+export function canUseAdmin(user?: Entity | null): boolean {
+  return !!user && ['owner', 'admin', 'manager'].includes(String(user.role || '').toLowerCase());
 }

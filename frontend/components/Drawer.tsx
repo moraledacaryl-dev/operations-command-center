@@ -1,15 +1,8 @@
 'use client';
-import { API_BASE, Entity } from '@/lib/api';
+import { assetUrl, Entity } from '@/lib/api';
 import { Pill } from './Pill';
 
-const hidden = new Set(['id', 'created_at', 'updated_at', 'hidden_from_active', 'archived_at', 'archive_reason', 'completed_at', 'comments', 'attachments', 'activity']);
-
-function assetHref(url?: string) {
-  if (!url) return '#';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/uploads')) return `${API_BASE.replace('/api', '')}${url}`;
-  return url;
-}
+const hidden = new Set(['id', 'created_at', 'updated_at', 'hidden_from_active', 'archived_at', 'archive_reason', 'completed_at', 'comments', 'attachments', 'activity', 'payload_json']);
 
 export function Drawer({ item, title, onClose, children }: { item: Entity | null; title?: string; onClose: () => void; children?: React.ReactNode }) {
   if (!item) return null;
@@ -43,7 +36,7 @@ export function Drawer({ item, title, onClose, children }: { item: Entity | null
           <div className="panel" style={{ marginTop: 16 }}>
             <h2>Attachments</h2>
             <div className="grid" style={{ marginTop: 12 }}>
-              {item.attachments.map((attachment: Entity) => <a className="version" key={attachment.id} href={assetHref(attachment.file_url)} target="_blank" rel="noreferrer"><b>{attachment.filename}</b><span className="muted">{attachment.mime_type}</span></a>)}
+              {item.attachments.map((attachment: Entity) => <a className="version" key={attachment.id} href={assetUrl(attachment.file_url)} target="_blank" rel="noreferrer"><b>{attachment.filename}</b><span className="muted">{attachment.mime_type}</span></a>)}
             </div>
           </div>
         ) : null}

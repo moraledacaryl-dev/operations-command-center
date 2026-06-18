@@ -25,6 +25,14 @@ Do not switch `hiddenoasis.app` to the launcher until all four app subdomains ar
 
 Before direct cross-app POST testing, install the same real `INTEGRATION_API_KEY` in Accounting, POS, Operations, and Staff/Payroll server settings. The committed files only contain placeholders.
 
+Operations frontend should use the server-side API proxy:
+
+```bash
+SERVER_API_BASE=http://127.0.0.1:8200/api
+```
+
+Do not use `NEXT_PUBLIC_API_BASE` for production Operations deploys. The browser should talk to the Next app, and the Next app should talk to FastAPI.
+
 ## Server Source Layout
 
 Use `/root/repos` as the source/staging area and `/opt` as live deployment output.

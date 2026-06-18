@@ -4,7 +4,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.routers.api import STAFF_EVENTS, WorkflowPayload, create_approval_from_external_item, mark_external_item_seen, overview_cards, readiness_warnings, reject_external_item, store_external_review_item
+from fastapi import HTTPException
+
+from app.routers.api import STAFF_EVENTS, WorkflowPayload, create_approval_from_external_item, mark_external_item_seen, overview_cards, readiness_warnings, reject_external_item, require_admin_resource_access, store_external_review_item
 from app import models
 
 
@@ -107,3 +109,15 @@ def test_external_review_item_actions_mark_seen_reject_and_create_approval():
 def test_readiness_warnings_flag_starter_auth_settings():
     warnings = readiness_warnings()
     assert any("SESSION_SECRET" in warning for warning in warnings)
+
+
+def test_admin_resources_reject_department_only_users():
+    lead = models.User(name="Lead", email="lead@test", role="lead")
+    manager = models.User(name="Manager", email="manager@test", role="manager")
+    rejected = False
+    try:
+        require_admin_resource_access("users", lead)
+    except HTTPException:
+        rejected = True
+    assert rejected
+    require_admin_resource_access("users", manager)

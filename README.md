@@ -152,6 +152,9 @@ cp .env.example .env.local
 npm run dev
 ```
 
+The frontend now proxies API requests through Next. Use `SERVER_API_BASE` in `.env.local`; do not use browser-exposed API tokens.
+Next.js 16 requires Node.js `>=20.9.0`.
+
 ## Boundaries
 
 Accounting owns:

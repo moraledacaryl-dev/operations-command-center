@@ -15,11 +15,24 @@ function resourceFor(kind: string) {
   return kind === 'Inbox' ? 'submissions' : kind === 'Verify' ? 'fixes' : kind.toLowerCase();
 }
 
+function sourceLabel(item: Entity, kind: string) {
+  if (kind !== 'Imported') return kind;
+  const source = String(item.source_app || item.external_source || '').toLowerCase();
+  if (source.includes('staff')) return 'Staff';
+  if (source.includes('pos')) return 'POS';
+  if (source.includes('accounting')) return 'Accounting';
+  return 'Imported';
+}
+
+function itemSummary(item: Entity) {
+  return String(item.summary || item.reason || item.note || item.caption || item.problem || '').slice(0, 120);
+}
+
 function ReviewCard({ item, kind, onOpen }: { item: Entity; kind: string; onOpen: () => void }) {
   return <div className="card">
     <div className="card-title">{item.title || item.name || 'Item'}</div>
-    <div className="card-line"><Pill value={kind} /><Pill value={item.status || item.review_status} /><Pill value={item.urgency || item.priority || item.source_type} /></div>
-    <div className="muted">{String(item.reason || item.note || item.caption || item.problem || item.payload_json || '').slice(0, 110)}</div>
+    <div className="card-line"><Pill value={sourceLabel(item, kind)} /><Pill value={item.status || item.review_status} /><Pill value={item.urgency || item.priority || item.event_type || item.source_type} /></div>
+    {itemSummary(item) ? <div className="muted">{itemSummary(item)}</div> : null}
     <div className="toolbar tight">
       <button className="btn small secondary" onClick={onOpen}>Open</button>
     </div>
@@ -72,7 +85,7 @@ export default function ReviewPage() {
   return <>
     <Top eyebrow="Decide" title="Review" right={<button className="btn secondary" onClick={load}>Refresh</button>} />
     {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
-    <div className="panel" style={{ marginBottom: 16 }}><div className="card-line"><Pill value="One queue" /><span className="muted">Inbox, approvals, posts, fixes, and requests in one place.</span></div></div>
+    <div className="panel" style={{ marginBottom: 16 }}><div className="card-line"><Pill value="One queue" /><span className="muted">Imported items, approvals, fixes, posts, and requests.</span></div></div>
     <div className="grid cols-2">
       {sections.map(([key, label]) => <section className="panel" key={key}>
         <h2>{label}</h2>
@@ -84,6 +97,12 @@ export default function ReviewPage() {
     <Drawer item={selected} title={`${selectedKind} review`} onClose={() => setSelected(null)}>
       <div className="panel">
         <h2>Decision</h2>
+        {selectedKind === 'Imported' ? (
+          <div className="card-line" style={{ marginTop: 10 }}>
+            <Pill value={sourceLabel(selected, selectedKind)} />
+            <Pill value={selected.event_type} />
+          </div>
+        ) : null}
         <div className="form" style={{ marginTop: 12 }}>
           <textarea className="textarea" placeholder="Decision note" value={note} onChange={e => setNote(e.target.value)} />
           <div className="toolbar" style={{ marginBottom: 0 }}>
