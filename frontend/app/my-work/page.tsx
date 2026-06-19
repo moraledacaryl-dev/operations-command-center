@@ -6,6 +6,13 @@ import { canSupervise, getCurrentDepartmentId, getStoredUser, roleLabel } from '
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
 
+const EMPTY_SHIFT = { title: '', shift: 'AM', category: 'Other', urgency: 'Normal', note: '' };
+const EMPTY_REQUEST = { title: '', request_type: 'General', urgency: 'Normal', reason: '' };
+const shifts = ['AM', 'PM', 'Night'];
+const categories = ['Guest', 'Room', 'Fix', 'Supply', 'Payment', 'Event', 'Staff', 'Other'];
+const requestTypes = ['General', 'Equipment', 'Policy', 'Process', 'Staffing', 'Supply', 'Maintenance', 'Event', 'Other'];
+const priorities = ['Low', 'Normal', 'Urgent'];
+
 function WorkCard({ item, href, kind, users }: { item: Entity; href: string; kind: string; users?: Entity[] }) {
   const assigned = users?.find(user => Number(user.id) === Number(item.assigned_to_id));
   return (
@@ -49,7 +56,11 @@ export default function MyWorkPage() {
   const [guests, setGuests] = useState<Entity[]>([]);
   const [fixes, setFixes] = useState<Entity[]>([]);
   const [posts, setPosts] = useState<Entity[]>([]);
+  const [shiftForm, setShiftForm] = useState<Entity>(EMPTY_SHIFT);
+  const [requestForm, setRequestForm] = useState<Entity>(EMPTY_REQUEST);
   const [error, setError] = useState('');
+  const [saved, setSaved] = useState('');
+  const [busy, setBusy] = useState(false);
 
   async function load() {
     setError('');
@@ -83,6 +94,50 @@ export default function MyWorkPage() {
 
   useEffect(() => { load(); }, []);
 
+  function departmentId() {
+    return getCurrentDepartmentId(user) || user?.primary_department_id || user?.departments?.[0]?.id || null;
+  }
+
+  async function saveShiftNote() {
+    if (!String(shiftForm.title || '').trim()) {
+      setError('Shift title is required.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setSaved('');
+    try {
+      await api.create('shift-notes', { ...shiftForm, status: 'New', department_id: departmentId() });
+      setShiftForm(EMPTY_SHIFT);
+      setSaved('Shift note sent.');
+      await load();
+    } catch (err: any) {
+      setError(err.message || 'Could not send shift note.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveRequest() {
+    if (!String(requestForm.title || '').trim()) {
+      setError('Request title is required.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setSaved('');
+    try {
+      await api.create('requests', { ...requestForm, status: 'Review', department_id: departmentId() });
+      setRequestForm(EMPTY_REQUEST);
+      setSaved('Request sent.');
+      await load();
+    } catch (err: any) {
+      setError(err.message || 'Could not send request.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const supervisor = canSupervise(user);
   const frontDesk = hasDept(user, ['front desk']);
   const maintenance = hasDept(user, ['maintenance', 'housekeeping']);
@@ -103,6 +158,7 @@ export default function MyWorkPage() {
     <>
       <Top eyebrow={supervisor ? roleLabel(user) : 'Daily'} title={supervisor ? 'Team Work' : 'My Work'} right={<button className="btn secondary" onClick={load}>Refresh</button>} />
       {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
+      {saved ? <div className="pill ok" style={{ marginBottom: 12 }}>{saved}</div> : null}
       {supervisor ? (
         <div className="owner-command-grid">
           <section className="panel">
@@ -133,12 +189,50 @@ export default function MyWorkPage() {
           </section>
         </div>
       ) : (
-        <div className="ops-strip compact">
-          <StatLink label="Tasks" value={tasks.length} href="/tasks" />
-          <StatLink label="Requests" value={requests.length} href="/requests" />
-          <StatLink label="Shift" value={shiftNotes.length} href="/shift" />
-          <StatLink label="Department" value={user?.departments?.length || 0} href="/departments" />
-        </div>
+        <>
+          <div className="owner-command-grid">
+            <section className="panel">
+              <div className="section-head">
+                <div>
+                  <div className="eyebrow">Today</div>
+                  <h2>My day</h2>
+                </div>
+                <Pill value={user?.departments?.[0]?.name || 'Department'} />
+              </div>
+              <div className="command-metrics">
+                <Link href="/tasks"><span>Tasks</span><b>{tasks.length}</b></Link>
+                <Link href="/requests"><span>Requests</span><b>{requests.length}</b></Link>
+                <Link href="/shift"><span>Shift</span><b>{shiftNotes.length}</b></Link>
+                <Link href="/departments"><span>Dept</span><b>{user?.departments?.length || 0}</b></Link>
+              </div>
+            </section>
+            <section className="panel">
+              <div className="section-head"><h2>Shift note</h2><Pill value={shiftForm.urgency} /></div>
+              <div className="form" style={{ marginTop: 12 }}>
+                <div className="form-grid">
+                  <label className="label">Title<input className="input" value={shiftForm.title || ''} onChange={e => setShiftForm({ ...shiftForm, title: e.target.value })} /></label>
+                  <label className="label">Shift<select className="select" value={shiftForm.shift || 'AM'} onChange={e => setShiftForm({ ...shiftForm, shift: e.target.value })}>{shifts.map(shift => <option key={shift}>{shift}</option>)}</select></label>
+                  <label className="label">Tag<select className="select" value={shiftForm.category || 'Other'} onChange={e => setShiftForm({ ...shiftForm, category: e.target.value })}>{categories.map(category => <option key={category}>{category}</option>)}</select></label>
+                  <label className="label">Priority<select className="select" value={shiftForm.urgency || 'Normal'} onChange={e => setShiftForm({ ...shiftForm, urgency: e.target.value })}>{priorities.map(priority => <option key={priority}>{priority}</option>)}</select></label>
+                </div>
+                <label className="label">Note<textarea className="textarea" value={shiftForm.note || ''} onChange={e => setShiftForm({ ...shiftForm, note: e.target.value })} /></label>
+                <button className="btn" disabled={busy} onClick={saveShiftNote}>Send note</button>
+              </div>
+            </section>
+          </div>
+          <section className="panel" style={{ marginBottom: 16 }}>
+            <div className="section-head"><h2>Request</h2><Pill value={requestForm.urgency} /></div>
+            <div className="form" style={{ marginTop: 12 }}>
+              <div className="form-grid">
+                <label className="label">Request<input className="input" value={requestForm.title || ''} onChange={e => setRequestForm({ ...requestForm, title: e.target.value })} /></label>
+                <label className="label">Type<select className="select" value={requestForm.request_type || 'General'} onChange={e => setRequestForm({ ...requestForm, request_type: e.target.value })}>{requestTypes.map(type => <option key={type}>{type}</option>)}</select></label>
+                <label className="label">Priority<select className="select" value={requestForm.urgency || 'Normal'} onChange={e => setRequestForm({ ...requestForm, urgency: e.target.value })}>{priorities.map(priority => <option key={priority}>{priority}</option>)}</select></label>
+              </div>
+              <label className="label">Reason<textarea className="textarea" value={requestForm.reason || ''} onChange={e => setRequestForm({ ...requestForm, reason: e.target.value })} /></label>
+              <button className="btn secondary" disabled={busy} onClick={saveRequest}>Send request</button>
+            </div>
+          </section>
+        </>
       )}
 
       {supervisor ? (

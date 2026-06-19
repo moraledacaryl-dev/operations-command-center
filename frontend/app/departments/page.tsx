@@ -67,7 +67,7 @@ export default function DepartmentsPage() {
   const activeDept = workspace?.department;
   const wideAccess = canUseAdmin(user);
   const supervisor = canSupervise(user);
-  const visibleTabs = wideAccess ? tabs : supervisor ? supervisorTabs(user) : ['Tasks', 'Talk', 'Requests', 'Shift', 'Docs', 'History'];
+  const visibleTabs = wideAccess ? tabs : supervisor ? supervisorTabs(user) : ['Shift', 'Requests', 'Docs', 'History', 'Talk'];
   const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
   const rows = activeTab === 'Tasks' ? workspace?.tasks
     : activeTab === 'Talk' ? workspace?.talk
@@ -85,6 +85,7 @@ export default function DepartmentsPage() {
   const openRequests = (workspace?.requests || []).filter((item: Entity) => !['Done', 'Rejected'].includes(item.status)).length;
   const openGuests = (workspace?.guests || []).filter((item: Entity) => item.status !== 'Done').length;
   const openFixes = (workspace?.fixes || []).filter((item: Entity) => item.status !== 'Verified').length;
+  const openShift = (workspace?.shift || []).filter((item: Entity) => item.status !== 'Done').length;
 
   return (
     <>
@@ -97,17 +98,18 @@ export default function DepartmentsPage() {
             <span className="muted">{wideAccess ? 'Department workspace.' : 'Your team workspace.'}</span>
           </div>
           <div className="card-line">
-            <Pill value={`Tasks: ${openTasks}`} />
+            {wideAccess || supervisor ? <Pill value={`Tasks: ${openTasks}`} /> : null}
             <Pill value={`Requests: ${openRequests}`} />
-            <Pill value={`Guests: ${openGuests}`} />
-            <Pill value={`Fixes: ${openFixes}`} />
-            <Pill value={`People: ${(workspace?.people || []).length}`} />
+            <Pill value={`Shift: ${openShift}`} />
+            {wideAccess || supervisor ? <Pill value={`Guests: ${openGuests}`} /> : null}
+            {wideAccess || supervisor ? <Pill value={`Fixes: ${openFixes}`} /> : null}
+            {wideAccess || supervisor ? <Pill value={`People: ${(workspace?.people || []).length}`} /> : null}
           </div>
         </div>
       </div>
       <div className="command-band">
         {!wideAccess ? <Link className="btn" href="/my-work">My Work</Link> : null}
-        <Link className={wideAccess ? 'btn' : 'btn secondary'} href="/tasks">Tasks</Link>
+        {wideAccess || supervisor ? <Link className={wideAccess ? 'btn' : 'btn secondary'} href="/tasks">Tasks</Link> : null}
         <Link className="btn secondary" href="/requests">New request</Link>
         <Link className="btn secondary" href="/shift">Shift note</Link>
         {supervisor && hasDept(user, ['front desk']) ? <Link className="btn secondary" href="/guests">Guest</Link> : null}

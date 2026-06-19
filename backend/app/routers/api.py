@@ -58,6 +58,7 @@ RESOURCE_MODELS = {
 }
 
 ADMIN_ONLY_RESOURCES = {"users", "user-departments", "departments"}
+STAFF_SELF_RESOURCES = {"tasks", "requests", "shift-notes"}
 
 SEARCH_COLUMNS = {
     "departments": ["name", "short_name"],
@@ -208,6 +209,14 @@ def can_view_all(user: models.User) -> bool:
     return user.role in ["owner", "admin", "manager"]
 
 
+def can_supervise(user: models.User) -> bool:
+    return user.role in ["lead", "supervisor"]
+
+
+def is_staff_user(user: models.User) -> bool:
+    return user.role == "staff"
+
+
 def require_admin_user(user: models.User):
     if not can_view_all(user):
         raise HTTPException(status_code=403, detail="Manager access required")
@@ -252,6 +261,15 @@ def assert_resource_access(db: Session, user: models.User, obj: Any):
         return
     if hasattr(obj, "department_id"):
         assert_department_access(db, user, getattr(obj, "department_id", None))
+    if is_staff_user(user):
+        if isinstance(obj, models.Task) and obj.assigned_to_id != user.id:
+            raise HTTPException(status_code=403, detail="No access to this task")
+        if isinstance(obj, models.Request) and obj.requested_by_id != user.id and obj.assigned_to_id != user.id:
+            raise HTTPException(status_code=403, detail="No access to this request")
+        if isinstance(obj, models.ShiftNote) and obj.submitted_by_id != user.id:
+            raise HTTPException(status_code=403, detail="No access to this shift note")
+        if not isinstance(obj, (models.Task, models.Request, models.ShiftNote)):
+            raise HTTPException(status_code=403, detail="Staff access is limited to assigned work")
 
 
 def get_model(resource: str):
@@ -312,6 +330,18 @@ def active_filter(query, model, active: bool):
     if active and hasattr(model, "hidden_from_active"):
         query = query.filter(model.hidden_from_active == False)
     return query
+
+
+def staff_scope(query, resource: str, user: models.User):
+    if not is_staff_user(user):
+        return query
+    if resource == "tasks":
+        return query.filter(models.Task.assigned_to_id == user.id)
+    if resource == "requests":
+        return query.filter(or_(models.Request.requested_by_id == user.id, models.Request.assigned_to_id == user.id))
+    if resource == "shift-notes":
+        return query.filter(models.ShiftNote.submitted_by_id == user.id)
+    return query.filter(False)
 
 
 def create_followup_task(
@@ -721,7 +751,11 @@ def meta(user: models.User = Depends(require_user), db: Session = Depends(get_db
     users = db.query(models.User).filter(models.User.is_active == True).order_by(models.User.name).all()
     departments = db.query(models.Department).order_by(models.Department.name).all()
     rooms = db.query(models.RoomArea).order_by(models.RoomArea.kind, models.RoomArea.name).all()
-    if not can_view_all(user):
+    if is_staff_user(user):
+        users = [user]
+        allowed = department_ids_for(db, user)
+        departments = [dept for dept in departments if dept.id in allowed]
+    elif not can_view_all(user):
         allowed = department_ids_for(db, user)
         users = [candidate for candidate in users if candidate.id == user.id or department_ids_for(db, candidate).intersection(allowed)]
         departments = [dept for dept in departments if dept.id in allowed]
@@ -735,20 +769,43 @@ def meta(user: models.User = Depends(require_user), db: Session = Depends(get_db
 def department_workspace(department_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     assert_department_access(db, user, department_id)
     dept = fetch_or_404(db, models.Department, department_id)
+    people = [serialize_user(db, user) for user in db.query(models.User).filter(models.User.is_active == True).join(models.UserDepartment, models.UserDepartment.user_id == models.User.id).filter(models.UserDepartment.department_id == department_id).all()] or serialize_many(db.query(models.User).filter(models.User.department_id == department_id, models.User.is_active == True).all())
+    task_query = db.query(models.Task).filter(models.Task.department_id == department_id, models.Task.hidden_from_active == False)
+    guest_query = db.query(models.GuestNote).filter(models.GuestNote.department_id == department_id, models.GuestNote.hidden_from_active == False)
+    fix_query = db.query(models.Fix).filter(models.Fix.department_id == department_id, models.Fix.hidden_from_active == False)
+    post_query = db.query(models.Post).filter(models.Post.department_id == department_id, models.Post.hidden_from_active == False)
+    project_query = db.query(models.Project).filter(models.Project.department_id == department_id, models.Project.hidden_from_active == False)
+    shift_query = db.query(models.ShiftNote).filter(models.ShiftNote.department_id == department_id, models.ShiftNote.hidden_from_active == False)
+    approval_query = db.query(models.Approval).filter(models.Approval.department_id == department_id, models.Approval.hidden_from_active == False)
+    request_query = db.query(models.Request).filter(models.Request.department_id == department_id, models.Request.hidden_from_active == False)
+    routine_query = db.query(models.RoutineTemplate).filter(models.RoutineTemplate.department_id == department_id, models.RoutineTemplate.hidden_from_active == False)
+
+    if is_staff_user(user):
+        people = [serialize_user(db, user)]
+        task_query = task_query.filter(models.Task.assigned_to_id == user.id)
+        shift_query = shift_query.filter(models.ShiftNote.submitted_by_id == user.id)
+        request_query = request_query.filter(or_(models.Request.requested_by_id == user.id, models.Request.assigned_to_id == user.id))
+        guest_query = guest_query.filter(False)
+        fix_query = fix_query.filter(False)
+        post_query = post_query.filter(False)
+        project_query = project_query.filter(False)
+        approval_query = approval_query.filter(False)
+        routine_query = routine_query.filter(False)
+
     return {
         "department": model_to_dict(dept),
-        "people": [serialize_user(db, user) for user in db.query(models.User).filter(models.User.is_active == True).join(models.UserDepartment, models.UserDepartment.user_id == models.User.id).filter(models.UserDepartment.department_id == department_id).all()] or serialize_many(db.query(models.User).filter(models.User.department_id == department_id, models.User.is_active == True).all()),
-        "tasks": serialize_many(db.query(models.Task).filter(models.Task.department_id == department_id, models.Task.hidden_from_active == False).order_by(models.Task.updated_at.desc()).limit(50).all()),
-        "guests": serialize_many(db.query(models.GuestNote).filter(models.GuestNote.department_id == department_id, models.GuestNote.hidden_from_active == False).order_by(models.GuestNote.updated_at.desc()).limit(40).all()),
-        "fixes": serialize_many(db.query(models.Fix).filter(models.Fix.department_id == department_id, models.Fix.hidden_from_active == False).order_by(models.Fix.updated_at.desc()).limit(40).all()),
-        "posts": serialize_many(db.query(models.Post).filter(models.Post.department_id == department_id, models.Post.hidden_from_active == False).order_by(models.Post.updated_at.desc()).limit(40).all()),
-        "projects": serialize_many(db.query(models.Project).filter(models.Project.department_id == department_id, models.Project.hidden_from_active == False).order_by(models.Project.updated_at.desc()).limit(30).all()),
-        "shift": serialize_many(db.query(models.ShiftNote).filter(models.ShiftNote.department_id == department_id, models.ShiftNote.hidden_from_active == False).order_by(models.ShiftNote.updated_at.desc()).limit(30).all()),
-        "approvals": serialize_many(db.query(models.Approval).filter(models.Approval.department_id == department_id, models.Approval.hidden_from_active == False).order_by(models.Approval.updated_at.desc()).limit(30).all()),
-        "requests": serialize_many(db.query(models.Request).filter(models.Request.department_id == department_id, models.Request.hidden_from_active == False).order_by(models.Request.updated_at.desc()).limit(30).all()),
+        "people": people,
+        "tasks": serialize_many(task_query.order_by(models.Task.updated_at.desc()).limit(50).all()),
+        "guests": serialize_many(guest_query.order_by(models.GuestNote.updated_at.desc()).limit(40).all()),
+        "fixes": serialize_many(fix_query.order_by(models.Fix.updated_at.desc()).limit(40).all()),
+        "posts": serialize_many(post_query.order_by(models.Post.updated_at.desc()).limit(40).all()),
+        "projects": serialize_many(project_query.order_by(models.Project.updated_at.desc()).limit(30).all()),
+        "shift": serialize_many(shift_query.order_by(models.ShiftNote.updated_at.desc()).limit(30).all()),
+        "approvals": serialize_many(approval_query.order_by(models.Approval.updated_at.desc()).limit(30).all()),
+        "requests": serialize_many(request_query.order_by(models.Request.updated_at.desc()).limit(30).all()),
         "talk": serialize_many(db.query(models.TalkMessage).filter(models.TalkMessage.department_id == department_id, models.TalkMessage.hidden_from_active == False).order_by(models.TalkMessage.updated_at.desc()).limit(30).all()),
         "docs": serialize_many(db.query(models.DepartmentDoc).filter(models.DepartmentDoc.department_id == department_id, models.DepartmentDoc.hidden_from_active == False).order_by(models.DepartmentDoc.updated_at.desc()).limit(30).all()),
-        "routines": serialize_many(db.query(models.RoutineTemplate).filter(models.RoutineTemplate.department_id == department_id, models.RoutineTemplate.hidden_from_active == False).order_by(models.RoutineTemplate.updated_at.desc()).limit(30).all()),
+        "routines": serialize_many(routine_query.order_by(models.RoutineTemplate.updated_at.desc()).limit(30).all()),
         "history": history_search(q=None, kind=None, department_id=department_id, limit=60, user=user, db=db),
     }
 
@@ -1003,6 +1060,7 @@ def list_resource(
     query = db.query(model)
     query = active_filter(query, model, active)
     query = apply_search(query, model, resource, q)
+    query = staff_scope(query, resource, user)
     if status and hasattr(model, "status"):
         query = query.filter(getattr(model, "status") == status)
     if department_id and hasattr(model, "department_id"):
@@ -1019,6 +1077,13 @@ def create_resource(resource: str, payload: Dict[str, Any], user: models.User = 
     require_admin_resource_access(resource, user)
     if resource == "users":
         raise HTTPException(status_code=400, detail="Use the admin user route for account creation.")
+    if is_staff_user(user) and resource not in {"requests", "shift-notes"}:
+        raise HTTPException(status_code=403, detail="Staff can create requests and shift notes only")
+    payload = dict(payload)
+    if resource == "requests":
+        payload["requested_by_id"] = payload.get("requested_by_id") or user.id
+    if resource == "shift-notes":
+        payload["submitted_by_id"] = payload.get("submitted_by_id") or user.id
     assert_department_access(db, user, payload.get("department_id"))
     obj = model()
     apply_payload(obj, payload)
@@ -1224,6 +1289,8 @@ def history_search(
 ):
     assert_department_access(db, user, department_id)
     resources = [kind] if kind else ["projects", "tasks", "shift-notes", "guests", "fixes", "posts", "requests", "approvals", "memos", "submissions", "talk", "docs", "routines"]
+    if is_staff_user(user):
+        resources = [resource for resource in resources if resource in STAFF_SELF_RESOURCES]
     results = []
     for resource in resources:
         model = RESOURCE_MODELS.get(resource)
@@ -1234,6 +1301,7 @@ def history_search(
             query = query.filter(model.department_id == department_id)
         elif not can_view_all(user) and hasattr(model, "department_id"):
             query = query.filter(model.department_id.in_(department_ids_for(db, user)))
+        query = staff_scope(query, resource, user)
         query = apply_search(query, model, resource, q)
         if hasattr(model, "updated_at"):
             query = query.order_by(model.updated_at.desc())

@@ -79,3 +79,4 @@ Department-specific pages:
 - Account
 
 Staff use `My Work` for assigned tasks instead of browsing the full task module.
+Staff can create their own shift notes and requests from `My Work`. Staff task, request, shift-note, and history access is scoped to their own records.
