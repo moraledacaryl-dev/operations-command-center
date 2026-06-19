@@ -36,11 +36,23 @@ export function setCurrentDepartmentId(id: number) {
 
 export function landingPathForUser(user: Entity): string {
   const departments = user.departments || [];
-  if (['owner', 'admin', 'manager'].includes(user.role)) return '/';
+  const role = String(user.role || '').toLowerCase();
+  if (['owner', 'admin', 'manager'].includes(role)) return '/';
   if (departments.length) return '/my-work';
   return '/my-work';
 }
 
 export function canUseAdmin(user?: Entity | null): boolean {
   return !!user && ['owner', 'admin', 'manager'].includes(String(user.role || '').toLowerCase());
+}
+
+export function canSupervise(user?: Entity | null): boolean {
+  return !!user && ['lead', 'supervisor'].includes(String(user.role || '').toLowerCase());
+}
+
+export function roleLabel(user?: Entity | null): string {
+  const role = String(user?.role || '').toLowerCase();
+  if (role === 'lead') return 'Supervisor';
+  if (role === 'supervisor') return 'Supervisor';
+  return user?.role || 'User';
 }

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
-import { clearStoredUser, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId, setStoredUser } from '@/lib/session';
+import { clearStoredUser, getCurrentDepartmentId, getStoredUser, roleLabel, setCurrentDepartmentId, setStoredUser } from '@/lib/session';
 
 type NavItem = { href: string; label: string };
 type NavGroup = { label: string; items: NavItem[] };
@@ -56,10 +56,10 @@ function navForUser(user: Entity | null): NavGroup[] {
     ];
   }
 
-  if (role === 'lead') {
+  if (['lead', 'supervisor'].includes(role)) {
     return [
       { label: 'Main', items: [{ href: '/my-work', label: 'My Work' }, { href: '/departments', label: 'My Department' }] },
-      { label: 'Work', items: [{ href: '/tasks', label: 'Tasks' }, { href: '/requests', label: 'Requests' }, { href: '/shift', label: 'Shift' }] },
+      { label: 'Team', items: [{ href: '/tasks', label: 'Tasks' }, { href: '/requests', label: 'Requests' }, { href: '/shift', label: 'Shift' }] },
       { label: 'Department', items: departmentSpecificItems(user) },
       { label: 'History', items: [{ href: '/history', label: 'History' }] },
       { label: 'Account', items: [{ href: '/account', label: 'Account' }] },
@@ -160,7 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="logo">HO</div>
           <div>
             <strong>Operations</strong>
-            <small>{user.name || 'User'} · {user.role}</small>
+            <small>{user.name || 'User'} · {roleLabel(user)}</small>
           </div>
         </div>
 

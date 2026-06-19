@@ -49,7 +49,7 @@ Operations uses shallow navigation. Pages stay top-level; filters and tabs live 
 - History
 - Account
 
-## Department Lead
+## Supervisor / Department Lead
 
 - My Work
 - My Department
@@ -59,6 +59,8 @@ Operations uses shallow navigation. Pages stay top-level; filters and tabs live 
 - department-specific pages
 - History
 - Account
+
+The app supports both `supervisor` and `lead` as supervisor-level roles. `lead` is displayed as Supervisor in the UI.
 
 Department-specific pages:
 
