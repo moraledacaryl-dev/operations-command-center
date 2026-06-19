@@ -114,10 +114,18 @@ def test_readiness_warnings_flag_starter_auth_settings():
 def test_admin_resources_reject_department_only_users():
     lead = models.User(name="Lead", email="lead@test", role="lead")
     manager = models.User(name="Manager", email="manager@test", role="manager")
+    admin = models.User(name="Admin", email="admin@test", role="admin")
     rejected = False
     try:
         require_admin_resource_access("users", lead)
     except HTTPException:
         rejected = True
     assert rejected
-    require_admin_resource_access("users", manager)
+    manager_rejected = False
+    try:
+        require_admin_resource_access("users", manager)
+    except HTTPException:
+        manager_rejected = True
+    assert manager_rejected
+    require_admin_resource_access("users", admin)
+    require_admin_resource_access("departments", manager)

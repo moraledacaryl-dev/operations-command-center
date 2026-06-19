@@ -34,6 +34,8 @@ Operations uses shallow navigation. Pages stay top-level; filters and tabs live 
 - Account
 - Admin: Users, Health
 
+Admin can create and manage manager, supervisor, lead, and staff accounts. Owner controls Owner/Admin accounts and the dedicated Admin Approve page.
+
 ## Manager
 
 - Home

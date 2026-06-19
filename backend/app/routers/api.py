@@ -57,7 +57,11 @@ RESOURCE_MODELS = {
     "external-review-items": models.ExternalReviewItem,
 }
 
-ADMIN_ONLY_RESOURCES = {"users", "user-departments", "departments"}
+ADMIN_ONLY_RESOURCES = {"users", "user-departments"}
+WIDE_ACCESS_ROLES = {"owner", "admin", "manager"}
+SYSTEM_ADMIN_ROLES = {"owner", "admin"}
+SENSITIVE_USER_ROLES = {"owner", "admin"}
+VALID_USER_ROLES = {"owner", "admin", "manager", "supervisor", "lead", "staff"}
 STAFF_SELF_RESOURCES = {"tasks", "requests", "shift-notes"}
 
 SEARCH_COLUMNS = {
@@ -205,27 +209,41 @@ def require_user(authorization: Optional[str] = Header(default=None), db: Sessio
     return user
 
 
+def role_name(user: models.User) -> str:
+    return (user.role or "").strip().lower()
+
+
 def can_view_all(user: models.User) -> bool:
-    return user.role in ["owner", "admin", "manager"]
+    return role_name(user) in WIDE_ACCESS_ROLES
+
+
+def can_administer_system(user: models.User) -> bool:
+    return role_name(user) in SYSTEM_ADMIN_ROLES
+
+
+def can_manage_sensitive_accounts(user: models.User) -> bool:
+    return role_name(user) == "owner"
 
 
 def can_supervise(user: models.User) -> bool:
-    return user.role in ["lead", "supervisor"]
+    return role_name(user) in ["lead", "supervisor"]
 
 
 def is_staff_user(user: models.User) -> bool:
-    return user.role == "staff"
+    return role_name(user) == "staff"
 
 
 def require_admin_user(user: models.User):
-    if not can_view_all(user):
-        raise HTTPException(status_code=403, detail="Manager access required")
+    if not can_administer_system(user):
+        raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
 
 def require_admin_resource_access(resource: str, user: models.User):
     if resource in ADMIN_ONLY_RESOURCES:
         require_admin_user(user)
+    elif resource == "departments" and not can_view_all(user):
+        raise HTTPException(status_code=403, detail="Manager access required")
 
 
 def find_user_by_email(db: Session, email: Optional[str]):
@@ -240,6 +258,54 @@ def validate_password_or_400(password: str):
         validate_password_strength(password)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def normalize_user_role(value: Optional[str]) -> str:
+    role = (value or "manager").strip().lower()
+    if role not in VALID_USER_ROLES:
+        raise HTTPException(status_code=400, detail="Unknown user role.")
+    return role
+
+
+def assert_sensitive_account_allowed(actor: models.User, target: models.User):
+    if role_name(target) in SENSITIVE_USER_ROLES and not can_manage_sensitive_accounts(actor):
+        raise HTTPException(status_code=403, detail="Owner access required for owner/admin accounts.")
+
+
+def assert_user_role_allowed(actor: models.User, role: str):
+    if role in SENSITIVE_USER_ROLES and not can_manage_sensitive_accounts(actor):
+        raise HTTPException(status_code=403, detail="Owner access required for owner/admin roles.")
+
+
+def assert_last_active_owner_safe(db: Session, target: models.User, payload: Dict[str, Any]):
+    if role_name(target) != "owner":
+        return
+    active_owner_count = db.query(models.User).filter(func.lower(models.User.role) == "owner", models.User.is_active == True).count()
+    role_change = "role" in payload and payload["role"] != "owner"
+    deactivation = payload.get("is_active") is False and target.is_active
+    if active_owner_count <= 1 and (role_change or deactivation):
+        raise HTTPException(status_code=400, detail="At least one active owner is required.")
+
+
+def assert_user_update_allowed(db: Session, actor: models.User, target: models.User, payload: Dict[str, Any]):
+    if "role" in payload:
+        payload["role"] = normalize_user_role(payload.get("role"))
+    if target.id == actor.id and payload.get("is_active") is False:
+        raise HTTPException(status_code=400, detail="You cannot deactivate your own account.")
+    if target.id == actor.id and "role" in payload and payload["role"] != role_name(actor):
+        raise HTTPException(status_code=400, detail="Another owner must change your role.")
+    assert_sensitive_account_allowed(actor, target)
+    if "role" in payload:
+        assert_user_role_allowed(actor, payload["role"])
+    assert_last_active_owner_safe(db, target, payload)
+
+
+def assert_user_membership_allowed(db: Session, actor: models.User, target_user_id: Optional[int]):
+    if not target_user_id:
+        return
+    target = db.get(models.User, int(target_user_id))
+    if target:
+        assert_sensitive_account_allowed(actor, target)
 
 
 def department_ids_for(db: Session, user: models.User) -> set[int]:
@@ -323,7 +389,8 @@ def serialize_user(db: Session, user: models.User):
     data = model_to_dict(user)
     data["departments"] = user_departments(db, user)
     data["primary_department_id"] = data["departments"][0]["id"] if data["departments"] else user.department_id
-    data["can_view_all"] = user.role in ["owner", "admin", "manager"]
+    data["can_view_all"] = can_view_all(user)
+    data["can_administer_system"] = can_administer_system(user)
     return data
 
 def active_filter(query, model, active: bool):
@@ -702,6 +769,8 @@ def change_password(payload: PasswordChangePayload, user: models.User = Depends(
 def admin_create_user(payload: AdminUserCreatePayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     require_admin_user(user)
     validate_password_or_400(payload.password)
+    role = normalize_user_role(payload.role)
+    assert_user_role_allowed(user, role)
     email = normalize_email(payload.email)
     name = (payload.name or "").strip()
     if not name:
@@ -714,7 +783,7 @@ def admin_create_user(payload: AdminUserCreatePayload, user: models.User = Depen
     new_user = models.User(
         name=name,
         email=email,
-        role=(payload.role or "manager").strip() or "manager",
+        role=role,
         department_id=payload.department_id,
         is_active=bool(payload.is_active),
         password_hash=hash_password(payload.password),
@@ -735,6 +804,9 @@ def admin_reset_password(user_id: int, payload: AdminResetPasswordPayload, user:
     require_admin_user(user)
     validate_password_or_400(payload.new_password)
     target = fetch_or_404(db, models.User, user_id)
+    if target.id == user.id:
+        raise HTTPException(status_code=400, detail="Use Account to change your own password.")
+    assert_sensitive_account_allowed(user, target)
     target.password_hash = hash_password(payload.new_password)
     target.password_set_at = datetime.utcnow()
     log_activity(db, "users", target.id, "password_reset", "Password reset by admin", actor_id=user.id)
@@ -748,7 +820,8 @@ def me(user: models.User = Depends(require_user), db: Session = Depends(get_db))
 
 @router.get("/meta")
 def meta(user: models.User = Depends(require_user), db: Session = Depends(get_db)):
-    users = db.query(models.User).filter(models.User.is_active == True).order_by(models.User.name).all()
+    user_query = db.query(models.User).order_by(models.User.name)
+    users = user_query.all() if can_administer_system(user) else user_query.filter(models.User.is_active == True).all()
     departments = db.query(models.Department).order_by(models.Department.name).all()
     rooms = db.query(models.RoomArea).order_by(models.RoomArea.kind, models.RoomArea.name).all()
     if is_staff_user(user):
@@ -1077,6 +1150,8 @@ def create_resource(resource: str, payload: Dict[str, Any], user: models.User = 
     require_admin_resource_access(resource, user)
     if resource == "users":
         raise HTTPException(status_code=400, detail="Use the admin user route for account creation.")
+    if resource == "user-departments":
+        assert_user_membership_allowed(db, user, payload.get("user_id"))
     if is_staff_user(user) and resource not in {"requests", "shift-notes"}:
         raise HTTPException(status_code=403, detail="Staff can create requests and shift notes only")
     payload = dict(payload)
@@ -1118,7 +1193,12 @@ def update_resource(resource: str, item_id: int, payload: Dict[str, Any], user: 
         payload = dict(payload)
         if "email" in payload:
             payload["email"] = normalize_email(payload.get("email"))
+        assert_user_update_allowed(db, user, obj, payload)
         excluded = excluded | {"password_hash", "password_set_at", "last_login_at"}
+    if resource == "user-departments":
+        payload = dict(payload)
+        assert_user_membership_allowed(db, user, getattr(obj, "user_id", None))
+        assert_user_membership_allowed(db, user, payload.get("user_id"))
     apply_payload(obj, payload, excluded=excluded)
     db.flush()
     log_activity(db, resource, obj.id, "updated", f"Updated {resource}", actor_id=user.id)
@@ -1372,6 +1452,5 @@ def review_queue(department_id: Optional[int] = Query(default=None), user: model
 
 @router.post("/auto-archive/run")
 def run_archive(user: models.User = Depends(require_user), db: Session = Depends(get_db)):
-    if not can_view_all(user):
-        raise HTTPException(status_code=403, detail="Manager access required")
+    require_admin_user(user)
     return run_auto_archive(db)

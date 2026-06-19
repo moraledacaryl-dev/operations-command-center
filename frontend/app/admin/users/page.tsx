@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
@@ -13,6 +13,10 @@ const EMPTY_CREATE = {
   is_active: true,
 };
 
+const ALL_ROLES = ['owner', 'admin', 'manager', 'supervisor', 'lead', 'staff'];
+const ADMIN_CREATE_ROLES = ['manager', 'supervisor', 'lead', 'staff'];
+const SENSITIVE_ROLES = ['owner', 'admin'];
+
 function generatePassword() {
   const bytes = new Uint8Array(12);
   window.crypto.getRandomValues(bytes);
@@ -20,7 +24,26 @@ function generatePassword() {
   return `HO-${token}-Aa1!`;
 }
 
+function roleOf(user?: Entity | null) {
+  return String(user?.role || '').toLowerCase();
+}
+
+function isSensitive(user?: Entity | null) {
+  return SENSITIVE_ROLES.includes(roleOf(user));
+}
+
+function canManageUser(currentUser: Entity | null, target: Entity) {
+  if (!currentUser) return false;
+  if (roleOf(currentUser) === 'owner') return true;
+  return !isSensitive(target);
+}
+
+function sameUser(a?: Entity | null, b?: Entity | null) {
+  return Number(a?.id || 0) === Number(b?.id || 0);
+}
+
 export default function UsersPage() {
+  const [currentUser, setCurrentUser] = useState<Entity | null>(null);
   const [meta, setMeta] = useState<Entity>({ users: [], departments: [] });
   const [membership, setMembership] = useState<Entity>({ user_id: '', department_id: '', is_primary: false, role_override: '' });
   const [createForm, setCreateForm] = useState<Entity>(EMPTY_CREATE);
@@ -28,11 +51,28 @@ export default function UsersPage() {
   const [generatedCreatePassword, setGeneratedCreatePassword] = useState('');
   const [generatedResetPassword, setGeneratedResetPassword] = useState('');
   const [oneTimePassword, setOneTimePassword] = useState('');
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
 
+  const users = meta.users || [];
+  const roleOptions = roleOf(currentUser) === 'owner' ? ALL_ROLES : ADMIN_CREATE_ROLES;
+  const resetCandidates = users.filter((u: Entity) => canManageUser(currentUser, u) && !sameUser(currentUser, u));
+  const manageableUsers = users.filter((u: Entity) => canManageUser(currentUser, u));
+  const filteredUsers = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return users.filter((u: Entity) => {
+      const matchesRole = roleFilter === 'all' || roleOf(u) === roleFilter;
+      const haystack = `${u.name || ''} ${u.email || ''} ${u.role || ''}`.toLowerCase();
+      return matchesRole && (!needle || haystack.includes(needle));
+    });
+  }, [users, search, roleFilter]);
+
   async function load() {
-    setMeta(await api.meta());
+    const [nextMeta, me] = await Promise.all([api.meta(), api.me()]);
+    setMeta(nextMeta);
+    setCurrentUser(me);
   }
 
   useEffect(() => {
@@ -40,7 +80,10 @@ export default function UsersPage() {
   }, []);
 
   async function addMembership() {
-    if (!membership.user_id || !membership.department_id) return;
+    if (!membership.user_id || !membership.department_id) {
+      setError('Select a user and department.');
+      return;
+    }
     setError('');
     setSaved('');
     try {
@@ -59,7 +102,10 @@ export default function UsersPage() {
   }
 
   async function createUser() {
-    if (!createForm.name || !createForm.email || !createForm.password) return;
+    if (!createForm.name || !createForm.email || !createForm.password) {
+      setError('Name, email, and password are required.');
+      return;
+    }
     setError('');
     setSaved('');
     try {
@@ -69,7 +115,7 @@ export default function UsersPage() {
       });
       setSaved('User created.');
       setOneTimePassword(createForm.password === generatedCreatePassword ? createForm.password : '');
-      setCreateForm(EMPTY_CREATE);
+      setCreateForm({ ...EMPTY_CREATE, role: roleOptions.includes('manager') ? 'manager' : roleOptions[0] });
       setGeneratedCreatePassword('');
       await load();
     } catch (err: any) {
@@ -78,7 +124,10 @@ export default function UsersPage() {
   }
 
   async function resetPassword() {
-    if (!resetForm.user_id || !resetForm.new_password) return;
+    if (!resetForm.user_id || !resetForm.new_password) {
+      setError('Select a user and enter a new password.');
+      return;
+    }
     setError('');
     setSaved('');
     try {
@@ -117,6 +166,11 @@ export default function UsersPage() {
     setResetForm({ ...resetForm, new_password: password });
   }
 
+  const activeCount = users.filter((u: Entity) => u.is_active).length;
+  const inactiveCount = users.length - activeCount;
+  const adminCount = users.filter((u: Entity) => SENSITIVE_ROLES.includes(roleOf(u))).length;
+  const noDepartmentCount = users.filter((u: Entity) => !(u.departments || []).length).length;
+
   return <>
     <Top eyebrow="Admin" title="Users" />
     {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
@@ -125,11 +179,36 @@ export default function UsersPage() {
       <section className="panel one-time-password">
         <div>
           <h2>Temporary password</h2>
-          <p className="muted">Shown once. Share it privately.</p>
+          <p className="muted">Shown once. Share privately.</p>
         </div>
         <code>{oneTimePassword}</code>
       </section>
     ) : null}
+
+    <section className="panel" style={{ marginBottom: 16 }}>
+      <div className="section-head">
+        <h2>Access</h2>
+        <div className="card-line">
+          <Pill value={roleOf(currentUser) === 'owner' ? 'Owner controls all roles' : 'Admin controls staff roles'} />
+          <Pill value={`${users.length} users`} />
+        </div>
+      </div>
+      <div className="health-metrics">
+        <div><span>active</span><b>{activeCount}</b></div>
+        <div><span>inactive</span><b>{inactiveCount}</b></div>
+        <div><span>owner/admin</span><b>{adminCount}</b></div>
+        <div><span>no dept</span><b>{noDepartmentCount}</b></div>
+      </div>
+      <div className="form-grid" style={{ marginTop: 12 }}>
+        <label className="label">Search<input className="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="name or email" /></label>
+        <label className="label">Role
+          <select className="select" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+            <option value="all">All</option>
+            {ALL_ROLES.map(role => <option key={role} value={role}>{role}</option>)}
+          </select>
+        </label>
+      </div>
+    </section>
 
     <div className="grid cols-2" style={{ marginBottom: 16 }}>
       <section className="panel">
@@ -139,7 +218,7 @@ export default function UsersPage() {
           <label className="label">Email<input className="input" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} /></label>
           <label className="label">Role
             <select className="select" value={createForm.role} onChange={e => setCreateForm({ ...createForm, role: e.target.value })}>
-              {['owner', 'admin', 'manager', 'supervisor', 'lead', 'staff'].map(role => <option key={role} value={role}>{role}</option>)}
+              {roleOptions.map(role => <option key={role} value={role}>{role}</option>)}
             </select>
           </label>
           <label className="label">Primary department
@@ -165,7 +244,7 @@ export default function UsersPage() {
           <label className="label">User
             <select className="select" value={resetForm.user_id} onChange={e => setResetForm({ ...resetForm, user_id: e.target.value })}>
               <option value="">Select</option>
-              {meta.users?.map((candidate: Entity) => <option key={candidate.id} value={candidate.id}>{candidate.name} · {candidate.email}</option>)}
+              {resetCandidates.map((candidate: Entity) => <option key={candidate.id} value={candidate.id}>{candidate.name} - {candidate.email}</option>)}
             </select>
           </label>
           <label className="label">New password
@@ -185,7 +264,7 @@ export default function UsersPage() {
         <label className="label">User
           <select className="select" value={membership.user_id} onChange={e => setMembership({ ...membership, user_id: e.target.value })}>
             <option value="">Select</option>
-            {meta.users?.map((u: Entity) => <option key={u.id} value={u.id}>{u.name} · {u.role}</option>)}
+            {manageableUsers.map((u: Entity) => <option key={u.id} value={u.id}>{u.name} - {u.role}</option>)}
           </select>
         </label>
         <label className="label">Department
@@ -201,24 +280,40 @@ export default function UsersPage() {
     </section>
 
     <div className="grid cols-2">
-      {meta.users?.map((u: Entity) => <div className="card" key={u.id}>
-        <div className="card-title">{u.name}</div>
-        <div className="card-line">
-          <Pill value={u.role} />
-          {!u.is_active ? <Pill value="inactive" /> : null}
-          {u.departments?.map((d: Entity) => <Pill key={d.id} value={`${d.name}${d.is_primary ? ' · primary' : ''}`} />)}
-        </div>
-        <span className="muted">{u.email}</span>
-        <div className="card-line" style={{ marginTop: 8 }}>
-          <span className="muted">Password set: {u.password_set_at || 'not set'}</span>
-        </div>
-        <div className="card-line">
-          <span className="muted">Last login: {u.last_login_at || 'never'}</span>
-        </div>
-        <div className="toolbar" style={{ marginBottom: 0, marginTop: 4 }}>
-          <button className="btn small secondary" onClick={() => toggleActive(u)}>{u.is_active ? 'Deactivate' : 'Activate'}</button>
-        </div>
-      </div>)}
+      {filteredUsers.map((u: Entity) => {
+        const manageAllowed = canManageUser(currentUser, u);
+        const isSelf = sameUser(currentUser, u);
+        const toggleAllowed = manageAllowed && !isSelf;
+        return (
+          <div className="card" key={u.id}>
+            <div className="section-head">
+              <div>
+                <div className="card-title">{u.name}</div>
+                <span className="muted">{u.email}</span>
+              </div>
+              <div className="card-line">
+                <Pill value={u.role} />
+                <Pill value={u.is_active ? 'active' : 'inactive'} />
+              </div>
+            </div>
+            <div className="card-line">
+              {(u.departments || []).length ? u.departments.map((d: Entity) => <Pill key={d.id} value={`${d.name}${d.is_primary ? ' primary' : ''}`} />) : <Pill value="no department" />}
+            </div>
+            <div className="card-line" style={{ marginTop: 4 }}>
+              <span className="muted">Password set: {u.password_set_at || 'not set'}</span>
+            </div>
+            <div className="card-line">
+              <span className="muted">Last login: {u.last_login_at || 'never'}</span>
+            </div>
+            <div className="toolbar" style={{ marginBottom: 0, marginTop: 4 }}>
+              <button className="btn small secondary" disabled={!toggleAllowed} onClick={() => toggleActive(u)}>{u.is_active ? 'Deactivate' : 'Activate'}</button>
+              {isSelf ? <span className="muted">Current user</span> : null}
+              {!manageAllowed ? <span className="muted">Owner-only</span> : null}
+            </div>
+          </div>
+        );
+      })}
+      {!filteredUsers.length ? <div className="empty">No users found</div> : null}
     </div>
   </>;
 }
