@@ -3,6 +3,7 @@ export type Field = {
   label: string;
   type?: 'text' | 'date' | 'select' | 'textarea';
   options?: string[];
+  source?: 'users' | 'rooms' | 'departments';
 };
 
 export type ModuleConfig = {
@@ -34,11 +35,12 @@ export const configs: Record<string, ModuleConfig> = {
   tasks: {
     resource: 'tasks', title: 'Tasks', eyebrow: 'Work', createLabel: 'Task',
     statuses: ['To Do', 'Doing', 'Review', 'Done'], filters: ['All', 'To Do', 'Doing', 'Review', 'Done'],
-    cardMeta: ['status', 'priority', 'due_date'],
+    cardMeta: ['status', 'priority', 'due_date', 'assigned_to_id'],
     fields: [
       { key: 'title', label: 'Title' },
       { key: 'status', label: 'Status', type: 'select', options: ['To Do', 'Doing', 'Review', 'Done'] },
       { key: 'priority', label: 'Priority', type: 'select', options: priority },
+      { key: 'assigned_to_id', label: 'Assigned to', source: 'users' },
       { key: 'due_date', label: 'Due', type: 'date' },
       { key: 'note', label: 'Note', type: 'textarea' },
     ],
@@ -59,24 +61,30 @@ export const configs: Record<string, ModuleConfig> = {
   guests: {
     resource: 'guests', title: 'Guests', eyebrow: 'Follow', createLabel: 'Guest',
     statuses: ['Open', 'Follow', 'Done'], filters: ['All', 'Open', 'Follow', 'Done'],
-    cardMeta: ['issue_type', 'urgency', 'status'],
+    cardMeta: ['issue_type', 'urgency', 'status', 'room_area_id'],
     fields: [
       { key: 'title', label: 'Title' },
       { key: 'issue_type', label: 'Type', type: 'select', options: ['AC', 'Towel', 'WiFi', 'Noise', 'Food', 'Payment', 'Checkout', 'Complaint', 'Request', 'Other'] },
       { key: 'urgency', label: 'Priority', type: 'select', options: priority },
       { key: 'status', label: 'Status', type: 'select', options: ['Open', 'Follow', 'Done'] },
+      { key: 'room_area_id', label: 'Room / area', source: 'rooms' },
+      { key: 'assigned_to_id', label: 'Assigned to', source: 'users' },
       { key: 'guest_name', label: 'Guest' },
+      { key: 'follow_up_date', label: 'Follow up', type: 'date' },
+      { key: 'action_taken', label: 'Action', type: 'textarea' },
       { key: 'note', label: 'Note', type: 'textarea' },
     ],
   },
   fixes: {
     resource: 'fixes', title: 'Fixes', eyebrow: 'Repair', createLabel: 'Fix',
     statuses: ['Open', 'Working', 'Done', 'Verified'], filters: ['All', 'Open', 'Working', 'Done', 'Verified'],
-    cardMeta: ['status', 'urgency'],
+    cardMeta: ['status', 'urgency', 'room_area_id', 'assigned_to_id'],
     fields: [
       { key: 'title', label: 'Title' },
       { key: 'urgency', label: 'Priority', type: 'select', options: priority },
       { key: 'status', label: 'Status', type: 'select', options: ['Open', 'Working', 'Done', 'Verified'] },
+      { key: 'room_area_id', label: 'Room / area', source: 'rooms' },
+      { key: 'assigned_to_id', label: 'Assigned to', source: 'users' },
       { key: 'problem', label: 'Problem', type: 'textarea' },
       { key: 'note', label: 'Note', type: 'textarea' },
     ],
@@ -99,12 +107,13 @@ export const extraConfigs: Record<string, ModuleConfig> = {
   requests: {
     resource: 'requests', title: 'Requests', eyebrow: 'Propose', createLabel: 'Request',
     statuses: ['Draft', 'Review', 'Approved', 'Rejected', 'Planned', 'Done'], filters: ['All', 'Draft', 'Review', 'Approved', 'Rejected', 'Planned', 'Done'],
-    cardMeta: ['request_type', 'urgency', 'status'],
+    cardMeta: ['request_type', 'urgency', 'status', 'assigned_to_id'],
     fields: [
       { key: 'title', label: 'Request' },
       { key: 'request_type', label: 'Type', type: 'select', options: ['General', 'Equipment', 'Policy', 'Process', 'Staffing', 'Supply', 'Marketing', 'Maintenance', 'Event', 'Other'] },
       { key: 'urgency', label: 'Priority', type: 'select', options: priority },
       { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Review', 'Approved', 'Rejected', 'Planned', 'Done'] },
+      { key: 'assigned_to_id', label: 'Assigned to', source: 'users' },
       { key: 'reason', label: 'Reason', type: 'textarea' },
       { key: 'note', label: 'Note', type: 'textarea' },
     ],

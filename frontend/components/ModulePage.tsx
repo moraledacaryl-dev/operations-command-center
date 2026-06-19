@@ -12,28 +12,74 @@ function defaultData(fields: Field[]) {
   fields.forEach(f => {
     if (f.key === 'status' && f.options?.[0]) data[f.key] = f.options[0];
     else if (f.key === 'priority' || f.key === 'urgency') data[f.key] = 'Normal';
+    else if (f.source) data[f.key] = null;
     else data[f.key] = '';
   });
   return data;
 }
 
-function FieldInput({ field, value, onChange }: { field: Field; value: any; onChange: (v: any) => void }) {
+function optionLabel(field: Field, item: Entity) {
+  if (field.source === 'users') return `${item.name}${item.role ? ` - ${item.role}` : ''}`;
+  if (field.source === 'rooms') return `${item.name}${item.kind ? ` - ${item.kind}` : ''}`;
+  return item.name || item.title || String(item.id);
+}
+
+function sourceRows(field: Field, meta: Entity) {
+  if (!field.source) return [];
+  return meta[field.source] || [];
+}
+
+function FieldInput({ field, value, meta, onChange }: { field: Field; value: any; meta: Entity; onChange: (v: any) => void }) {
+  if (field.source) {
+    return (
+      <select className="select" value={value ?? ''} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}>
+        <option value="">None</option>
+        {sourceRows(field, meta).map((item: Entity) => <option key={item.id} value={item.id}>{optionLabel(field, item)}</option>)}
+      </select>
+    );
+  }
   if (field.type === 'select') {
     return <select className="select" value={value || ''} onChange={(e) => onChange(e.target.value)}>{field.options?.map(o => <option key={o}>{o}</option>)}</select>;
   }
   if (field.type === 'textarea') {
     return <textarea className="textarea" value={value || ''} onChange={(e) => onChange(e.target.value)} />;
   }
+  if (field.type === 'date') {
+    return <input className="input" type="date" value={value ? String(value).slice(0, 10) : ''} onChange={(e) => onChange(e.target.value || null)} />;
+  }
   return <input className="input" type={field.type || 'text'} value={value || ''} onChange={(e) => onChange(e.target.value)} />;
 }
 
-function ItemCard({ item, meta, onOpen }: { item: Entity; meta: string[]; onOpen: () => void }) {
+function findById(rows: Entity[] = [], id: any) {
+  return rows.find(row => Number(row.id) === Number(id));
+}
+
+function formatDate(value?: string) {
+  if (!value) return '';
+  return String(value).slice(0, 10);
+}
+
+function fieldDisplay(key: string, item: Entity, meta: Entity) {
+  const value = item[key];
+  if (value === undefined || value === null || value === '') return '';
+  if (key === 'assigned_to_id') return `Assigned: ${findById(meta.users, value)?.name || value}`;
+  if (key === 'owner_id') return `Owner: ${findById(meta.users, value)?.name || value}`;
+  if (key === 'department_id') return findById(meta.departments, value)?.name || value;
+  if (key === 'room_area_id') return findById(meta.rooms, value)?.name || value;
+  if (key.endsWith('_date') || key.endsWith('_at')) return formatDate(value);
+  return String(value);
+}
+
+function ItemCard({ item, metaKeys, meta, onOpen }: { item: Entity; metaKeys: string[]; meta: Entity; onOpen: () => void }) {
   const important = ['Urgent', 'Late', 'Review', 'Pending', 'Done'].includes(item.priority || item.urgency || item.status || item.review_status || '');
   return (
     <div className={`card ${important ? 'card-important' : ''}`} onClick={onOpen}>
       <div className="card-title">{item.title || item.name || 'Untitled'}</div>
       <div className="card-line">
-        {meta.map((m) => item[m] ? <Pill key={m} value={String(item[m]).slice(0, 24)} /> : null)}
+        {metaKeys.map((m) => {
+          const display = fieldDisplay(m, item, meta);
+          return display ? <Pill key={m} value={display.slice(0, 32)} /> : null;
+        })}
       </div>
       {item.note || item.problem || item.caption ? <div className="muted" style={{ fontSize: 13 }}>{String(item.note || item.problem || item.caption).slice(0, 92)}</div> : null}
     </div>
@@ -48,9 +94,30 @@ function StatusRail({ statuses, current }: { statuses: string[]; current?: strin
   );
 }
 
+function OwnerContext({ item, meta }: { item: Entity; meta: Entity }) {
+  const rows = [
+    ['Department', findById(meta.departments, item?.department_id)?.name],
+    ['Room / area', findById(meta.rooms, item?.room_area_id)?.name],
+    ['Assigned', findById(meta.users, item?.assigned_to_id)?.name],
+    ['Owner', findById(meta.users, item?.owner_id)?.name],
+    ['Due', formatDate(item?.due_date || item?.follow_up_date)],
+    ['Updated', formatDate(item?.updated_at)],
+  ].filter(([, value]) => value);
+  if (!rows.length) return null;
+  return (
+    <div className="panel context-panel">
+      <h2>Owner view</h2>
+      <div className="context-grid">
+        {rows.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}
+      </div>
+    </div>
+  );
+}
+
 export function ModulePage({ config }: { config: ModuleConfig }) {
   const [items, setItems] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<Entity | null>(null);
+  const [meta, setMeta] = useState<Entity>({ users: [], departments: [], rooms: [] });
   const [showAdd, setShowAdd] = useState(false);
   const [data, setData] = useState<Entity>(() => defaultData(config.fields));
   const [editData, setEditData] = useState<Entity>({});
@@ -80,6 +147,7 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
   }
 
   useEffect(() => { const user = getStoredUser(); setCurrentDeptId(getCurrentDepartmentId(user)); }, []);
+  useEffect(() => { api.meta().then(setMeta).catch(() => null); }, []);
   useEffect(() => { setFilter(config.filters[0] || 'All'); }, [config.resource]);
   useEffect(() => { load(); }, [config.resource, filter, currentDeptId]);
   useEffect(() => { if (selected) setEditData(selected); }, [selected?.id]);
@@ -208,6 +276,18 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
     }
   }
 
+  async function archiveItem() {
+    if (!selected) return;
+    if (!window.confirm('Archive this completed item? It will move to History.')) return;
+    try {
+      await api.archive(config.resource, selected.id);
+      setSelected(null);
+      load();
+    } catch (err: any) {
+      setError(err.message || 'Could not archive item.');
+    }
+  }
+
   return (
     <>
       <Top eyebrow={config.eyebrow} title={config.title} right={<button className="btn" onClick={() => setShowAdd(s => !s)}>Add</button>} />
@@ -226,7 +306,7 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
           <div className="form" style={{ marginTop: 14 }}>
             <div className="form-grid">
               {config.fields.map(field => (
-                <label className="label" key={field.key}>{field.label}<FieldInput field={field} value={data[field.key]} onChange={(v) => setData({ ...data, [field.key]: v })} /></label>
+                <label className="label" key={field.key}>{field.label}<FieldInput field={field} meta={meta} value={data[field.key]} onChange={(v) => setData({ ...data, [field.key]: v })} /></label>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 8 }}><button className="btn" onClick={create}>Save</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
@@ -234,9 +314,10 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
         </div>
       )}
       <div className="grid cols-3">
-        {loading ? <div className="empty">Loading</div> : items.length ? items.map(item => <ItemCard key={item.id} item={item} meta={config.cardMeta} onOpen={() => api.get(config.resource, item.id).then(setSelected).catch((err) => setError(err.message || 'Could not open item.'))} />) : <div className="empty">All clear</div>}
+        {loading ? <div className="empty">Loading</div> : items.length ? items.map(item => <ItemCard key={item.id} item={item} metaKeys={config.cardMeta} meta={meta} onOpen={() => api.get(config.resource, item.id).then(setSelected).catch((err) => setError(err.message || 'Could not open item.'))} />) : <div className="empty">All clear</div>}
       </div>
       <Drawer item={selected} onClose={() => setSelected(null)}>
+        <OwnerContext item={selected || {}} meta={meta} />
         <div className="workflow-panel">
           <div>
             <div className="eyebrow">Next step</div>
@@ -266,7 +347,7 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
           <div className="form" style={{ marginTop: 12 }}>
             <div className="form-grid">
               {config.fields.map(field => (
-                <label className="label" key={field.key}>{field.label}<FieldInput field={field} value={editData[field.key]} onChange={(v) => setEditData({ ...editData, [field.key]: v })} /></label>
+                <label className="label" key={field.key}>{field.label}<FieldInput field={field} meta={meta} value={editData[field.key]} onChange={(v) => setEditData({ ...editData, [field.key]: v })} /></label>
               ))}
             </div>
             <button className="btn secondary" onClick={saveEdit}>Save changes</button>
@@ -276,6 +357,7 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
           <h2>Actions</h2>
           <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
             {config.statuses.map(s => <button key={s} className="btn small secondary" onClick={() => setStatus(s)}>{s}</button>)}
+            <button className="btn small secondary" onClick={archiveItem}>Archive</button>
           </div>
         </div>
         <div className="panel" style={{ marginTop: 16 }}>

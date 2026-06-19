@@ -29,7 +29,8 @@ function itemSummary(item: Entity) {
 }
 
 function ReviewCard({ item, kind, onOpen }: { item: Entity; kind: string; onOpen: () => void }) {
-  return <div className="card">
+  const important = ['Urgent', 'High', 'Pending', 'Review', 'For Review', 'Ready to Post'].includes(item.urgency || item.priority || item.status || item.review_status || '');
+  return <div className={`card ${important ? 'card-important' : ''}`}>
     <div className="card-title">{item.title || item.name || 'Item'}</div>
     <div className="card-line"><Pill value={sourceLabel(item, kind)} /><Pill value={item.status || item.review_status} /><Pill value={item.urgency || item.priority || item.event_type || item.source_type} /></div>
     {itemSummary(item) ? <div className="muted">{itemSummary(item)}</div> : null}
@@ -82,13 +83,26 @@ export default function ReviewPage() {
       setError(err.message || 'Could not update review item.');
     }
   }
+  const total = sections.reduce((sum, [key]) => sum + Number((queue[key] || []).length), 0);
+  const urgent = sections.reduce((sum, [key]) => sum + (queue[key] || []).filter((item: Entity) => ['Urgent', 'High', 'For Review', 'Ready to Post'].includes(item.urgency || item.priority || item.status || item.review_status || '')).length, 0);
   return <>
     <Top eyebrow="Decide" title="Review" right={<button className="btn secondary" onClick={load}>Refresh</button>} />
     {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
-    <div className="panel" style={{ marginBottom: 16 }}><div className="card-line"><Pill value="One queue" /><span className="muted">Imported items, approvals, fixes, posts, and requests.</span></div></div>
+    <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="section-head">
+        <div className="card-line">
+          <Pill value="One queue" />
+          <Pill value={`${total} open`} />
+          <Pill value={`${urgent} priority`} />
+        </div>
+        <div className="card-line">
+          {sections.map(([key, label]) => <Pill key={key} value={`${label}: ${(queue[key] || []).length}`} />)}
+        </div>
+      </div>
+    </div>
     <div className="grid cols-2">
       {sections.map(([key, label]) => <section className="panel" key={key}>
-        <h2>{label}</h2>
+        <div className="section-head"><h2>{label}</h2><Pill value={String((queue[key] || []).length)} /></div>
         <div className="grid" style={{ marginTop: 12 }}>
           {(queue[key] || []).length ? (queue[key] || []).map((item: Entity) => <ReviewCard key={`${key}-${item.id}`} item={item} kind={label} onOpen={() => open(label, item)} />) : <div className="empty">All clear</div>}
         </div>
@@ -97,7 +111,7 @@ export default function ReviewPage() {
     <Drawer item={selected} title={`${selectedKind} review`} onClose={() => setSelected(null)}>
       <div className="panel">
         <h2>Decision</h2>
-        {selectedKind === 'Imported' ? (
+        {selected && selectedKind === 'Imported' ? (
           <div className="card-line" style={{ marginTop: 10 }}>
             <Pill value={sourceLabel(selected, selectedKind)} />
             <Pill value={selected.event_type} />

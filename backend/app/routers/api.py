@@ -488,11 +488,46 @@ def readiness_warnings(db: Optional[Session] = None) -> list[str]:
 @router.get("/health")
 def health(db: Session = Depends(get_db)):
     warnings = readiness_warnings(db)
+    upload_ready = UPLOAD_DIR.exists() and UPLOAD_DIR.is_dir()
+    try:
+        upload_file_count = sum(1 for item in UPLOAD_DIR.iterdir() if item.is_file()) if upload_ready else 0
+    except OSError:
+        upload_file_count = None
+
+    active_counts = {
+        "users": db.query(models.User).filter(models.User.is_active == True).count(),
+        "departments": db.query(models.Department).count(),
+        "rooms": db.query(models.RoomArea).count(),
+    }
+    open_counts = {
+        "tasks": db.query(models.Task).filter(models.Task.hidden_from_active == False, models.Task.status != "Done").count(),
+        "requests": db.query(models.Request).filter(models.Request.hidden_from_active == False, models.Request.status.in_(["Draft", "Review", "Planned"])).count(),
+        "guests": db.query(models.GuestNote).filter(models.GuestNote.hidden_from_active == False, models.GuestNote.status != "Done").count(),
+        "fixes": db.query(models.Fix).filter(models.Fix.hidden_from_active == False, models.Fix.status != "Verified").count(),
+        "posts": db.query(models.Post).filter(models.Post.hidden_from_active == False, models.Post.status.in_(["Idea", "Draft", "Review", "Fix", "OK", "Set"])).count(),
+        "approvals": db.query(models.Approval).filter(models.Approval.hidden_from_active == False, models.Approval.status == "Pending").count(),
+        "external_review": db.query(models.ExternalReviewItem).filter(models.ExternalReviewItem.status.in_(["For Review", "Ready to Post"])).count(),
+    }
+    latest_external = db.query(models.ExternalReviewItem).order_by(models.ExternalReviewItem.updated_at.desc()).first()
     return {
         "status": "ok" if not warnings else "needs_attention",
         "app": "Manager Operations Command Center",
         "environment": ENVIRONMENT,
         "readiness": {"ok": not warnings, "warnings": warnings},
+        "operations": {
+            "active": active_counts,
+            "open": open_counts,
+        },
+        "integrations": {
+            "key_configured": not integration_key_is_placeholder(INTEGRATION_API_KEY),
+            "pending_review": open_counts["external_review"],
+            "last_event_at": latest_external.updated_at.isoformat() if latest_external else None,
+            "last_event": latest_external.event_type if latest_external else None,
+        },
+        "storage": {
+            "uploads_ready": upload_ready,
+            "upload_files": upload_file_count,
+        },
     }
 
 
@@ -685,6 +720,7 @@ def me(user: models.User = Depends(require_user), db: Session = Depends(get_db))
 def meta(user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     users = db.query(models.User).filter(models.User.is_active == True).order_by(models.User.name).all()
     departments = db.query(models.Department).order_by(models.Department.name).all()
+    rooms = db.query(models.RoomArea).order_by(models.RoomArea.kind, models.RoomArea.name).all()
     if not can_view_all(user):
         allowed = department_ids_for(db, user)
         users = [candidate for candidate in users if candidate.id == user.id or department_ids_for(db, candidate).intersection(allowed)]
@@ -692,6 +728,7 @@ def meta(user: models.User = Depends(require_user), db: Session = Depends(get_db
     return {
         "users": [serialize_user(db, user) for user in users],
         "departments": serialize_many(departments),
+        "rooms": serialize_many(rooms),
     }
 
 @router.get("/departments/{department_id}/workspace")
@@ -702,6 +739,9 @@ def department_workspace(department_id: int, user: models.User = Depends(require
         "department": model_to_dict(dept),
         "people": [serialize_user(db, user) for user in db.query(models.User).filter(models.User.is_active == True).join(models.UserDepartment, models.UserDepartment.user_id == models.User.id).filter(models.UserDepartment.department_id == department_id).all()] or serialize_many(db.query(models.User).filter(models.User.department_id == department_id, models.User.is_active == True).all()),
         "tasks": serialize_many(db.query(models.Task).filter(models.Task.department_id == department_id, models.Task.hidden_from_active == False).order_by(models.Task.updated_at.desc()).limit(50).all()),
+        "guests": serialize_many(db.query(models.GuestNote).filter(models.GuestNote.department_id == department_id, models.GuestNote.hidden_from_active == False).order_by(models.GuestNote.updated_at.desc()).limit(40).all()),
+        "fixes": serialize_many(db.query(models.Fix).filter(models.Fix.department_id == department_id, models.Fix.hidden_from_active == False).order_by(models.Fix.updated_at.desc()).limit(40).all()),
+        "posts": serialize_many(db.query(models.Post).filter(models.Post.department_id == department_id, models.Post.hidden_from_active == False).order_by(models.Post.updated_at.desc()).limit(40).all()),
         "projects": serialize_many(db.query(models.Project).filter(models.Project.department_id == department_id, models.Project.hidden_from_active == False).order_by(models.Project.updated_at.desc()).limit(30).all()),
         "shift": serialize_many(db.query(models.ShiftNote).filter(models.ShiftNote.department_id == department_id, models.ShiftNote.hidden_from_active == False).order_by(models.ShiftNote.updated_at.desc()).limit(30).all()),
         "approvals": serialize_many(db.query(models.Approval).filter(models.Approval.department_id == department_id, models.Approval.hidden_from_active == False).order_by(models.Approval.updated_at.desc()).limit(30).all()),

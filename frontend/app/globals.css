@@ -85,6 +85,20 @@ h3 { margin: 0 0 8px; }
 .command-band { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:12px; background:#eaf3ef; border:1px solid #d0dfd7; border-radius:8px; margin-bottom:18px; }
 .workflow-panel { display:flex; justify-content:space-between; align-items:center; gap:12px; background:#edf7f4; border:1px solid #cce3dc; border-radius:8px; padding:14px; margin-bottom:16px; }
 .workflow-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+.owner-command-grid { display:grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap:16px; margin-bottom:16px; }
+.section-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.owner-command-panel { background:#f9fbf7; }
+.risk-panel { border-color:#fde68a; background:#fffbeb; }
+.command-metrics, .signal-list, .health-metrics { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:8px; margin:14px 0; }
+.command-metrics a, .command-metrics span, .signal-list a, .health-metrics div { border:1px solid var(--line); background:white; border-radius:8px; padding:10px; display:grid; gap:6px; min-height:70px; }
+.command-metrics span span, .command-metrics a span, .signal-list span, .health-metrics span { color:var(--muted); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+.command-metrics b, .signal-list b, .health-metrics b { font-size:22px; line-height:1; }
+.context-panel { margin-bottom:16px; }
+.context-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:8px; margin-top:12px; }
+.context-grid div { border:1px solid var(--line); border-radius:8px; padding:9px; display:grid; gap:4px; }
+.context-grid span { color:var(--muted); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+.context-grid b { font-size:13px; }
+.room-detail { margin-top:18px; }
 .status-rail { display:grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap:6px; margin-bottom:16px; }
 .status-rail span { border:1px solid var(--line); background:white; color:var(--muted); border-radius:8px; padding:8px 9px; font-size:12px; font-weight:800; text-align:center; }
 .status-rail span.current { background:var(--ink); color:white; border-color:var(--ink); }
@@ -100,6 +114,7 @@ h3 { margin: 0 0 8px; }
   .main { padding: 18px; }
   .grid.cols-6, .grid.cols-3, .grid.cols-2, .form-grid { grid-template-columns: 1fr; }
   .ops-strip, .ops-strip.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .owner-command-grid, .command-metrics, .signal-list, .health-metrics, .context-grid { grid-template-columns: 1fr; }
   .workflow-panel { display:grid; }
   .workflow-actions { justify-content:flex-start; }
   .input-action, .one-time-password { grid-template-columns: 1fr; display:grid; }

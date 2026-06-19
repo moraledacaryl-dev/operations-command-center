@@ -7,7 +7,7 @@ import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
 import Link from 'next/link';
 
-const tabs = ['Tasks', 'Talk', 'Requests', 'Projects', 'Routine', 'Docs', 'People', 'History'];
+const tabs = ['Tasks', 'Requests', 'Guests', 'Fixes', 'Shift', 'Projects', 'Routine', 'Posts', 'Docs', 'People', 'History', 'Talk'];
 
 function MiniCard({ item, kind }: { item: Entity; kind: string }) {
   return (
@@ -48,18 +48,41 @@ export default function DepartmentsPage() {
   const departments = user?.departments || [];
   const activeDept = workspace?.department;
   const wideAccess = canUseAdmin(user);
-  const visibleTabs = wideAccess ? tabs : ['Tasks', 'Talk', 'Requests', 'Docs', 'History'];
+  const visibleTabs = wideAccess ? tabs : ['Tasks', 'Talk', 'Requests', 'Shift', 'Docs', 'History'];
   const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
-  const rows = activeTab === 'Tasks' ? workspace?.tasks : activeTab === 'Talk' ? workspace?.talk : activeTab === 'Requests' ? workspace?.requests : activeTab === 'Projects' ? workspace?.projects : activeTab === 'Routine' ? workspace?.routines : activeTab === 'Docs' ? workspace?.docs : activeTab === 'History' ? workspace?.history : workspace?.people;
+  const rows = activeTab === 'Tasks' ? workspace?.tasks
+    : activeTab === 'Talk' ? workspace?.talk
+    : activeTab === 'Requests' ? workspace?.requests
+    : activeTab === 'Guests' ? workspace?.guests
+    : activeTab === 'Fixes' ? workspace?.fixes
+    : activeTab === 'Shift' ? workspace?.shift
+    : activeTab === 'Projects' ? workspace?.projects
+    : activeTab === 'Routine' ? workspace?.routines
+    : activeTab === 'Posts' ? workspace?.posts
+    : activeTab === 'Docs' ? workspace?.docs
+    : activeTab === 'History' ? workspace?.history
+    : workspace?.people;
+  const openTasks = (workspace?.tasks || []).filter((item: Entity) => item.status !== 'Done').length;
+  const openRequests = (workspace?.requests || []).filter((item: Entity) => !['Done', 'Rejected'].includes(item.status)).length;
+  const openGuests = (workspace?.guests || []).filter((item: Entity) => item.status !== 'Done').length;
+  const openFixes = (workspace?.fixes || []).filter((item: Entity) => item.status !== 'Verified').length;
 
   return (
     <>
       <Top eyebrow={wideAccess ? 'Workspace' : 'Department'} title={activeDept?.name || (wideAccess ? 'Departments' : 'My Department')} right={departments.length > 1 ? <select className="select" style={{ maxWidth: 220 }} value={deptId || ''} onChange={e => switchDept(Number(e.target.value))}>{departments.map((d: Entity) => <option key={d.id} value={d.id}>{d.name}</option>)}</select> : null} />
       <div className="panel" style={{ marginBottom: 16 }}>
-        <div className="card-line">
-          <Pill value={departments.length > 1 ? 'Multi-dept' : 'Primary'} />
-          <Pill value={user?.role} />
-          <span className="muted">{wideAccess ? 'Department workspace.' : 'Your team workspace.'}</span>
+        <div className="section-head">
+          <div className="card-line">
+            <Pill value={departments.length > 1 ? 'Multi-dept' : 'Primary'} />
+            <Pill value={user?.role} />
+            <span className="muted">{wideAccess ? 'Department workspace.' : 'Your team workspace.'}</span>
+          </div>
+          <div className="card-line">
+            <Pill value={`Tasks: ${openTasks}`} />
+            <Pill value={`Requests: ${openRequests}`} />
+            <Pill value={`Guests: ${openGuests}`} />
+            <Pill value={`Fixes: ${openFixes}`} />
+          </div>
         </div>
       </div>
       <div className="command-band">
