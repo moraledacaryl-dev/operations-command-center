@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api, Entity } from '@/lib/api';
-import { getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
+import { canUseAdmin, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
 import Link from 'next/link';
@@ -47,27 +47,31 @@ export default function DepartmentsPage() {
 
   const departments = user?.departments || [];
   const activeDept = workspace?.department;
-  const rows = tab === 'Tasks' ? workspace?.tasks : tab === 'Talk' ? workspace?.talk : tab === 'Requests' ? workspace?.requests : tab === 'Projects' ? workspace?.projects : tab === 'Routine' ? workspace?.routines : tab === 'Docs' ? workspace?.docs : tab === 'History' ? workspace?.history : workspace?.people;
+  const wideAccess = canUseAdmin(user);
+  const visibleTabs = wideAccess ? tabs : ['Tasks', 'Talk', 'Requests', 'Docs', 'History'];
+  const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
+  const rows = activeTab === 'Tasks' ? workspace?.tasks : activeTab === 'Talk' ? workspace?.talk : activeTab === 'Requests' ? workspace?.requests : activeTab === 'Projects' ? workspace?.projects : activeTab === 'Routine' ? workspace?.routines : activeTab === 'Docs' ? workspace?.docs : activeTab === 'History' ? workspace?.history : workspace?.people;
 
   return (
     <>
-      <Top eyebrow="Workspace" title={activeDept?.name || 'Departments'} right={departments.length > 1 ? <select className="select" style={{ maxWidth: 220 }} value={deptId || ''} onChange={e => switchDept(Number(e.target.value))}>{departments.map((d: Entity) => <option key={d.id} value={d.id}>{d.name}</option>)}</select> : null} />
+      <Top eyebrow={wideAccess ? 'Workspace' : 'Department'} title={activeDept?.name || (wideAccess ? 'Departments' : 'My Department')} right={departments.length > 1 ? <select className="select" style={{ maxWidth: 220 }} value={deptId || ''} onChange={e => switchDept(Number(e.target.value))}>{departments.map((d: Entity) => <option key={d.id} value={d.id}>{d.name}</option>)}</select> : null} />
       <div className="panel" style={{ marginBottom: 16 }}>
         <div className="card-line">
           <Pill value={departments.length > 1 ? 'Multi-dept' : 'Primary'} />
           <Pill value={user?.role} />
-          <span className="muted">Person login, department workspace.</span>
+          <span className="muted">{wideAccess ? 'Department workspace.' : 'Your team workspace.'}</span>
         </div>
       </div>
       <div className="command-band">
-        <Link className="btn" href="/tasks">Open tasks</Link>
+        {!wideAccess ? <Link className="btn" href="/my-work">My Work</Link> : null}
+        <Link className={wideAccess ? 'btn' : 'btn secondary'} href="/tasks">Tasks</Link>
         <Link className="btn secondary" href="/requests">New request</Link>
         <Link className="btn secondary" href="/shift">Shift note</Link>
-        <Link className="btn secondary" href="/review">Review queue</Link>
+        {wideAccess ? <Link className="btn secondary" href="/review">Review</Link> : null}
       </div>
-      <div className="tabs">{tabs.map(t => <button className={`tab ${tab === t ? 'active' : ''}`} key={t} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="tabs">{visibleTabs.map(t => <button className={`tab ${activeTab === t ? 'active' : ''}`} key={t} onClick={() => setTab(t)}>{t}</button>)}</div>
       <div className="grid cols-3">
-        {rows?.length ? rows.map((item: Entity) => <MiniCard key={`${tab}-${item.id}`} item={item} kind={tab} />) : <div className="empty">All clear</div>}
+        {rows?.length ? rows.map((item: Entity) => <MiniCard key={`${activeTab}-${item.id}`} item={item} kind={activeTab} />) : <div className="empty">All clear</div>}
       </div>
     </>
   );

@@ -37,8 +37,8 @@ export function setCurrentDepartmentId(id: number) {
 export function landingPathForUser(user: Entity): string {
   const departments = user.departments || [];
   if (['owner', 'admin', 'manager'].includes(user.role)) return '/';
-  if (departments.length) return `/departments?dept=${departments[0].id}`;
-  return '/';
+  if (departments.length) return '/my-work';
+  return '/my-work';
 }
 
 export function canUseAdmin(user?: Entity | null): boolean {

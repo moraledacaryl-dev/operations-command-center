@@ -139,7 +139,7 @@ export default function UsersPage() {
           <label className="label">Email<input className="input" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} /></label>
           <label className="label">Role
             <select className="select" value={createForm.role} onChange={e => setCreateForm({ ...createForm, role: e.target.value })}>
-              {['owner', 'admin', 'manager', 'lead'].map(role => <option key={role} value={role}>{role}</option>)}
+              {['owner', 'admin', 'manager', 'lead', 'staff'].map(role => <option key={role} value={role}>{role}</option>)}
             </select>
           </label>
           <label className="label">Primary department
