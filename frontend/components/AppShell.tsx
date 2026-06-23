@@ -14,6 +14,11 @@ const groups = [
   { label: 'Memory', items: [['/history', 'History']] },
 ];
 const adminItems = [['/admin/users', 'Users'], ['/admin/health', 'Health'], ['/admin/approve', 'Approve']];
+const connectedApps = [
+  ['Staff & Payroll', process.env.NEXT_PUBLIC_STAFF_PAYROLL_APP_URL],
+  ['POS', process.env.NEXT_PUBLIC_POS_APP_URL],
+  ['Accounting', process.env.NEXT_PUBLIC_ACCOUNTING_APP_URL],
+].filter((item): item is [string, string] => Boolean(item[1]));
 
 function SignInRequired() {
   return (
@@ -92,6 +97,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               })}
             </div>
           ))}
+          {connectedApps.length > 0 && (
+            <div className="nav-group">
+              <span className="nav-label">Apps</span>
+              {connectedApps.map(([label, href]) => <a href={href} key={label} rel="noreferrer"><span className="dot" />{label}</a>)}
+            </div>
+          )}
           <div className="nav-group admin-fold">
             <span className="nav-label">Admin</span>
             {adminItems.map(([href, label]) => { const active = path.startsWith(href); return <Link className={active ? 'active' : ''} key={href} href={href}><span className="dot" />{label}</Link>; })}
