@@ -60,6 +60,13 @@ def backfill_local_departments():
 
 backfill_local_departments()
 
+router.routes = [
+    route for route in router.routes
+    if not (
+        getattr(route, "path", "") == "/api/integrations/staff/events"
+        and "POST" in getattr(route, "methods", set())
+    )
+]
 app.include_router(router)
 app.include_router(staff_integrations_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")
