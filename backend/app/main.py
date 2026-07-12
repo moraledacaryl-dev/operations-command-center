@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 from .database import Base, engine, SessionLocal
 from .routers.api import router
+from .routers.staff_integrations import router as staff_integrations_router
 from .seed import backfill_local_user_passwords, ensure_bootstrap_owner, seed_if_empty
 
 app = FastAPI(title="Manager Operations Command Center", version="2.9.0")
@@ -60,4 +61,5 @@ def backfill_local_departments():
 backfill_local_departments()
 
 app.include_router(router)
+app.include_router(staff_integrations_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")
