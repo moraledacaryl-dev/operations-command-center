@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ from .. import models
 from ..database import get_db
 from .api import require_integration_key, scrub_payload
 
-router = APIRouter(prefix="/api/integrations/staff/v1", tags=["staff-integrations"])
+router = APIRouter(prefix="/api/integrations/staff", tags=["staff-integrations"])
 
 REVIEW_EVENTS = {
     "schedule.week.published",
@@ -25,7 +25,6 @@ REVIEW_EVENTS = {
     "overtime.approval.pending",
     "overtime.approved",
     "annual_review.due",
-    # Existing Staff event names retained for compatibility.
     "staff.operations.snapshot",
     "payroll.ready_for_owner_review",
     "employee.status.changed",
@@ -60,7 +59,6 @@ def _store(db: Session, payload: dict[str, Any], *, title: str, summary: str, st
     ).first()
     if existing:
         return {"status": "already_applied", "id": existing.id}
-
     clean = scrub_payload(payload)
     item = models.ExternalReviewItem(
         external_source=payload["external_source"],
@@ -91,7 +89,7 @@ def _store(db: Session, payload: dict[str, Any], *, title: str, summary: str, st
 
 
 @router.post("/events")
-def receive_staff_event_v1(
+def receive_staff_event(
     payload: dict[str, Any],
     db: Session = Depends(get_db),
     _: None = Depends(require_integration_key),
@@ -108,10 +106,11 @@ def receive_staff_event_v1(
         )
     if event_type not in REVIEW_EVENTS:
         raise HTTPException(status_code=422, detail="Unsupported Staff event type")
+    body = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
     return _store(
         db,
         payload,
         title=event_type.replace(".", " ").title(),
-        summary=str((payload.get("payload") or {}).get("summary") or "Staff operational event"),
+        summary=str(body.get("summary") or "Staff operational event"),
         status="For Review",
     )
