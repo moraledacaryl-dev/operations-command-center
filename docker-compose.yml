@@ -1,9 +1,27 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: command-center-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-command_center}
+      POSTGRES_USER: ${POSTGRES_USER:-command_center}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-command_center_local}
+    volumes:
+      - command_center_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-command_center} -d ${POSTGRES_DB:-command_center}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   backend:
     build: ./backend
     container_name: command-center-backend
     environment:
-      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/command_center.db}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://command_center:command_center_local@db:5432/command_center}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+      DB_POOL_RECYCLE_SECONDS: ${DB_POOL_RECYCLE_SECONDS:-1800}
       UPLOAD_DIR: ${UPLOAD_DIR:-/uploads}
       AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
       ENVIRONMENT: ${ENVIRONMENT:-local}
@@ -19,7 +37,9 @@ services:
       - "8000:8000"
     volumes:
       - command_center_uploads:/uploads
-      - command_center_data:/data
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 20s
@@ -38,4 +58,4 @@ services:
 
 volumes:
   command_center_uploads:
-  command_center_data:
+  command_center_postgres:
