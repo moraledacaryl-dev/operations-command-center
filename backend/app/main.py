@@ -5,8 +5,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from . import integration_models  # noqa: F401 - register integration tables with SQLAlchemy
 from .database import SessionLocal
 from .routers.api import router
+from .routers.integrations_v2 import router as integrations_v2_router
 from .seed import backfill_local_user_passwords, ensure_bootstrap_owner, seed_if_empty
 
 
@@ -20,7 +22,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Manager Operations Command Center", version="3.0.0", lifespan=lifespan)
+app = FastAPI(title="Manager Operations Command Center", version="3.1.0", lifespan=lifespan)
 
 allowed_origins = [
     origin.strip()
@@ -37,4 +39,5 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(integrations_v2_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")
