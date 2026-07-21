@@ -58,8 +58,32 @@ function eventLabel(item: Entity) {
   return event ? event.replaceAll('.', ' ').replaceAll('_', ' ') : '';
 }
 
-function ReviewCard({ item, kind, onOpen }: { item: Entity; kind: string; onOpen: () => void }) {
+function itemDate(item: Entity) {
+  const raw = item.created_at || item.updated_at || item.submitted_at || item.received_at;
+  if (!raw) return '';
+  const date = new Date(String(raw));
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function searchableText(item: Entity, kind: string) {
+  return [
+    kind,
+    sourceName(item),
+    item.title,
+    item.name,
+    item.status,
+    item.review_status,
+    item.priority,
+    item.urgency,
+    eventLabel(item),
+    readableSummary(item),
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function ReviewCard({ item, kind, onOpen, disabled }: { item: Entity; kind: string; onOpen: () => void; disabled?: boolean }) {
   const summary = readableSummary(item);
+  const date = itemDate(item);
   return <div className="card">
     <div className="card-title">{item.title || item.name || 'Item'}</div>
     <div className="card-line">
@@ -69,8 +93,9 @@ function ReviewCard({ item, kind, onOpen }: { item: Entity; kind: string; onOpen
     </div>
     {kind === 'Imported' && eventLabel(item) ? <div className="muted" style={{ textTransform: 'capitalize' }}>{eventLabel(item)}</div> : null}
     {summary ? <div className="muted">{summary.slice(0, 160)}</div> : null}
+    {date ? <div className="muted" style={{ fontSize: 12 }}>{date}</div> : null}
     <div className="toolbar tight">
-      <button className="btn small secondary" onClick={onOpen}>Open</button>
+      <button className="btn small secondary" onClick={onOpen} disabled={disabled}>Open</button>
     </div>
   </div>;
 }
@@ -80,37 +105,59 @@ export default function ReviewPage() {
   const [selected, setSelected] = useState<Entity | null>(null);
   const [selectedKind, setSelectedKind] = useState('');
   const [sourceFilter, setSourceFilter] = useState('All');
+  const [query, setQuery] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   async function load() {
-    const user = getStoredUser();
-    const id = getCurrentDepartmentId(user);
-    setQueue(await api.reviewQueue({ department_id: id || '' }));
+    setError('');
+    setLoading(true);
+    try {
+      const user = getStoredUser();
+      const id = getCurrentDepartmentId(user);
+      setQueue(await api.reviewQueue({ department_id: id || '' }));
+    } catch (err: any) {
+      setError(err.message || 'Could not load the review queue.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
 
-  const imported = useMemo(() => {
-    const rows = [...(queue.external || [])];
-    return rows
-      .filter((item: Entity) => sourceFilter === 'All' || sourceName(item) === sourceFilter)
-      .sort((a: Entity, b: Entity) => {
-        const aRank = priorityRank[String(a.priority || a.urgency || 'normal').toLowerCase()] ?? 2;
-        const bRank = priorityRank[String(b.priority || b.urgency || 'normal').toLowerCase()] ?? 2;
-        if (aRank !== bRank) return aRank - bRank;
-        return Number(b.id || 0) - Number(a.id || 0);
-      });
-  }, [queue.external, sourceFilter]);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredQueue = useMemo(() => {
+    const next: Entity = {};
+    sections.forEach(([key, label]) => {
+      const rows = [...(queue[key] || [])]
+        .filter((item: Entity) => key !== 'external' || sourceFilter === 'All' || sourceName(item) === sourceFilter)
+        .filter((item: Entity) => !normalizedQuery || searchableText(item, label).includes(normalizedQuery))
+        .sort((a: Entity, b: Entity) => {
+          const aRank = priorityRank[String(a.priority || a.urgency || 'normal').toLowerCase()] ?? 2;
+          const bRank = priorityRank[String(b.priority || b.urgency || 'normal').toLowerCase()] ?? 2;
+          if (aRank !== bRank) return aRank - bRank;
+          const aDate = new Date(String(a.created_at || a.updated_at || 0)).getTime() || Number(a.id || 0);
+          const bDate = new Date(String(b.created_at || b.updated_at || 0)).getTime() || Number(b.id || 0);
+          return bDate - aDate;
+        });
+      next[key] = rows;
+    });
+    return next;
+  }, [queue, sourceFilter, normalizedQuery]);
 
-  const visibleQueue = { ...queue, external: imported };
   const sourceCounts = (queue.external || []).reduce((counts: Record<string, number>, item: Entity) => {
     const source = sourceName(item);
     counts[source] = (counts[source] || 0) + 1;
     return counts;
   }, {});
 
+  const totalCount = sections.reduce((total, [key]) => total + (queue[key] || []).length, 0);
+  const visibleCount = sections.reduce((total, [key]) => total + (filteredQueue[key] || []).length, 0);
+
   async function open(kind: string, item: Entity) {
+    if (submitting) return;
     setError('');
     setSelectedKind(kind);
     setNote('');
@@ -122,11 +169,13 @@ export default function ReviewPage() {
   }
 
   async function move(status: string) {
-    if (!selected) return;
+    if (!selected || submitting) return;
     if (['Rejected', 'Verified'].includes(status) && !note.trim()) {
       setError('Add a decision note first.');
       return;
     }
+    setError('');
+    setSubmitting(true);
     try {
       if (selectedKind === 'Approvals') {
         await api.decideApproval(selected.id, status, { note: note.trim(), create_task: status === 'Approved' });
@@ -144,31 +193,44 @@ export default function ReviewPage() {
       await load();
     } catch (err: any) {
       setError(err.message || 'Could not update review item.');
+    } finally {
+      setSubmitting(false);
     }
   }
 
   return <>
-    <Top eyebrow="Decide" title="Review" right={<button className="btn secondary" onClick={load}>Refresh</button>} />
+    <Top eyebrow="Decide" title="Review" right={<button className="btn secondary" onClick={load} disabled={loading || submitting}>{loading ? 'Refreshing…' : 'Refresh'}</button>} />
     {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
     <div className="panel" style={{ marginBottom: 16 }}>
-      <div className="card-line"><Pill value="One queue" /><span className="muted">Operational decisions from this workspace and every connected app.</span></div>
+      <div className="card-line">
+        <Pill value={`${totalCount} pending`} />
+        <span className="muted">Operational decisions from this workspace and every connected app.</span>
+      </div>
+      <div className="form" style={{ marginTop: 12 }}>
+        <input className="input" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search title, source, status, priority, or summary" />
+      </div>
       <div className="toolbar tight" style={{ marginTop: 12, marginBottom: 0 }}>
         {['All', 'Staff', 'POS', 'Inventory', 'Accounting'].map(source => (
-          <button key={source} className={`btn small ${sourceFilter === source ? '' : 'secondary'}`} onClick={() => setSourceFilter(source)}>
+          <button key={source} className={`btn small ${sourceFilter === source ? '' : 'secondary'}`} onClick={() => setSourceFilter(source)} disabled={loading || submitting}>
             {source} {source === 'All' ? (queue.external || []).length : sourceCounts[source] || 0}
           </button>
         ))}
+        {(normalizedQuery || sourceFilter !== 'All') ? <button className="btn small secondary" onClick={() => { setQuery(''); setSourceFilter('All'); }}>Clear filters</button> : null}
       </div>
+      {(normalizedQuery || sourceFilter !== 'All') ? <div className="muted" style={{ marginTop: 10 }}>Showing {visibleCount} of {totalCount} pending items.</div> : null}
     </div>
-    <div className="grid cols-2">
+    {loading ? <div className="panel"><div className="empty">Loading review queue…</div></div> : <div className="grid cols-2">
       {sections.map(([key, label]) => <section className="panel" key={key}>
-        <h2>{label}{key === 'external' && sourceFilter !== 'All' ? ` · ${sourceFilter}` : ''}</h2>
+        <div className="card-line" style={{ justifyContent: 'space-between' }}>
+          <h2>{label}{key === 'external' && sourceFilter !== 'All' ? ` · ${sourceFilter}` : ''}</h2>
+          <Pill value={(filteredQueue[key] || []).length} />
+        </div>
         <div className="grid" style={{ marginTop: 12 }}>
-          {(visibleQueue[key] || []).length ? (visibleQueue[key] || []).map((item: Entity) => <ReviewCard key={`${key}-${item.id}`} item={item} kind={label} onOpen={() => open(label, item)} />) : <div className="empty">All clear</div>}
+          {(filteredQueue[key] || []).length ? (filteredQueue[key] || []).map((item: Entity) => <ReviewCard key={`${key}-${item.id}`} item={item} kind={label} disabled={submitting} onOpen={() => open(label, item)} />) : <div className="empty">{normalizedQuery || sourceFilter !== 'All' ? 'No matching items' : 'All clear'}</div>}
         </div>
       </section>)}
-    </div>
-    <Drawer item={selected} title={`${selectedKind} review`} onClose={() => setSelected(null)}>
+    </div>}
+    <Drawer item={selected} title={`${selectedKind} review`} onClose={() => { if (!submitting) setSelected(null); }}>
       {selectedKind === 'Imported' && selected ? <div className="panel" style={{ marginBottom: 12 }}>
         <h2>Source context</h2>
         <div className="card-line" style={{ marginTop: 12 }}>
@@ -178,17 +240,18 @@ export default function ReviewPage() {
         </div>
         {eventLabel(selected) ? <p className="muted" style={{ textTransform: 'capitalize' }}>{eventLabel(selected)}</p> : null}
         {readableSummary(selected) ? <p style={{ lineHeight: 1.6 }}>{readableSummary(selected)}</p> : null}
+        {itemDate(selected) ? <p className="muted">Received {itemDate(selected)}</p> : null}
       </div> : null}
       <div className="panel">
         <h2>Decision</h2>
         <div className="form" style={{ marginTop: 12 }}>
-          <textarea className="textarea" placeholder="Decision note" value={note} onChange={e => setNote(e.target.value)} />
+          <textarea className="textarea" placeholder="Decision note" value={note} onChange={e => setNote(e.target.value)} disabled={submitting} />
           <div className="toolbar" style={{ marginBottom: 0 }}>
-            {selectedKind === 'Requests' || selectedKind === 'Approvals' ? <><button className="btn small" onClick={() => move('Approved')}>Approve</button><button className="btn small secondary" onClick={() => move('Rejected')}>Reject</button></> : null}
-            {selectedKind === 'Imported' ? <><button className="btn small" onClick={() => move('Seen')}>Seen</button><button className="btn small secondary" onClick={() => move('Task')}>Create task</button><button className="btn small secondary" onClick={() => move('Approval')}>Create approval</button><button className="btn small secondary" onClick={() => move('Rejected')}>Reject</button></> : null}
-            {selectedKind === 'Verify' ? <button className="btn small" onClick={() => move('Verified')}>Verify</button> : null}
-            {selectedKind === 'Inbox' ? <><button className="btn small" onClick={() => move('Accepted')}>Accept</button><button className="btn small secondary" onClick={() => move('Rejected')}>Reject</button></> : null}
-            {selectedKind === 'Posts' ? <><button className="btn small" onClick={() => move('OK')}>OK</button><button className="btn small secondary" onClick={() => move('Fix')}>Needs fix</button></> : null}
+            {selectedKind === 'Requests' || selectedKind === 'Approvals' ? <><button className="btn small" disabled={submitting} onClick={() => move('Approved')}>{submitting ? 'Saving…' : 'Approve'}</button><button className="btn small secondary" disabled={submitting} onClick={() => move('Rejected')}>Reject</button></> : null}
+            {selectedKind === 'Imported' ? <><button className="btn small" disabled={submitting} onClick={() => move('Seen')}>{submitting ? 'Saving…' : 'Seen'}</button><button className="btn small secondary" disabled={submitting} onClick={() => move('Task')}>Create task</button><button className="btn small secondary" disabled={submitting} onClick={() => move('Approval')}>Create approval</button><button className="btn small secondary" disabled={submitting} onClick={() => move('Rejected')}>Reject</button></> : null}
+            {selectedKind === 'Verify' ? <button className="btn small" disabled={submitting} onClick={() => move('Verified')}>{submitting ? 'Saving…' : 'Verify'}</button> : null}
+            {selectedKind === 'Inbox' ? <><button className="btn small" disabled={submitting} onClick={() => move('Accepted')}>{submitting ? 'Saving…' : 'Accept'}</button><button className="btn small secondary" disabled={submitting} onClick={() => move('Rejected')}>Reject</button></> : null}
+            {selectedKind === 'Posts' ? <><button className="btn small" disabled={submitting} onClick={() => move('OK')}>{submitting ? 'Saving…' : 'OK'}</button><button className="btn small secondary" disabled={submitting} onClick={() => move('Fix')}>Needs fix</button></> : null}
           </div>
         </div>
       </div>
