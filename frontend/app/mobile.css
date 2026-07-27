@@ -1,0 +1,337 @@
+/* Dedicated mobile and tablet usability pass */
+
+.mobile-bottom-nav { display: none; }
+
+@media (max-width: 1100px) {
+  .main {
+    padding-inline: 22px;
+  }
+
+  .topbar {
+    gap: 14px;
+  }
+
+  .topbar > :last-child {
+    flex: 0 0 auto;
+  }
+
+  .drawer {
+    width: min(660px, 92vw);
+  }
+
+  .grid.cols-6 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 920px) {
+  :root {
+    --mobile-header-height: 64px;
+    --mobile-bottom-height: 68px;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  .app {
+    padding-top: var(--mobile-header-height);
+    padding-bottom: calc(var(--mobile-bottom-height) + env(safe-area-inset-bottom));
+  }
+
+  .mobile-header {
+    height: var(--mobile-header-height);
+    padding: 9px max(14px, env(safe-area-inset-right)) 9px max(14px, env(safe-area-inset-left));
+  }
+
+  .mobile-brand {
+    max-width: calc(100vw - 104px);
+  }
+
+  .menu-toggle {
+    min-width: 64px;
+    min-height: 42px;
+  }
+
+  .sidebar {
+    inset: var(--mobile-header-height) auto 0 0;
+    width: min(352px, 92vw);
+    height: calc(100dvh - var(--mobile-header-height));
+    padding: 14px 14px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .sidebar-scrim {
+    inset: var(--mobile-header-height) 0 0;
+  }
+
+  .sidebar .nav a,
+  .sidebar .logout,
+  .sidebar select,
+  .sidebar summary {
+    min-height: 44px;
+  }
+
+  .main {
+    padding: 18px max(14px, env(safe-area-inset-right)) 28px max(14px, env(safe-area-inset-left));
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 34;
+    min-height: var(--mobile-bottom-height);
+    padding: 7px max(8px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    border-top: 1px solid var(--line);
+    background: rgba(251, 252, 250, .97);
+    backdrop-filter: blur(18px);
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    box-shadow: 0 -8px 24px rgba(24, 34, 27, .07);
+  }
+
+  .mobile-bottom-nav a {
+    min-width: 0;
+    min-height: 52px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    color: var(--muted);
+    font-weight: 750;
+  }
+
+  .mobile-bottom-nav a > span {
+    width: 26px;
+    height: 24px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 850;
+    background: var(--panel-strong);
+  }
+
+  .mobile-bottom-nav a small {
+    width: 100%;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+  }
+
+  .mobile-bottom-nav a.active {
+    color: var(--ink);
+    background: var(--accent-soft);
+  }
+
+  .mobile-bottom-nav a.active > span {
+    background: var(--ink);
+    color: #fff;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    margin-bottom: 18px;
+  }
+
+  .topbar h1 {
+    max-width: 72vw;
+  }
+
+  .toolbar,
+  .command-band,
+  .workflow-actions {
+    gap: 8px;
+  }
+
+  .tabs {
+    margin-inline: -2px;
+    padding-inline: 2px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab {
+    min-height: 44px;
+    scroll-snap-align: start;
+  }
+
+  .btn,
+  .input,
+  .select,
+  .textarea {
+    min-height: 44px;
+  }
+
+  .btn.small {
+    min-height: 38px;
+  }
+
+  .textarea {
+    min-height: 110px;
+  }
+
+  .drawer-backdrop {
+    align-items: flex-end;
+  }
+
+  .drawer {
+    width: 100vw;
+    max-height: calc(100dvh - 28px);
+    height: auto;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 18px 18px 0 0;
+    padding: 16px max(15px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(15px, env(safe-area-inset-left));
+    box-shadow: 0 -24px 60px rgba(0,0,0,.18);
+  }
+
+  .drawer-head {
+    position: sticky;
+    top: -16px;
+    z-index: 3;
+    margin: -16px -15px 16px;
+    padding: 14px 15px 12px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255,255,255,.97);
+    backdrop-filter: blur(16px);
+  }
+
+  .detail-row {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+
+  .grid.cols-3,
+  .grid.cols-2,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel,
+  .card,
+  .stat {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 620px) {
+  h1 {
+    font-size: 27px;
+  }
+
+  h2 {
+    font-size: 17px;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .topbar h1 {
+    max-width: none;
+  }
+
+  .topbar > :last-child {
+    width: 100%;
+  }
+
+  .topbar > :last-child.btn,
+  .topbar > :last-child > .btn {
+    width: 100%;
+  }
+
+  .command-band,
+  .workflow-actions,
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .command-band .btn,
+  .workflow-actions .btn,
+  .toolbar .btn,
+  .toolbar .input,
+  .toolbar .select {
+    width: 100%;
+    max-width: none !important;
+  }
+
+  .ops-strip,
+  .grid.cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .status-rail {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .status-rail span {
+    flex: 0 0 auto;
+    min-width: 108px;
+    scroll-snap-align: start;
+  }
+
+  .drawer .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .login-screen {
+    align-items: start;
+    padding: max(24px, env(safe-area-inset-top)) 16px 24px;
+  }
+
+  .login-card {
+    margin-top: 8vh;
+    padding: 22px;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobile-bottom-nav a small {
+    font-size: 9px;
+  }
+
+  .mobile-bottom-nav a > span {
+    width: 24px;
+  }
+
+  .main {
+    padding-inline: 12px;
+  }
+
+  .panel,
+  .card {
+    padding: 13px;
+  }
+
+  .ops-strip {
+    gap: 7px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .card:hover,
+  .stat:hover,
+  .nav a:hover,
+  .btn:hover {
+    transform: none;
+  }
+
+  button,
+  a,
+  select,
+  input[type='checkbox'],
+  input[type='radio'] {
+    -webkit-tap-highlight-color: rgba(23,109,93,.12);
+  }
+}

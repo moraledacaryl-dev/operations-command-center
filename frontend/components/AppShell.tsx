@@ -72,8 +72,12 @@ function SignInRequired() {
   );
 }
 
+function isActivePath(path: string, href: string) {
+  return href === '/' ? path === '/' : path.startsWith(href);
+}
+
 function NavLink({ item, path, onNavigate }: { item: NavItem; path: string; onNavigate?: () => void }) {
-  const active = item.href === '/' ? path === '/' : path.startsWith(item.href);
+  const active = isActivePath(path, item.href);
   return (
     <Link className={active ? 'active' : ''} href={item.href} onClick={onNavigate} aria-current={active ? 'page' : undefined}>
       <span className="nav-icon" aria-hidden="true">{item.icon}</span>
@@ -96,6 +100,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setDeptId(getCurrentDepartmentId(stored));
     setMobileOpen(false);
   }, [path]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [mobileOpen]);
 
   const deptOptions = user?.departments || [];
   const currentDept = deptOptions.find((d: Entity) => Number(d.id) === Number(deptId)) || deptOptions[0];
@@ -130,6 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           type="button"
           aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
           aria-expanded={mobileOpen}
+          aria-controls="mobile-sidebar"
           onClick={() => setMobileOpen(open => !open)}
         >
           {mobileOpen ? 'Close' : 'Menu'}
@@ -138,7 +157,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {mobileOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
 
-      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
+      <aside id="mobile-sidebar" className={`sidebar ${mobileOpen ? 'open' : ''}`} aria-hidden={!mobileOpen ? undefined : false}>
         <div className="brand">
           <div className="logo">HO</div>
           <div>
@@ -202,6 +221,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="main">{children}</main>
+
+      <nav className="mobile-bottom-nav" aria-label="Quick navigation">
+        {primaryItems.map(item => {
+          const active = isActivePath(path, item.href);
+          return (
+            <Link key={item.href} href={item.href} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>
+              <span aria-hidden="true">{item.icon}</span>
+              <small>{item.shortLabel || item.label}</small>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
