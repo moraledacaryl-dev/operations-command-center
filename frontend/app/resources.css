@@ -1,0 +1,312 @@
+/* Shared operational resource experiences */
+
+.main > .topbar + .grid.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 180px));
+  justify-content: start;
+  gap: 10px;
+  margin-bottom: 18px !important;
+}
+
+.main > .topbar + .grid.cols-3 > .panel {
+  min-height: 96px;
+  padding: 14px 15px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+}
+
+.main > .topbar + .grid.cols-3 > .panel:nth-child(2) {
+  background: var(--warn-soft);
+  border-color: #ead7aa;
+}
+
+.main > .topbar + .grid.cols-3 > .panel:nth-child(3) {
+  background: var(--urgent-soft);
+  border-color: #edc9c7;
+}
+
+.main > .topbar + .grid.cols-3 > .panel h2 {
+  font-size: 27px;
+  line-height: 1;
+}
+
+.main > .topbar + .grid.cols-3 > .panel .eyebrow {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.main > .topbar ~ .card-line {
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,.72);
+}
+
+.main > .topbar ~ .toolbar:not(.workflow-actions) {
+  display: grid;
+  grid-template-columns: minmax(220px, 420px) auto;
+  justify-content: start;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,.9);
+  box-shadow: var(--shadow-xs);
+}
+
+.main > .topbar ~ .toolbar .input {
+  max-width: none !important;
+}
+
+.main > .topbar ~ .tabs {
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 0 0 7px;
+  margin-bottom: 16px;
+  scrollbar-width: thin;
+}
+
+.main > .topbar ~ .tabs .tab {
+  flex: 0 0 auto;
+  min-height: 39px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.82);
+}
+
+.main > .topbar ~ .tabs .tab.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  box-shadow: var(--shadow-xs);
+}
+
+.main > .topbar ~ .tabs .tab.active .muted {
+  color: rgba(255,255,255,.68);
+}
+
+.main > .topbar ~ .panel:has(> h2:first-child) {
+  border-radius: var(--radius-lg);
+}
+
+.main > .topbar ~ .panel:has(> h2:first-child) > h2 {
+  font-size: 20px;
+}
+
+.main > .topbar ~ .panel .form-grid {
+  gap: 13px;
+}
+
+.main > .topbar ~ .panel .label {
+  color: var(--text-soft);
+  font-size: 11px;
+  letter-spacing: .065em;
+}
+
+.main > .topbar ~ .panel .input,
+.main > .topbar ~ .panel .select,
+.main > .topbar ~ .panel .textarea {
+  background: var(--panel-subtle);
+}
+
+.main > .topbar ~ .panel .input:focus,
+.main > .topbar ~ .panel .select:focus,
+.main > .topbar ~ .panel .textarea:focus {
+  background: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(23,109,93,.1);
+}
+
+.main > .topbar ~ .grid.cols-3:last-of-type {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.main > .topbar ~ .grid.cols-3:last-of-type > .card {
+  min-height: 148px;
+  align-content: start;
+  padding: 15px;
+  border-radius: var(--radius);
+  background: rgba(255,255,255,.92);
+  box-shadow: var(--shadow-xs);
+  position: relative;
+  overflow: hidden;
+}
+
+.main > .topbar ~ .grid.cols-3:last-of-type > .card::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: transparent;
+}
+
+.main > .topbar ~ .grid.cols-3:last-of-type > .card.card-important::after {
+  background: var(--urgent);
+}
+
+.main > .topbar ~ .grid.cols-3:last-of-type > .card.card-important {
+  border-left-width: 1px;
+  background: linear-gradient(180deg, #fff 0%, #fffafa 100%);
+}
+
+.main > .topbar ~ .grid.cols-3:last-of-type > .card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.main > .topbar ~ .grid.cols-3:last-of-type > .card .card-title {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.main > .topbar ~ .grid.cols-3:last-of-type > .card .card-line {
+  margin-top: 2px;
+}
+
+.drawer .workflow-panel {
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  background: linear-gradient(135deg, #eaf4ef 0%, #f6faf7 100%);
+}
+
+.drawer .workflow-panel h2 {
+  font-size: 21px;
+}
+
+.drawer .workflow-actions .btn {
+  min-height: 38px;
+}
+
+.drawer .status-rail {
+  position: relative;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--panel-strong);
+}
+
+.drawer .status-rail span {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+}
+
+.drawer .status-rail span.current {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: var(--shadow-xs);
+}
+
+.drawer > .panel {
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+.drawer > .panel h2 {
+  font-size: 18px;
+}
+
+.drawer > .panel .toolbar {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.drawer .comments-list,
+.drawer > .panel .grid {
+  gap: 8px;
+}
+
+.drawer > .panel .grid .card {
+  cursor: default;
+  background: var(--panel-subtle);
+}
+
+.drawer > .panel .grid .card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 920px) {
+  .main > .topbar + .grid.cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .main > .topbar ~ .grid.cols-3:last-of-type {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .main > .topbar + .grid.cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .main > .topbar + .grid.cols-3 > .panel {
+    min-height: 82px;
+    padding: 11px;
+  }
+
+  .main > .topbar + .grid.cols-3 > .panel h2 {
+    font-size: 22px;
+  }
+
+  .main > .topbar ~ .toolbar:not(.workflow-actions) {
+    grid-template-columns: 1fr auto;
+  }
+
+  .main > .topbar ~ .grid.cols-3:last-of-type {
+    grid-template-columns: 1fr;
+  }
+
+  .main > .topbar ~ .grid.cols-3:last-of-type > .card {
+    min-height: 128px;
+  }
+
+  .drawer .workflow-panel {
+    display: grid;
+  }
+}
+
+@media (max-width: 480px) {
+  .main > .topbar + .grid.cols-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .main > .topbar + .grid.cols-3 > .panel {
+    min-width: 0;
+  }
+
+  .main > .topbar + .grid.cols-3 > .panel .eyebrow {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .main > .topbar ~ .toolbar:not(.workflow-actions) {
+    grid-template-columns: 1fr;
+  }
+
+  .main > .topbar ~ .toolbar:not(.workflow-actions) .btn {
+    width: 100%;
+  }
+
+  .drawer .workflow-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .drawer .workflow-actions .btn {
+    width: 100%;
+  }
+}
