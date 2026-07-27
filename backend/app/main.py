@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import integration_models  # noqa: F401 - register integration tables with SQLAlchemy
 from .database import SessionLocal
+from .http_protection import enforce_request_boundary, request_id
 from .routers.api import router
 from .routers.integrations_v2 import router as integrations_v2_router
 from .security import load_security_settings, validate_security_settings
@@ -33,7 +34,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.2.0",
+    version="3.3.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -49,10 +50,22 @@ app.add_middleware(
     allow_origins=list(security.allowed_origins),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Integration-Api-Key"],
-    expose_headers=["Content-Disposition"],
+    allow_headers=["Authorization", "Content-Type", "X-Integration-Api-Key", "X-Request-Id"],
+    expose_headers=["Content-Disposition", "X-Request-Id"],
     max_age=600,
 )
+
+
+@app.middleware("http")
+async def request_boundary(request: Request, call_next):
+    correlation_id = request_id(request)
+    blocked = await enforce_request_boundary(request)
+    if blocked is not None:
+        blocked.headers["X-Request-Id"] = correlation_id
+        return blocked
+    response = await call_next(request)
+    response.headers["X-Request-Id"] = correlation_id
+    return response
 
 
 @app.middleware("http")
