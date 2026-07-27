@@ -1,5 +1,6 @@
 import './globals.css';
 import './resources.css';
+import './mobile.css';
 import type { Metadata } from 'next';
 import { AppShell } from '@/components/AppShell';
 
