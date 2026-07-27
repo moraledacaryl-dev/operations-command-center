@@ -11,6 +11,7 @@ from . import integration_models  # noqa: F401 - register integration tables wit
 from .database import SessionLocal
 from .http_protection import enforce_request_boundary, request_id
 from .identity_boundary import IdentityBoundaryMiddleware
+from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.integrations_v2 import router as integrations_v2_router
 from .security import load_security_settings, validate_security_settings
@@ -35,7 +36,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.4.0",
+    version="3.5.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -56,6 +57,7 @@ app.add_middleware(
     max_age=600,
 )
 app.add_middleware(IdentityBoundaryMiddleware)
+app.add_middleware(RoleBoundaryMiddleware)
 
 
 @app.middleware("http")
