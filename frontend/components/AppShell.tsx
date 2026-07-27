@@ -1,19 +1,57 @@
 'use client';
+
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Entity } from '@/lib/api';
 import { clearStoredUser, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
-const groups = [
-  { label: 'Main', items: [['/', 'Home'], ['/departments', 'Departments'], ['/account', 'Account']] },
-  { label: 'Work', items: [['/projects', 'Projects'], ['/tasks', 'Tasks'], ['/requests', 'Requests']] },
-  { label: 'Ops', items: [['/shift', 'Shift'], ['/guests', 'Guests'], ['/fixes', 'Fixes'], ['/rooms', 'Rooms']] },
-  { label: 'Market', items: [['/posts', 'Posts']] },
-  { label: 'Review', items: [['/review', 'Review']] },
-  { label: 'Memory', items: [['/history', 'History']] },
+type NavItem = {
+  href: string;
+  label: string;
+  shortLabel?: string;
+  icon: string;
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const primaryItems: NavItem[] = [
+  { href: '/', label: 'Today', icon: 'T' },
+  { href: '/tasks', label: 'My work', icon: 'W' },
+  { href: '/departments', label: 'Department', icon: 'D' },
+  { href: '/projects', label: 'Projects', icon: 'P' },
+  { href: '/review', label: 'Review', icon: 'R' },
 ];
-const adminItems = [['/admin/users', 'Users'], ['/admin/health', 'Health'], ['/admin/approve', 'Approve']];
+
+const groups: NavGroup[] = [
+  {
+    label: 'Operations',
+    items: [
+      { href: '/requests', label: 'Requests', icon: 'Q' },
+      { href: '/shift', label: 'Shift handover', shortLabel: 'Handover', icon: 'S' },
+      { href: '/guests', label: 'Guest matters', shortLabel: 'Guests', icon: 'G' },
+      { href: '/fixes', label: 'Maintenance', icon: 'F' },
+      { href: '/rooms', label: 'Rooms', icon: 'M' },
+    ],
+  },
+  {
+    label: 'Planning',
+    items: [
+      { href: '/posts', label: 'Marketing', icon: 'K' },
+      { href: '/history', label: 'History', icon: 'H' },
+    ],
+  },
+];
+
+const adminItems: NavItem[] = [
+  { href: '/admin/users', label: 'People & access', shortLabel: 'People', icon: 'U' },
+  { href: '/admin/approve', label: 'Approval setup', shortLabel: 'Approvals', icon: 'A' },
+  { href: '/admin/health', label: 'System health', shortLabel: 'Health', icon: 'Y' },
+];
+
 const connectedApps = [
   ['Staff & Payroll', process.env.NEXT_PUBLIC_STAFF_PAYROLL_APP_URL],
   ['POS', process.env.NEXT_PUBLIC_POS_APP_URL],
@@ -24,12 +62,23 @@ function SignInRequired() {
   return (
     <main className="login-screen">
       <section className="login-card">
-        <div className="logo big">CC</div>
-        <h1>Sign in</h1>
-        <p className="muted">Use your personal account. Your departments load after login.</p>
-        <Link className="btn" href="/login">Open Login</Link>
+        <div className="logo big">HO</div>
+        <p className="eyebrow">Hidden Oasis Operations</p>
+        <h1>Sign in to continue</h1>
+        <p className="muted">Use your personal account to open your work, department and approvals.</p>
+        <Link className="btn" href="/login">Open sign in</Link>
       </section>
     </main>
+  );
+}
+
+function NavLink({ item, path, onNavigate }: { item: NavItem; path: string; onNavigate?: () => void }) {
+  const active = item.href === '/' ? path === '/' : path.startsWith(item.href);
+  return (
+    <Link className={active ? 'active' : ''} href={item.href} onClick={onNavigate} aria-current={active ? 'page' : undefined}>
+      <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+      <span className="nav-copy">{item.label}</span>
+    </Link>
   );
 }
 
@@ -38,16 +87,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<Entity | null>(null);
   const [deptId, setDeptId] = useState<number | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const isLogin = path === '/login';
 
   useEffect(() => {
     const stored = getStoredUser();
     setUser(stored);
     setDeptId(getCurrentDepartmentId(stored));
+    setMobileOpen(false);
   }, [path]);
 
   const deptOptions = user?.departments || [];
   const currentDept = deptOptions.find((d: Entity) => Number(d.id) === Number(deptId)) || deptOptions[0];
+  const role = String(user?.role || '').toLowerCase();
+  const canAdminister = ['owner', 'admin', 'manager'].includes(role);
 
   function changeDept(value: string) {
     const id = Number(value);
@@ -67,49 +120,87 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      <header className="mobile-header">
+        <Link className="mobile-brand" href="/">
+          <span className="logo">HO</span>
+          <span><strong>Operations</strong><small>{currentDept?.name || 'Hidden Oasis'}</small></span>
+        </Link>
+        <button
+          className="menu-toggle"
+          type="button"
+          aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen(open => !open)}
+        >
+          {mobileOpen ? 'Close' : 'Menu'}
+        </button>
+      </header>
+
+      {mobileOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
+
+      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
         <div className="brand">
-          <div className="logo">CC</div>
+          <div className="logo">HO</div>
           <div>
-            <strong>Command</strong>
-            <small>{user.name || 'User'} · {user.role}</small>
+            <strong>Operations</strong>
+            <small>Hidden Oasis command center</small>
           </div>
+        </div>
+
+        <div className="user-summary">
+          <span className="user-avatar" aria-hidden="true">{String(user.name || 'U').slice(0, 1).toUpperCase()}</span>
+          <span><strong>{user.name || 'User'}</strong><small>{user.role}</small></span>
+          <Link href="/account" className="account-link" onClick={() => setMobileOpen(false)}>Account</Link>
         </div>
 
         {deptOptions.length > 0 && (
           <div className="dept-switch">
-            <label className="label">Workspace
+            <label>
+              <span>Current workspace</span>
               <select className="select" value={currentDept?.id || ''} onChange={e => changeDept(e.target.value)}>
                 {deptOptions.map((dept: Entity) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
               </select>
             </label>
-            {deptOptions.length > 1 ? <small className="muted">Multi-dept access</small> : <small className="muted">Primary dept</small>}
           </div>
         )}
 
-        <nav className="nav grouped">
+        <nav className="nav grouped" aria-label="Main navigation">
+          <div className="nav-group primary-nav">
+            {primaryItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}
+          </div>
+
           {groups.map(group => (
             <div className="nav-group" key={group.label}>
               <span className="nav-label">{group.label}</span>
-              {group.items.map(([href, label]) => {
-                const active = href === '/' ? path === '/' : path.startsWith(href);
-                return <Link className={active ? 'active' : ''} key={href} href={href}><span className="dot" />{label}</Link>;
-              })}
+              {group.items.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}
             </div>
           ))}
+
           {connectedApps.length > 0 && (
             <div className="nav-group">
-              <span className="nav-label">Apps</span>
-              {connectedApps.map(([label, href]) => <a href={href} key={label} rel="noreferrer"><span className="dot" />{label}</a>)}
+              <span className="nav-label">Connected apps</span>
+              {connectedApps.map(([label, href]) => (
+                <a href={href} key={label} rel="noreferrer" target="_blank">
+                  <span className="nav-icon external" aria-hidden="true">↗</span>
+                  <span className="nav-copy">{label}</span>
+                </a>
+              ))}
             </div>
           )}
-          <div className="nav-group admin-fold">
-            <span className="nav-label">Admin</span>
-            {adminItems.map(([href, label]) => { const active = path.startsWith(href); return <Link className={active ? 'active' : ''} key={href} href={href}><span className="dot" />{label}</Link>; })}
-          </div>
+
+          {canAdminister && (
+            <details className="nav-admin" open={path.startsWith('/admin')}>
+              <summary>Administration</summary>
+              <div className="nav-group">
+                {adminItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}
+              </div>
+            </details>
+          )}
         </nav>
+
         <button className="btn secondary logout" onClick={logout}>Sign out</button>
       </aside>
+
       <main className="main">{children}</main>
     </div>
   );
