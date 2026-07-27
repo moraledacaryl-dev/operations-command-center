@@ -1,0 +1,244 @@
+/* Final frontend polish: consistency, accessibility and dense-state refinement */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(23, 109, 93, .18);
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid rgba(23, 109, 93, .28);
+  outline-offset: 2px;
+}
+
+:where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}
+
+.main {
+  isolation: isolate;
+}
+
+.topbar h1,
+.card-title,
+.workTitle,
+.workspaceCard,
+.detail-row > :last-child {
+  overflow-wrap: anywhere;
+}
+
+.panel,
+.card,
+.stat,
+.drawer,
+.login-card {
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+
+.panel:hover {
+  border-color: var(--line-strong);
+}
+
+.card[role='button'],
+button.card {
+  appearance: none;
+  font: inherit;
+}
+
+.card[role='button']:active,
+button.card:active,
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn {
+  justify-content: center;
+}
+
+.btn:disabled {
+  opacity: .58;
+  box-shadow: none;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: #8b958e;
+}
+
+.input[type='file'] {
+  padding-block: 8px;
+}
+
+.input[type='file']::file-selector-button {
+  margin-right: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.select {
+  text-overflow: ellipsis;
+}
+
+.pill {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  min-height: 132px;
+  border-style: dashed;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: var(--muted);
+}
+
+.error-banner,
+.main > .pill.urgent {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  white-space: normal;
+}
+
+.tabs {
+  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-width: thin;
+}
+
+.tabs::-webkit-scrollbar,
+.status-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tabs::-webkit-scrollbar-thumb,
+.status-rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+
+.status-rail span {
+  text-align: center;
+}
+
+.detail-row {
+  align-items: start;
+}
+
+.detail-row > :first-child {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+.drawer-backdrop {
+  backdrop-filter: blur(3px);
+}
+
+.drawer-head h2 {
+  line-height: 1.25;
+}
+
+.drawer > * + * {
+  margin-top: 14px;
+}
+
+.drawer .panel + .panel {
+  margin-top: 14px !important;
+}
+
+.login-card {
+  border: 1px solid var(--line);
+  box-shadow: 0 20px 55px rgba(24, 34, 27, .12);
+}
+
+.login-card .btn {
+  width: 100%;
+}
+
+.user-summary strong,
+.mobile-brand strong,
+.brand strong {
+  line-height: 1.2;
+}
+
+.nav a,
+.nav summary {
+  user-select: none;
+}
+
+.nav-admin summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-admin summary::after {
+  content: '›';
+  margin-left: auto;
+  transition: transform .15s ease;
+}
+
+.nav-admin[open] summary::after {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+@media print {
+  .sidebar,
+  .mobile-header,
+  .mobile-bottom-nav,
+  .sidebar-scrim,
+  .topbar .btn,
+  .command-band,
+  .workflow-actions {
+    display: none !important;
+  }
+
+  .app,
+  .main {
+    display: block;
+    padding: 0 !important;
+  }
+
+  body,
+  .panel,
+  .card,
+  .stat {
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .panel,
+  .card,
+  .stat {
+    break-inside: avoid;
+  }
+}
