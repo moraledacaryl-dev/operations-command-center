@@ -20,6 +20,7 @@ from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.integrations_v2 import router as integrations_v2_router
 from .security import load_security_settings, validate_security_settings
+from .security_audit import SecurityAuditMiddleware
 from .seed import backfill_local_user_passwords, ensure_bootstrap_owner, seed_if_empty
 from .session_lifecycle import SessionLifecycleMiddleware
 from .upload_access import UploadAccessMiddleware
@@ -44,7 +45,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.13.0",
+    version="3.14.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -74,6 +75,7 @@ app.add_middleware(AuthorizationFreshnessMiddleware)
 app.add_middleware(InternalReadBoundaryMiddleware)
 app.add_middleware(ApiReadBoundaryMiddleware)
 app.add_middleware(CsrfProtectionMiddleware)
+app.add_middleware(SecurityAuditMiddleware)
 
 
 @app.middleware("http")
