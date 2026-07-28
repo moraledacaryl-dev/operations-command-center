@@ -8,6 +8,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from . import integration_models  # noqa: F401 - register integration tables with SQLAlchemy
+from .api_read_boundary import ApiReadBoundaryMiddleware
 from .authorization_freshness import AuthorizationFreshnessMiddleware
 from .database import SessionLocal
 from .decision_boundary import DecisionBoundaryMiddleware
@@ -42,7 +43,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.11.0",
+    version="3.12.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -70,6 +71,7 @@ app.add_middleware(UploadAccessMiddleware)
 app.add_middleware(SessionLifecycleMiddleware)
 app.add_middleware(AuthorizationFreshnessMiddleware)
 app.add_middleware(InternalReadBoundaryMiddleware)
+app.add_middleware(ApiReadBoundaryMiddleware)
 
 
 @app.middleware("http")
