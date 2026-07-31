@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 
 
@@ -14,6 +15,27 @@ def _headers(scope) -> dict[str, str]:
         key.decode("latin-1").lower(): value.decode("latin-1")
         for key, value in scope.get("headers", [])
     }
+
+
+def _valid_request_id(value: str) -> bool:
+    return bool(value) and len(value) <= 128 and all(ch.isalnum() or ch in "-_.:" for ch in value)
+
+
+def _ensure_request_id(scope, headers: dict[str, str]) -> str:
+    incoming = headers.get("x-request-id", "").strip()
+    correlation_id = incoming if _valid_request_id(incoming) else uuid.uuid4().hex
+
+    # Make the outermost correlation ID visible to all inner middleware and
+    # route handlers. Replace any invalid or duplicate client-supplied value.
+    scope_headers = [
+        (key, value)
+        for key, value in scope.get("headers", [])
+        if key.decode("latin-1").lower() != "x-request-id"
+    ]
+    scope_headers.append((b"x-request-id", correlation_id.encode("latin-1")))
+    scope["headers"] = scope_headers
+    headers["x-request-id"] = correlation_id
+    return correlation_id
 
 
 def _client_ip(scope, headers: dict[str, str]) -> str:
@@ -47,6 +69,7 @@ class SecurityAuditMiddleware:
             return
 
         headers = _headers(scope)
+        correlation_id = _ensure_request_id(scope, headers)
         status_code: int | None = None
         response_request_id = ""
 
@@ -74,7 +97,7 @@ class SecurityAuditMiddleware:
             "path": str(scope.get("path", ""))[:512],
             "client_ip": _client_ip(scope, headers),
             "auth_mode": _auth_mode(headers),
-            "request_id": response_request_id or headers.get("x-request-id", "")[:128],
+            "request_id": response_request_id or correlation_id,
             "origin": headers.get("origin", "")[:256],
         }
         logger.warning(json.dumps(event, separators=(",", ":"), sort_keys=True))
