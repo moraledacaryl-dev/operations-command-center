@@ -15,10 +15,10 @@ class RouteOrderingTests(unittest.TestCase):
             "/api/review/queue must be registered before the generic resource item route",
         )
 
-    def test_first_review_queue_route_uses_fixed_router(self):
+    def test_review_queue_is_registered_once_by_fixed_router(self):
         matching = [route for route in app.routes if getattr(route, "path", None) == "/api/review/queue"]
 
-        self.assertGreaterEqual(len(matching), 1)
+        self.assertEqual(len(matching), 1)
         self.assertEqual(matching[0].endpoint.__module__, "app.routers.review")
 
 
