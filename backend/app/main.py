@@ -106,7 +106,17 @@ async def security_headers(request: Request, call_next):
     return response
 
 
+def remove_legacy_review_queue_route() -> None:
+    """Prevent the legacy generic router from registering a duplicate fixed path."""
+    router.routes[:] = [
+        route
+        for route in router.routes
+        if getattr(route, "path", None) != "/api/review/queue"
+    ]
+
+
 # Fixed routes must be registered before the legacy generic resource router.
+remove_legacy_review_queue_route()
 app.include_router(review_router)
 app.include_router(router)
 app.include_router(integrations_v2_router)
