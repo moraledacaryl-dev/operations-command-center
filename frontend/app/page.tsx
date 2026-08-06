@@ -70,12 +70,12 @@ export default function Home() {
     setError('');
     const [dashboardResult, workResult, integrationResult] = await Promise.allSettled([
       api.dashboard({ department_id: getCurrentDepartmentId(getStoredUser()) }),
-      api.myWork(),
+      api.list('my-work'),
       isExecutive ? api.integrationOverview() : Promise.resolve({}),
     ]);
     if (dashboardResult.status === 'fulfilled') setDashboard(dashboardResult.value);
     else setError(dashboardResult.reason?.message || 'Today could not be loaded.');
-    if (workResult.status === 'fulfilled') setMyWork(workResult.value);
+    if (workResult.status === 'fulfilled') setMyWork(workResult.value as unknown as Entity);
     if (integrationResult.status === 'fulfilled') setIntegrations(integrationResult.value);
     setLoading(false);
   }
@@ -83,25 +83,30 @@ export default function Home() {
   useEffect(() => { load(); }, []);
 
   const counts = dashboard.counts || {};
-  const personal = myWork.counts || {};
+  const groups = myWork.groups || {};
+  const overdueCount = (groups.overdue || []).length;
   const attention = useMemo(() => {
     const rows: Entity[] = [];
-    if (count(personal.overdue)) rows.push({ title: `${personal.overdue} assigned task${count(personal.overdue) === 1 ? '' : 's'} overdue`, status: 'Overdue', priority: 'Urgent' });
+    if (overdueCount) rows.push({ title: `${overdueCount} assigned task${overdueCount === 1 ? '' : 's'} overdue`, status: 'Overdue', priority: 'Urgent' });
     if (count(counts.approve)) rows.push({ title: `${counts.approve} decision${count(counts.approve) === 1 ? '' : 's'} waiting`, status: 'Pending', priority: 'High' });
     if (count(counts.fixes)) rows.push({ title: `${counts.fixes} maintenance item${count(counts.fixes) === 1 ? '' : 's'} open`, status: 'Open', priority: 'Normal' });
     return rows;
-  }, [counts, personal]);
+  }, [counts, overdueCount]);
 
   const personalRows = [
-    ...(myWork.overdue || []),
-    ...(myWork.today || []),
-    ...(myWork.waiting || []),
-    ...(myWork.upcoming || []),
+    ...(groups.overdue || []),
+    ...(groups.today || []),
+    ...(groups.waiting || []),
+    ...(groups.upcoming || []),
   ].slice(0, 4);
   const handover = (dashboard.previous_shift || []).slice(0, 4);
   const approvals = (dashboard.approvals || []).slice(0, 4);
   const integrationAlerts = isExecutive
-    ? Object.entries(integrations).filter(([, value]) => value && typeof value === 'object').slice(0, 4).map(([source, value]: [string, any]) => ({ title: source, summary: `${Object.values(value).reduce((sum: number, item) => sum + count(item), 0)} current signals`, status: 'Connected' }))
+    ? Object.entries(integrations).filter(([, value]) => value && typeof value === 'object').slice(0, 4).map(([source, value]) => {
+        const sourceValues = Object.values(value as Record<string, unknown>);
+        const total = sourceValues.reduce((sum, item) => sum + count(item), 0);
+        return { title: source, summary: `${total} current signals`, status: 'Connected' };
+      })
     : [];
   const allClear = attention.length === 0;
 
@@ -132,7 +137,7 @@ export default function Home() {
       </section>
 
       <div className="grid cols-3" style={{ marginBottom: 16 }}>
-        <Metric label="My overdue" value={count(personal.overdue)} detail="Assigned tasks past due" href="/my-work" urgent />
+        <Metric label="My overdue" value={overdueCount} detail="Assigned tasks past due" href="/my-work" urgent />
         <Metric label="Waiting for review" value={count(counts.approve)} detail="Decisions requiring attention" href="/review" urgent={isExecutive} />
         <Metric label="Open maintenance" value={count(counts.fixes)} detail="Unresolved property issues" href="/fixes" />
       </div>
