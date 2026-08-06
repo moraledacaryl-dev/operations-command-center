@@ -1,0 +1,88 @@
+/* Shared interaction and accessibility foundation */
+
+.main > .topbar ~ .tabs .tab.active,
+.main > .topbar ~ .tabs .tab.active > span:not(.muted) {
+  color: #fff;
+}
+
+.drawer-backdrop {
+  z-index: 1200;
+  overscroll-behavior: contain;
+}
+
+.drawer {
+  z-index: 1201;
+  outline: none;
+  overscroll-behavior: contain;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+body[data-modal-open='true'] .mobile-bottom-nav {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.drawer-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: inherit;
+  border-bottom: 1px solid var(--line);
+}
+
+.drawer-details .detail-row > span:last-child {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.card[role='button'],
+.card[tabindex='0'] {
+  cursor: pointer;
+}
+
+.card[role='button']:focus-visible,
+.card[tabindex='0']:focus-visible,
+.btn:focus-visible,
+.tab:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgba(23, 109, 93, .35);
+  outline-offset: 3px;
+}
+
+.main,
+.panel,
+.card,
+.detail-row,
+.health-value {
+  min-width: 0;
+}
+
+.admin-health,
+.admin-health .panel,
+.admin-health code,
+.admin-health pre,
+.admin-health .pill,
+.admin-health .muted {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 680px) {
+  .drawer-backdrop {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .drawer {
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .drawer-head {
+    padding-top: env(safe-area-inset-top);
+  }
+}
