@@ -18,14 +18,14 @@ class ReleaseContractTests(unittest.TestCase):
 
     def test_manager_cannot_administer_accounts(self):
         manager = ROLE_CAPABILITIES['manager']
-        self.assertFalse(manager['manage_accounts'])
-        self.assertTrue(manager['make_decisions'])
+        self.assertNotIn('manage_accounts', manager)
+        self.assertIn('make_decisions', manager)
 
     def test_lead_remains_department_scoped(self):
         lead = ROLE_CAPABILITIES['lead']
-        self.assertTrue(lead['manage_department'])
-        self.assertFalse(lead['view_all_operations'])
-        self.assertFalse(lead['manage_accounts'])
+        self.assertIn('manage_department', lead)
+        self.assertNotIn('view_all_operations', lead)
+        self.assertNotIn('manage_accounts', lead)
 
 
 if __name__ == '__main__':
