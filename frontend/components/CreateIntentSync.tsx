@@ -1,15 +1,15 @@
 'use client';
 
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 
 const CREATE_ROUTES = new Set(['/tasks', '/requests', '/fixes', '/shift', '/projects']);
 
 export function CreateIntentSync() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
     if (!CREATE_ROUTES.has(pathname) || searchParams.get('create') !== '1') return;
 
     let cancelled = false;
@@ -32,7 +32,7 @@ export function CreateIntentSync() {
 
     openCreateForm();
     return () => { cancelled = true; };
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   return null;
 }
