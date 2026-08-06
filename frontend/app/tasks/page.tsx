@@ -79,7 +79,7 @@ export default function TeamTasksPage() {
     <div className="toolbar"><input className="input" placeholder="Search team tasks" value={query} onChange={e => setQuery(e.target.value)} /></div>
     <div className="grid cols-4">
       {columns.map(status => <section className="panel" key={status}>
-        <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>{status}</h2><Pill value={visible.filter(item => item.status === status).length} /></div>
+        <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>{status}</h2><Pill value={String(visible.filter(item => item.status === status).length)} /></div>
         <div className="grid" style={{ marginTop: 12 }}>
           {visible.filter(item => item.status === status).map(item => <button type="button" className="card" key={item.id} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
             <strong>{item.title}</strong>
