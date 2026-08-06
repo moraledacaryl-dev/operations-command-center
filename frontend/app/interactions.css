@@ -35,11 +35,22 @@ body[data-modal-open='true'] .mobile-bottom-nav {
   text-align: right;
 }
 
+.card-button {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border: 1px solid var(--line);
+  appearance: none;
+}
+
+.card-button,
 .card[role='button'],
 .card[tabindex='0'] {
   cursor: pointer;
 }
 
+.card-button:focus-visible,
 .card[role='button']:focus-visible,
 .card[tabindex='0']:focus-visible,
 .btn:focus-visible,
