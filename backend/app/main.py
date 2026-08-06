@@ -18,6 +18,7 @@ from .identity_boundary import IdentityBoundaryMiddleware
 from .internal_read_boundary import InternalReadBoundaryMiddleware
 from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
+from .routers.authorization_hotfix import router as authorization_hotfix_router
 from .routers.integrations_v2 import router as integrations_v2_router
 from .routers.my_work import router as my_work_router
 from .routers.review import router as review_router
@@ -44,7 +45,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.17.0",
+    version="3.18.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -104,17 +105,23 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-def remove_legacy_review_queue_route() -> None:
+def remove_shadowed_legacy_routes() -> None:
+    shadowed_paths = {
+        "/api/review/queue",
+        "/api/workflow/approvals/{approval_id}/decide",
+        "/api/users",
+    }
     router.routes[:] = [
         route
         for route in router.routes
-        if getattr(route, "path", None) != "/api/review/queue"
+        if getattr(route, "path", None) not in shadowed_paths
     ]
 
 
-remove_legacy_review_queue_route()
+remove_shadowed_legacy_routes()
 app.include_router(review_router)
 app.include_router(my_work_router)
+app.include_router(authorization_hotfix_router)
 app.include_router(router)
 app.include_router(integrations_v2_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")
