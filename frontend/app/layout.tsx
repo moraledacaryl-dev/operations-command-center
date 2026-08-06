@@ -3,6 +3,7 @@ import './resources.css';
 import './mobile.css';
 import './polish.css';
 import './capabilities.css';
+import './interactions.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { RolePresentationSync } from '@/components/RolePresentationSync';
