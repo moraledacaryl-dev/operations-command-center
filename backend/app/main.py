@@ -19,6 +19,7 @@ from .internal_read_boundary import InternalReadBoundaryMiddleware
 from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.integrations_v2 import router as integrations_v2_router
+from .routers.my_work import router as my_work_router
 from .routers.review import router as review_router
 from .security import load_security_settings, validate_security_settings
 from .security_audit import SecurityAuditMiddleware
@@ -33,10 +34,7 @@ security = load_security_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Refuse to start with unsafe production secrets or network policy.
     validate_security_settings(security)
-
-    # Schema changes are applied only through Alembic before the API starts.
     with SessionLocal() as db:
         seed_if_empty(db)
         ensure_bootstrap_owner(db)
@@ -46,7 +44,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.16.0",
+    version="3.17.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -107,7 +105,6 @@ async def security_headers(request: Request, call_next):
 
 
 def remove_legacy_review_queue_route() -> None:
-    """Prevent the legacy generic router from registering a duplicate fixed path."""
     router.routes[:] = [
         route
         for route in router.routes
@@ -115,9 +112,9 @@ def remove_legacy_review_queue_route() -> None:
     ]
 
 
-# Fixed routes must be registered before the legacy generic resource router.
 remove_legacy_review_queue_route()
 app.include_router(review_router)
+app.include_router(my_work_router)
 app.include_router(router)
 app.include_router(integrations_v2_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")
