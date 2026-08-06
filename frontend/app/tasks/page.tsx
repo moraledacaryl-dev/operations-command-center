@@ -1,6 +1,5 @@
-import { ModulePage } from '@/components/ModulePage';
-import { configs } from '@/lib/config';
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <ModulePage config={configs['tasks']} />;
+  redirect('/my-work');
 }
