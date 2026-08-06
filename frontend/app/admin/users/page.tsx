@@ -1,164 +1,130 @@
 'use client';
-import { useEffect, useState } from 'react';
+
+import { useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
+import { Drawer } from '@/components/Drawer';
 
-const EMPTY_CREATE = {
-  name: '',
-  email: '',
-  role: 'manager',
-  department_id: '',
-  password: '',
-  is_active: true,
-};
+const EMPTY_CREATE: Entity = { name: '', email: '', role: 'manager', department_id: '', password: '', is_active: true };
+
+type Mode = 'create' | 'reset' | 'access' | '';
+
+function localDate(value?: string) {
+  if (!value) return 'Never';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+}
 
 export default function UsersPage() {
   const [meta, setMeta] = useState<Entity>({ users: [], departments: [] });
+  const [mode, setMode] = useState<Mode>('');
+  const [selected, setSelected] = useState<Entity | null>(null);
+  const [query, setQuery] = useState('');
   const [membership, setMembership] = useState<Entity>({ user_id: '', department_id: '', is_primary: false, role_override: '' });
   const [createForm, setCreateForm] = useState<Entity>(EMPTY_CREATE);
   const [resetForm, setResetForm] = useState<Entity>({ user_id: '', new_password: '' });
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  async function load() {
-    setMeta(await api.meta());
+  async function load() { setMeta(await api.meta()); }
+  useEffect(() => { load().catch((err: any) => setError(err.message || 'Could not load users.')); }, []);
+
+  const users: Entity[] = meta.users || [];
+  const visible = useMemo(() => users.filter(user => !query.trim() || [user.name, user.email, user.role, ...(user.departments || []).map((department: Entity) => department.name)].filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase())), [users, query]);
+
+  function open(modeName: Mode, user?: Entity) {
+    setError(''); setSaved(''); setMode(modeName); setSelected(user || {});
+    if (modeName === 'reset' && user) setResetForm({ user_id: user.id, new_password: '' });
+    if (modeName === 'access' && user) setMembership({ user_id: user.id, department_id: '', is_primary: false, role_override: '' });
   }
 
-  useEffect(() => {
-    load().catch((err: any) => setError(err.message || 'Could not load users.'));
-  }, []);
-
-  async function addMembership() {
-    if (!membership.user_id || !membership.department_id) return;
-    setError('');
-    setSaved('');
-    try {
-      await api.create('user-departments', {
-        ...membership,
-        user_id: Number(membership.user_id),
-        department_id: Number(membership.department_id),
-        is_primary: Boolean(membership.is_primary),
-      });
-      setSaved('Department access saved.');
-      setMembership({ user_id: '', department_id: '', is_primary: false, role_override: '' });
-      await load();
-    } catch (err: any) {
-      setError(err.message || 'Could not add department access.');
-    }
-  }
+  function close() { if (!busy) { setMode(''); setSelected(null); } }
 
   async function createUser() {
-    if (!createForm.name || !createForm.email || !createForm.password) return;
-    setError('');
-    setSaved('');
+    if (!createForm.name || !createForm.email || !createForm.password || busy) return;
+    setBusy(true); setError('');
     try {
-      await api.adminCreateUser({
-        ...createForm,
-        department_id: createForm.department_id ? Number(createForm.department_id) : null,
-      });
-      setSaved('User created.');
-      setCreateForm(EMPTY_CREATE);
-      await load();
-    } catch (err: any) {
-      setError(err.message || 'Could not create user.');
-    }
+      await api.adminCreateUser({ ...createForm, department_id: createForm.department_id ? Number(createForm.department_id) : null });
+      setCreateForm(EMPTY_CREATE); setSaved('User created.'); await load(); close();
+    } catch (err: any) { setError(err.message || 'Could not create user.'); } finally { setBusy(false); }
   }
 
   async function resetPassword() {
-    if (!resetForm.user_id || !resetForm.new_password) return;
-    setError('');
-    setSaved('');
+    if (!resetForm.user_id || !resetForm.new_password || busy) return;
+    setBusy(true); setError('');
     try {
       await api.adminResetUserPassword(Number(resetForm.user_id), resetForm.new_password);
-      setSaved('Password reset saved.');
-      setResetForm({ user_id: '', new_password: '' });
-      await load();
-    } catch (err: any) {
-      setError(err.message || 'Could not reset password.');
-    }
+      setResetForm({ user_id: '', new_password: '' }); setSaved('Password reset saved.'); await load(); close();
+    } catch (err: any) { setError(err.message || 'Could not reset password.'); } finally { setBusy(false); }
+  }
+
+  async function addMembership() {
+    if (!membership.user_id || !membership.department_id || busy) return;
+    setBusy(true); setError('');
+    try {
+      await api.create('user-departments', { ...membership, user_id: Number(membership.user_id), department_id: Number(membership.department_id), is_primary: Boolean(membership.is_primary) });
+      setMembership({ user_id: '', department_id: '', is_primary: false, role_override: '' }); setSaved('Department access saved.'); await load(); close();
+    } catch (err: any) { setError(err.message || 'Could not add department access.'); } finally { setBusy(false); }
   }
 
   return <>
-    <Top eyebrow="Admin" title="Users" />
-    {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {saved ? <div className="pill ok" style={{ marginBottom: 12 }}>{saved}</div> : null}
-
-    <div className="grid cols-2" style={{ marginBottom: 16 }}>
-      <section className="panel">
-        <h2>Create user</h2>
-        <div className="form-grid" style={{ marginTop: 12 }}>
-          <label className="label">Name<input className="input" value={createForm.name} onChange={e => setCreateForm({ ...createForm, name: e.target.value })} /></label>
-          <label className="label">Email<input className="input" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} /></label>
-          <label className="label">Role
-            <select className="select" value={createForm.role} onChange={e => setCreateForm({ ...createForm, role: e.target.value })}>
-              {['owner', 'admin', 'manager', 'lead'].map(role => <option key={role} value={role}>{role}</option>)}
-            </select>
-          </label>
-          <label className="label">Primary department
-            <select className="select" value={createForm.department_id} onChange={e => setCreateForm({ ...createForm, department_id: e.target.value })}>
-              <option value="">Optional</option>
-              {meta.departments?.map((dept: Entity) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
-            </select>
-          </label>
-          <label className="label">Password<input className="input" type="password" value={createForm.password} onChange={e => setCreateForm({ ...createForm, password: e.target.value })} /></label>
-          <label className="label inline"><input type="checkbox" checked={!!createForm.is_active} onChange={e => setCreateForm({ ...createForm, is_active: e.target.checked })} /> Active</label>
-        </div>
-        <div className="toolbar"><button className="btn" onClick={createUser}>Create user</button></div>
-      </section>
-
-      <section className="panel">
-        <h2>Reset password</h2>
-        <div className="form-grid" style={{ marginTop: 12 }}>
-          <label className="label">User
-            <select className="select" value={resetForm.user_id} onChange={e => setResetForm({ ...resetForm, user_id: e.target.value })}>
-              <option value="">Select</option>
-              {meta.users?.map((candidate: Entity) => <option key={candidate.id} value={candidate.id}>{candidate.name} · {candidate.email}</option>)}
-            </select>
-          </label>
-          <label className="label">New password<input className="input" type="password" value={resetForm.new_password} onChange={e => setResetForm({ ...resetForm, new_password: e.target.value })} /></label>
-        </div>
-        <div className="toolbar"><button className="btn secondary" onClick={resetPassword}>Reset password</button></div>
-      </section>
-    </div>
+    <Top eyebrow="Administration" title="People & access" right={<button className="btn" onClick={() => open('create')}>Create user</button>} />
+    {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
+    {saved ? <div className="pill ok" role="status" style={{ marginBottom: 12 }}>{saved}</div> : null}
 
     <section className="panel" style={{ marginBottom: 16 }}>
-      <h2>Add department access</h2>
-      <div className="form-grid" style={{ marginTop: 12 }}>
-        <label className="label">User
-          <select className="select" value={membership.user_id} onChange={e => setMembership({ ...membership, user_id: e.target.value })}>
-            <option value="">Select</option>
-            {meta.users?.map((u: Entity) => <option key={u.id} value={u.id}>{u.name} · {u.role}</option>)}
-          </select>
-        </label>
-        <label className="label">Department
-          <select className="select" value={membership.department_id} onChange={e => setMembership({ ...membership, department_id: e.target.value })}>
-            <option value="">Select</option>
-            {meta.departments?.map((d: Entity) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </label>
-        <label className="label">Role note<input className="input" value={membership.role_override || ''} onChange={e => setMembership({ ...membership, role_override: e.target.value })} placeholder="optional" /></label>
-        <label className="label inline"><input type="checkbox" checked={!!membership.is_primary} onChange={e => setMembership({ ...membership, is_primary: e.target.checked })} /> Primary</label>
+      <div className="toolbar" style={{ marginBottom: 0 }}>
+        <input className="input" placeholder="Search name, email, role, or department" value={query} onChange={event => setQuery(event.target.value)} />
+        {query ? <button className="btn secondary" onClick={() => setQuery('')}>Clear</button> : null}
       </div>
-      <div className="toolbar"><button className="btn secondary" onClick={addMembership}>Save access</button></div>
+      <p className="muted" style={{ marginBottom: 0 }}>{visible.length} of {users.length} accounts. Password and access actions open in protected drawers.</p>
     </section>
 
     <div className="grid cols-2">
-      {meta.users?.map((u: Entity) => <div className="card" key={u.id}>
-        <div className="card-title">{u.name}</div>
-        <div className="card-line">
-          <Pill value={u.role} />
-          {!u.is_active ? <Pill value="inactive" /> : null}
-          {u.departments?.map((d: Entity) => <Pill key={d.id} value={`${d.name}${d.is_primary ? ' · primary' : ''}`} />)}
+      {visible.map(user => <article className="card" key={user.id}>
+        <div className="card-title">{user.name}</div>
+        <div className="card-line"><Pill value={user.role} />{!user.is_active ? <Pill value="Inactive" /> : <Pill value="Active" />}{user.departments?.map((department: Entity) => <Pill key={department.id} value={`${department.name}${department.is_primary ? ' · primary' : ''}`} />)}</div>
+        <span className="muted">{user.email}</span>
+        <div className="card-line" style={{ marginTop: 8 }}><span className="muted">Last login: {localDate(user.last_login_at)}</span></div>
+        <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
+          <button className="btn small secondary" onClick={() => open('access', user)}>Department access</button>
+          <button className="btn small secondary" onClick={() => open('reset', user)}>Reset password</button>
         </div>
-        <span className="muted">{u.email}</span>
-        <div className="card-line" style={{ marginTop: 8 }}>
-          <span className="muted">Password set: {u.password_set_at || 'not set'}</span>
-        </div>
-        <div className="card-line">
-          <span className="muted">Last login: {u.last_login_at || 'never'}</span>
-        </div>
-      </div>)}
+      </article>)}
+      {!visible.length ? <div className="empty">No matching accounts.</div> : null}
     </div>
+
+    <Drawer item={selected} title={mode === 'create' ? 'Create user' : mode === 'reset' ? 'Reset password' : mode === 'access' ? 'Department access' : 'People & access'} onClose={close}>
+      {mode === 'create' ? <section className="panel">
+        <h2>New account</h2><p className="muted">Create the identity first. Additional department access can be added afterward.</p>
+        <div className="form-grid" style={{ marginTop: 12 }}>
+          <label className="label">Name<input className="input" value={createForm.name} onChange={event => setCreateForm({ ...createForm, name: event.target.value })} /></label>
+          <label className="label">Email<input className="input" type="email" value={createForm.email} onChange={event => setCreateForm({ ...createForm, email: event.target.value })} /></label>
+          <label className="label">Role<select className="select" value={createForm.role} onChange={event => setCreateForm({ ...createForm, role: event.target.value })}>{['owner', 'admin', 'manager', 'lead', 'staff'].map(role => <option key={role}>{role}</option>)}</select></label>
+          <label className="label">Primary department<select className="select" value={createForm.department_id} onChange={event => setCreateForm({ ...createForm, department_id: event.target.value })}><option value="">Optional</option>{meta.departments?.map((department: Entity) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
+          <label className="label">Temporary password<input className="input" type="password" value={createForm.password} onChange={event => setCreateForm({ ...createForm, password: event.target.value })} /></label>
+          <label className="label inline"><input type="checkbox" checked={!!createForm.is_active} onChange={event => setCreateForm({ ...createForm, is_active: event.target.checked })} /> Active account</label>
+        </div>
+        <div className="toolbar"><button className="btn" disabled={busy || !createForm.name || !createForm.email || !createForm.password} onClick={createUser}>{busy ? 'Creating…' : 'Create account'}</button></div>
+      </section> : null}
+
+      {mode === 'reset' ? <section className="panel">
+        <h2>Reset {selected?.name || 'user'} password</h2><p className="muted">This is a security-sensitive action and may invalidate existing sessions.</p>
+        <label className="label">New password<input className="input" type="password" value={resetForm.new_password} onChange={event => setResetForm({ ...resetForm, new_password: event.target.value })} /></label>
+        <div className="toolbar"><button className="btn" disabled={busy || !resetForm.new_password} onClick={resetPassword}>{busy ? 'Resetting…' : 'Confirm password reset'}</button></div>
+      </section> : null}
+
+      {mode === 'access' ? <section className="panel">
+        <h2>Add access for {selected?.name || 'user'}</h2>
+        <div className="form-grid" style={{ marginTop: 12 }}>
+          <label className="label">Department<select className="select" value={membership.department_id} onChange={event => setMembership({ ...membership, department_id: event.target.value })}><option value="">Select</option>{meta.departments?.map((department: Entity) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
+          <label className="label">Role note<input className="input" value={membership.role_override || ''} onChange={event => setMembership({ ...membership, role_override: event.target.value })} placeholder="Optional department-specific note" /></label>
+          <label className="label inline"><input type="checkbox" checked={!!membership.is_primary} onChange={event => setMembership({ ...membership, is_primary: event.target.checked })} /> Make primary department</label>
+        </div>
+        <div className="toolbar"><button className="btn" disabled={busy || !membership.department_id} onClick={addMembership}>{busy ? 'Saving…' : 'Save department access'}</button></div>
+      </section> : null}
+    </Drawer>
   </>;
 }
