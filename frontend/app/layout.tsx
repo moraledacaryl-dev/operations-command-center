@@ -4,6 +4,7 @@ import './mobile.css';
 import './polish.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
+import { RolePresentationSync } from '@/components/RolePresentationSync';
 
 export const metadata: Metadata = {
   title: {
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en-PH">
       <body>
+        <RolePresentationSync />
         <AppShell>{children}</AppShell>
       </body>
     </html>
