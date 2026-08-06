@@ -20,13 +20,15 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-test.txt
       - run: python -m pip install --upgrade pip
-      - run: pip install -r requirements.txt
-      - name: Run backend regression suite
+      - run: pip install -r requirements-test.txt
+      - name: Run full backend test suite
         env:
           PYTHONPATH: .
-        run: python -m unittest discover -s tests -v
+        run: python -m pytest tests -v
 
   frontend:
     runs-on: ubuntu-latest
