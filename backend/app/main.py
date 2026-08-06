@@ -19,6 +19,7 @@ from .internal_read_boundary import InternalReadBoundaryMiddleware
 from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.integrations_v2 import router as integrations_v2_router
+from .routers.review import router as review_router
 from .security import load_security_settings, validate_security_settings
 from .security_audit import SecurityAuditMiddleware
 from .seed import backfill_local_user_passwords, ensure_bootstrap_owner, seed_if_empty
@@ -45,7 +46,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.15.0",
+    version="3.16.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -105,6 +106,18 @@ async def security_headers(request: Request, call_next):
     return response
 
 
+def remove_legacy_review_queue_route() -> None:
+    """Prevent the legacy generic router from registering a duplicate fixed path."""
+    router.routes[:] = [
+        route
+        for route in router.routes
+        if getattr(route, "path", None) != "/api/review/queue"
+    ]
+
+
+# Fixed routes must be registered before the legacy generic resource router.
+remove_legacy_review_queue_route()
+app.include_router(review_router)
 app.include_router(router)
 app.include_router(integrations_v2_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")

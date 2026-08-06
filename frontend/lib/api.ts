@@ -2,6 +2,20 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:80
 
 export type Entity = Record<string, any>;
 
+export class ApiError extends Error {
+  status: number;
+  requestId?: string;
+  detail?: string;
+
+  constructor(message: string, status: number, requestId?: string, detail?: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.requestId = requestId;
+    this.detail = detail;
+  }
+}
+
 function authHeaders() {
   if (typeof window === 'undefined') return {};
   const raw = window.localStorage.getItem('cc_user');
@@ -14,6 +28,47 @@ function authHeaders() {
   }
 }
 
+function endpointFailureMessage(path: string, status: number) {
+  if (path.startsWith('/review/queue')) return 'Review could not be loaded.';
+  if (status === 403) return 'You do not have permission to complete this action.';
+  if (status === 404) return 'The requested record could not be found.';
+  if (status === 429) return 'Too many requests. Please try again shortly.';
+  if (status >= 500) return 'The service is temporarily unavailable.';
+  return 'The request could not be completed.';
+}
+
+function validationDetail(detail: unknown): string | undefined {
+  if (typeof detail === 'string') return detail;
+  if (!Array.isArray(detail)) return undefined;
+  const messages = detail
+    .map(item => {
+      if (!item || typeof item !== 'object') return '';
+      const record = item as Record<string, any>;
+      const location = Array.isArray(record.loc) ? record.loc.slice(1).join(' ') : '';
+      return [location, record.msg].filter(Boolean).join(': ');
+    })
+    .filter(Boolean);
+  return messages.length ? messages.join('; ') : undefined;
+}
+
+async function normalizedError(res: Response, path: string) {
+  const requestId = res.headers.get('X-Request-Id') || undefined;
+  let detail: string | undefined;
+
+  try {
+    const payload = await res.clone().json();
+    detail = validationDetail(payload?.detail) || validationDetail(payload?.message);
+  } catch {
+    const text = (await res.text()).trim();
+    if (text && !text.startsWith('{') && !text.startsWith('[') && text.length <= 240) detail = text;
+  }
+
+  const safeMessage = detail && res.status < 500 && res.status !== 422
+    ? detail
+    : endpointFailureMessage(path, res.status);
+  return new ApiError(safeMessage, res.status, requestId, detail);
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = init?.body instanceof FormData
     ? { ...authHeaders(), ...(init.headers || {}) }
@@ -24,13 +79,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     cache: 'no-store',
   });
   if (!res.ok) {
-    const text = await res.text();
     if (res.status === 401 && typeof window !== 'undefined' && !path.startsWith('/auth/login')) {
       window.localStorage.removeItem('cc_user');
       window.localStorage.removeItem('cc_department_id');
       window.location.href = '/login';
     }
-    throw new Error(text || `Request failed: ${res.status}`);
+    throw await normalizedError(res, path);
   }
   return res.json();
 }
