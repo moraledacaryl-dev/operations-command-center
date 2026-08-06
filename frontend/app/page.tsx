@@ -6,263 +6,150 @@ import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 import { api, Entity } from '@/lib/api';
 import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
-import styles from './home.module.css';
 
-const sourceLabels: Record<string, string> = {
-  staff: 'Staff',
-  pos: 'POS',
-  accounting: 'Accounting',
-  inventory: 'Inventory',
-};
-
-function numeric(value: unknown) {
+function count(value: unknown) {
   const parsed = Number(value || 0);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function money(value: unknown) {
-  return new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-    maximumFractionDigits: 0,
-  }).format(numeric(value));
+function roleCopy(role: string) {
+  if (['owner', 'admin'].includes(role)) return { eyebrow: 'Property command view', summary: 'Cross-department exceptions, decisions, and connected-app risk.' };
+  if (role === 'manager') return { eyebrow: 'Management view', summary: 'Team execution, pending decisions, and operational exceptions.' };
+  if (['lead', 'supervisor'].includes(role)) return { eyebrow: 'Department lead view', summary: 'Assigned work, current handover, and department escalations.' };
+  return { eyebrow: 'Personal work view', summary: 'Your assigned work, requests, and current shift actions.' };
 }
 
-function itemTitle(item: Entity) {
-  return item.title || item.name || item.summary || item.note || item.problem || 'Operational item';
-}
-
-function itemHref(item: Entity) {
-  const kind = String(item.kind || '').toLowerCase();
-  if (kind.includes('task')) return '/tasks';
-  if (kind.includes('project')) return '/projects';
-  if (kind.includes('guest')) return '/guests';
-  if (kind.includes('fix') || kind.includes('maintenance')) return '/fixes';
-  if (kind.includes('post') || kind.includes('marketing')) return '/posts';
-  if (kind.includes('shift')) return '/shift';
-  return '/review';
-}
-
-function itemDate(item: Entity) {
-  const raw = item.due_at || item.due_date || item.starts_at || item.created_at || item.updated_at;
-  if (!raw) return '';
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString('en-PH', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
-function SectionHeader({ title, eyebrow, href, linkLabel = 'View all' }: { title: string; eyebrow?: string; href?: string; linkLabel?: string }) {
+function Metric({ label, value, detail, href, urgent = false }: { label: string; value: number; detail: string; href: string; urgent?: boolean }) {
   return (
-    <div className={styles.sectionHeader}>
-      <div>
-        {eyebrow ? <div className={styles.sectionEyebrow}>{eyebrow}</div> : null}
-        <h2>{title}</h2>
-      </div>
-      {href ? <Link className="btn small secondary" href={href}>{linkLabel}</Link> : null}
-    </div>
-  );
-}
-
-function WorkRow({ item, href }: { item: Entity; href?: string }) {
-  const when = itemDate(item);
-  return (
-    <Link className={styles.workRow} href={href || itemHref(item)}>
-      <div className={styles.workMain}>
-        <div className={styles.workTitle}>{itemTitle(item)}</div>
-        <div className={styles.workMeta}>
-          {item.kind ? <Pill value={item.kind} /> : null}
-          {item.status || item.review_status ? <Pill value={item.status || item.review_status} /> : null}
-          {item.priority || item.urgency ? <Pill value={item.priority || item.urgency} /> : null}
-        </div>
-      </div>
-      <div className={styles.workSide}>{when || 'Open'}</div>
+    <Link className={`panel ${urgent && value ? 'card-important' : ''}`} href={href} style={{ display: 'grid', gap: 6 }}>
+      <span className="eyebrow">{label}</span>
+      <strong style={{ fontSize: 28 }}>{value}</strong>
+      <span className="muted">{detail}</span>
     </Link>
   );
 }
 
-function Metric({ label, value, detail, href, tone = 'neutral' }: { label: string; value: string | number; detail: string; href: string; tone?: 'neutral' | 'urgent' | 'warn' | 'ok' }) {
+function WorkList({ title, eyebrow, items, href, empty }: { title: string; eyebrow: string; items: Entity[]; href: string; empty: string }) {
   return (
-    <Link className={`${styles.metric} ${styles[tone]}`} href={href}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </Link>
-  );
-}
-
-function DepartmentPulse({ name, detail, href, state }: { name: string; detail: string; href: string; state: 'Clear' | 'Busy' | 'Attention' }) {
-  return (
-    <Link className={styles.pulseRow} href={href}>
-      <div>
-        <strong>{name}</strong>
-        <span>{detail}</span>
+    <section className="panel">
+      <div className="topbar" style={{ marginBottom: 12 }}>
+        <div><div className="eyebrow">{eyebrow}</div><h2>{title}</h2></div>
+        <Link className="btn small secondary" href={href}>Open</Link>
       </div>
-      <Pill value={state} />
-    </Link>
+      <div className="grid">
+        {items.length ? items.slice(0, 4).map((item, index) => (
+          <Link className="card" href={href} key={item.id || index}>
+            <strong>{item.title || item.name || item.summary || 'Operational item'}</strong>
+            <div className="card-line">
+              {item.status || item.review_status ? <Pill value={item.status || item.review_status} /> : null}
+              {item.priority || item.urgency ? <Pill value={item.priority || item.urgency} /> : null}
+              {item.department_name ? <Pill value={item.department_name} /> : null}
+            </div>
+          </Link>
+        )) : <div className="empty">{empty}</div>}
+      </div>
+    </section>
   );
 }
 
 export default function Home() {
-  const [data, setData] = useState<Entity | null>(null);
-  const [crossApp, setCrossApp] = useState<Entity | null>(null);
+  const [dashboard, setDashboard] = useState<Entity>({});
+  const [myWork, setMyWork] = useState<Entity>({});
+  const [integrations, setIntegrations] = useState<Entity>({});
   const [loading, setLoading] = useState(true);
-  const [dashboardError, setDashboardError] = useState('');
-  const [integrationError, setIntegrationError] = useState('');
+  const [error, setError] = useState('');
   const user = getStoredUser();
+  const role = String(user?.role || 'staff').toLowerCase();
+  const copy = roleCopy(role);
+  const firstName = String(user?.name || 'there').trim().split(/\s+/)[0];
+  const isExecutive = ['owner', 'admin', 'manager'].includes(role);
+  const isLead = ['lead', 'supervisor'].includes(role);
 
-  async function loadHome() {
+  async function load() {
     setLoading(true);
-    setDashboardError('');
-    setIntegrationError('');
-
-    const [dashboardResult, integrationResult] = await Promise.allSettled([
+    setError('');
+    const [dashboardResult, workResult, integrationResult] = await Promise.allSettled([
       api.dashboard({ department_id: getCurrentDepartmentId(getStoredUser()) }),
-      api.integrationOverview(),
+      api.myWork(),
+      isExecutive ? api.integrationOverview() : Promise.resolve({}),
     ]);
-
-    if (dashboardResult.status === 'fulfilled') setData(dashboardResult.value);
-    else setDashboardError(dashboardResult.reason?.message || 'Core operations could not be loaded.');
-
-    if (integrationResult.status === 'fulfilled') setCrossApp(integrationResult.value);
-    else setIntegrationError(integrationResult.reason?.message || 'Connected apps could not be loaded.');
-
+    if (dashboardResult.status === 'fulfilled') setDashboard(dashboardResult.value);
+    else setError(dashboardResult.reason?.message || 'Today could not be loaded.');
+    if (workResult.status === 'fulfilled') setMyWork(workResult.value);
+    if (integrationResult.status === 'fulfilled') setIntegrations(integrationResult.value);
     setLoading(false);
   }
 
-  useEffect(() => { loadHome(); }, []);
+  useEffect(() => { load(); }, []);
 
-  const counts = data?.counts || {};
-  const staff = crossApp?.staff || {};
-  const pos = crossApp?.pos || {};
-  const accounting = crossApp?.accounting || {};
-  const inventory = crossApp?.inventory || {};
-  const firstName = String(user?.name || 'there').trim().split(/\s+/)[0];
-  const dateLabel = new Intl.DateTimeFormat('en-PH', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date());
-
+  const counts = dashboard.counts || {};
+  const personal = myWork.counts || {};
   const attention = useMemo(() => {
     const rows: Entity[] = [];
-    if (numeric(counts.late)) rows.push({ kind: 'Task', title: `${counts.late} overdue task${numeric(counts.late) === 1 ? '' : 's'}`, urgency: 'Urgent' });
-    if (numeric(counts.approve)) rows.push({ kind: 'Approval', title: `${counts.approve} decision${numeric(counts.approve) === 1 ? '' : 's'} waiting for review`, urgency: 'High' });
-    if (numeric(counts.fixes)) rows.push({ kind: 'Maintenance', title: `${counts.fixes} open maintenance item${numeric(counts.fixes) === 1 ? '' : 's'}`, urgency: 'Normal' });
-    if (numeric(staff.attendance_exceptions)) rows.push({ kind: 'Staff', title: `${staff.attendance_exceptions} attendance exception${numeric(staff.attendance_exceptions) === 1 ? '' : 's'}`, urgency: 'High' });
-    if (numeric(pos.pending_room_charges)) rows.push({ kind: 'POS', title: `${pos.pending_room_charges} room charge${numeric(pos.pending_room_charges) === 1 ? '' : 's'} awaiting review`, urgency: 'High' });
-    return rows.slice(0, 6);
-  }, [counts, staff, pos]);
+    if (count(personal.overdue)) rows.push({ title: `${personal.overdue} assigned task${count(personal.overdue) === 1 ? '' : 's'} overdue`, status: 'Overdue', priority: 'Urgent' });
+    if (count(counts.approve)) rows.push({ title: `${counts.approve} decision${count(counts.approve) === 1 ? '' : 's'} waiting`, status: 'Pending', priority: 'High' });
+    if (count(counts.fixes)) rows.push({ title: `${counts.fixes} maintenance item${count(counts.fixes) === 1 ? '' : 's'} open`, status: 'Open', priority: 'Normal' });
+    return rows;
+  }, [counts, personal]);
 
-  const today = useMemo(() => {
-    const focus = (data?.focus || []).map((item: Entity) => ({ ...item, kind: item.kind || 'Focus' }));
-    return focus.slice(0, 6);
-  }, [data]);
-
-  const handover = useMemo(() => (data?.previous_shift || []).slice(0, 4), [data]);
-  const approvals = useMemo(() => (data?.approvals || []).slice(0, 4), [data]);
-
-  const connected = useMemo(() => {
-    const accountingTotal = Object.values(accounting).reduce((sum: number, value) => sum + numeric(value), 0);
-    const inventoryTotal = Object.values(inventory).reduce((sum: number, value) => sum + numeric(value), 0);
-    return [
-      { source: 'staff', title: `${numeric(staff.staff_on_duty_today)} staff on duty`, detail: numeric(staff.attendance_exceptions) ? `${staff.attendance_exceptions} attendance exceptions` : 'Attendance clear' },
-      { source: 'pos', title: `${money(pos.sales)} sales today`, detail: numeric(pos.pending_room_charges) ? `${pos.pending_room_charges} room charges pending` : 'No room-charge exceptions' },
-      { source: 'accounting', title: accountingTotal ? `${accountingTotal} accounting items need review` : 'Accounting review clear', detail: 'Latest connected snapshot' },
-      { source: 'inventory', title: inventoryTotal ? `${inventoryTotal} inventory exceptions` : 'Inventory review clear', detail: Object.keys(inventory).length ? 'Latest connected snapshot' : 'Waiting for inventory data' },
-    ];
-  }, [staff, pos, accounting, inventory]);
-
-  const totalAttention = attention.length;
+  const personalRows = [
+    ...(myWork.overdue || []),
+    ...(myWork.today || []),
+    ...(myWork.waiting || []),
+    ...(myWork.upcoming || []),
+  ].slice(0, 4);
+  const handover = (dashboard.previous_shift || []).slice(0, 4);
+  const approvals = (dashboard.approvals || []).slice(0, 4);
+  const integrationAlerts = isExecutive
+    ? Object.entries(integrations).filter(([, value]) => value && typeof value === 'object').slice(0, 4).map(([source, value]: [string, any]) => ({ title: source, summary: `${Object.values(value).reduce((sum: number, item) => sum + count(item), 0)} current signals`, status: 'Connected' }))
+    : [];
+  const allClear = attention.length === 0;
 
   return (
     <>
       <Top
-        eyebrow={dateLabel}
+        eyebrow={copy.eyebrow}
         title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${firstName}`}
-        right={<button className="btn secondary" onClick={loadHome} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>}
+        right={<button className="btn secondary" onClick={load} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>}
       />
 
-      {dashboardError ? <div className="pill urgent" style={{ marginBottom: 12 }}>{dashboardError}</div> : null}
-      {integrationError ? <div className="pill warn" style={{ marginBottom: 12 }}>Connected apps are temporarily unavailable. Core operations remain usable.</div> : null}
+      {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
 
-      <section className={styles.hero}>
-        <div>
-          <div className={styles.heroLabel}>{totalAttention ? 'Needs attention' : 'Operations clear'}</div>
-          <h2>{totalAttention ? `${totalAttention} areas need your attention today` : 'Nothing urgent is blocking operations'}</h2>
-          <p>{totalAttention ? 'Start with overdue work and decisions waiting for you.' : 'Review today’s work, handover notes and department activity.'}</p>
-        </div>
-        <div className={styles.quickActions}>
-          <Link className="btn" href="/tasks">New task</Link>
-          <Link className="btn secondary" href="/requests">New request</Link>
-          <Link className="btn secondary" href="/fixes">Report issue</Link>
-          <Link className="btn secondary" href="/shift">Shift note</Link>
+      <section className="panel" style={{ marginBottom: 16 }}>
+        <div className="topbar" style={{ alignItems: 'flex-start' }}>
+          <div>
+            <div className="eyebrow">{allClear ? 'Operations clear' : 'Start here'}</div>
+            <h2>{allClear ? 'Nothing urgent is blocking your day' : `${attention.length} area${attention.length === 1 ? '' : 's'} need attention`}</h2>
+            <p className="muted">{copy.summary}</p>
+          </div>
+          <div className="toolbar" style={{ margin: 0 }}>
+            <Link className="btn" href="/tasks?create=1">New task</Link>
+            <Link className="btn secondary" href="/requests?create=1">New request</Link>
+            <Link className="btn secondary" href="/fixes?create=1">Report issue</Link>
+            <Link className="btn secondary" href="/shift?create=1">Shift note</Link>
+          </div>
         </div>
       </section>
 
-      <div className={styles.metrics}>
-        <Metric label="Overdue" value={numeric(counts.late)} detail="Tasks past due" href="/tasks" tone={numeric(counts.late) ? 'urgent' : 'ok'} />
-        <Metric label="Waiting for me" value={numeric(counts.approve)} detail="Decisions to review" href="/review" tone={numeric(counts.approve) ? 'warn' : 'ok'} />
-        <Metric label="Guest follow-ups" value={numeric(counts.guests)} detail="Open guest matters" href="/guests" />
-        <Metric label="Maintenance" value={numeric(counts.fixes)} detail="Open issues" href="/fixes" tone={numeric(counts.fixes) ? 'warn' : 'ok'} />
+      <div className="grid cols-3" style={{ marginBottom: 16 }}>
+        <Metric label="My overdue" value={count(personal.overdue)} detail="Assigned tasks past due" href="/my-work" urgent />
+        <Metric label="Waiting for review" value={count(counts.approve)} detail="Decisions requiring attention" href="/review" urgent={isExecutive} />
+        <Metric label="Open maintenance" value={count(counts.fixes)} detail="Unresolved property issues" href="/fixes" />
       </div>
 
-      <div className={styles.commandGrid}>
-        <section className={`${styles.surface} ${styles.attentionPanel}`}>
-          <SectionHeader title="Needs attention" eyebrow="Start here" href="/review" linkLabel="Open review" />
-          <div className={styles.stack}>
-            {loading && !data ? <div className="empty">Loading priorities…</div> : attention.length ? attention.map((item, index) => <WorkRow key={`${item.kind}-${index}`} item={item} href={item.kind === 'Task' ? '/tasks' : item.kind === 'Maintenance' ? '/fixes' : '/review'} />) : <div className={styles.clearState}><strong>All clear</strong><span>No urgent exceptions need your attention.</span></div>}
-          </div>
-        </section>
-
-        <section className={styles.surface}>
-          <SectionHeader title="My day" eyebrow="Priority work" href="/tasks" />
-          <div className={styles.stack}>
-            {loading && !data ? <div className="empty">Loading today’s work…</div> : today.length ? today.map((item: Entity, index: number) => <WorkRow key={`${item.kind}-${item.id || index}`} item={item} />) : <div className="empty">No urgent work is scheduled.</div>}
-          </div>
-        </section>
-
-        <section className={styles.surface}>
-          <SectionHeader title="Shift handover" eyebrow="Previous shift" href="/shift" linkLabel="Open handover" />
-          <div className={styles.stack}>
-            {handover.length ? handover.map((item: Entity, index: number) => <WorkRow key={item.id || index} item={{ ...item, kind: 'Shift note' }} href="/shift" />) : <div className="empty">No unresolved handover notes.</div>}
-          </div>
-        </section>
-
-        <section className={styles.surface}>
-          <SectionHeader title="Waiting for review" eyebrow="Decisions" href="/review" />
-          <div className={styles.stack}>
-            {approvals.length ? approvals.map((item: Entity, index: number) => <WorkRow key={item.id || index} item={{ ...item, kind: 'Approval' }} href="/review" />) : <div className="empty">No decisions are waiting.</div>}
-          </div>
-        </section>
-
-        <section className={styles.surface}>
-          <SectionHeader title="Department pulse" eyebrow="Operational health" href="/departments" linkLabel="Open workspaces" />
-          <div className={styles.stack}>
-            <DepartmentPulse name="Reception" state={numeric(counts.guests) ? 'Busy' : 'Clear'} detail={`${numeric(counts.guests)} guest follow-ups · ${numeric(counts.approve)} decisions`} href="/guests" />
-            <DepartmentPulse name="Housekeeping" state={numeric(counts.late) ? 'Attention' : numeric(counts.tasks) ? 'Busy' : 'Clear'} detail={`${numeric(counts.tasks)} active tasks · ${numeric(counts.late)} overdue`} href="/tasks" />
-            <DepartmentPulse name="Maintenance" state={numeric(counts.fixes) ? 'Busy' : 'Clear'} detail={`${numeric(counts.fixes)} open issues`} href="/fixes" />
-            <DepartmentPulse name="People" state={numeric(staff.attendance_exceptions) ? 'Attention' : numeric(staff.ot_pending) ? 'Busy' : 'Clear'} detail={`${numeric(staff.staff_on_duty_today)} on duty · ${numeric(staff.attendance_exceptions)} exceptions`} href="/review" />
-          </div>
-        </section>
-
-        <section className={styles.surface}>
-          <SectionHeader title="Connected apps" eyebrow="Latest snapshots" href="/review" linkLabel="Open connected review" />
-          <div className={styles.connectedGrid}>
-            {connected.map(item => (
-              <Link className={styles.connectedCard} href="/review" key={item.source}>
-                <Pill value={sourceLabels[item.source]} />
-                <strong>{item.title}</strong>
-                <span>{item.detail}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
+      <div className="grid cols-2">
+        <WorkList title="My work" eyebrow="Assigned to you" items={personalRows} href="/my-work" empty="No assigned work needs attention." />
+        {attention.length ? <WorkList title="Needs attention" eyebrow="Exceptions" items={attention} href={isExecutive ? '/review' : '/my-work'} empty="No urgent exceptions." /> : null}
+        {isExecutive ? <WorkList title="Waiting for review" eyebrow="Decisions" items={approvals} href="/review" empty="No decisions are waiting." /> : null}
+        {isLead || role === 'staff' ? <WorkList title="Shift handover" eyebrow="Current department" items={handover} href="/shift" empty="No unresolved handover notes." /> : null}
+        {isExecutive ? <WorkList title="Connected apps" eyebrow="Latest signals" items={integrationAlerts} href="/review" empty="Connected applications are clear." /> : null}
       </div>
+
+      {allClear ? (
+        <section className="panel" style={{ marginTop: 16 }}>
+          <div className="card-line"><Pill value="All clear" /><span className="muted">No additional exception panels are shown. Open a workspace only when you need deeper detail.</span></div>
+        </section>
+      ) : null}
     </>
   );
 }
