@@ -1,0 +1,7 @@
+html[data-role='manager'] .nav-admin,
+html[data-role='lead'] .nav-admin,
+html[data-role='supervisor'] .nav-admin,
+html[data-role='staff'] .nav-admin,
+html[data-role='signed-out'] .nav-admin {
+  display: none;
+}
