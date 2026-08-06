@@ -104,7 +104,7 @@ export default function Home() {
   const integrationAlerts = isExecutive
     ? Object.entries(integrations).filter(([, value]) => value && typeof value === 'object').slice(0, 4).map(([source, value]) => {
         const sourceValues = Object.values(value as Record<string, unknown>);
-        const total = sourceValues.reduce((sum, item) => sum + count(item), 0);
+        const total = sourceValues.reduce<number>((sum, item) => sum + count(item), 0);
         return { title: source, summary: `${total} current signals`, status: 'Connected' };
       })
     : [];
