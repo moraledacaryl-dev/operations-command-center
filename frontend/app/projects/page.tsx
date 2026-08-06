@@ -7,6 +7,12 @@ import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 
+type EnrichedProject = Entity & {
+  linked_tasks: Entity[];
+  progress: number;
+  overdue_tasks: number;
+};
+
 function formatDate(value?: string) {
   if (!value) return 'No due date';
   return new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
@@ -15,7 +21,7 @@ function formatDate(value?: string) {
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Entity[]>([]);
   const [tasks, setTasks] = useState<Entity[]>([]);
-  const [selected, setSelected] = useState<Entity | null>(null);
+  const [selected, setSelected] = useState<EnrichedProject | null>(null);
   const [filter, setFilter] = useState('Active');
   const [error, setError] = useState('');
   const departmentId = getCurrentDepartmentId(getStoredUser());
@@ -36,7 +42,7 @@ export default function ProjectsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const enriched = useMemo(() => projects.map(project => {
+  const enriched = useMemo<EnrichedProject[]>(() => projects.map((project): EnrichedProject => {
     const linked = tasks.filter(task => Number(task.project_id) === Number(project.id));
     const done = linked.filter(task => task.status === 'Done').length;
     const overdue = linked.filter(task => task.due_date && task.status !== 'Done' && new Date(task.due_date).getTime() < Date.now()).length;
