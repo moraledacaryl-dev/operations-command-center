@@ -8,16 +8,12 @@ import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 
 const statuses = ['Open', 'Working', 'Done', 'Verified'];
-
-function dateLabel(value?: string) {
-  if (!value) return 'No target date';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'No target date';
-  return new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
-}
+const emptyForm: Entity = { title: '', room_area_id: '', urgency: 'Normal', problem: '', assigned_to_id: '' };
 
 export default function MaintenancePage() {
   const [items, setItems] = useState<Entity[]>([]);
+  const [rooms, setRooms] = useState<Entity[]>([]);
+  const [people, setPeople] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState('Active');
@@ -25,13 +21,30 @@ export default function MaintenancePage() {
   const [busy, setBusy] = useState(false);
   const [verificationNote, setVerificationNote] = useState('');
   const [proofUrl, setProofUrl] = useState('');
-  const [form, setForm] = useState<Entity>({ title: '', location: '', urgency: 'Normal', problem: '', assigned_to_name: '', due_date: '' });
+  const [form, setForm] = useState<Entity>({ ...emptyForm });
   const departmentId = getCurrentDepartmentId(getStoredUser());
+
+  function roomName(roomAreaId?: number | string | null) {
+    if (!roomAreaId) return 'Location not recorded';
+    return rooms.find(room => Number(room.id) === Number(roomAreaId))?.name || `Room / area #${roomAreaId}`;
+  }
+
+  function personName(userId?: number | string | null) {
+    if (!userId) return 'Unassigned';
+    return people.find(person => Number(person.id) === Number(userId))?.name || `User #${userId}`;
+  }
 
   async function load() {
     try {
       setError('');
-      setItems(await api.list('fixes', { active: true, department_id: departmentId || '' }));
+      const [workItems, roomItems, meta] = await Promise.all([
+        api.list('fixes', { active: true, department_id: departmentId || '' }),
+        api.list('rooms', { active: false }),
+        api.meta(),
+      ]);
+      setItems(workItems);
+      setRooms(roomItems);
+      setPeople(Array.isArray(meta.users) ? meta.users : []);
     } catch (err: any) {
       setError(err.message || 'Maintenance work could not be loaded.');
     }
@@ -40,7 +53,7 @@ export default function MaintenancePage() {
   useEffect(() => { load(); }, []);
 
   const visible = useMemo(() => items.filter(item => {
-    if (filter === 'Active') return !['Verified'].includes(String(item.status));
+    if (filter === 'Active') return item.status !== 'Verified';
     if (filter === 'Urgent') return ['Urgent', 'High'].includes(String(item.urgency)) && item.status !== 'Verified';
     return filter === 'All' || item.status === filter;
   }), [items, filter]);
@@ -49,8 +62,16 @@ export default function MaintenancePage() {
     if (!String(form.title || '').trim() || busy) return;
     setBusy(true);
     try {
-      await api.create('fixes', { ...form, status: 'Open', department_id: departmentId || null });
-      setForm({ title: '', location: '', urgency: 'Normal', problem: '', assigned_to_name: '', due_date: '' });
+      await api.create('fixes', {
+        title: String(form.title).trim(),
+        room_area_id: form.room_area_id ? Number(form.room_area_id) : null,
+        urgency: form.urgency,
+        problem: String(form.problem || '').trim() || null,
+        assigned_to_id: form.assigned_to_id ? Number(form.assigned_to_id) : null,
+        status: 'Open',
+        department_id: departmentId || null,
+      });
+      setForm({ ...emptyForm });
       setShowAdd(false);
       await load();
     } catch (err: any) {
@@ -100,12 +121,12 @@ export default function MaintenancePage() {
       <h2>Log maintenance work</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Work item<input className="input" value={String(form.title || '')} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
-        <label className="label">Location<input className="input" value={String(form.location || '')} onChange={e => setForm({ ...form, location: e.target.value })} /></label>
+        <label className="label">Room / area<select className="select" value={String(form.room_area_id || '')} onChange={e => setForm({ ...form, room_area_id: e.target.value })}><option value="">Not assigned</option>{rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}</select></label>
         <label className="label">Urgency<select className="select" value={String(form.urgency)} onChange={e => setForm({ ...form, urgency: e.target.value })}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label>
-        <label className="label">Assigned technician<input className="input" value={String(form.assigned_to_name || '')} onChange={e => setForm({ ...form, assigned_to_name: e.target.value })} /></label>
-        <label className="label">Target date<input className="input" type="date" value={String(form.due_date || '')} onChange={e => setForm({ ...form, due_date: e.target.value })} /></label>
+        <label className="label">Assigned technician<select className="select" value={String(form.assigned_to_id || '')} onChange={e => setForm({ ...form, assigned_to_id: e.target.value })}><option value="">Unassigned</option>{people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label>
       </div>
       <label className="label">Problem / scope<textarea className="textarea" value={String(form.problem || '')} onChange={e => setForm({ ...form, problem: e.target.value })} /></label>
+      <p className="muted">Target dates are not stored by the current maintenance model, so they are intentionally not collected here.</p>
       <div className="toolbar"><button className="btn" disabled={busy || !String(form.title || '').trim()} onClick={createFix}>{busy ? 'Saving…' : 'Create work item'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
     <div className="tabs" style={{ marginBottom: 16 }}>{['Active', 'Urgent', ...statuses, 'All'].map(value => <button className={`tab ${filter === value ? 'active' : ''}`} key={value} onClick={() => setFilter(value)}>{value}</button>)}</div>
@@ -113,8 +134,8 @@ export default function MaintenancePage() {
       {visible.map(item => <button type="button" className={`card ${['Urgent', 'High'].includes(String(item.urgency)) && item.status !== 'Verified' ? 'card-important' : ''}`} key={item.id} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
         <strong className="card-title">{item.title}</strong>
         <span className="card-line"><Pill value={String(item.status || 'Open')} /><Pill value={String(item.urgency || 'Normal')} /></span>
-        <span className="muted">{item.location || item.room_name || 'Location not recorded'}</span>
-        <span className="muted">Assigned: {item.assigned_to_name || item.assignee_name || 'Unassigned'} · {dateLabel(item.due_date)}</span>
+        <span className="muted">{roomName(item.room_area_id)}</span>
+        <span className="muted">Assigned: {personName(item.assigned_to_id)}</span>
       </button>)}
       {!visible.length ? <div className="empty">No maintenance items in this view.</div> : null}
     </div>
@@ -122,9 +143,9 @@ export default function MaintenancePage() {
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}>
           <div className="eyebrow">Work order</div>
-          <h2>{selected.location || selected.room_name || 'Unassigned location'}</h2>
+          <h2>{roomName(selected.room_area_id)}</h2>
           <p>{selected.problem || selected.note || 'No scope recorded.'}</p>
-          <div className="card-line"><Pill value={String(selected.status || 'Open')} /><Pill value={String(selected.urgency || 'Normal')} /><Pill value={String(selected.assigned_to_name || selected.assignee_name || 'Unassigned')} /></div>
+          <div className="card-line"><Pill value={String(selected.status || 'Open')} /><Pill value={String(selected.urgency || 'Normal')} /><Pill value={personName(selected.assigned_to_id)} /></div>
         </section>
         <section className="panel" style={{ marginBottom: 16 }}>
           <h2>Work progression</h2>
