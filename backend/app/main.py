@@ -21,6 +21,7 @@ from .routers.api import router
 from .routers.authorization_hotfix import router as authorization_hotfix_router
 from .routers.integrations_v2 import router as integrations_v2_router
 from .routers.my_work import router as my_work_router
+from .routers.operational_meta import router as operational_meta_router
 from .routers.review import router as review_router
 from .security import load_security_settings, validate_security_settings
 from .security_audit import SecurityAuditMiddleware
@@ -112,6 +113,7 @@ def remove_shadowed_legacy_routes() -> None:
         "/api/review/queue",
         "/api/workflow/approvals/{approval_id}/decide",
         "/api/users",
+        "/api/meta",
     }
     router.routes[:] = [
         route
@@ -124,6 +126,7 @@ remove_shadowed_legacy_routes()
 app.include_router(review_router)
 app.include_router(my_work_router)
 app.include_router(authorization_hotfix_router)
+app.include_router(operational_meta_router)
 app.include_router(router)
 app.include_router(integrations_v2_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")
