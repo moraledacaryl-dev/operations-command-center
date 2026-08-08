@@ -28,6 +28,7 @@ from .seed import backfill_local_user_passwords, ensure_bootstrap_owner, seed_if
 from .session_lifecycle import SessionLifecycleMiddleware
 from .upload_access import UploadAccessMiddleware
 from .upload_safety import UploadSafetyMiddleware
+from .write_contract import WriteContractMiddleware
 
 
 security = load_security_settings()
@@ -45,7 +46,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.18.0",
+    version="3.19.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -75,6 +76,7 @@ app.add_middleware(AuthorizationFreshnessMiddleware)
 app.add_middleware(InternalReadBoundaryMiddleware)
 app.add_middleware(ApiReadBoundaryMiddleware)
 app.add_middleware(CsrfProtectionMiddleware)
+app.add_middleware(WriteContractMiddleware)
 app.add_middleware(SecurityAuditMiddleware)
 
 
