@@ -4,7 +4,6 @@ import pytest
 from fastapi import HTTPException, UploadFile
 
 from app.routers.uploads_hardened import _safe_external_url, _safe_filename, _store_upload
-from app import routers
 
 
 def test_browser_https_asset_url_is_accepted():
