@@ -13,7 +13,13 @@ class ReleaseContractTests(unittest.TestCase):
         paths = [route.path for route in app.routes]
         generic_item_index = paths.index('/api/{resource}/{item_id}')
         generic_list_index = paths.index('/api/{resource}')
-        for fixed_path in ('/api/review/queue', '/api/my-work', '/api/workflow/approvals/{approval_id}/decide'):
+        for fixed_path in (
+            '/api/review/queue',
+            '/api/my-work',
+            '/api/workflow/approvals/{approval_id}/decide',
+            '/api/{resource}/{item_id}/attachments',
+            '/api/posts/{post_id}/versions',
+        ):
             self.assertIn(fixed_path, paths)
             self.assertLess(paths.index(fixed_path), generic_item_index)
         self.assertIn('/api/users', paths)
@@ -24,6 +30,9 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertEqual(paths.count('/api/review/queue'), 1)
         self.assertEqual(paths.count('/api/workflow/approvals/{approval_id}/decide'), 1)
         self.assertEqual(paths.count('/api/users'), 1)
+        self.assertEqual(paths.count('/api/{resource}/{item_id}/attachments'), 1)
+        # GET and POST intentionally share this path; the legacy copies are removed.
+        self.assertEqual(paths.count('/api/posts/{post_id}/versions'), 2)
 
     def test_manager_cannot_administer_accounts_or_read_sensitive_directory(self):
         manager = ROLE_CAPABILITIES['manager']
