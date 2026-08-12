@@ -47,7 +47,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.19.0",
+    version="3.20.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,

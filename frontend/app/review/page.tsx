@@ -9,7 +9,6 @@ import { Drawer } from '@/components/Drawer';
 
 const sources = [
   ['external', 'Imported'],
-  ['requests', 'Requests'],
   ['approvals', 'Approvals'],
   ['submissions', 'Inbox'],
   ['posts', 'Posts'],
@@ -154,7 +153,7 @@ export default function ReviewPage() {
         <div className="form" style={{ marginTop: 12 }}>
           <textarea className="textarea" placeholder="Decision reason or operational context" value={note} onChange={event => setNote(event.target.value)} disabled={submitting} />
           <div className="toolbar" style={{ marginBottom: 0 }}>
-            {(kind === 'Requests' || kind === 'Approvals') && <><button className="btn small" onClick={() => decide('Approved')} disabled={submitting}>Approve</button><button className="btn small secondary" onClick={() => decide('Rejected')} disabled={submitting}>Reject</button></>}
+            {kind === 'Approvals' && <><button className="btn small" onClick={() => decide('Approved')} disabled={submitting}>Approve</button><button className="btn small secondary" onClick={() => decide('Rejected')} disabled={submitting}>Reject</button></>}
             {kind === 'Imported' && <><button className="btn small" onClick={() => decide('Seen')} disabled={submitting}>Seen</button><button className="btn small secondary" onClick={() => decide('Task')} disabled={submitting}>Create task</button><button className="btn small secondary" onClick={() => decide('Approval')} disabled={submitting}>Create approval</button><button className="btn small secondary" onClick={() => decide('Rejected')} disabled={submitting}>Reject</button></>}
             {kind === 'Verify' && <button className="btn small" onClick={() => decide('Verified')} disabled={submitting}>Verify</button>}
             {kind === 'Inbox' && <><button className="btn small" onClick={() => decide('Accepted')} disabled={submitting}>Accept</button><button className="btn small secondary" onClick={() => decide('Rejected')} disabled={submitting}>Reject</button></>}
