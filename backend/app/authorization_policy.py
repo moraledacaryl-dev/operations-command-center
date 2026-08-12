@@ -27,11 +27,11 @@ SYSTEM_OWNED_RESOURCES = {
     "submissions",
 }
 
-EXECUTIVE_ROLES = {"owner", "admin", "manager"}
+# Owner/Admin are the only principals allowed to treat an unassigned department
+# record as organization-wide for mutations. Managers keep view_all_operations
+# for reads, but manage_department does not itself grant cross-department writes.
+EXECUTIVE_MUTATION_ROLES = {"owner", "admin"}
 
-# These resources represent department work. A non-executive principal must
-# always have an explicit department scope for them; NULL is never a shortcut
-# to organization-wide visibility or write access.
 DEPARTMENT_SCOPED_RESOURCES = {
     "requests",
     "talk",
@@ -74,8 +74,6 @@ RESOURCE_ACTION_CAPABILITIES: dict[str, dict[Action, str | None]] = {
     },
 }
 
-# Generic operational resources share the same mutation authority. Read and
-# comment authority is scope-based; write authority is not implied by visibility.
 for _resource in (
     "rooms",
     "requests",
@@ -134,8 +132,8 @@ MODEL_RESOURCE_NAMES = {
 }
 
 
-def is_executive(user: models.User) -> bool:
-    return normalize_role(user.role) in EXECUTIVE_ROLES
+def can_mutate_globally(user: models.User) -> bool:
+    return normalize_role(user.role) in EXECUTIVE_MUTATION_ROLES
 
 
 def department_ids_for(db: Session, user: models.User) -> set[int]:
@@ -183,15 +181,18 @@ def authorize_action(
     }:
         raise HTTPException(status_code=405, detail="Use the canonical workflow endpoint.")
 
-    required = RESOURCE_ACTION_CAPABILITIES[resource].get(action)
-    if action not in RESOURCE_ACTION_CAPABILITIES[resource]:
+    permissions = RESOURCE_ACTION_CAPABILITIES[resource]
+    if action not in permissions:
         _deny()
+    required = permissions[action]
     if required and not has_capability(user.role, required):
         _deny()
 
     target_department_id = _canonical_department_id(obj=obj, department_id=department_id)
     if resource in DEPARTMENT_SCOPED_RESOURCES:
-        if is_executive(user):
+        if action == Action.VIEW and has_capability(user.role, "view_all_operations"):
+            return
+        if action != Action.VIEW and can_mutate_globally(user):
             return
         if target_department_id is None:
             _deny("A department scope is required for this resource.")
@@ -204,17 +205,15 @@ def scope_query(db: Session, user: models.User, model: type, query: Query):
     if not resource:
         return query
 
-    # Capability applies independently of object scope.
     required = RESOURCE_ACTION_CAPABILITIES.get(resource, {}).get(Action.VIEW)
     if required and not has_capability(user.role, required):
         _deny()
 
     if resource in DEPARTMENT_SCOPED_RESOURCES and hasattr(model, "department_id"):
-        if is_executive(user):
+        if has_capability(user.role, "view_all_operations"):
             return query
         ids = department_ids_for(db, user)
         if not ids:
             return query.filter(False)
-        # Deliberately exclude NULL department records for non-executives.
         return query.filter(model.department_id.in_(ids))
     return query
