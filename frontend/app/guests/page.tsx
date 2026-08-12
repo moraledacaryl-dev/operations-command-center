@@ -7,8 +7,6 @@ import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 
-const statuses = ['Open', 'Follow', 'Done'];
-
 function dateLabel(value?: string) {
   if (!value) return 'No follow-up set';
   const date = new Date(value);
@@ -16,20 +14,41 @@ function dateLabel(value?: string) {
   return new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(date);
 }
 
+const emptyForm: Entity = {
+  title: '',
+  guest_name: '',
+  room_area_id: '',
+  issue_type: 'Request',
+  urgency: 'Normal',
+  note: '',
+  follow_up_date: '',
+};
+
 export default function GuestMattersPage() {
   const [items, setItems] = useState<Entity[]>([]);
+  const [rooms, setRooms] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState('Active');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState<Entity>({ title: '', guest_name: '', room_name: '', issue_type: 'Request', urgency: 'Normal', note: '', follow_up_at: '' });
+  const [form, setForm] = useState<Entity>({ ...emptyForm });
   const departmentId = getCurrentDepartmentId(getStoredUser());
+
+  function roomName(roomAreaId?: number | string | null) {
+    if (!roomAreaId) return 'Room not recorded';
+    return rooms.find(room => Number(room.id) === Number(roomAreaId))?.name || `Room / area #${roomAreaId}`;
+  }
 
   async function load() {
     try {
       setError('');
-      setItems(await api.list('guests', { active: true, department_id: departmentId || '' }));
+      const [guestItems, roomItems] = await Promise.all([
+        api.list('guests', { active: true, department_id: departmentId || '' }),
+        api.list('rooms', { active: false }),
+      ]);
+      setItems(guestItems);
+      setRooms(roomItems);
     } catch (err: any) {
       setError(err.message || 'Guest matters could not be loaded.');
     }
@@ -47,8 +66,18 @@ export default function GuestMattersPage() {
     if (!String(form.title || '').trim() || busy) return;
     setBusy(true);
     try {
-      await api.create('guests', { ...form, status: 'Open', department_id: departmentId || null });
-      setForm({ title: '', guest_name: '', room_name: '', issue_type: 'Request', urgency: 'Normal', note: '', follow_up_at: '' });
+      await api.create('guests', {
+        title: String(form.title).trim(),
+        guest_name: String(form.guest_name || '').trim() || null,
+        room_area_id: form.room_area_id ? Number(form.room_area_id) : null,
+        issue_type: form.issue_type,
+        urgency: form.urgency,
+        note: String(form.note || '').trim() || null,
+        follow_up_date: form.follow_up_date || null,
+        status: 'Open',
+        department_id: departmentId || null,
+      });
+      setForm({ ...emptyForm });
       setShowAdd(false);
       await load();
     } catch (err: any) {
@@ -97,10 +126,10 @@ export default function GuestMattersPage() {
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Matter<input className="input" value={String(form.title || '')} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
         <label className="label">Guest<input className="input" value={String(form.guest_name || '')} onChange={e => setForm({ ...form, guest_name: e.target.value })} /></label>
-        <label className="label">Room / area<input className="input" value={String(form.room_name || '')} onChange={e => setForm({ ...form, room_name: e.target.value })} /></label>
+        <label className="label">Room / area<select className="select" value={String(form.room_area_id || '')} onChange={e => setForm({ ...form, room_area_id: e.target.value })}><option value="">Not assigned</option>{rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}</select></label>
         <label className="label">Type<select className="select" value={String(form.issue_type)} onChange={e => setForm({ ...form, issue_type: e.target.value })}><option>Request</option><option>Complaint</option><option>Room</option><option>Food</option><option>Payment</option><option>Checkout</option><option>Other</option></select></label>
         <label className="label">Urgency<select className="select" value={String(form.urgency)} onChange={e => setForm({ ...form, urgency: e.target.value })}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label>
-        <label className="label">Follow-up<input className="input" type="datetime-local" value={String(form.follow_up_at || '')} onChange={e => setForm({ ...form, follow_up_at: e.target.value })} /></label>
+        <label className="label">Follow-up<input className="input" type="datetime-local" value={String(form.follow_up_date || '')} onChange={e => setForm({ ...form, follow_up_date: e.target.value })} /></label>
       </div>
       <label className="label">Recovery action / context<textarea className="textarea" value={String(form.note || '')} onChange={e => setForm({ ...form, note: e.target.value })} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !String(form.title || '').trim()} onClick={createMatter}>{busy ? 'Saving…' : 'Save matter'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
@@ -110,8 +139,8 @@ export default function GuestMattersPage() {
       {visible.map(item => <button type="button" className={`card ${['Urgent', 'High'].includes(String(item.urgency)) && item.status !== 'Done' ? 'card-important' : ''}`} key={item.id} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
         <strong className="card-title">{item.title}</strong>
         <span className="card-line"><Pill value={String(item.status || 'Open')} /><Pill value={String(item.urgency || 'Normal')} /><Pill value={String(item.issue_type || 'Guest')} /></span>
-        <span className="muted">{item.guest_name || 'Guest not recorded'} · {item.room_name || item.room || 'Room not recorded'}</span>
-        <span className="muted">Follow-up: {dateLabel(item.follow_up_at)}</span>
+        <span className="muted">{item.guest_name || 'Guest not recorded'} · {roomName(item.room_area_id)}</span>
+        <span className="muted">Follow-up: {dateLabel(item.follow_up_date)}</span>
       </button>)}
       {!visible.length ? <div className="empty">No guest matters in this view.</div> : null}
     </div>
@@ -119,8 +148,9 @@ export default function GuestMattersPage() {
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}>
           <div className="eyebrow">Service recovery</div>
-          <h2>{selected.guest_name || 'Guest'} · {selected.room_name || selected.room || 'Unassigned room'}</h2>
+          <h2>{selected.guest_name || 'Guest'} · {roomName(selected.room_area_id)}</h2>
           <p>{selected.note || 'No recovery note yet.'}</p>
+          <p className="muted">Follow-up: {dateLabel(selected.follow_up_date)}</p>
           <div className="card-line"><Pill value={String(selected.issue_type || 'Guest')} /><Pill value={String(selected.urgency || 'Normal')} /><Pill value={String(selected.status || 'Open')} /></div>
         </section>
         <section className="panel">
