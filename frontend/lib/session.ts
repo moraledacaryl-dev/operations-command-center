@@ -2,6 +2,7 @@ import { Entity } from './api';
 
 const USER_KEY = 'cc_user';
 const DEPT_KEY = 'cc_department_id';
+export const DEPARTMENT_CHANGE_EVENT = 'cc:department-change';
 
 export function getStoredUser(): Entity | null {
   if (typeof window === 'undefined') return null;
@@ -31,6 +32,7 @@ export function getCurrentDepartmentId(user?: Entity | null): number | null {
 
 export function setCurrentDepartmentId(id: number) {
   window.localStorage.setItem(DEPT_KEY, String(id));
+  window.dispatchEvent(new CustomEvent(DEPARTMENT_CHANGE_EVENT, { detail: { departmentId: id } }));
 }
 
 export function landingPathForUser(user: Entity): string {
