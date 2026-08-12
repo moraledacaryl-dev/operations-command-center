@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Entity } from '@/lib/api';
-import { clearStoredUser, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
+import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
 type NavItem = {
   href: string;
@@ -102,6 +102,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [path]);
 
   useEffect(() => {
+    function syncDepartment() {
+      setDeptId(getCurrentDepartmentId(getStoredUser()));
+    }
+    window.addEventListener(DEPARTMENT_CHANGE_EVENT, syncDepartment);
+    window.addEventListener('storage', syncDepartment);
+    return () => {
+      window.removeEventListener(DEPARTMENT_CHANGE_EVENT, syncDepartment);
+      window.removeEventListener('storage', syncDepartment);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!mobileOpen) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -122,7 +134,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   function changeDept(value: string) {
     const id = Number(value);
-    setDeptId(id);
     setCurrentDepartmentId(id);
     if (path.startsWith('/departments')) router.push(`/departments?dept=${id}`);
   }
@@ -220,7 +231,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button className="btn secondary logout" onClick={logout}>Sign out</button>
       </aside>
 
-      <main className="main">{children}</main>
+      <main className="main" key={deptId ?? 'no-department'}>{children}</main>
 
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         {primaryItems.map(item => {
