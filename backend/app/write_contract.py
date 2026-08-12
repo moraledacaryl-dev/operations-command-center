@@ -50,7 +50,9 @@ REQUIRED_CREATE_FIELDS: dict[str, tuple[str, ...]] = {
 ALLOWED_STATUSES: dict[str, frozenset[str]] = {
     "tasks": frozenset({"To Do", "Doing", "Review", "Done"}),
     "projects": frozenset({"Planned", "Active", "Paused", "Done"}),
-    "requests": frozenset({"Draft", "Review", "Approved", "Rejected", "Planned", "Done"}),
+    # Approved/Rejected are decision outcomes and may only be written by the
+    # canonical Approval workflow, which also records decision metadata.
+    "requests": frozenset({"Draft", "Review", "Planned", "Done"}),
     "shift-notes": frozenset({"New", "Seen", "Follow", "Done"}),
     "guests": frozenset({"Open", "Follow", "Done"}),
     # Verified must use /api/workflow/fixes/{id}/verify so evidence/note rules cannot be bypassed.
@@ -120,6 +122,8 @@ class WriteContractMiddleware(BaseHTTPMiddleware):
             if "status" in payload:
                 allowed = ALLOWED_STATUSES.get(resource)
                 if allowed and payload["status"] not in allowed:
+                    if resource == "requests" and payload["status"] in {"Approved", "Rejected"}:
+                        return _error("Request decisions must use the linked Approval workflow.")
                     return _error(
                         f"Invalid status for {resource}. Allowed: {', '.join(sorted(allowed))}"
                     )
@@ -128,6 +132,8 @@ class WriteContractMiddleware(BaseHTTPMiddleware):
             status = payload.get("status")
             allowed = ALLOWED_STATUSES.get(resource)
             if allowed and status not in allowed:
+                if resource == "requests" and status in {"Approved", "Rejected"}:
+                    return _error("Request decisions must use the linked Approval workflow.")
                 return _error(
                     f"Invalid status for {resource}. Allowed: {', '.join(sorted(allowed))}"
                 )
