@@ -20,9 +20,9 @@ def review_queue(
 ):
     """Return the manager review queue from a fixed route.
 
-    This router is included before the legacy generic resource router so
-    ``/api/review/queue`` cannot be interpreted as resource ``review`` with
-    item id ``queue``.
+    Requests are intentionally not emitted as actionable decision objects. A
+    submitted Request is represented by its linked Pending Approval, which is
+    the canonical decision record and synchronizes the Request when decided.
     """
     if department_id and not can_view_all(user):
         allowed = department_ids_for(db, user)
@@ -59,16 +59,9 @@ def review_queue(
             .limit(25)
             .all()
         ),
-        "requests": serialize_many(
-            maybe_department(db.query(models.Request), models.Request)
-            .filter(
-                models.Request.hidden_from_active == False,
-                models.Request.status.in_(["Draft", "Review", "Planned"]),
-            )
-            .order_by(models.Request.updated_at.desc())
-            .limit(25)
-            .all()
-        ),
+        # Kept for response-shape compatibility. Requests are managed from the
+        # Requests workspace; Approval is the only decision object in Review.
+        "requests": [],
         "posts": serialize_many(
             maybe_department(db.query(models.Post), models.Post)
             .filter(
