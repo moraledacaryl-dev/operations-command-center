@@ -1,4 +1,4 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000/api';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export type Entity = Record<string, any>;
 
@@ -77,6 +77,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers,
     cache: 'no-store',
+    credentials: 'same-origin',
   });
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined' && !path.startsWith('/auth/login')) {

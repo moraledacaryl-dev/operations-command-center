@@ -23,12 +23,12 @@ from .routers.integrations_v2 import router as integrations_v2_router
 from .routers.my_work import router as my_work_router
 from .routers.operational_meta import router as operational_meta_router
 from .routers.review import router as review_router
+from .routers.uploads_hardened import router as uploads_hardened_router
 from .security import load_security_settings, validate_security_settings
 from .security_audit import SecurityAuditMiddleware
 from .seed import backfill_local_user_passwords, ensure_bootstrap_owner, seed_if_empty
 from .session_lifecycle import SessionLifecycleMiddleware
 from .upload_access import UploadAccessMiddleware
-from .upload_safety import UploadSafetyMiddleware
 from .write_contract import WriteContractMiddleware
 
 
@@ -47,7 +47,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.20.0",
+    version="3.21.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -70,7 +70,6 @@ app.add_middleware(
 app.add_middleware(IdentityBoundaryMiddleware)
 app.add_middleware(RoleBoundaryMiddleware)
 app.add_middleware(DecisionBoundaryMiddleware)
-app.add_middleware(UploadSafetyMiddleware)
 app.add_middleware(UploadAccessMiddleware)
 app.add_middleware(SessionLifecycleMiddleware)
 app.add_middleware(AuthorizationFreshnessMiddleware)
@@ -101,6 +100,7 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("Referrer-Policy", "same-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     response.headers.setdefault("Cross-Origin-Resource-Policy", "same-site")
+    response.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
     if security.production:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     if request.url.path.startswith("/api/auth"):
@@ -114,6 +114,8 @@ def remove_shadowed_legacy_routes() -> None:
         "/api/workflow/approvals/{approval_id}/decide",
         "/api/users",
         "/api/meta",
+        "/api/{resource}/{item_id}/attachments",
+        "/api/posts/{post_id}/versions",
     }
     router.routes[:] = [
         route
@@ -127,6 +129,7 @@ app.include_router(review_router)
 app.include_router(my_work_router)
 app.include_router(authorization_hotfix_router)
 app.include_router(operational_meta_router)
+app.include_router(uploads_hardened_router)
 app.include_router(router)
 app.include_router(integrations_v2_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")
