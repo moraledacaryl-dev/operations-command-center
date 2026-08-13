@@ -10,12 +10,12 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..authorization_policy import Action, authorize_action
 from ..database import get_db
 from ..upload_safety import safe_original_filename, validate_external_url
 from ..utils import log_activity, model_to_dict, serialize_many
 from .api import (
     UPLOAD_DIR,
-    assert_resource_access,
     fetch_or_404,
     get_model,
     require_user,
@@ -82,7 +82,7 @@ def add_attachment_hardened(
 ):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
-    assert_resource_access(db, user, obj)
+    authorize_action(db, user, resource, Action.ATTACH, obj=obj)
 
     saved_url = _safe_external_url(file_url)
     saved_filename = filename.strip()
@@ -124,7 +124,7 @@ def add_post_version_hardened(
     db: Session = Depends(get_db),
 ):
     post = fetch_or_404(db, models.Post, post_id)
-    assert_resource_access(db, user, post)
+    authorize_action(db, user, "posts", Action.ATTACH, obj=post)
 
     existing = db.query(models.PostVersion).filter(models.PostVersion.post_id == post_id).count()
     version_no = existing + 1
@@ -144,7 +144,6 @@ def add_post_version_hardened(
         file_url=saved_url,
         caption_snapshot=caption_snapshot or post.caption,
         note=note,
-        # Never trust a multipart actor id supplied by the browser.
         uploaded_by_id=user.id,
         is_current=True,
     )
@@ -163,7 +162,7 @@ def list_post_versions_hardened(
     db: Session = Depends(get_db),
 ):
     post = fetch_or_404(db, models.Post, post_id)
-    assert_resource_access(db, user, post)
+    authorize_action(db, user, "posts", Action.VIEW, obj=post)
     return serialize_many(
         db.query(models.PostVersion)
         .filter(models.PostVersion.post_id == post_id)

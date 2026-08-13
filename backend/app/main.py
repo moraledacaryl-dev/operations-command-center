@@ -19,6 +19,7 @@ from .internal_read_boundary import InternalReadBoundaryMiddleware
 from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.authorization_hotfix import router as authorization_hotfix_router
+from .routers.authorized_crud import router as authorized_crud_router
 from .routers.integrations_v2 import router as integrations_v2_router
 from .routers.my_work import router as my_work_router
 from .routers.operational_meta import router as operational_meta_router
@@ -47,7 +48,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.21.0",
+    version="3.22.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -114,6 +115,11 @@ def remove_shadowed_legacy_routes() -> None:
         "/api/workflow/approvals/{approval_id}/decide",
         "/api/users",
         "/api/meta",
+        "/api/{resource}",
+        "/api/{resource}/{item_id}",
+        "/api/{resource}/{item_id}/status",
+        "/api/{resource}/{item_id}/archive",
+        "/api/{resource}/{item_id}/comments",
         "/api/{resource}/{item_id}/attachments",
         "/api/posts/{post_id}/versions",
     }
@@ -130,6 +136,7 @@ app.include_router(my_work_router)
 app.include_router(authorization_hotfix_router)
 app.include_router(operational_meta_router)
 app.include_router(uploads_hardened_router)
+app.include_router(authorized_crud_router)
 app.include_router(router)
 app.include_router(integrations_v2_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")
