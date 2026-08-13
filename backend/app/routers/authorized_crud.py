@@ -10,45 +10,27 @@ from .. import models
 from ..authorization_policy import Action, authorize_action, scope_query
 from ..database import get_db
 from ..utils import apply_payload, log_activity, mark_completed_if_needed, model_to_dict, serialize_many
-from .api import (
-    CommentPayload,
-    StatusPayload,
-    active_filter,
-    apply_search,
-    fetch_or_404,
-    get_model,
-    require_user,
-)
+from .api import CommentPayload, StatusPayload, active_filter, apply_search, fetch_or_404, get_model, require_user
 
 router = APIRouter(prefix="/api")
 
 AUDIT_IDENTITY_FIELDS = {
-    "requested_by_id",
-    "submitted_by_id",
-    "reported_by_id",
-    "verified_by_id",
-    "actor_id",
-    "author_id",
-    "uploaded_by_id",
-    "decided_by_id",
-    "reviewed_by_id",
+    "requested_by_id", "submitted_by_id", "reported_by_id", "verified_by_id",
+    "actor_id", "author_id", "uploaded_by_id", "decided_by_id", "reviewed_by_id",
 }
-
 DERIVED_CREATE_FIELDS = {
     "requests": "requested_by_id",
     "talk": "author_id",
     "shift-notes": "submitted_by_id",
     "fixes": "reported_by_id",
 }
+WORKFLOW_STATE_RESOURCES = {"requests", "fixes"}
 
 
 def _reject_identity_fields(payload: dict[str, Any]) -> None:
     supplied = sorted(AUDIT_IDENTITY_FIELDS.intersection(payload))
     if supplied:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Audit identity fields are server-controlled: {', '.join(supplied)}",
-        )
+        raise HTTPException(status_code=400, detail=f"Audit identity fields are server-controlled: {', '.join(supplied)}")
 
 
 def _department_id(payload: dict[str, Any], obj: Any = None) -> int | None:
@@ -58,16 +40,7 @@ def _department_id(payload: dict[str, Any], obj: Any = None) -> int | None:
 
 
 @router.get("/{resource}")
-def list_resource_authorized(
-    resource: str,
-    active: bool = Query(default=True),
-    q: Optional[str] = Query(default=None),
-    status: Optional[str] = Query(default=None),
-    department_id: Optional[int] = Query(default=None),
-    limit: int = Query(default=100, le=500),
-    user: models.User = Depends(require_user),
-    db: Session = Depends(get_db),
-):
+def list_resource_authorized(resource: str, active: bool = Query(default=True), q: Optional[str] = Query(default=None), status: Optional[str] = Query(default=None), department_id: Optional[int] = Query(default=None), limit: int = Query(default=100, le=500), user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     authorize_action(db, user, resource, Action.VIEW, department_id=department_id)
     query = scope_query(db, user, model, db.query(model))
@@ -83,17 +56,16 @@ def list_resource_authorized(
 
 
 @router.post("/{resource}")
-def create_resource_authorized(
-    resource: str,
-    payload: dict[str, Any],
-    user: models.User = Depends(require_user),
-    db: Session = Depends(get_db),
-):
+def create_resource_authorized(resource: str, payload: dict[str, Any], user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     _reject_identity_fields(payload)
     authorize_action(db, user, resource, Action.CREATE, department_id=payload.get("department_id"))
     obj = model()
     clean = dict(payload)
+    if resource == "requests":
+        clean["status"] = "Draft"
+    elif resource == "fixes":
+        clean["status"] = "Open"
     derived_field = DERIVED_CREATE_FIELDS.get(resource)
     if derived_field and hasattr(obj, derived_field):
         clean[derived_field] = user.id
@@ -107,49 +79,24 @@ def create_resource_authorized(
 
 
 @router.get("/{resource}/{item_id}")
-def get_resource_authorized(
-    resource: str,
-    item_id: int,
-    user: models.User = Depends(require_user),
-    db: Session = Depends(get_db),
-):
+def get_resource_authorized(resource: str, item_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
     authorize_action(db, user, resource, Action.VIEW, obj=obj)
     data = model_to_dict(obj)
-    data["comments"] = serialize_many(
-        db.query(models.Comment)
-        .filter(models.Comment.parent_type == resource, models.Comment.parent_id == item_id)
-        .order_by(models.Comment.created_at.desc())
-        .all()
-    )
-    data["attachments"] = serialize_many(
-        db.query(models.Attachment)
-        .filter(models.Attachment.parent_type == resource, models.Attachment.parent_id == item_id)
-        .order_by(models.Attachment.created_at.desc())
-        .all()
-    )
-    data["activity"] = serialize_many(
-        db.query(models.ActivityLog)
-        .filter(models.ActivityLog.entity_type == resource, models.ActivityLog.entity_id == item_id)
-        .order_by(models.ActivityLog.created_at.desc())
-        .limit(30)
-        .all()
-    )
+    data["comments"] = serialize_many(db.query(models.Comment).filter(models.Comment.parent_type == resource, models.Comment.parent_id == item_id).order_by(models.Comment.created_at.desc()).all())
+    data["attachments"] = serialize_many(db.query(models.Attachment).filter(models.Attachment.parent_type == resource, models.Attachment.parent_id == item_id).order_by(models.Attachment.created_at.desc()).all())
+    data["activity"] = serialize_many(db.query(models.ActivityLog).filter(models.ActivityLog.entity_type == resource, models.ActivityLog.entity_id == item_id).order_by(models.ActivityLog.created_at.desc()).limit(30).all())
     return data
 
 
 @router.patch("/{resource}/{item_id}")
-def update_resource_authorized(
-    resource: str,
-    item_id: int,
-    payload: dict[str, Any],
-    user: models.User = Depends(require_user),
-    db: Session = Depends(get_db),
-):
+def update_resource_authorized(resource: str, item_id: int, payload: dict[str, Any], user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
     _reject_identity_fields(payload)
+    if resource in WORKFLOW_STATE_RESOURCES and "status" in payload:
+        raise HTTPException(status_code=405, detail="Use the canonical workflow endpoint.")
     authorize_action(db, user, resource, Action.EDIT, obj=obj, department_id=_department_id(payload, obj))
     apply_payload(obj, payload, excluded={"id", "created_at", "updated_at"} | AUDIT_IDENTITY_FIELDS)
     db.flush()
@@ -160,24 +107,17 @@ def update_resource_authorized(
 
 
 @router.post("/{resource}/{item_id}/status")
-def set_status_authorized(
-    resource: str,
-    item_id: int,
-    payload: StatusPayload,
-    user: models.User = Depends(require_user),
-    db: Session = Depends(get_db),
-):
+def set_status_authorized(resource: str, item_id: int, payload: StatusPayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
+    if resource in WORKFLOW_STATE_RESOURCES:
+        raise HTTPException(status_code=405, detail="Use the canonical workflow endpoint.")
     authorize_action(db, user, resource, Action.TRANSITION, obj=obj)
     if not hasattr(obj, "status") and not hasattr(obj, "review_status"):
         raise HTTPException(status_code=400, detail="Resource has no status")
     target_field = "status" if hasattr(obj, "status") else "review_status"
     setattr(obj, target_field, payload.status)
     mark_completed_if_needed(obj, payload.status)
-    if isinstance(obj, models.Fix) and payload.status == "Verified":
-        # Canonical verification workflow will own this transition in Pass 2.
-        raise HTTPException(status_code=405, detail="Use the canonical workflow endpoint.")
     log_activity(db, resource, obj.id, "status", f"Status → {payload.status}", actor_id=user.id, metadata={"note": payload.note})
     db.commit()
     db.refresh(obj)
@@ -185,13 +125,7 @@ def set_status_authorized(
 
 
 @router.post("/{resource}/{item_id}/archive")
-def archive_resource_authorized(
-    resource: str,
-    item_id: int,
-    reason: str = "manual",
-    user: models.User = Depends(require_user),
-    db: Session = Depends(get_db),
-):
+def archive_resource_authorized(resource: str, item_id: int, reason: str = "manual", user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
     authorize_action(db, user, resource, Action.ARCHIVE, obj=obj)
@@ -207,23 +141,11 @@ def archive_resource_authorized(
 
 
 @router.post("/{resource}/{item_id}/comments")
-def add_comment_authorized(
-    resource: str,
-    item_id: int,
-    payload: CommentPayload,
-    user: models.User = Depends(require_user),
-    db: Session = Depends(get_db),
-):
+def add_comment_authorized(resource: str, item_id: int, payload: CommentPayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
     authorize_action(db, user, resource, Action.COMMENT, obj=obj)
-    comment = models.Comment(
-        parent_type=resource,
-        parent_id=item_id,
-        body=payload.body,
-        author_id=user.id,
-        comment_type=payload.comment_type,
-    )
+    comment = models.Comment(parent_type=resource, parent_id=item_id, body=payload.body, author_id=user.id, comment_type=payload.comment_type)
     db.add(comment)
     log_activity(db, resource, item_id, "comment", payload.body[:120], actor_id=user.id)
     db.commit()
@@ -232,18 +154,8 @@ def add_comment_authorized(
 
 
 @router.get("/{resource}/{item_id}/comments")
-def comments_authorized(
-    resource: str,
-    item_id: int,
-    user: models.User = Depends(require_user),
-    db: Session = Depends(get_db),
-):
+def comments_authorized(resource: str, item_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
     authorize_action(db, user, resource, Action.VIEW, obj=obj)
-    return serialize_many(
-        db.query(models.Comment)
-        .filter(models.Comment.parent_type == resource, models.Comment.parent_id == item_id)
-        .order_by(models.Comment.created_at.desc())
-        .all()
-    )
+    return serialize_many(db.query(models.Comment).filter(models.Comment.parent_type == resource, models.Comment.parent_id == item_id).order_by(models.Comment.created_at.desc()).all())
