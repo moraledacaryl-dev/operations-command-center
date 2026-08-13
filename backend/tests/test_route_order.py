@@ -21,6 +21,17 @@ class RouteOrderingTests(unittest.TestCase):
         self.assertEqual(len(matching), 1)
         self.assertEqual(matching[0].endpoint.__module__, "app.routers.review")
 
+    def test_health_is_registered_before_generic_collection_route(self):
+        paths = [getattr(route, "path", None) for route in app.routes]
+        health_index = paths.index("/api/health")
+        generic_index = paths.index("/api/{resource}")
+
+        self.assertLess(
+            health_index,
+            generic_index,
+            "/api/health must be registered before the generic resource collection route",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
