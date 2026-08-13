@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app import models
 from app.authorization_policy import Action, authorize_action, scope_query
+from app.decision_boundary import _decision_from_request
 from app.routers.authorized_crud import (
     add_comment_authorized,
     create_resource_authorized,
@@ -120,6 +121,21 @@ def test_generic_approval_mutations_are_workflow_owned(db):
     expect_http(
         405,
         lambda: update_resource_authorized("approvals", approval.id, {"status": "Approved"}, owner, db),
+    )
+
+
+def test_generic_approval_status_is_not_preempted_by_decision_middleware():
+    assert not _decision_from_request(
+        "POST",
+        "/api/approvals/123/status",
+        "application/json",
+        b'{"status":"Approved"}',
+    )
+    assert _decision_from_request(
+        "POST",
+        "/api/fixes/123/status",
+        "application/json",
+        b'{"status":"Verified"}',
     )
 
 

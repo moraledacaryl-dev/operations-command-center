@@ -44,8 +44,12 @@ def _decision_from_request(method: str, path: str, content_type: str, body: byte
     if path.startswith("/api/workflow/fixes/") and path.endswith("/verify"):
         return True
 
+    # Generic Approval status mutation is workflow-owned and must reach the
+    # authorization policy so every role receives the canonical 405 response.
+    # Decision authorization belongs on the canonical Approval decision path,
+    # not on the generic CRUD/status path.
     parts = [part for part in path.split("/") if part]
-    if len(parts) == 4 and parts[0] == "api" and parts[1] in {"approvals", "fixes"} and parts[3] == "status":
+    if len(parts) == 4 and parts[0] == "api" and parts[1] == "fixes" and parts[3] == "status":
         normalized_type = (content_type or "").split(";", 1)[0].strip().lower()
         if normalized_type == "application/json" or normalized_type.endswith("+json"):
             try:
@@ -53,9 +57,7 @@ def _decision_from_request(method: str, path: str, content_type: str, body: byte
             except (json.JSONDecodeError, UnicodeDecodeError):
                 return False
             status = str(payload.get("status") or "").strip().lower() if isinstance(payload, dict) else ""
-            if parts[1] == "approvals" and status in {"approved", "rejected"}:
-                return True
-            if parts[1] == "fixes" and status == "verified":
+            if status == "verified":
                 return True
     return False
 
