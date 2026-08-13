@@ -136,7 +136,9 @@ app.include_router(my_work_router)
 app.include_router(authorization_hotfix_router)
 app.include_router(operational_meta_router)
 app.include_router(uploads_hardened_router)
-app.include_router(authorized_crud_router)
+# Register concrete API routes before the generic CRUD catch-alls so public
+# endpoints such as /api/health cannot be interpreted as resource names.
 app.include_router(router)
+app.include_router(authorized_crud_router)
 app.include_router(integrations_v2_router)
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")
