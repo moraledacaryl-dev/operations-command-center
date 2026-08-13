@@ -25,13 +25,13 @@ from .routers.my_work import router as my_work_router
 from .routers.operational_meta import router as operational_meta_router
 from .routers.review import router as review_router
 from .routers.uploads_hardened import router as uploads_hardened_router
+from .routers.workflow import router as workflow_router
 from .security import load_security_settings, validate_security_settings
 from .security_audit import SecurityAuditMiddleware
 from .seed import backfill_local_user_passwords, ensure_bootstrap_owner, seed_if_empty
 from .session_lifecycle import SessionLifecycleMiddleware
 from .upload_access import UploadAccessMiddleware
 from .write_contract import WriteContractMiddleware
-
 
 security = load_security_settings()
 
@@ -58,7 +58,6 @@ app = FastAPI(
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(security.allowed_hosts))
 if security.force_https:
     app.add_middleware(HTTPSRedirectMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(security.allowed_origins),
@@ -112,7 +111,13 @@ async def security_headers(request: Request, call_next):
 def remove_shadowed_legacy_routes() -> None:
     shadowed_paths = {
         "/api/review/queue",
+        "/api/workflow/requests/{request_id}/submit-approval",
         "/api/workflow/approvals/{approval_id}/decide",
+        "/api/workflow/fixes/{fix_id}/verify",
+        "/api/integrations/review-items/{item_id}/create-task",
+        "/api/integrations/review-items/{item_id}/create-approval",
+        "/api/integrations/review-items/{item_id}/mark-seen",
+        "/api/integrations/review-items/{item_id}/reject",
         "/api/users",
         "/api/meta",
         "/api/{resource}",
@@ -123,11 +128,7 @@ def remove_shadowed_legacy_routes() -> None:
         "/api/{resource}/{item_id}/attachments",
         "/api/posts/{post_id}/versions",
     }
-    router.routes[:] = [
-        route
-        for route in router.routes
-        if getattr(route, "path", None) not in shadowed_paths
-    ]
+    router.routes[:] = [route for route in router.routes if getattr(route, "path", None) not in shadowed_paths]
 
 
 remove_shadowed_legacy_routes()
@@ -136,6 +137,7 @@ app.include_router(my_work_router)
 app.include_router(authorization_hotfix_router)
 app.include_router(operational_meta_router)
 app.include_router(uploads_hardened_router)
+app.include_router(workflow_router)
 # Register concrete API routes before the generic CRUD catch-alls so public
 # endpoints such as /api/health cannot be interpreted as resource names.
 app.include_router(router)
