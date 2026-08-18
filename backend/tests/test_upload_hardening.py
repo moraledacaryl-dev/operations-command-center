@@ -2,6 +2,7 @@ from io import BytesIO
 
 import pytest
 from fastapi import HTTPException, UploadFile
+from starlette.datastructures import Headers
 
 from app.routers.uploads_hardened import _safe_external_url, _safe_filename, _store_upload
 
@@ -42,7 +43,7 @@ def test_upload_signature_must_match_extension(tmp_path, monkeypatch):
     import app.routers.uploads_hardened as hardened
 
     monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
-    upload = UploadFile(filename="proof.jpg", file=BytesIO(b"not-a-jpeg"), headers={"content-type": "image/jpeg"})
+    upload = UploadFile(filename="proof.jpg", file=BytesIO(b"not-a-jpeg"), headers=Headers({"content-type": "image/jpeg"}))
 
     with pytest.raises(HTTPException) as exc:
         _store_upload(upload, "test")
@@ -55,7 +56,7 @@ def test_upload_is_bounded_even_without_content_length(tmp_path, monkeypatch):
 
     monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
     monkeypatch.setattr(hardened, "MAX_UPLOAD_BYTES", 4)
-    upload = UploadFile(filename="proof.jpg", file=BytesIO(b"\xff\xd8\xff12345"), headers={"content-type": "image/jpeg"})
+    upload = UploadFile(filename="proof.jpg", file=BytesIO(b"\xff\xd8\xff12345"), headers=Headers({"content-type": "image/jpeg"}))
 
     with pytest.raises(HTTPException) as exc:
         _store_upload(upload, "test")
