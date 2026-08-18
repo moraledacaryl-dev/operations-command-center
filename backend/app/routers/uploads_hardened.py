@@ -3,10 +3,11 @@ from __future__ import annotations
 import os
 import time
 import uuid
+from http.cookies import SimpleCookie
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -15,15 +16,41 @@ from sqlalchemy.orm import Session
 from .. import models
 from ..authorization_policy import Action, authorize_action
 from ..database import get_db
+from ..upload_access import COOKIE_NAME
 from ..upload_safety import safe_original_filename, validate_external_url, validate_upload_content
 from ..utils import log_activity, model_to_dict
-from .api import UPLOAD_DIR, fetch_or_404, get_model, require_user
+from .api import UPLOAD_DIR, fetch_or_404, get_model, require_user, verify_token
 
 router = APIRouter(prefix="/api")
 
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
 COPY_CHUNK_BYTES = 1024 * 1024
 LOCAL_STORAGE_PREFIX = "storage:"
+
+
+def require_download_user(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> models.User:
+    token = None
+    authorization = request.headers.get("Authorization", "")
+    if authorization.startswith("Bearer "):
+        token = authorization.removeprefix("Bearer ").strip()
+    if not token:
+        cookie = SimpleCookie()
+        try:
+            cookie.load(request.headers.get("Cookie", ""))
+            morsel = cookie.get(COOKIE_NAME)
+            token = morsel.value if morsel else None
+        except Exception:
+            token = None
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing session")
+    payload = verify_token(token)
+    user = db.get(models.User, int(payload.get("sub", 0)))
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Invalid session user")
+    return user
 
 
 def _http_error(exc: ValueError) -> HTTPException:
@@ -82,7 +109,6 @@ def _local_path(file_url: str | None) -> Path | None:
     if value.startswith(LOCAL_STORAGE_PREFIX):
         name = value.removeprefix(LOCAL_STORAGE_PREFIX)
     elif value.startswith("/uploads/"):
-        # Compatibility for files persisted before Pass 3.
         name = value.removeprefix("/uploads/")
     else:
         return None
@@ -173,7 +199,7 @@ def add_attachment_hardened(
 @router.get("/attachments/{attachment_id}/download")
 def download_attachment(
     attachment_id: int,
-    user: models.User = Depends(require_user),
+    user: models.User = Depends(require_download_user),
     db: Session = Depends(get_db),
 ):
     attachment = fetch_or_404(db, models.Attachment, attachment_id)
@@ -273,7 +299,7 @@ def list_post_versions_hardened(
 def download_post_version(
     post_id: int,
     version_id: int,
-    user: models.User = Depends(require_user),
+    user: models.User = Depends(require_download_user),
     db: Session = Depends(get_db),
 ):
     post = fetch_or_404(db, models.Post, post_id)
