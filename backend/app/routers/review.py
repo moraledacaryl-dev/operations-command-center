@@ -1,9 +1,10 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..authorization_policy import scope_query
 from ..database import get_db
 from ..utils import serialize_many
 from .api import can_view_all, department_ids_for, require_user
@@ -18,29 +19,20 @@ def review_queue(
     user: models.User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    """Return the manager review queue from a fixed route.
-
-    Requests are intentionally not emitted as actionable decision objects. A
-    submitted Request is represented by its linked Pending Approval, which is
-    the canonical decision record and synchronizes the Request when decided.
-    """
     if department_id and not can_view_all(user):
         allowed = department_ids_for(db, user)
         if int(department_id) not in allowed:
-            from fastapi import HTTPException
-
             raise HTTPException(status_code=403, detail="No access to this department")
 
     def maybe_department(query, model):
+        query = scope_query(db, user, model, query)
         if department_id and hasattr(model, "department_id"):
-            return query.filter(model.department_id == department_id)
-        if not can_view_all(user) and hasattr(model, "department_id"):
-            return query.filter(model.department_id.in_(department_ids_for(db, user)))
+            query = query.filter(model.department_id == department_id)
         return query
 
     return {
         "submissions": serialize_many(
-            db.query(models.Submission)
+            maybe_department(db.query(models.Submission), models.Submission)
             .filter(
                 models.Submission.hidden_from_active == False,
                 models.Submission.review_status.in_(["New", "Review"]),
@@ -59,8 +51,6 @@ def review_queue(
             .limit(25)
             .all()
         ),
-        # Kept for response-shape compatibility. Requests are managed from the
-        # Requests workspace; Approval is the only decision object in Review.
         "requests": [],
         "posts": serialize_many(
             maybe_department(db.query(models.Post), models.Post)
