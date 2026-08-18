@@ -59,16 +59,16 @@ def test_valid_task_write_passes_contract():
     assert response.json()['title'] == 'Check room'
 
 
-def test_fix_cannot_bypass_verification_workflow():
+def test_fix_workflow_status_passes_through_to_canonical_route_guard():
     response = make_client().post('/api/fixes/9/status', json={'status': 'Verified'})
-    assert response.status_code == 422
-    assert 'Invalid status' in response.json()['detail']
+    assert response.status_code == 200
+    assert response.json()['status'] == 'Verified'
 
 
-def test_request_cannot_be_approved_through_generic_status():
+def test_request_workflow_status_passes_through_to_canonical_route_guard():
     response = make_client().post('/api/requests/4/status', json={'status': 'Approved'})
-    assert response.status_code == 422
-    assert 'linked Approval workflow' in response.json()['detail']
+    assert response.status_code == 200
+    assert response.json()['status'] == 'Approved'
 
 
 def test_request_cannot_be_rejected_through_generic_patch():
