@@ -1,14 +1,17 @@
 from io import BytesIO
+from pathlib import Path
 
 import pytest
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
+from starlette.datastructures import Headers
 
 from app import models
 from app.authorization_policy import scope_query
-from app.routers.privacy import integrations_overview
+from app.main import app
+from app.routers.privacy import integrations_overview, users
 from app.routers.uploads_hardened import add_attachment_hardened, download_attachment
 from app.user_dto import admin_user, operational_user
 
@@ -55,6 +58,17 @@ def test_explicit_user_dtos_never_expose_password_hash(db):
     assert "password_hash" not in admin
 
 
+def test_sensitive_user_directory_requires_capability(db):
+    _, _, owner, _, lead, _ = seed(db)
+    with pytest.raises(HTTPException) as exc:
+        users(active=True, q=None, limit=100, user=lead, db=db)
+    assert exc.value.status_code == 403
+
+    directory = users(active=True, q=None, limit=100, user=owner, db=db)
+    assert directory
+    assert all(not hasattr(item, "password_hash") for item in directory)
+
+
 def test_submission_scope_excludes_other_department_and_global_for_lead(db):
     first, second, _, manager, lead, _ = seed(db)
     db.add_all([
@@ -79,10 +93,14 @@ def test_integration_overview_requires_explicit_capability(db):
     assert integrations_overview(user=manager, db=db)["pending_review_count"] == 0
 
 
+def test_public_upload_static_mount_is_removed():
+    assert all(getattr(route, "path", None) != "/uploads" for route in app.routes)
+
+
 def test_cross_department_attachment_download_is_denied(db, tmp_path, monkeypatch):
     import app.routers.uploads_hardened as hardened
 
-    first, second, owner, _, lead, other = seed(db)
+    first, _, owner, _, lead, other = seed(db)
     task = models.Task(title="Scoped file", department_id=first.id)
     db.add(task)
     db.flush()
@@ -101,7 +119,7 @@ def test_cross_department_attachment_download_is_denied(db, tmp_path, monkeypatc
     monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
 
     response = download_attachment(attachment.id, user=lead, db=db)
-    assert response.path == str(stored)
+    assert Path(response.path) == stored
 
     with pytest.raises(HTTPException) as exc:
         download_attachment(attachment.id, user=other, db=db)
@@ -134,7 +152,7 @@ def test_failed_attachment_commit_removes_stored_file(db, tmp_path, monkeypatch)
     upload = UploadFile(
         filename="proof.pdf",
         file=BytesIO(b"%PDF-1.7\ncleanup"),
-        headers={"content-type": "application/pdf"},
+        headers=Headers({"content-type": "application/pdf"}),
     )
 
     def fail_commit():
