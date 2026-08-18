@@ -28,8 +28,26 @@ def test_dangerous_upload_extension_is_rejected():
     assert exc.value.status_code == 400
 
 
+def test_unknown_upload_extension_is_rejected():
+    with pytest.raises(HTTPException) as exc:
+        _safe_filename("proof.dat")
+    assert exc.value.status_code == 400
+
+
 def test_path_components_are_removed_from_safe_filename():
     assert _safe_filename(r"..\\folder\\proof.jpg") == "proof.jpg"
+
+
+def test_upload_signature_must_match_extension(tmp_path, monkeypatch):
+    import app.routers.uploads_hardened as hardened
+
+    monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
+    upload = UploadFile(filename="proof.jpg", file=BytesIO(b"not-a-jpeg"), headers={"content-type": "image/jpeg"})
+
+    with pytest.raises(HTTPException) as exc:
+        _store_upload(upload, "test")
+    assert exc.value.status_code == 400
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_upload_is_bounded_even_without_content_length(tmp_path, monkeypatch):
@@ -37,7 +55,7 @@ def test_upload_is_bounded_even_without_content_length(tmp_path, monkeypatch):
 
     monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
     monkeypatch.setattr(hardened, "MAX_UPLOAD_BYTES", 4)
-    upload = UploadFile(filename="proof.jpg", file=BytesIO(b"12345"))
+    upload = UploadFile(filename="proof.jpg", file=BytesIO(b"\xff\xd8\xff12345"), headers={"content-type": "image/jpeg"})
 
     with pytest.raises(HTTPException) as exc:
         _store_upload(upload, "test")
