@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
+import { workflowApi } from '@/lib/workflow-api';
 import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
-
-const stages = ['Draft', 'Review', 'Approved', 'Planned', 'Done'];
 
 export default function RequestsPage() {
   const [items, setItems] = useState<Entity[]>([]);
@@ -24,14 +23,9 @@ export default function RequestsPage() {
   const departmentId = getCurrentDepartmentId(getStoredUser());
 
   async function load() {
-    try {
-      setError('');
-      setItems(await api.list('requests', { active: true, department_id: departmentId || '' }));
-    } catch (err: any) {
-      setError(err.message || 'Requests could not be loaded.');
-    }
+    try { setError(''); setItems(await api.list('requests', { active: true, department_id: departmentId || '' })); }
+    catch (err: any) { setError(err.message || 'Requests could not be loaded.'); }
   }
-
   useEffect(() => { load(); }, []);
 
   const visible = useMemo(() => items.filter(item => {
@@ -47,10 +41,7 @@ export default function RequestsPage() {
     if (!title.trim() || !reason.trim() || busy) return;
     setBusy(true);
     try {
-      await api.create('requests', {
-        title: title.trim(), request_type: requestType, urgency, reason: reason.trim(),
-        status: 'Draft', department_id: departmentId || null,
-      });
+      await api.create('requests', { title: title.trim(), request_type: requestType, urgency, reason: reason.trim(), department_id: departmentId || null });
       setTitle(''); setReason(''); setRequestType('General'); setUrgency('Normal'); setShowAdd(false); await load();
     } catch (err: any) { setError(err.message || 'Request could not be created.'); }
     finally { setBusy(false); }
@@ -60,19 +51,25 @@ export default function RequestsPage() {
     if (!selected || busy) return;
     setBusy(true);
     try {
-      await api.submitRequestApproval(selected.id, { department_id: selected.department_id || departmentId, note: note.trim() || selected.reason || '' });
+      await api.submitRequestApproval(selected.id, { note: note.trim() || selected.reason || '' });
       setSelected(null); setNote(''); await load();
     } catch (err: any) { setError(err.message || 'Request could not be submitted.'); }
     finally { setBusy(false); }
   }
 
-  async function move(status: string) {
+  async function plan() {
     if (!selected || busy) return;
     setBusy(true);
-    try {
-      await api.status('requests', selected.id, status, note.trim() || undefined);
-      setSelected(null); setNote(''); await load();
-    } catch (err: any) { setError(err.message || 'Request could not be updated.'); }
+    try { await workflowApi.planRequest(selected.id, { note: note.trim() || undefined }); setSelected(null); setNote(''); await load(); }
+    catch (err: any) { setError(err.message || 'Request could not be planned.'); }
+    finally { setBusy(false); }
+  }
+
+  async function complete() {
+    if (!selected || busy) return;
+    setBusy(true);
+    try { await workflowApi.completeRequest(selected.id, { note: note.trim() || undefined }); setSelected(null); setNote(''); await load(); }
+    catch (err: any) { setError(err.message || 'Request could not be completed.'); }
     finally { setBusy(false); }
   }
 
@@ -101,21 +98,19 @@ export default function RequestsPage() {
     <div className="tabs" style={{ marginBottom: 16 }}>{['Open','Draft','Review','Approved','Planned','Done','Rejected','All'].map(status => <button key={status} className={`tab ${filter === status ? 'active' : ''}`} onClick={() => setFilter(status)}>{status}</button>)}</div>
     <div className="grid cols-3">
       {visible.map(item => <button type="button" key={item.id} className={`card ${item.urgency === 'Urgent' ? 'card-important' : ''}`} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
-        <strong className="card-title">{item.title}</strong>
-        <span className="card-line"><Pill value={item.status} /><Pill value={item.urgency || 'Normal'} /><Pill value={item.request_type || 'General'} /></span>
-        <span className="muted">{String(item.reason || '').slice(0, 150)}</span>
-        {item.requested_by_name || item.created_by_name ? <span className="muted">Requested by {item.requested_by_name || item.created_by_name}</span> : null}
+        <strong className="card-title">{item.title}</strong><span className="card-line"><Pill value={item.status} /><Pill value={item.urgency || 'Normal'} /><Pill value={item.request_type || 'General'} /></span><span className="muted">{String(item.reason || '').slice(0, 150)}</span>
       </button>)}
       {!visible.length ? <div className="empty">No requests in this view.</div> : null}
     </div>
     <Drawer item={selected} title="Request" onClose={() => !busy && setSelected(null)}>
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}><div className="eyebrow">Decision context</div><h2>{selected.title}</h2><p>{selected.reason || 'No business reason recorded.'}</p><div className="card-line"><Pill value={selected.status} /><Pill value={selected.urgency || 'Normal'} /><Pill value={selected.request_type || 'General'} /></div></section>
-        <section className="panel"><h2>Next action</h2><textarea className="textarea" placeholder="Decision or implementation note" value={note} onChange={e => setNote(e.target.value)} disabled={busy} /><div className="toolbar">
+        <section className="panel"><h2>Next action</h2><textarea className="textarea" placeholder="Implementation note" value={note} onChange={e => setNote(e.target.value)} disabled={busy} /><div className="toolbar">
           {selected.status === 'Draft' ? <button className="btn" disabled={busy} onClick={submitForReview}>{busy ? 'Submitting…' : 'Send for review'}</button> : null}
-          {selected.status === 'Approved' ? <button className="btn" disabled={busy} onClick={() => move('Planned')}>Mark planned</button> : null}
-          {selected.status === 'Planned' ? <button className="btn" disabled={busy} onClick={() => move('Done')}>Mark implemented</button> : null}
-          {!['Done','Rejected'].includes(selected.status) ? <button className="btn secondary" disabled={busy} onClick={() => move('Rejected')}>Reject / close</button> : null}
+          {selected.status === 'Review' ? <span className="muted">Decision is made from the Approval workflow.</span> : null}
+          {selected.status === 'Approved' ? <button className="btn" disabled={busy} onClick={plan}>Plan implementation</button> : null}
+          {selected.status === 'Planned' ? <button className="btn" disabled={busy} onClick={complete}>Mark implemented</button> : null}
+          {['Done','Rejected'].includes(selected.status) ? <span className="muted">This request is terminal.</span> : null}
         </div></section>
       </> : null}
     </Drawer>
