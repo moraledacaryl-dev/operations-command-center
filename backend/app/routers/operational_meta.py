@@ -5,22 +5,11 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..database import get_db
+from ..user_dto import operational_user
 from ..utils import serialize_many
-from .api import can_view_all, department_ids_for, require_user, user_departments
+from .api import can_view_all, department_ids_for, require_user
 
 router = APIRouter(prefix="/api")
-
-
-def operational_user_summary(db: Session, candidate: models.User) -> dict:
-    departments = user_departments(db, candidate)
-    return {
-        "id": candidate.id,
-        "name": candidate.name,
-        "role": candidate.role,
-        "department_id": candidate.department_id,
-        "primary_department_id": departments[0]["id"] if departments else candidate.department_id,
-        "departments": departments,
-    }
 
 
 @router.get("/meta")
@@ -41,6 +30,6 @@ def operational_meta(
         departments = [department for department in departments if department.id in allowed]
 
     return {
-        "users": [operational_user_summary(db, candidate) for candidate in users],
+        "users": [operational_user(db, candidate).model_dump(mode="json") for candidate in users],
         "departments": serialize_many(departments),
     }
