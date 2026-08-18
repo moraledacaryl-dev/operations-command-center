@@ -27,9 +27,6 @@ SYSTEM_OWNED_RESOURCES = {
     "submissions",
 }
 
-# Owner/Admin are the only principals allowed to treat an unassigned department
-# record as organization-wide for mutations. Managers keep view_all_operations
-# for reads, but manage_department does not itself grant cross-department writes.
 EXECUTIVE_MUTATION_ROLES = {"owner", "admin"}
 
 DEPARTMENT_SCOPED_RESOURCES = {
@@ -45,6 +42,7 @@ DEPARTMENT_SCOPED_RESOURCES = {
     "posts",
     "approvals",
     "memos",
+    "submissions",
     "external-review-items",
 }
 
