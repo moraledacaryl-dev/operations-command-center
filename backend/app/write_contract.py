@@ -50,15 +50,16 @@ REQUIRED_CREATE_FIELDS: dict[str, tuple[str, ...]] = {
 ALLOWED_STATUSES: dict[str, frozenset[str]] = {
     "tasks": frozenset({"To Do", "Doing", "Review", "Done"}),
     "projects": frozenset({"Planned", "Active", "Paused", "Done"}),
-    # Approved/Rejected are decision outcomes and may only be written by the
-    # canonical Approval workflow, which also records decision metadata.
+    # These sets still constrain create/PATCH payload validation. Their generic
+    # /status routes are workflow-owned and must reach the route-level 405 guard.
     "requests": frozenset({"Draft", "Review", "Planned", "Done"}),
     "shift-notes": frozenset({"New", "Seen", "Follow", "Done"}),
     "guests": frozenset({"Open", "Follow", "Done"}),
-    # Verified must use /api/workflow/fixes/{id}/verify so evidence/note rules cannot be bypassed.
     "fixes": frozenset({"Open", "Working", "Done"}),
     "posts": frozenset({"Idea", "Draft", "Review", "Fix", "OK", "Set", "Posted"}),
 }
+
+WORKFLOW_STATUS_RESOURCES = frozenset({"requests", "fixes"})
 
 _COLLECTION_RE = re.compile(r"^/api/([^/]+)$")
 _ITEM_RE = re.compile(r"^/api/([^/]+)/(\d+)$")
@@ -103,6 +104,12 @@ class WriteContractMiddleware(BaseHTTPMiddleware):
         if not resource or resource not in WRITE_FIELDS:
             return await call_next(request)
 
+        # Request and Fix state changes are owned by canonical workflow commands.
+        # Do not let value validation mask that API contract with a 422; the
+        # generic route itself returns 405 for every attempted status mutation.
+        if mode == "status" and resource in WORKFLOW_STATUS_RESOURCES:
+            return await call_next(request)
+
         raw = await request.body()
         payload = _json_object(raw)
         if payload is None:
@@ -132,8 +139,6 @@ class WriteContractMiddleware(BaseHTTPMiddleware):
             status = payload.get("status")
             allowed = ALLOWED_STATUSES.get(resource)
             if allowed and status not in allowed:
-                if resource == "requests" and status in {"Approved", "Rejected"}:
-                    return _error("Request decisions must use the linked Approval workflow.")
                 return _error(
                     f"Invalid status for {resource}. Allowed: {', '.join(sorted(allowed))}"
                 )
