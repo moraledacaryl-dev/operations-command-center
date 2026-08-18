@@ -1,20 +1,13 @@
 'use client';
 
 import { useEffect, useId, useRef } from 'react';
-import { API_BASE, Entity } from '@/lib/api';
+import { api, Entity } from '@/lib/api';
 import { Pill } from './Pill';
 
 const hidden = new Set([
   'id', 'created_at', 'updated_at', 'hidden_from_active', 'archived_at',
   'archive_reason', 'completed_at', 'comments', 'attachments', 'activity',
 ]);
-
-function assetHref(url?: string) {
-  if (!url) return '#';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/uploads')) return `${API_BASE.replace('/api', '')}${url}`;
-  return url;
-}
 
 function isPresent(value: unknown) {
   return value !== null && value !== undefined && value !== '';
@@ -166,10 +159,15 @@ export function Drawer({ item, title, onClose, children }: {
             <h2>Attachments</h2>
             <div className="grid" style={{ marginTop: 12 }}>
               {item.attachments.map((attachment: Entity) => (
-                <a className="version" key={attachment.id} href={assetHref(attachment.file_url)} target="_blank" rel="noreferrer">
+                <button
+                  type="button"
+                  className="version"
+                  key={attachment.id}
+                  onClick={() => api.downloadAttachment(attachment.id, attachment.filename || 'attachment')}
+                >
                   <b>{attachment.filename}</b>
                   <span className="muted">{attachment.mime_type}</span>
-                </a>
+                </button>
               ))}
             </div>
           </div>
