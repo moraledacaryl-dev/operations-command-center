@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from . import models
-from .capabilities import capability_payload
+from .capabilities import capability_payload, has_capability
 
 
 class DepartmentMembershipResponse(BaseModel):
@@ -34,6 +34,7 @@ class AdminUserResponse(OperationalUserResponse):
 
 class CurrentUserResponse(AdminUserResponse):
     capabilities: dict[str, bool]
+    can_view_all: bool
 
 
 def department_memberships(db: Session, user: models.User) -> list[DepartmentMembershipResponse]:
@@ -102,4 +103,5 @@ def current_user(db: Session, user: models.User) -> CurrentUserResponse:
     return CurrentUserResponse(
         **base.model_dump(),
         capabilities=capability_payload(user.role),
+        can_view_all=has_capability(user.role, "view_all_operations"),
     )
