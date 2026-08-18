@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef } from 'react';
-import { api, Entity } from '@/lib/api';
+import { API_BASE, Entity } from '@/lib/api';
 import { Pill } from './Pill';
 
 const hidden = new Set([
@@ -159,15 +159,16 @@ export function Drawer({ item, title, onClose, children }: {
             <h2>Attachments</h2>
             <div className="grid" style={{ marginTop: 12 }}>
               {item.attachments.map((attachment: Entity) => (
-                <button
-                  type="button"
+                <a
                   className="version"
                   key={attachment.id}
-                  onClick={() => api.downloadAttachment(attachment.id, attachment.filename || 'attachment')}
+                  href={`${API_BASE}/attachments/${attachment.id}/download`}
+                  target="_blank"
+                  rel="noreferrer"
                 >
                   <b>{attachment.filename}</b>
                   <span className="muted">{attachment.mime_type}</span>
-                </button>
+                </a>
               ))}
             </div>
           </div>
