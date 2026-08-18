@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -8,6 +9,9 @@ from .. import models
 from ..authorization_policy import Action, authorize_action
 from ..capabilities import has_capability
 from ..utils import log_activity
+
+
+ATTACHMENT_DOWNLOAD_RE = re.compile(r"^/api/attachments/(\d+)/download$")
 
 
 def _lock_fix(db: Session, fix_id: int) -> models.Fix:
@@ -56,9 +60,19 @@ def verify_fix(db: Session, user: models.User, fix_id: int, note: str | None, pr
     fix.completed_at = now
     db.add(models.Comment(parent_type="fixes", parent_id=fix.id, body=note.strip(), author_id=user.id, comment_type="Verification"))
     if proof_url:
-        existing = db.query(models.Attachment).filter(models.Attachment.parent_type == "fixes", models.Attachment.parent_id == fix.id, models.Attachment.file_url == proof_url).first()
-        if existing is None:
-            db.add(models.Attachment(parent_type="fixes", parent_id=fix.id, filename=filename or "Verification proof", file_url=proof_url, uploaded_by_id=user.id))
+        match = ATTACHMENT_DOWNLOAD_RE.match(proof_url.strip())
+        if match:
+            attachment = db.get(models.Attachment, int(match.group(1)))
+            if not attachment or attachment.parent_type != "fixes" or attachment.parent_id != fix.id:
+                raise HTTPException(status_code=400, detail="Verification attachment does not belong to this Fix")
+        else:
+            existing = db.query(models.Attachment).filter(
+                models.Attachment.parent_type == "fixes",
+                models.Attachment.parent_id == fix.id,
+                models.Attachment.file_url == proof_url,
+            ).first()
+            if existing is None:
+                db.add(models.Attachment(parent_type="fixes", parent_id=fix.id, filename=filename or "Verification proof", file_url=proof_url, uploaded_by_id=user.id))
     if fix.linked_guest_note_id:
         guest = db.get(models.GuestNote, fix.linked_guest_note_id)
         if guest:
