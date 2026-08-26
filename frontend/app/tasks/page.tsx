@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
-import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 
 const columns = ['To Do', 'Doing', 'Review', 'Done'];
 
@@ -24,24 +24,32 @@ export default function TeamTasksPage() {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const departmentId = getCurrentDepartmentId(getStoredUser());
+  const { departmentId, hydrated } = useActiveDepartment();
+  const beginRequest = useLatestRequest();
 
-  async function load() {
+  const openCreate = useCallback(() => setShowAdd(true), []);
+  useCreateIntent(openCreate);
+
+  const load = useCallback(async () => {
+    if (!hydrated) return;
+    const request = beginRequest();
     try {
       setError('');
-      setItems(await api.list('tasks', { active: true, department_id: departmentId || '' }));
+      const rows = await api.list('tasks', { active: true, department_id: departmentId || '' }, { signal: request.signal });
+      if (request.isCurrent()) setItems(rows);
     } catch (err: any) {
-      setError(err.message || 'Team tasks could not be loaded.');
+      if (err?.name === 'AbortError') return;
+      if (request.isCurrent()) setError(err.message || 'Team tasks could not be loaded.');
     }
-  }
+  }, [beginRequest, departmentId, hydrated]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const visible = useMemo(() => items.filter(item => !query.trim() || [item.title, item.note, item.status, item.priority].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase())), [items, query]);
   const overdue = visible.filter(item => item.due_date && !['Done'].includes(item.status) && new Date(item.due_date).getTime() < Date.now()).length;
 
   async function createTask() {
-    if (!title.trim() || busy) return;
+    if (!title.trim() || busy || !hydrated) return;
     setBusy(true);
     try {
       await api.create('tasks', { title: title.trim(), due_date: dueDate || null, priority, status: 'To Do', department_id: departmentId || null });
@@ -60,7 +68,7 @@ export default function TeamTasksPage() {
   }
 
   return <>
-    <Top eyebrow="Team execution" title="Tasks" right={<button className="btn" onClick={() => setShowAdd(value => !value)}>New task</button>} />
+    <Top eyebrow="Team execution" title="Tasks" right={<button data-testid="create-task" className="btn" onClick={() => setShowAdd(value => !value)}>New task</button>} />
     <div className="grid cols-3" style={{ marginBottom: 16 }}>
       <div className="panel"><div className="eyebrow">Active</div><h2>{visible.filter(item => item.status !== 'Done').length}</h2></div>
       <div className="panel"><div className="eyebrow">In review</div><h2>{visible.filter(item => item.status === 'Review').length}</h2></div>
@@ -77,7 +85,7 @@ export default function TeamTasksPage() {
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim()} onClick={createTask}>{busy ? 'Saving…' : 'Create task'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
     <div className="toolbar"><input className="input" placeholder="Search team tasks" value={query} onChange={e => setQuery(e.target.value)} /></div>
-    <div className="grid cols-4">
+    <div className="grid cols-4" data-testid="tasks-board">
       {columns.map(status => <section className="panel" key={status}>
         <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>{status}</h2><Pill value={String(visible.filter(item => item.status === status).length)} /></div>
         <div className="grid" style={{ marginTop: 12 }}>
