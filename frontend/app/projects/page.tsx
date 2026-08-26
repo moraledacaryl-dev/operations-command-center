@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
-import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 
 type EnrichedProject = Entity & {
   linked_tasks: Entity[];
@@ -23,24 +23,60 @@ export default function ProjectsPage() {
   const [tasks, setTasks] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<EnrichedProject | null>(null);
   const [filter, setFilter] = useState('Active');
+  const [showAdd, setShowAdd] = useState(false);
+  const [title, setTitle] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [priority, setPriority] = useState('Normal');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const departmentId = getCurrentDepartmentId(getStoredUser());
+  const { departmentId, hydrated } = useActiveDepartment();
+  const beginRequest = useLatestRequest();
 
-  async function load() {
+  const openCreate = useCallback(() => setShowAdd(true), []);
+  useCreateIntent(openCreate);
+
+  const load = useCallback(async () => {
+    if (!hydrated) return;
+    const request = beginRequest();
     try {
       setError('');
       const [projectRows, taskRows] = await Promise.all([
-        api.list('projects', { active: true, department_id: departmentId || '' }),
-        api.list('tasks', { active: true, department_id: departmentId || '' }),
+        api.list('projects', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
+        api.list('tasks', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
       ]);
+      if (!request.isCurrent()) return;
       setProjects(projectRows);
       setTasks(taskRows);
     } catch (err: any) {
-      setError(err.message || 'Projects could not be loaded.');
+      if (err?.name === 'AbortError') return;
+      if (request.isCurrent()) setError(err.message || 'Projects could not be loaded.');
+    }
+  }, [beginRequest, departmentId, hydrated]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function createProject() {
+    if (!title.trim() || busy || !hydrated) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api.create('projects', {
+        title: title.trim(),
+        department_id: departmentId || null,
+        due_date: dueDate || null,
+        priority,
+        status: 'Planned',
+        note: note.trim() || null,
+      });
+      setTitle(''); setDueDate(''); setPriority('Normal'); setNote(''); setShowAdd(false);
+      await load();
+    } catch (err: any) {
+      setError(err.message || 'Project could not be created.');
+    } finally {
+      setBusy(false);
     }
   }
-
-  useEffect(() => { load(); }, []);
 
   const enriched = useMemo<EnrichedProject[]>(() => projects.map((project): EnrichedProject => {
     const linked = tasks.filter(task => Number(task.project_id) === Number(project.id));
@@ -52,13 +88,23 @@ export default function ProjectsPage() {
   const visible = filter === 'All' ? enriched : enriched.filter(project => project.status === filter);
 
   return <>
-    <Top eyebrow="Delivery portfolio" title="Projects" />
+    <Top eyebrow="Delivery portfolio" title="Projects" right={<button data-testid="create-project" className="btn" onClick={() => setShowAdd(value => !value)}>New project</button>} />
     <div className="grid cols-3" style={{ marginBottom: 16 }}>
       <div className="panel"><div className="eyebrow">Active</div><h2>{enriched.filter(project => project.status === 'Active').length}</h2></div>
       <div className="panel"><div className="eyebrow">At risk</div><h2>{enriched.filter(project => project.overdue_tasks > 0 || project.status === 'Paused').length}</h2></div>
       <div className="panel"><div className="eyebrow">Completed</div><h2>{enriched.filter(project => project.status === 'Done').length}</h2></div>
     </div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
+    {showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-project-form">
+      <h2>Create project</h2>
+      <div className="form-grid" style={{ marginTop: 12 }}>
+        <label className="label">Project title<input className="input" value={title} onChange={event => setTitle(event.target.value)} /></label>
+        <label className="label">Due date<input className="input" type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} /></label>
+        <label className="label">Priority<select className="select" value={priority} onChange={event => setPriority(event.target.value)}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label>
+      </div>
+      <label className="label">Notes<textarea className="textarea" value={note} onChange={event => setNote(event.target.value)} /></label>
+      <div className="toolbar"><button className="btn" disabled={busy || !title.trim()} onClick={createProject}>{busy ? 'Saving…' : 'Create project'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
+    </section> : null}
     <div className="tabs" style={{ marginBottom: 16 }}>{['All', 'Planned', 'Active', 'Paused', 'Done'].map(status => <button key={status} className={`tab ${filter === status ? 'active' : ''}`} onClick={() => setFilter(status)}>{status}</button>)}</div>
     <div className="grid cols-3">
       {visible.map(project => <button type="button" className={`card ${project.overdue_tasks ? 'card-important' : ''}`} key={project.id} onClick={() => setSelected(project)} style={{ textAlign: 'left' }}>
