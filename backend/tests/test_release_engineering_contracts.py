@@ -36,3 +36,11 @@ def test_production_deploy_checks_readiness_and_real_hashed_asset():
     assert "_next/static" in deploy
     assert "operations-frontend" in deploy
     assert "127.0.0.1:3200" in deploy
+
+
+def test_production_deploy_isolates_pytest_from_production_secrets():
+    deploy = (REPO_ROOT / "scripts" / "deploy_production.sh").read_text()
+    assert "-u SESSION_SECRET" in deploy
+    assert "-u INTEGRATION_API_KEY" in deploy
+    assert "ENVIRONMENT=local" in deploy
+    assert "DATABASE_URL=sqlite:////tmp/operations-deploy-tests.db" in deploy
