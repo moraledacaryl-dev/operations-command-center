@@ -27,10 +27,21 @@ async function assertSession(page: Page, departmentId = 1) {
 
   expect(seeded.user).not.toBeNull();
   expect(seeded.dept).toBe(String(departmentId));
+  await expect(page).not.toHaveURL(/\/login$/);
   await expect(page.locator('#operations-app-root')).toBeVisible();
 }
 
 async function mockCommon(page: Page) {
+  // Keep the browser suite hermetic. Any API call that a test has not
+  // explicitly modeled must not reach the real backend with the synthetic
+  // bearer token, because a real 401 intentionally clears the browser
+  // session and redirects to /login.
+  await page.route('**/api/**', route => route.fulfill({
+    status: 404,
+    contentType: 'application/json',
+    body: JSON.stringify({ detail: `Unmocked E2E API route: ${route.request().url()}` }),
+  }));
+
   await page.route('**/api/meta', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
