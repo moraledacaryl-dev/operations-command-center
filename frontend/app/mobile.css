@@ -3,7 +3,12 @@
 .mobile-bottom-nav { display: none; }
 .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
-body[data-modal-open='true'] .mobile-bottom-nav,
+body[data-modal-open='true'] .mobile-bottom-nav {
+  display: none;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 body[data-modal-open='true'] .mobile-header,
 body[data-modal-open='true'] .sidebar,
 body[data-modal-open='true'] .sidebar-scrim {
