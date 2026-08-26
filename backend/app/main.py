@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -14,6 +15,7 @@ from .decision_boundary import DecisionBoundaryMiddleware
 from .http_protection import enforce_request_boundary, request_id
 from .identity_boundary import IdentityBoundaryMiddleware
 from .internal_read_boundary import InternalReadBoundaryMiddleware
+from .readiness import router as readiness_router
 from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.authorized_crud import router as authorized_crud_router
@@ -31,16 +33,23 @@ from .session_lifecycle import SessionLifecycleMiddleware
 from .upload_access import UploadAccessMiddleware
 from .write_contract import WriteContractMiddleware
 
+logger = logging.getLogger(__name__)
 security = load_security_settings()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     validate_security_settings(security)
-    with SessionLocal() as db:
-        seed_if_empty(db)
-        ensure_bootstrap_owner(db)
-        backfill_local_user_passwords(db)
+    try:
+        with SessionLocal() as db:
+            seed_if_empty(db)
+            ensure_bootstrap_owner(db)
+            backfill_local_user_passwords(db)
+    except Exception:
+        # Dependency readiness is reported through /api/readyz. Keeping the
+        # process alive allows supervisors to distinguish a live process from
+        # an application that is safe to receive traffic.
+        logger.exception("Database bootstrap unavailable during startup; readiness will remain false until dependencies recover.")
     yield
 
 
@@ -135,6 +144,7 @@ def remove_shadowed_legacy_routes() -> None:
 
 
 remove_shadowed_legacy_routes()
+app.include_router(readiness_router)
 app.include_router(review_router)
 app.include_router(my_work_router)
 app.include_router(privacy_router)
