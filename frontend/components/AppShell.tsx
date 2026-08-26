@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Entity } from '@/lib/api';
+import { api, Entity } from '@/lib/api';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
 type NavItem = {
@@ -92,6 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Entity | null>(null);
   const [deptId, setDeptId] = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const isLogin = path === '/login';
 
   useEffect(() => {
@@ -138,17 +139,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (path.startsWith('/departments')) router.push(`/departments?dept=${id}`);
   }
 
-  function logout() {
-    clearStoredUser();
-    setUser(null);
-    router.push('/login');
+  async function logout() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await api.logout();
+    } finally {
+      clearStoredUser();
+      setUser(null);
+      setMobileOpen(false);
+      setSigningOut(false);
+      router.replace('/login');
+    }
   }
 
   if (isLogin) return <>{children}</>;
   if (!user) return <SignInRequired />;
 
   return (
-    <div className="app">
+    <div id="operations-app-root" className="app">
       <header className="mobile-header">
         <Link className="mobile-brand" href="/">
           <span className="logo">HO</span>
@@ -228,7 +237,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </nav>
 
-        <button className="btn secondary logout" onClick={logout}>Sign out</button>
+        <button className="btn secondary logout" disabled={signingOut} onClick={logout}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
       </aside>
 
       <main className="main" key={deptId ?? 'no-department'}>{children}</main>
