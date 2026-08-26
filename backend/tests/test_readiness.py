@@ -1,6 +1,12 @@
 from pathlib import Path
 
 from app import readiness
+from app.api_read_boundary import PUBLIC_GET_PATHS
+
+
+def test_livez_and_readyz_are_explicit_public_probe_paths():
+    assert "/api/livez" in PUBLIC_GET_PATHS
+    assert "/api/readyz" in PUBLIC_GET_PATHS
 
 
 def test_livez_is_independent_of_dependencies():
