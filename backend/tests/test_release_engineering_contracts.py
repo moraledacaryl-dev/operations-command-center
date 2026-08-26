@@ -44,3 +44,12 @@ def test_production_deploy_isolates_pytest_from_production_secrets():
     assert "-u INTEGRATION_API_KEY" in deploy
     assert "ENVIRONMENT=local" in deploy
     assert "DATABASE_URL=sqlite:////tmp/operations-deploy-tests.db" in deploy
+
+
+def test_production_deploy_normalizes_sqlalchemy_url_for_pg_dump():
+    deploy = (REPO_ROOT / "scripts" / "deploy_production.sh").read_text()
+    assert "make_url" in deploy
+    assert 'url.get_backend_name() != "postgresql"' in deploy
+    assert 'url.set(drivername="postgresql")' in deploy
+    assert 'pg_dump --format=custom --no-owner --no-acl --dbname="$PG_DUMP_URL"' in deploy
+    assert "unset PG_DUMP_URL" in deploy
