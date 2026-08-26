@@ -87,6 +87,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw await normalizedError(res, path);
   }
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -109,12 +110,12 @@ async function download(path: string, filename: string) {
 }
 
 export const api = {
-  list: (resource: string, params: Record<string, any> = {}) => {
+  list: (resource: string, params: Record<string, any> = {}, options: { signal?: AbortSignal } = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
     });
-    return request<Entity[]>(`/${resource}${qs.toString() ? `?${qs}` : ''}`);
+    return request<Entity[]>(`/${resource}${qs.toString() ? `?${qs}` : ''}`, { signal: options.signal });
   },
   get: (resource: string, id: number) => request<Entity>(`/${resource}/${id}`),
   create: (resource: string, data: Entity) => request<Entity>(`/${resource}`, { method: 'POST', body: JSON.stringify(data) }),
@@ -123,7 +124,9 @@ export const api = {
   archive: (resource: string, id: number) => request<Entity>(`/${resource}/${id}/archive`, { method: 'POST' }),
   comment: (resource: string, id: number, body: string, comment_type = 'General') => request<Entity>(`/${resource}/${id}/comments`, { method: 'POST', body: JSON.stringify({ body, comment_type }) }),
   login: (email: string, password: string) => request<Entity>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  logout: () => request<Entity>('/auth/logout', { method: 'POST' }),
   me: () => request<Entity>('/auth/me'),
+  users: () => request<Entity[]>('/users'),
   health: () => request<Entity>('/health'),
   changePassword: (current_password: string, new_password: string) => request<Entity>('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
   adminCreateUser: (data: Entity) => request<Entity>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),

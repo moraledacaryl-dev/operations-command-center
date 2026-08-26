@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { workflowApi } from '@/lib/workflow-api';
-import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 
 export default function RequestsPage() {
   const [items, setItems] = useState<Entity[]>([]);
@@ -20,13 +20,26 @@ export default function RequestsPage() {
   const [filter, setFilter] = useState('Open');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const departmentId = getCurrentDepartmentId(getStoredUser());
+  const { departmentId, hydrated } = useActiveDepartment();
+  const beginRequest = useLatestRequest();
 
-  async function load() {
-    try { setError(''); setItems(await api.list('requests', { active: true, department_id: departmentId || '' })); }
-    catch (err: any) { setError(err.message || 'Requests could not be loaded.'); }
-  }
-  useEffect(() => { load(); }, []);
+  const openCreate = useCallback(() => setShowAdd(true), []);
+  useCreateIntent(openCreate);
+
+  const load = useCallback(async () => {
+    if (!hydrated) return;
+    const request = beginRequest();
+    try {
+      setError('');
+      const rows = await api.list('requests', { active: true, department_id: departmentId || '' }, { signal: request.signal });
+      if (request.isCurrent()) setItems(rows);
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;
+      if (request.isCurrent()) setError(err.message || 'Requests could not be loaded.');
+    }
+  }, [beginRequest, departmentId, hydrated]);
+
+  useEffect(() => { void load(); }, [load]);
 
   const visible = useMemo(() => items.filter(item => {
     if (filter === 'Open') return !['Done', 'Rejected'].includes(String(item.status));
@@ -38,7 +51,7 @@ export default function RequestsPage() {
   }), [items, filter]);
 
   async function createRequest() {
-    if (!title.trim() || !reason.trim() || busy) return;
+    if (!title.trim() || !reason.trim() || busy || !hydrated) return;
     setBusy(true);
     try {
       await api.create('requests', { title: title.trim(), request_type: requestType, urgency, reason: reason.trim(), department_id: departmentId || null });
@@ -78,7 +91,7 @@ export default function RequestsPage() {
   const urgent = items.filter(item => item.urgency === 'Urgent' && !['Done', 'Rejected'].includes(item.status)).length;
 
   return <>
-    <Top eyebrow="Proposal pipeline" title="Requests" right={<button className="btn" onClick={() => setShowAdd(value => !value)}>Add</button>} />
+    <Top eyebrow="Proposal pipeline" title="Requests" right={<button data-testid="create-request" className="btn" onClick={() => setShowAdd(value => !value)}>Add</button>} />
     <div className="grid cols-3" style={{ marginBottom: 16 }}>
       <div className="panel"><div className="eyebrow">Awaiting decision</div><h2>{pending}</h2></div>
       <div className="panel"><div className="eyebrow">Approved / planned</div><h2>{approved}</h2></div>

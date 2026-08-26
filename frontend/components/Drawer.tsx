@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useId, useRef } from 'react';
-import { API_BASE, Entity } from '@/lib/api';
+import { createPortal } from 'react-dom';
+import { Entity } from '@/lib/api';
 import { Pill } from './Pill';
 
 const hidden = new Set([
@@ -44,7 +45,6 @@ export function Drawer({ item, title, onClose, children }: {
   children?: React.ReactNode;
 }) {
   const titleId = useId();
-  const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -53,15 +53,11 @@ export function Drawer({ item, title, onClose, children }: {
 
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
+    const appRoot = document.getElementById('operations-app-root');
+
     document.body.style.overflow = 'hidden';
     document.body.dataset.modalOpen = 'true';
-
-    const backdrop = backdropRef.current;
-    const parent = backdrop?.parentElement;
-    const inertSiblings = parent
-      ? Array.from(parent.children).filter(node => node !== backdrop && node instanceof HTMLElement) as HTMLElement[]
-      : [];
-    inertSiblings.forEach(node => { node.inert = true; });
+    if (appRoot) appRoot.inert = true;
 
     closeRef.current?.focus();
 
@@ -76,6 +72,7 @@ export function Drawer({ item, title, onClose, children }: {
       const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       )).filter(element => !element.hasAttribute('hidden'));
+
       if (!focusable.length) {
         event.preventDefault();
         dialogRef.current.focus();
@@ -98,19 +95,18 @@ export function Drawer({ item, title, onClose, children }: {
       window.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = previousOverflow;
       delete document.body.dataset.modalOpen;
-      inertSiblings.forEach(node => { node.inert = false; });
+      if (appRoot) appRoot.inert = false;
       previouslyFocused?.focus();
     };
   }, [item, onClose]);
 
-  if (!item) return null;
+  if (!item || typeof document === 'undefined') return null;
 
   const details = Object.entries(item).filter(([key, value]) => shouldShowDetail(key, value));
 
-  return (
+  return createPortal(
     <div
       className="drawer-backdrop"
-      ref={backdropRef}
       onMouseDown={event => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -159,13 +155,7 @@ export function Drawer({ item, title, onClose, children }: {
             <h2>Attachments</h2>
             <div className="grid" style={{ marginTop: 12 }}>
               {item.attachments.map((attachment: Entity) => (
-                <a
-                  className="version"
-                  key={attachment.id}
-                  href={`${API_BASE}/attachments/${attachment.id}/download`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a className="version" key={attachment.id} href={`/api/attachments/${attachment.id}/download`} target="_blank" rel="noreferrer">
                   <b>{attachment.filename}</b>
                   <span className="muted">{attachment.mime_type}</span>
                 </a>
@@ -186,6 +176,7 @@ export function Drawer({ item, title, onClose, children }: {
           </div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
