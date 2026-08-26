@@ -50,7 +50,17 @@ python -m pip install -r backend/requirements-test.txt
 
 (
   cd backend
-  env PYTHONPATH=. python -m pytest tests -q
+  rm -f /tmp/operations-deploy-tests.db
+  env \
+    -u SESSION_SECRET \
+    -u INTEGRATION_API_KEY \
+    -u BOOTSTRAP_OWNER_PASSWORD \
+    -u BOOTSTRAP_OWNER_EMAIL \
+    -u ALLOW_DEFAULT_ADMIN_BOOTSTRAP \
+    ENVIRONMENT=local \
+    DATABASE_URL=sqlite:////tmp/operations-deploy-tests.db \
+    PYTHONPATH=. \
+    python -m pytest tests -q
 )
 
 echo "PASS | backend pytest"
