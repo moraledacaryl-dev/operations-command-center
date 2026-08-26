@@ -45,7 +45,7 @@ jobs:
           PYTHONPATH: .
         run: |
           rm -f /tmp/operations-legacy.db
-          alembic upgrade 0002_integration_identity_contract
+          alembic upgrade 0002_integration_identity
           alembic upgrade head
           alembic current
 
