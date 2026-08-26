@@ -7,7 +7,6 @@ import './interactions.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { RolePresentationSync } from '@/components/RolePresentationSync';
-import { CreateIntentSync } from '@/components/CreateIntentSync';
 
 export const metadata: Metadata = {
   title: {
@@ -31,7 +30,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-PH">
       <body>
         <RolePresentationSync />
-        <CreateIntentSync />
         <AppShell>{children}</AppShell>
       </body>
     </html>
