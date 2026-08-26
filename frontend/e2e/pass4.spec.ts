@@ -13,12 +13,13 @@ const owner = {
 };
 
 async function seedSession(page: Page, departmentId = 1) {
-  await page.goto('/login');
-  await page.evaluate(({ user, dept }) => {
+  await page.addInitScript(({ user, dept }) => {
     window.localStorage.setItem('cc_user', JSON.stringify(user));
     window.localStorage.setItem('cc_department_id', String(dept));
   }, { user: owner, dept: departmentId });
+}
 
+async function assertSession(page: Page, departmentId = 1) {
   const seeded = await page.evaluate(() => ({
     user: window.localStorage.getItem('cc_user'),
     dept: window.localStorage.getItem('cc_department_id'),
@@ -26,6 +27,7 @@ async function seedSession(page: Page, departmentId = 1) {
 
   expect(seeded.user).not.toBeNull();
   expect(seeded.dept).toBe(String(departmentId));
+  await expect(page.locator('#operations-app-root')).toBeVisible();
 }
 
 async function mockCommon(page: Page) {
@@ -52,6 +54,7 @@ test('mobile Drawer is portaled, traps focus, hides background nav, and restores
   }));
 
   await page.goto('/tasks');
+  await assertSession(page);
   const opener = page.getByRole('button', { name: /Drawer probe/i });
   await expect(opener).toBeVisible();
   await opener.focus();
@@ -91,6 +94,7 @@ test('quick-create is declarative and Tasks render four desktop columns', async 
   await page.route('**/api/tasks?*', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
 
   await page.goto('/tasks?create=1');
+  await assertSession(page);
   await expect(page.getByRole('heading', { name: 'Create team task' })).toBeVisible();
   await expect(page).toHaveURL(/\/tasks$/);
 
@@ -117,6 +121,7 @@ test('People & Access uses protected directory account state', async ({ page }) 
   }));
 
   await page.goto('/admin/users');
+  await assertSession(page);
   await expect(page.getByText('Active Manager')).toBeVisible();
   await expect(page.getByText('manager@example.test')).toBeVisible();
   await expect(page.getByText('Active', { exact: true })).toBeVisible();
@@ -135,6 +140,7 @@ test('logout calls server endpoint, clears local session, and redirects', async 
   });
 
   await page.goto('/tasks');
+  await assertSession(page);
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login$/);
   expect(logoutCalled).toBe(true);
@@ -171,6 +177,7 @@ test('rapid department switching ignores stale old-department response', async (
   });
 
   await page.goto('/tasks');
+  await assertSession(page, 1);
   const selector = page.locator('.dept-switch select');
   await expect(selector).toBeVisible();
   await selector.selectOption('2');
