@@ -29,6 +29,25 @@ jobs:
         env:
           PYTHONPATH: .
         run: python -m pytest tests -v
+      - name: Verify clean database migration
+        env:
+          ENVIRONMENT: local
+          DATABASE_URL: sqlite:////tmp/operations-clean.db
+          PYTHONPATH: .
+        run: |
+          rm -f /tmp/operations-clean.db
+          alembic upgrade head
+          alembic current
+      - name: Verify representative prior-schema upgrade
+        env:
+          ENVIRONMENT: local
+          DATABASE_URL: sqlite:////tmp/operations-legacy.db
+          PYTHONPATH: .
+        run: |
+          rm -f /tmp/operations-legacy.db
+          alembic upgrade 0002_integration_identity_contract
+          alembic upgrade head
+          alembic current
 
   frontend:
     runs-on: ubuntu-latest
@@ -46,6 +65,11 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+      - name: Verify standalone package contains static assets
+        run: |
+          test -f .next/standalone/server.js
+          test -d .next/standalone/.next/static
+          test -n "$(find .next/standalone/.next/static -type f | head -1)"
 
   browser:
     runs-on: ubuntu-latest
