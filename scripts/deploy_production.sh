@@ -139,6 +139,15 @@ echo "PASS | hashed Next.js asset served locally and publicly: $ASSET_PATH"
 # Compatibility health remains checked while callers migrate to /livez and /readyz.
 curl -fsS -o /dev/null "$BACKEND_URL/api/health"
 
+(
+  cd backend
+  OPERATIONS_SMOKE_BASE="$BACKEND_URL/api" \
+  OPERATIONS_PUBLIC_ORIGIN="$PUBLIC_URL" \
+  PYTHONPATH=. \
+  python scripts/release_smoke.py
+)
+echo "PASS | authenticated read/write/upload/download/logout smoke"
+
 git -C "$REPO_ROOT" diff --quiet -- . ':(exclude)frontend/next-env.d.ts' || {
   echo "WARN | repository has tracked-file changes after deployment" >&2
   git -C "$REPO_ROOT" status --short
