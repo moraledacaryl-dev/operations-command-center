@@ -15,16 +15,31 @@ branch_labels = None
 depends_on = None
 
 
+def _dialect_name() -> str:
+    return op.get_bind().dialect.name
+
+
 def upgrade() -> None:
-    with op.batch_alter_table("submissions") as batch:
-        batch.add_column(sa.Column("department_id", sa.Integer(), nullable=True))
-        batch.create_foreign_key(
+    # PostgreSQL can add this nullable column/FK/index directly. SQLite cannot
+    # add a foreign-key constraint after table creation; forcing Alembic batch
+    # recreation here is unsafe because the legacy submissions table has
+    # several cross-linked foreign keys and reflection can produce a circular
+    # dependency on a true fresh migration. SQLite is local/test-only, so add
+    # the scope column and query index without rebuilding the table.
+    op.add_column("submissions", sa.Column("department_id", sa.Integer(), nullable=True))
+    if _dialect_name() != "sqlite":
+        op.create_foreign_key(
             "fk_submissions_department_id_departments",
+            "submissions",
             "departments",
             ["department_id"],
             ["id"],
         )
-        batch.create_index("ix_submissions_department_review", ["department_id", "review_status"])
+    op.create_index(
+        "ix_submissions_department_review",
+        "submissions",
+        ["department_id", "review_status"],
+    )
 
     # Backfill only when a linked operational record provides an unambiguous
     # department. Truly organization-wide submissions intentionally remain NULL.
@@ -54,7 +69,11 @@ def downgrade() -> None:
     with op.batch_alter_table("post_versions") as batch:
         batch.drop_constraint("uq_post_version_number", type_="unique")
 
-    with op.batch_alter_table("submissions") as batch:
-        batch.drop_index("ix_submissions_department_review")
-        batch.drop_constraint("fk_submissions_department_id_departments", type_="foreignkey")
-        batch.drop_column("department_id")
+    op.drop_index("ix_submissions_department_review", table_name="submissions")
+    if _dialect_name() != "sqlite":
+        op.drop_constraint(
+            "fk_submissions_department_id_departments",
+            "submissions",
+            type_="foreignkey",
+        )
+    op.drop_column("submissions", "department_id")
