@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { landingPathForUser, setStoredUser } from '@/lib/session';
 
 const styles = {
@@ -42,6 +42,15 @@ const styles = {
   error: { color: '#b42318', fontSize: 13, margin: 0 },
 };
 
+function loginErrorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) return 'The service is temporarily unavailable. Please try again.';
+  if (error.status === 401) return 'Invalid email or password.';
+  if (error.status === 403) return 'This account cannot sign in yet. Contact an administrator.';
+  if (error.status === 429) return 'Too many failed sign-in attempts. Please try again later.';
+  if (error.status >= 500) return 'The service is temporarily unavailable. Please try again.';
+  return 'Sign-in could not be completed. Please try again.';
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -56,8 +65,8 @@ export default function LoginPage() {
       const user = await api.login(email.trim(), password);
       setStoredUser(user);
       router.push(landingPathForUser(user));
-    } catch (err: any) {
-      setError('Invalid email or password.');
+    } catch (err: unknown) {
+      setError(loginErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -71,7 +80,7 @@ export default function LoginPage() {
         <form style={styles.form} onSubmit={(e) => { e.preventDefault(); login(); }}>
           <label style={styles.label}>Email<input style={styles.input} value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" /></label>
           <label style={styles.label}>Password<input style={styles.input} type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" /></label>
-          {error ? <p style={styles.error}>{error}</p> : null}
+          {error ? <p style={styles.error} role="alert">{error}</p> : null}
           <button style={styles.button} type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
         </form>
         <small style={styles.credit}>by C.M.</small>

@@ -15,6 +15,7 @@ from .decision_boundary import DecisionBoundaryMiddleware
 from .http_protection import enforce_request_boundary, request_id
 from .identity_boundary import IdentityBoundaryMiddleware
 from .internal_read_boundary import InternalReadBoundaryMiddleware
+from .login_rate_limit import LoginRateLimitMiddleware
 from .readiness import router as readiness_router
 from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
@@ -79,6 +80,7 @@ app.add_middleware(RoleBoundaryMiddleware)
 app.add_middleware(DecisionBoundaryMiddleware)
 app.add_middleware(UploadAccessMiddleware)
 app.add_middleware(SessionLifecycleMiddleware)
+app.add_middleware(LoginRateLimitMiddleware)
 app.add_middleware(AuthorizationFreshnessMiddleware)
 app.add_middleware(InternalReadBoundaryMiddleware)
 app.add_middleware(ApiReadBoundaryMiddleware)
