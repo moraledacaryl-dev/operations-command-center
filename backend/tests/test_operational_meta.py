@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from app.routers.operational_meta import operational_user_summary
+from app.user_dto import DepartmentMembershipResponse, operational_user
 
 
 def test_operational_user_summary_excludes_sensitive_account_fields():
@@ -15,9 +15,9 @@ def test_operational_user_summary_excludes_sensitive_account_fields():
         password_set_at='sensitive',
         last_login_at='sensitive',
     )
-    departments = [{'id': 3, 'name': 'Maintenance', 'short_name': 'Maint', 'is_primary': True, 'role_override': None}]
-    with patch('app.routers.operational_meta.user_departments', return_value=departments):
-        payload = operational_user_summary(None, candidate)
+    departments = [DepartmentMembershipResponse(id=3, name='Maintenance', is_primary=True, role_override=None)]
+    with patch('app.user_dto.department_memberships', return_value=departments):
+        payload = operational_user(None, candidate).model_dump(mode='json')
 
     assert payload['id'] == 7
     assert payload['name'] == 'Test Technician'

@@ -9,13 +9,6 @@ const hidden = new Set([
   'archive_reason', 'completed_at', 'comments', 'attachments', 'activity',
 ]);
 
-function assetHref(url?: string) {
-  if (!url) return '#';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/uploads')) return `${API_BASE.replace('/api', '')}${url}`;
-  return url;
-}
-
 function isPresent(value: unknown) {
   return value !== null && value !== undefined && value !== '';
 }
@@ -166,7 +159,13 @@ export function Drawer({ item, title, onClose, children }: {
             <h2>Attachments</h2>
             <div className="grid" style={{ marginTop: 12 }}>
               {item.attachments.map((attachment: Entity) => (
-                <a className="version" key={attachment.id} href={assetHref(attachment.file_url)} target="_blank" rel="noreferrer">
+                <a
+                  className="version"
+                  key={attachment.id}
+                  href={`${API_BASE}/attachments/${attachment.id}/download`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <b>{attachment.filename}</b>
                   <span className="muted">{attachment.mime_type}</span>
                 </a>

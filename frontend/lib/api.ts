@@ -90,6 +90,24 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+async function download(path: string, filename: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: authHeaders(),
+    cache: 'no-store',
+    credentials: 'same-origin',
+  });
+  if (!res.ok) throw await normalizedError(res, path);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename || 'download';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export const api = {
   list: (resource: string, params: Record<string, any> = {}) => {
     const qs = new URLSearchParams();
@@ -127,6 +145,8 @@ export const api = {
   },
   versions: (postId: number) => request<Entity[]>(`/posts/${postId}/versions`),
   addVersion: (postId: number, form: FormData) => request<Entity>(`/posts/${postId}/versions`, { method: 'POST', body: form }),
+  downloadAttachment: (attachmentId: number, filename: string) => download(`/attachments/${attachmentId}/download`, filename),
+  downloadPostVersion: (postId: number, versionId: number, filename: string) => download(`/posts/${postId}/versions/${versionId}/download`, filename),
   roomMemory: (roomId: number) => request<Entity>(`/rooms/${roomId}/memory`),
   runArchive: () => request<Entity>('/auto-archive/run', { method: 'POST' }),
   submitRequestApproval: (id: number, data: Entity = {}) => request<Entity>(`/workflow/requests/${id}/submit-approval`, { method: 'POST', body: JSON.stringify(data) }),

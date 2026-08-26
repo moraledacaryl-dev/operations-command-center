@@ -9,16 +9,19 @@ class CapabilityContractTests(unittest.TestCase):
         self.assertFalse(has_capability("manager", "manage_accounts"))
         self.assertTrue(has_capability("manager", "make_decisions"))
         self.assertTrue(has_capability("manager", "manage_approvals"))
+        self.assertTrue(has_capability("manager", "view_integration_summary"))
 
     def test_owner_and_admin_can_manage_accounts(self):
         self.assertTrue(has_capability("owner", "manage_accounts"))
         self.assertTrue(has_capability("admin", "manage_accounts"))
+        self.assertTrue(has_capability("owner", "view_integration_summary"))
 
     def test_lead_is_department_scoped(self):
         payload = capability_payload("lead")
         self.assertTrue(payload["manage_department"])
         self.assertFalse(payload["view_all_operations"])
         self.assertFalse(payload["manage_accounts"])
+        self.assertFalse(payload["view_integration_summary"])
 
     def test_account_routes_require_account_capability(self):
         self.assertEqual(_required_capability("POST", "/api/admin/users"), "manage_accounts")

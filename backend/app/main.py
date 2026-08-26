@@ -1,11 +1,9 @@
-import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from . import integration_models  # noqa: F401 - register integration tables with SQLAlchemy
 from .api_read_boundary import ApiReadBoundaryMiddleware
@@ -18,11 +16,11 @@ from .identity_boundary import IdentityBoundaryMiddleware
 from .internal_read_boundary import InternalReadBoundaryMiddleware
 from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
-from .routers.authorization_hotfix import router as authorization_hotfix_router
 from .routers.authorized_crud import router as authorized_crud_router
 from .routers.integrations_v2 import router as integrations_v2_router
 from .routers.my_work import router as my_work_router
 from .routers.operational_meta import router as operational_meta_router
+from .routers.privacy import router as privacy_router
 from .routers.review import router as review_router
 from .routers.uploads_hardened import router as uploads_hardened_router
 from .routers.workflow import router as workflow_router
@@ -118,6 +116,11 @@ def remove_shadowed_legacy_routes() -> None:
         "/api/integrations/review-items/{item_id}/create-approval",
         "/api/integrations/review-items/{item_id}/mark-seen",
         "/api/integrations/review-items/{item_id}/reject",
+        "/api/integrations/overview",
+        "/api/auth/login",
+        "/api/auth/me",
+        "/api/admin/users",
+        "/api/departments/{department_id}/workspace",
         "/api/users",
         "/api/meta",
         "/api/{resource}",
@@ -134,7 +137,7 @@ def remove_shadowed_legacy_routes() -> None:
 remove_shadowed_legacy_routes()
 app.include_router(review_router)
 app.include_router(my_work_router)
-app.include_router(authorization_hotfix_router)
+app.include_router(privacy_router)
 app.include_router(operational_meta_router)
 app.include_router(uploads_hardened_router)
 app.include_router(workflow_router)
@@ -143,4 +146,3 @@ app.include_router(workflow_router)
 app.include_router(router)
 app.include_router(authorized_crud_router)
 app.include_router(integrations_v2_router)
-app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "./uploads")), name="uploads")

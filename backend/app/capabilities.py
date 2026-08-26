@@ -11,6 +11,7 @@ CAPABILITIES: Final[tuple[str, ...]] = (
     "view_system_health",
     "manage_approvals",
     "view_sensitive_user_metadata",
+    "view_integration_summary",
 )
 
 ROLE_CAPABILITIES: Final[dict[str, frozenset[str]]] = {
@@ -24,6 +25,7 @@ ROLE_CAPABILITIES: Final[dict[str, frozenset[str]]] = {
         "view_system_health",
         "manage_approvals",
         "view_sensitive_user_metadata",
+        "view_integration_summary",
     }),
     "manager": frozenset({
         "view_all_operations",
@@ -31,6 +33,7 @@ ROLE_CAPABILITIES: Final[dict[str, frozenset[str]]] = {
         "make_decisions",
         "view_system_health",
         "manage_approvals",
+        "view_integration_summary",
     }),
     "lead": frozenset({"manage_department"}),
     "supervisor": frozenset({"manage_department"}),
