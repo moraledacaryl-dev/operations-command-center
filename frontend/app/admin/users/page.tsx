@@ -17,7 +17,8 @@ function localDate(value?: string) {
 }
 
 export default function UsersPage() {
-  const [meta, setMeta] = useState<Entity>({ users: [], departments: [] });
+  const [directory, setDirectory] = useState<Entity[]>([]);
+  const [meta, setMeta] = useState<Entity>({ departments: [] });
   const [mode, setMode] = useState<Mode>('');
   const [selected, setSelected] = useState<Entity | null>(null);
   const [query, setQuery] = useState('');
@@ -28,11 +29,15 @@ export default function UsersPage() {
   const [saved, setSaved] = useState('');
   const [busy, setBusy] = useState(false);
 
-  async function load() { setMeta(await api.meta()); }
+  async function load() {
+    const [users, operationalMeta] = await Promise.all([api.users(), api.meta()]);
+    setDirectory(users);
+    setMeta(operationalMeta);
+  }
+
   useEffect(() => { load().catch((err: any) => setError(err.message || 'Could not load users.')); }, []);
 
-  const users: Entity[] = meta.users || [];
-  const visible = useMemo(() => users.filter(user => !query.trim() || [user.name, user.email, user.role, ...(user.departments || []).map((department: Entity) => department.name)].filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase())), [users, query]);
+  const visible = useMemo(() => directory.filter(user => !query.trim() || [user.name, user.email, user.role, ...(user.departments || []).map((department: Entity) => department.name)].filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase())), [directory, query]);
 
   function open(modeName: Mode, user?: Entity) {
     setError(''); setSaved(''); setMode(modeName); setSelected(user || {});
@@ -42,13 +47,22 @@ export default function UsersPage() {
 
   function close() { if (!busy) { setMode(''); setSelected(null); } }
 
+  function closeAfterSuccess(message: string) {
+    setBusy(false);
+    setSaved(message);
+    setMode('');
+    setSelected(null);
+  }
+
   async function createUser() {
     if (!createForm.name || !createForm.email || !createForm.password || busy) return;
     setBusy(true); setError('');
     try {
       await api.adminCreateUser({ ...createForm, department_id: createForm.department_id ? Number(createForm.department_id) : null });
-      setCreateForm(EMPTY_CREATE); setSaved('User created.'); await load(); close();
-    } catch (err: any) { setError(err.message || 'Could not create user.'); } finally { setBusy(false); }
+      setCreateForm(EMPTY_CREATE);
+      await load();
+      closeAfterSuccess('User created.');
+    } catch (err: any) { setError(err.message || 'Could not create user.'); setBusy(false); }
   }
 
   async function resetPassword() {
@@ -56,8 +70,10 @@ export default function UsersPage() {
     setBusy(true); setError('');
     try {
       await api.adminResetUserPassword(Number(resetForm.user_id), resetForm.new_password);
-      setResetForm({ user_id: '', new_password: '' }); setSaved('Password reset saved.'); await load(); close();
-    } catch (err: any) { setError(err.message || 'Could not reset password.'); } finally { setBusy(false); }
+      setResetForm({ user_id: '', new_password: '' });
+      await load();
+      closeAfterSuccess('Password reset saved.');
+    } catch (err: any) { setError(err.message || 'Could not reset password.'); setBusy(false); }
   }
 
   async function addMembership() {
@@ -65,13 +81,17 @@ export default function UsersPage() {
     setBusy(true); setError('');
     try {
       await api.create('user-departments', { ...membership, user_id: Number(membership.user_id), department_id: Number(membership.department_id), is_primary: Boolean(membership.is_primary) });
-      setMembership({ user_id: '', department_id: '', is_primary: false, role_override: '' }); setSaved('Department access saved.'); await load(); close();
-    } catch (err: any) { setError(err.message || 'Could not add department access.'); } finally { setBusy(false); }
+      setMembership({ user_id: '', department_id: '', is_primary: false, role_override: '' });
+      await load();
+      closeAfterSuccess('Department access saved.');
+    } catch (err: any) { setError(err.message || 'Could not add department access.'); setBusy(false); }
   }
+
+  const activeDrawerError = mode && error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null;
 
   return <>
     <Top eyebrow="Administration" title="People & access" right={<button className="btn" onClick={() => open('create')}>Create user</button>} />
-    {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
+    {!mode && error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {saved ? <div className="pill ok" role="status" style={{ marginBottom: 12 }}>{saved}</div> : null}
 
     <section className="panel" style={{ marginBottom: 16 }}>
@@ -79,7 +99,7 @@ export default function UsersPage() {
         <input className="input" placeholder="Search name, email, role, or department" value={query} onChange={event => setQuery(event.target.value)} />
         {query ? <button className="btn secondary" onClick={() => setQuery('')}>Clear</button> : null}
       </div>
-      <p className="muted" style={{ marginBottom: 0 }}>{visible.length} of {users.length} accounts. Password and access actions open in protected drawers.</p>
+      <p className="muted" style={{ marginBottom: 0 }}>{visible.length} of {directory.length} accounts. Password and access actions open in protected drawers.</p>
     </section>
 
     <div className="grid cols-2">
@@ -97,12 +117,13 @@ export default function UsersPage() {
     </div>
 
     <Drawer item={selected} title={mode === 'create' ? 'Create user' : mode === 'reset' ? 'Reset password' : mode === 'access' ? 'Department access' : 'People & access'} onClose={close}>
+      {activeDrawerError}
       {mode === 'create' ? <section className="panel">
         <h2>New account</h2><p className="muted">Create the identity first. Additional department access can be added afterward.</p>
         <div className="form-grid" style={{ marginTop: 12 }}>
           <label className="label">Name<input className="input" value={createForm.name} onChange={event => setCreateForm({ ...createForm, name: event.target.value })} /></label>
           <label className="label">Email<input className="input" type="email" value={createForm.email} onChange={event => setCreateForm({ ...createForm, email: event.target.value })} /></label>
-          <label className="label">Role<select className="select" value={createForm.role} onChange={event => setCreateForm({ ...createForm, role: event.target.value })}>{['owner', 'admin', 'manager', 'lead', 'staff'].map(role => <option key={role}>{role}</option>)}</select></label>
+          <label className="label">Role<select className="select" value={createForm.role} onChange={event => setCreateForm({ ...createForm, role: event.target.value })}>{['owner', 'admin', 'manager', 'lead', 'supervisor', 'staff'].map(role => <option key={role}>{role}</option>)}</select></label>
           <label className="label">Primary department<select className="select" value={createForm.department_id} onChange={event => setCreateForm({ ...createForm, department_id: event.target.value })}><option value="">Optional</option>{meta.departments?.map((department: Entity) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
           <label className="label">Temporary password<input className="input" type="password" value={createForm.password} onChange={event => setCreateForm({ ...createForm, password: event.target.value })} /></label>
           <label className="label inline"><input type="checkbox" checked={!!createForm.is_active} onChange={event => setCreateForm({ ...createForm, is_active: event.target.checked })} /> Active account</label>
