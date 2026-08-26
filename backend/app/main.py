@@ -14,6 +14,7 @@ from .decision_boundary import DecisionBoundaryMiddleware
 from .http_protection import enforce_request_boundary, request_id
 from .identity_boundary import IdentityBoundaryMiddleware
 from .internal_read_boundary import InternalReadBoundaryMiddleware
+from .readiness import router as readiness_router
 from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.authorized_crud import router as authorized_crud_router
@@ -135,6 +136,7 @@ def remove_shadowed_legacy_routes() -> None:
 
 
 remove_shadowed_legacy_routes()
+app.include_router(readiness_router)
 app.include_router(review_router)
 app.include_router(my_work_router)
 app.include_router(privacy_router)
