@@ -12,7 +12,19 @@ const owner = {
   ],
 };
 
+const diagnostics = new WeakMap<Page, string[]>();
+
 async function seedSession(page: Page, departmentId = 1) {
+  const messages: string[] = [];
+  diagnostics.set(page, messages);
+  page.on('pageerror', error => messages.push(`pageerror: ${error.stack || error.message}`));
+  page.on('console', message => {
+    if (message.type() === 'error') messages.push(`console.error: ${message.text()}`);
+  });
+  page.on('requestfailed', request => {
+    messages.push(`requestfailed: ${request.method()} ${request.url()} :: ${request.failure()?.errorText || 'unknown'}`);
+  });
+
   await page.addInitScript(({ user, dept }) => {
     window.localStorage.setItem('cc_user', JSON.stringify(user));
     window.localStorage.setItem('cc_department_id', String(dept));
@@ -28,7 +40,26 @@ async function assertSession(page: Page, departmentId = 1) {
   expect(seeded.user).not.toBeNull();
   expect(seeded.dept).toBe(String(departmentId));
   await expect(page).not.toHaveURL(/\/login$/);
-  await expect(page.locator('#operations-app-root')).toBeVisible();
+
+  try {
+    await expect(page.locator('#operations-app-root')).toBeVisible({ timeout: 5000 });
+  } catch (error) {
+    const snapshot = await page.evaluate(() => ({
+      href: window.location.href,
+      role: document.documentElement.dataset.role || null,
+      body: document.body.innerText.slice(0, 2000),
+      html: document.body.innerHTML.slice(0, 4000),
+      user: window.localStorage.getItem('cc_user'),
+      dept: window.localStorage.getItem('cc_department_id'),
+    }));
+    const recorded = diagnostics.get(page) || [];
+    throw new Error([
+      'Authenticated shell failed to mount.',
+      `snapshot=${JSON.stringify(snapshot)}`,
+      `diagnostics=${JSON.stringify(recorded)}`,
+      `original=${error instanceof Error ? error.message : String(error)}`,
+    ].join('\n'));
+  }
 }
 
 async function mockCommon(page: Page) {
