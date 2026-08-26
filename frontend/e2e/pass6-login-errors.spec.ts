@@ -23,7 +23,8 @@ for (const item of cases) {
     await page.getByLabel('Password').fill('wrong-password');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
-    const alert = page.getByRole('alert');
+    const alert = page.locator('form p[role="alert"]');
+    await expect(alert).toHaveCount(1);
     await expect(alert).toHaveText(item.expected);
     await expect(page).toHaveURL(/\/login$/);
   });
