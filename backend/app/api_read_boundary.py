@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 
 SESSION_SECRET = os.getenv("SESSION_SECRET", "local-command-center-secret")
 COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "operations_session")
-PUBLIC_GET_PATHS = {"/api/health"}
+PUBLIC_GET_PATHS = {"/api/health", "/api/livez", "/api/readyz"}
 
 
 def _unb64(value: str) -> bytes:
