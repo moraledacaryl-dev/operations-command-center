@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
-import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 
 function formatStamp(value?: string) {
   if (!value) return 'Time not recorded';
@@ -26,17 +26,26 @@ export default function ShiftPage() {
   const [filter, setFilter] = useState('Unresolved');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const departmentId = getCurrentDepartmentId(getStoredUser());
+  const { departmentId, hydrated } = useActiveDepartment();
+  const beginRequest = useLatestRequest();
 
-  async function load() {
+  const openCreate = useCallback(() => setShowAdd(true), []);
+  useCreateIntent(openCreate);
+
+  const load = useCallback(async () => {
+    if (!hydrated) return;
+    const request = beginRequest();
     try {
       setError('');
-      const rows = await api.list('shift-notes', { active: true, department_id: departmentId || '' });
-      setItems(rows);
-    } catch (err: any) { setError(err.message || 'Shift handover could not be loaded.'); }
-  }
+      const rows = await api.list('shift-notes', { active: true, department_id: departmentId || '' }, { signal: request.signal });
+      if (request.isCurrent()) setItems(rows);
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;
+      if (request.isCurrent()) setError(err.message || 'Shift handover could not be loaded.');
+    }
+  }, [beginRequest, departmentId, hydrated]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const visible = useMemo(() => items.filter(item => {
     if (filter === 'Unresolved') return !['Done'].includes(String(item.status));
@@ -46,7 +55,7 @@ export default function ShiftPage() {
   }).sort((a, b) => new Date(String(b.created_at || b.updated_at || 0)).getTime() - new Date(String(a.created_at || a.updated_at || 0)).getTime()), [items, filter]);
 
   async function createNote() {
-    if (!title.trim() || !note.trim() || busy) return;
+    if (!title.trim() || !note.trim() || busy || !hydrated) return;
     setBusy(true);
     try {
       await api.create('shift-notes', { title: title.trim(), shift, category, urgency, note: note.trim(), status: 'New', department_id: departmentId || null });
@@ -70,14 +79,14 @@ export default function ShiftPage() {
   const follow = items.filter(item => item.status === 'Follow').length;
 
   return <>
-    <Top eyebrow="Live handover" title="Shift handover" right={<button className="btn" onClick={() => setShowAdd(value => !value)}>Add</button>} />
+    <Top eyebrow="Live handover" title="Shift handover" right={<button data-testid="create-shift" className="btn" onClick={() => setShowAdd(value => !value)}>Add</button>} />
     <div className="grid cols-3" style={{ marginBottom: 16 }}>
       <div className="panel"><div className="eyebrow">Unresolved</div><h2>{unresolved}</h2></div>
       <div className="panel"><div className="eyebrow">Urgent</div><h2>{urgent}</h2></div>
       <div className="panel"><div className="eyebrow">Needs follow-up</div><h2>{follow}</h2></div>
     </div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
+    {showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-shift-form">
       <h2>New handover note</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Title<input className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
