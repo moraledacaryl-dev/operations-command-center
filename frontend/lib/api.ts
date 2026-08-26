@@ -40,21 +40,18 @@ function endpointFailureMessage(path: string, status: number) {
 function validationDetail(detail: unknown): string | undefined {
   if (typeof detail === 'string') return detail;
   if (!Array.isArray(detail)) return undefined;
-  const messages = detail
-    .map(item => {
-      if (!item || typeof item !== 'object') return '';
-      const record = item as Record<string, any>;
-      const location = Array.isArray(record.loc) ? record.loc.slice(1).join(' ') : '';
-      return [location, record.msg].filter(Boolean).join(': ');
-    })
-    .filter(Boolean);
+  const messages = detail.map(item => {
+    if (!item || typeof item !== 'object') return '';
+    const record = item as Record<string, any>;
+    const location = Array.isArray(record.loc) ? record.loc.slice(1).join(' ') : '';
+    return [location, record.msg].filter(Boolean).join(': ');
+  }).filter(Boolean);
   return messages.length ? messages.join('; ') : undefined;
 }
 
 async function normalizedError(res: Response, path: string) {
   const requestId = res.headers.get('X-Request-Id') || undefined;
   let detail: string | undefined;
-
   try {
     const payload = await res.clone().json();
     detail = validationDetail(payload?.detail) || validationDetail(payload?.message);
@@ -62,10 +59,7 @@ async function normalizedError(res: Response, path: string) {
     const text = (await res.text()).trim();
     if (text && !text.startsWith('{') && !text.startsWith('[') && text.length <= 240) detail = text;
   }
-
-  const safeMessage = detail && res.status < 500 && res.status !== 422
-    ? detail
-    : endpointFailureMessage(path, res.status);
+  const safeMessage = detail && res.status < 500 && res.status !== 422 ? detail : endpointFailureMessage(path, res.status);
   return new ApiError(safeMessage, res.status, requestId, detail);
 }
 
@@ -73,29 +67,22 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = init?.body instanceof FormData
     ? { ...authHeaders(), ...(init.headers || {}) }
     : { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers || {}) };
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers,
-    cache: 'no-store',
-    credentials: 'same-origin',
-  });
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers, cache: 'no-store', credentials: 'same-origin' });
   if (!res.ok) {
-    if (res.status === 401 && typeof window !== 'undefined' && !path.startsWith('/auth/login')) {
+    if (res.status === 401 && typeof window !== 'undefined' && !path.startsWith('/auth/login') && !path.startsWith('/auth/logout')) {
       window.localStorage.removeItem('cc_user');
       window.localStorage.removeItem('cc_department_id');
       window.location.href = '/login';
     }
     throw await normalizedError(res, path);
   }
-  return res.json();
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : {}) as T;
 }
 
 async function download(path: string, filename: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: authHeaders(),
-    cache: 'no-store',
-    credentials: 'same-origin',
-  });
+  const res = await fetch(`${API_BASE}${path}`, { headers: authHeaders(), cache: 'no-store', credentials: 'same-origin' });
   if (!res.ok) throw await normalizedError(res, path);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -109,12 +96,10 @@ async function download(path: string, filename: string) {
 }
 
 export const api = {
-  list: (resource: string, params: Record<string, any> = {}) => {
+  list: (resource: string, params: Record<string, any> = {}, options: { signal?: AbortSignal } = {}) => {
     const qs = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
-    });
-    return request<Entity[]>(`/${resource}${qs.toString() ? `?${qs}` : ''}`);
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
+    return request<Entity[]>(`/${resource}${qs.toString() ? `?${qs}` : ''}`, { signal: options.signal });
   },
   get: (resource: string, id: number) => request<Entity>(`/${resource}/${id}`),
   create: (resource: string, data: Entity) => request<Entity>(`/${resource}`, { method: 'POST', body: JSON.stringify(data) }),
@@ -123,7 +108,9 @@ export const api = {
   archive: (resource: string, id: number) => request<Entity>(`/${resource}/${id}/archive`, { method: 'POST' }),
   comment: (resource: string, id: number, body: string, comment_type = 'General') => request<Entity>(`/${resource}/${id}/comments`, { method: 'POST', body: JSON.stringify({ body, comment_type }) }),
   login: (email: string, password: string) => request<Entity>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  logout: () => request<void>('/auth/logout', { method: 'POST' }),
   me: () => request<Entity>('/auth/me'),
+  users: () => request<Entity[]>('/users'),
   health: () => request<Entity>('/health'),
   changePassword: (current_password: string, new_password: string) => request<Entity>('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
   adminCreateUser: (data: Entity) => request<Entity>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
@@ -132,17 +119,9 @@ export const api = {
   departmentWorkspace: (departmentId: number) => request<Entity>(`/departments/${departmentId}/workspace`),
   reviewQueue: (params: Record<string, any> = {}) => { const qs = new URLSearchParams(); Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); }); return request<Entity>(`/review/queue${qs.toString() ? `?${qs}` : ''}`); },
   generateRoutine: (id: number) => request<Entity>(`/routines/${id}/generate-task`, { method: 'POST' }),
-  dashboard: (params: Record<string, any> = {}) => {
-    const qs = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
-    return request<Entity>(`/dashboard${qs.toString() ? `?${qs}` : ''}`);
-  },
+  dashboard: (params: Record<string, any> = {}) => { const qs = new URLSearchParams(); Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); }); return request<Entity>(`/dashboard${qs.toString() ? `?${qs}` : ''}`); },
   integrationOverview: () => request<Entity>('/integrations/overview'),
-  history: (params: Record<string, any> = {}) => {
-    const qs = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => { if (v) qs.set(k, String(v)); });
-    return request<Entity[]>(`/history/search/all${qs.toString() ? `?${qs}` : ''}`);
-  },
+  history: (params: Record<string, any> = {}) => { const qs = new URLSearchParams(); Object.entries(params).forEach(([k, v]) => { if (v) qs.set(k, String(v)); }); return request<Entity[]>(`/history/search/all${qs.toString() ? `?${qs}` : ''}`); },
   versions: (postId: number) => request<Entity[]>(`/posts/${postId}/versions`),
   addVersion: (postId: number, form: FormData) => request<Entity>(`/posts/${postId}/versions`, { method: 'POST', body: form }),
   downloadAttachment: (attachmentId: number, filename: string) => download(`/attachments/${attachmentId}/download`, filename),
