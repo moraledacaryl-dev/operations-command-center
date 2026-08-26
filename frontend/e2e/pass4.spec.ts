@@ -13,10 +13,19 @@ const owner = {
 };
 
 async function seedSession(page: Page, departmentId = 1) {
-  await page.addInitScript(({ user, dept }) => {
+  await page.goto('/login');
+  await page.evaluate(({ user, dept }) => {
     window.localStorage.setItem('cc_user', JSON.stringify(user));
     window.localStorage.setItem('cc_department_id', String(dept));
   }, { user: owner, dept: departmentId });
+
+  const seeded = await page.evaluate(() => ({
+    user: window.localStorage.getItem('cc_user'),
+    dept: window.localStorage.getItem('cc_department_id'),
+  }));
+
+  expect(seeded.user).not.toBeNull();
+  expect(seeded.dept).toBe(String(departmentId));
 }
 
 async function mockCommon(page: Page) {
