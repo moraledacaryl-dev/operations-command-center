@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
-import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { ModuleConfig, Field } from '@/lib/config';
+import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 import { Top } from './Top';
 import { Pill } from './Pill';
 import { Drawer } from './Drawer';
@@ -73,29 +73,39 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
   const [workflowNote, setWorkflowNote] = useState('');
   const [proofUrl, setProofUrl] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
-  const [currentDeptId, setCurrentDeptId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const { departmentId: currentDeptId, hydrated } = useActiveDepartment();
+  const beginRequest = useLatestRequest();
   const activeStatus = filter !== 'All' ? filter : '';
 
-  async function load() {
+  const openCreate = useCallback(() => setShowAdd(true), []);
+  useCreateIntent(openCreate);
+
+  const load = useCallback(async () => {
+    if (!hydrated) return;
+    const request = beginRequest();
     setLoading(true);
     setError('');
     try {
       const deptAware = ['projects', 'tasks', 'shift-notes', 'approvals', 'memos', 'requests', 'talk', 'docs', 'routines', 'guests', 'fixes', 'posts'].includes(config.resource);
-      const rows = await api.list(config.resource, { active: true, q, status: activeStatus, department_id: deptAware ? currentDeptId : '' });
-      setItems(rows);
+      const rows = await api.list(
+        config.resource,
+        { active: true, q, status: activeStatus, department_id: deptAware ? currentDeptId : '' },
+        { signal: request.signal },
+      );
+      if (request.isCurrent()) setItems(rows);
     } catch (err: any) {
-      setError(err.message || 'Could not load items.');
+      if (err?.name === 'AbortError') return;
+      if (request.isCurrent()) setError(err.message || 'Could not load items.');
     } finally {
-      setLoading(false);
+      if (request.isCurrent()) setLoading(false);
     }
-  }
+  }, [activeStatus, beginRequest, config.resource, currentDeptId, hydrated, q]);
 
-  useEffect(() => { const user = getStoredUser(); setCurrentDeptId(getCurrentDepartmentId(user)); }, []);
-  useEffect(() => { setFilter(config.filters[0] || 'All'); }, [config.resource]);
-  useEffect(() => { load(); }, [config.resource, filter, currentDeptId]);
+  useEffect(() => { setFilter(config.filters[0] || 'All'); }, [config.resource, config.filters]);
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (selected) setEditData(selected); }, [selected?.id]);
   useEffect(() => { setWorkflowNote(''); setProofUrl(''); setProofFile(null); }, [selected?.id]);
 
@@ -188,24 +198,25 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
   }
 
   const emptyMessage = q ? `No ${config.title.toLowerCase()} match “${q}”.` : filter !== 'All' ? `No items are currently ${filter.toLowerCase()}.` : `No active ${config.title.toLowerCase()} yet.`;
+  const cardGrid = config.resource === 'tasks' ? 'grid cols-4' : 'grid cols-3';
 
   return (
     <>
-      <Top eyebrow={config.eyebrow} title={config.title} right={<button className="btn" onClick={() => setShowAdd(s => !s)}>Add</button>} />
+      <Top eyebrow={config.eyebrow} title={config.title} right={<button data-testid={`create-${config.resource}`} className="btn" onClick={() => setShowAdd(s => !s)}>Add</button>} />
       <div className="grid cols-3" style={{ marginBottom: 16 }}>
         <div className="panel"><div className="eyebrow">Active</div><h2>{activeCount}</h2></div>
         <div className="panel"><div className="eyebrow">Urgent</div><h2>{urgentCount}</h2></div>
         <div className="panel"><div className="eyebrow">Overdue</div><h2>{overdueCount}</h2></div>
       </div>
       {currentDeptId ? <div className="card-line" style={{ marginBottom: 12 }}><Pill value="Dept view" /><span className="muted">Showing the current department workspace where applicable.</span></div> : null}
-      {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
+      {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
       <div className="toolbar">
-        <input className="input" style={{ maxWidth: 320 }} placeholder={`Search ${config.title.toLowerCase()}`} value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') load(); }} />
-        <button className="btn secondary" onClick={load} disabled={loading}>{loading ? 'Refreshing…' : 'Search'}</button>
+        <input className="input" style={{ maxWidth: 320 }} placeholder={`Search ${config.title.toLowerCase()}`} value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void load(); }} />
+        <button className="btn secondary" onClick={() => void load()} disabled={loading}>{loading ? 'Refreshing…' : 'Search'}</button>
       </div>
       <div className="tabs" style={{ overflowX: 'auto' }}>{config.filters.map(f => <button key={f} onClick={() => setFilter(f)} className={`tab ${filter === f ? 'active' : ''}`}>{f} <span className="muted">{counts[f] ?? 0}</span></button>)}</div>
       {showAdd && <div className="panel" style={{ marginBottom: 16 }}><h2>Add {config.createLabel}</h2><div className="form" style={{ marginTop: 14 }}><div className="form-grid">{config.fields.map(field => <label className="label" key={field.key}>{field.label}<FieldInput field={field} value={data[field.key]} onChange={v => setData({ ...data, [field.key]: v })} /></label>)}</div><div style={{ display: 'flex', gap: 8 }}><button className="btn" disabled={!!busy} onClick={create}>{busy === 'create' ? 'Saving…' : 'Save'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div></div></div>}
-      <div className="grid cols-3">{loading ? <div className="empty">Loading operational work…</div> : sortedItems.length ? sortedItems.map(item => <ItemCard key={item.id} item={item} meta={config.cardMeta} onOpen={() => api.get(config.resource, item.id).then(setSelected).catch(err => setError(err.message || 'Could not open item.'))} />) : <div className="empty">{emptyMessage}</div>}</div>
+      <div className={cardGrid}>{loading ? <div className="empty">Loading operational work…</div> : sortedItems.length ? sortedItems.map(item => <ItemCard key={item.id} item={item} meta={config.cardMeta} onOpen={() => api.get(config.resource, item.id).then(setSelected).catch(err => setError(err.message || 'Could not open item.'))} />) : <div className="empty">{emptyMessage}</div>}</div>
       <Drawer item={selected} onClose={() => setSelected(null)}>
         <div className="workflow-panel"><div><div className="eyebrow">Next step</div><h2>{config.resource === 'requests' ? 'Decision path' : config.resource === 'guests' ? 'Guest follow-up' : config.resource === 'fixes' ? 'Repair closure' : config.resource === 'shift-notes' ? 'Handover loop' : config.resource === 'routines' ? 'Recurring work' : config.resource === 'projects' ? 'Project execution' : 'Work item'}</h2></div><div className="workflow-actions">
           {config.resource === 'requests' ? <button className="btn small" disabled={!!busy || ['Review', 'Approved', 'Rejected'].includes(selected?.status)} onClick={sendRequestForApproval}>{busy === 'approval' ? 'Sending…' : 'Send to approval'}</button> : null}
