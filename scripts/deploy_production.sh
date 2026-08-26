@@ -80,7 +80,22 @@ echo "PASS | frontend locked install, lint, typecheck, build, standalone package
 
 mkdir -p "$BACKUP_DIR"
 BACKUP_FILE="$BACKUP_DIR/operations-pre-${CANDIDATE_SHA:0:12}-$(date +%Y%m%d-%H%M%S).dump"
-pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL" > "$BACKUP_FILE"
+PG_DUMP_URL="$(
+  python - <<'PY'
+import os
+from sqlalchemy.engine import make_url
+
+raw = os.environ.get("DATABASE_URL", "").strip()
+if not raw:
+    raise SystemExit("DATABASE_URL is required for the production backup")
+url = make_url(raw)
+if url.get_backend_name() != "postgresql":
+    raise SystemExit(f"PostgreSQL DATABASE_URL required for production backup; got {url.get_backend_name()!r}")
+print(url.set(drivername="postgresql").render_as_string(hide_password=False))
+PY
+)"
+pg_dump --format=custom --no-owner --no-acl --dbname="$PG_DUMP_URL" > "$BACKUP_FILE"
+unset PG_DUMP_URL
 test -s "$BACKUP_FILE"
 echo "PASS | PostgreSQL backup $BACKUP_FILE"
 
