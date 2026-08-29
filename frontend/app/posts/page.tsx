@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API_BASE, api, Entity } from '@/lib/api';
 import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Top } from '@/components/Top';
@@ -62,16 +62,16 @@ export default function MarketingPage() {
     setCurrentDeptId(getCurrentDepartmentId(user));
   }, []);
 
-  async function load() {
+  const load = useCallback(async () => {
     setError('');
     try {
       setItems(await api.list('posts', { active: true, department_id: currentDeptId || '' }));
     } catch (err: any) {
       setError(err.message || 'Marketing work could not be loaded.');
     }
-  }
+  }, [currentDeptId]);
 
-  useEffect(() => { load(); }, [currentDeptId]);
+  useEffect(() => { void load(); }, [load]);
 
   async function open(item: Entity) {
     try {

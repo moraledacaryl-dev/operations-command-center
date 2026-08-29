@@ -71,6 +71,6 @@ def log_activity(db, entity_type: str, entity_id: int, action: str, message: str
 def mark_completed_if_needed(obj: Any, status: str):
     done_statuses = {"Done", "Verified", "Posted", "Approved", "Rejected", "OK"}
     if status in done_statuses and hasattr(obj, "completed_at") and not getattr(obj, "completed_at", None):
-        obj.completed_at = datetime.utcnow()
+        obj.completed_at = models.utcnow()
     if status not in done_statuses and hasattr(obj, "completed_at"):
         obj.completed_at = None

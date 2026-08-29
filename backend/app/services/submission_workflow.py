@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -40,7 +38,7 @@ def decide_submission(
     if submission.review_status != "New":
         raise HTTPException(status_code=409, detail="This submission has already been decided.")
 
-    now = datetime.utcnow()
+    now = models.utcnow()
     submission.review_status = decision
     submission.reviewed_by_id = user.id
     submission.reviewed_at = now

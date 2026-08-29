@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
@@ -23,7 +23,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  async function load(nextQ = q, nextKind = kind) {
+  const load = useCallback(async (nextQ: string, nextKind: string) => {
     setLoading(true);
     setError('');
     try {
@@ -37,9 +37,11 @@ export default function HistoryPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
 
-  useEffect(() => { load(q, kind); }, []);
+  useEffect(() => {
+    void load(search.get('q') || '', search.get('kind') || '');
+  }, [load, search]);
 
   const grouped = useMemo(() => items.reduce((groups: Record<string, Entity[]>, item) => {
     const month = item.archived_at || item.completed_at || item.updated_at || item.created_at;
@@ -50,13 +52,13 @@ export default function HistoryPage() {
   }, {}), [items]);
 
   return <>
-    <Top eyebrow="Operational archive" title="History" right={<button className="btn secondary" onClick={() => load()} disabled={loading}>{loading ? 'Searching…' : 'Search'}</button>} />
+    <Top eyebrow="Operational archive" title="History" right={<button className="btn secondary" onClick={() => load(q, kind)} disabled={loading}>{loading ? 'Searching…' : 'Search'}</button>} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     <section className="panel" style={{ marginBottom: 16 }}>
       <div className="toolbar" style={{ marginBottom: 0 }}>
-        <input className="input" aria-label="Search operational history" placeholder="Search title, note, owner, or archive reason" value={q} onChange={event => setQ(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') load(); }} />
-        <select className="select" aria-label="Record type" value={kind} onChange={event => { setKind(event.target.value); load(q, event.target.value); }}>{kinds.map(value => <option value={value} key={value}>{value ? value.replaceAll('-', ' ') : 'All record types'}</option>)}</select>
-        {(q || kind) ? <button className="btn secondary" onClick={() => { setQ(''); setKind(''); load('', ''); }}>Clear</button> : null}
+        <input className="input" aria-label="Search operational history" placeholder="Search title, note, owner, or archive reason" value={q} onChange={event => setQ(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void load(q, kind); }} />
+        <select className="select" aria-label="Record type" value={kind} onChange={event => { const nextKind = event.target.value; setKind(nextKind); void load(q, nextKind); }}>{kinds.map(value => <option value={value} key={value}>{value ? value.replaceAll('-', ' ') : 'All record types'}</option>)}</select>
+        {(q || kind) ? <button className="btn secondary" onClick={() => { setQ(''); setKind(''); void load('', ''); }}>Clear</button> : null}
       </div>
       <p className="muted" style={{ marginBottom: 0 }}>{items.length} archived or completed records. Filters are saved in the URL.</p>
     </section>

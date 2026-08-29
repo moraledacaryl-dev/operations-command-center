@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 import { api, Entity } from '@/lib/api';
@@ -65,7 +65,7 @@ export default function Home() {
   const isExecutive = ['owner', 'admin', 'manager'].includes(role);
   const isLead = ['lead', 'supervisor'].includes(role);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError('');
     const [dashboardResult, workResult, integrationResult] = await Promise.allSettled([
@@ -78,11 +78,11 @@ export default function Home() {
     if (workResult.status === 'fulfilled') setMyWork(workResult.value as unknown as Entity);
     if (integrationResult.status === 'fulfilled') setIntegrations(integrationResult.value);
     setLoading(false);
-  }
+  }, [isExecutive]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
-  const counts = dashboard.counts || {};
+  const counts = useMemo(() => dashboard.counts || {}, [dashboard.counts]);
   const groups = myWork.groups || {};
   const overdueCount = (groups.overdue || []).length;
   const attention = useMemo(() => {
@@ -115,7 +115,7 @@ export default function Home() {
       <Top
         eyebrow={copy.eyebrow}
         title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${firstName}`}
-        right={<button className="btn secondary" onClick={load} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>}
+        right={<button className="btn secondary" onClick={() => void load()} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>}
       />
 
       {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}

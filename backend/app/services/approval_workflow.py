@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -27,7 +26,7 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
     if approval.status != "Pending":
         raise HTTPException(status_code=409, detail="Approval has already been decided")
 
-    now = datetime.utcnow()
+    now = models.utcnow()
     approval.status = decision
     approval.decided_by_id = user.id
     approval.decided_at = now

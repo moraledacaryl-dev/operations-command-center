@@ -9,7 +9,7 @@ import os
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Protocol
 
 from sqlalchemy import Column, DateTime, Index, Integer, MetaData, String, Table, delete, func, select
@@ -17,6 +17,10 @@ from starlette.responses import JSONResponse
 
 from .auth import normalize_email
 from .database import Base, SessionLocal
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 login_failure_events = Table(
@@ -70,7 +74,7 @@ class DatabaseLoginFailureStore:
 
     def __init__(self, settings: LoginRateLimitSettings, clock: Callable[[], datetime] | None = None):
         self.settings = settings
-        self.clock = clock or datetime.utcnow
+        self.clock = clock or _utcnow
 
     async def retry_after(self, key: tuple[str, str]) -> int:
         now = self.clock()
