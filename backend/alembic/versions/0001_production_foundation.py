@@ -5,42 +5,27 @@ Revises:
 Create Date: 2026-07-20
 """
 
+from pathlib import Path
+import runpy
+
 from alembic import op
 from sqlalchemy import inspect, text
 
-from app.database import Base
-from app import models  # noqa: F401
-from app import foundation_models  # noqa: F401
 
 revision = "0001_production_foundation"
 down_revision = None
 branch_labels = None
 depends_on = None
 
-FOUNDATION_TABLES = [
-    "performance_snapshots",
-    "publishing_records",
-    "annotation_replies",
-    "annotations",
-    "asset_versions",
-    "assets",
-    "platform_deliverables",
-    "content_concepts",
-    "marketing_campaigns",
-    "integration_event_outbox",
-    "integration_event_inbox",
-    "assignments",
-    "mentions",
-    "user_preferences",
-    "saved_views",
-    "record_relationships",
-    "activity_events",
-    "inbox_items",
-    "notifications",
-]
+# The original revision imported current Base.metadata, which made historical DDL
+# change whenever application models changed. Load a migration-owned snapshot of
+# the exact schema from the commit that introduced this revision instead.
+_FROZEN_SCHEMA = Path(__file__).resolve().parents[1] / "frozen_schema_0001.py"
+FROZEN_METADATA = runpy.run_path(str(_FROZEN_SCHEMA))["metadata"]
 
 
 def _add_column_if_missing(table_name: str, column_sql: str) -> None:
+    """Compatibility shim for databases that predate Alembic revision 0001."""
     bind = op.get_bind()
     inspector = inspect(bind)
     if table_name not in inspector.get_table_names():
@@ -54,10 +39,11 @@ def _add_column_if_missing(table_name: str, column_sql: str) -> None:
 def upgrade() -> None:
     bind = op.get_bind()
 
-    # This first Alembic revision supports both a fresh PostgreSQL database and
-    # existing local SQLite databases. Future revisions must use explicit op.*
-    # operations and are generated against Base.metadata.
-    Base.metadata.create_all(bind=bind)
+    # This metadata is frozen to the historical 0001 schema and must never be
+    # regenerated from live application models. create_all remains useful here
+    # because the original schema contains circular foreign keys and revision
+    # 0001 also supported pre-Alembic installations with some existing tables.
+    FROZEN_METADATA.create_all(bind=bind)
 
     _add_column_if_missing("guest_notes", "department_id INTEGER")
     _add_column_if_missing("fixes", "department_id INTEGER")
@@ -73,8 +59,16 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     bind = op.get_bind()
-    inspector = inspect(bind)
-    existing = set(inspector.get_table_names())
-    for table_name in FOUNDATION_TABLES:
-        if table_name in existing:
-            op.drop_table(table_name)
+
+    # SQLite cannot ALTER DROP the circular foreign-key constraints emitted by
+    # the historical schema. Disable FK enforcement only for this destructive
+    # downgrade transaction, then restore it. PostgreSQL can drop the named
+    # circular constraints through SQLAlchemy's dependency sorter.
+    if bind.dialect.name == "sqlite":
+        bind.execute(text("PRAGMA foreign_keys=OFF"))
+        try:
+            FROZEN_METADATA.drop_all(bind=bind, checkfirst=True)
+        finally:
+            bind.execute(text("PRAGMA foreign_keys=ON"))
+    else:
+        FROZEN_METADATA.drop_all(bind=bind, checkfirst=True)
