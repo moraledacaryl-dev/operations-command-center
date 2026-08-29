@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
+import { Capability, hasCapability } from '@/lib/capabilities';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
 type NavItem = {
@@ -17,6 +18,8 @@ type NavGroup = {
   label: string;
   items: NavItem[];
 };
+
+type AdminNavItem = NavItem & { capability: Capability };
 
 const primaryItems: NavItem[] = [
   { href: '/', label: 'Today', icon: 'T' },
@@ -46,10 +49,10 @@ const groups: NavGroup[] = [
   },
 ];
 
-const adminItems: NavItem[] = [
-  { href: '/admin/users', label: 'People & access', shortLabel: 'People', icon: 'U' },
-  { href: '/admin/approve', label: 'Approval setup', shortLabel: 'Approvals', icon: 'A' },
-  { href: '/admin/health', label: 'System health', shortLabel: 'Health', icon: 'Y' },
+const adminItems: AdminNavItem[] = [
+  { href: '/admin/users', label: 'People & access', shortLabel: 'People', icon: 'U', capability: 'manage_accounts' },
+  { href: '/admin/approve', label: 'Approval setup', shortLabel: 'Approvals', icon: 'A', capability: 'manage_approvals' },
+  { href: '/admin/health', label: 'System health', shortLabel: 'Health', icon: 'Y', capability: 'view_system_health' },
 ];
 
 const connectedApps = [
@@ -130,8 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const deptOptions = user?.departments || [];
   const currentDept = deptOptions.find((d: Entity) => Number(d.id) === Number(deptId)) || deptOptions[0];
-  const role = String(user?.role || '').toLowerCase();
-  const canAdminister = ['owner', 'admin', 'manager'].includes(role);
+  const visibleAdminItems = adminItems.filter(item => hasCapability(user, item.capability));
 
   function changeDept(value: string) {
     const id = Number(value);
@@ -227,11 +229,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          {canAdminister && (
+          {visibleAdminItems.length > 0 && (
             <details className="nav-admin" open={path.startsWith('/admin')}>
               <summary>Administration</summary>
               <div className="nav-group">
-                {adminItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}
+                {visibleAdminItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}
               </div>
             </details>
           )}

@@ -6,34 +6,43 @@ export type Capability =
   | 'manage_system'
   | 'view_system_health'
   | 'manage_approvals'
-  | 'view_sensitive_user_metadata';
-
-const ROLE_CAPABILITIES: Record<string, ReadonlySet<Capability>> = {
-  owner: new Set<Capability>([
-    'view_all_operations', 'manage_department', 'make_decisions', 'manage_accounts',
-    'manage_system', 'view_system_health', 'manage_approvals', 'view_sensitive_user_metadata',
-  ]),
-  admin: new Set<Capability>([
-    'view_all_operations', 'manage_department', 'make_decisions', 'manage_accounts',
-    'manage_system', 'view_system_health', 'manage_approvals', 'view_sensitive_user_metadata',
-  ]),
-  manager: new Set<Capability>([
-    'view_all_operations', 'manage_department', 'make_decisions',
-    'view_system_health', 'manage_approvals',
-  ]),
-  lead: new Set<Capability>(['manage_department']),
-  supervisor: new Set<Capability>(['manage_department']),
-  staff: new Set<Capability>(),
-};
+  | 'view_sensitive_user_metadata'
+  | 'view_integration_summary';
 
 export function normalizeRole(role: unknown) {
   return String(role || '').trim().toLowerCase();
 }
 
-export function hasCapability(role: unknown, capability: Capability) {
-  return ROLE_CAPABILITIES[normalizeRole(role)]?.has(capability) ?? false;
+function fromNames(names: unknown[]): Record<string, boolean> {
+  return Object.fromEntries(
+    names.filter((name): name is string => typeof name === 'string').map(name => [name, true]),
+  );
 }
 
-export function capabilitiesForRole(role: unknown) {
-  return ROLE_CAPABILITIES[normalizeRole(role)] ?? new Set<Capability>();
+function trueBooleanEntries(value: Record<string, unknown>): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  Object.entries(value).forEach(([name, granted]) => {
+    if (granted === true) out[name] = true;
+  });
+  return out;
+}
+
+function capabilityMap(source: unknown): Record<string, boolean> {
+  if (!source) return {};
+  if (Array.isArray(source)) return fromNames(source);
+  if (typeof source !== 'object') return {};
+
+  const record = source as Record<string, unknown>;
+  const nested = record.capabilities;
+
+  if (Array.isArray(nested)) return fromNames(nested);
+  if (nested && typeof nested === 'object') {
+    return trueBooleanEntries(nested as Record<string, unknown>);
+  }
+
+  return trueBooleanEntries(record);
+}
+
+export function hasCapability(source: unknown, capability: Capability) {
+  return capabilityMap(source)[capability] === true;
 }
