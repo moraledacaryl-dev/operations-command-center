@@ -4,6 +4,7 @@ import json
 from app.login_rate_limit import (
     LoginRateLimitMiddleware,
     LoginRateLimitSettings,
+    MemoryLoginFailureStore,
     client_ip,
 )
 
@@ -68,9 +69,17 @@ def auth_app():
     return app
 
 
+def limiter(settings):
+    return LoginRateLimitMiddleware(
+        auth_app(),
+        settings=settings,
+        store=MemoryLoginFailureStore(settings),
+    )
+
+
 def test_failed_logins_are_limited_by_normalized_email_and_ip():
     settings = LoginRateLimitSettings(max_failures=2, window_seconds=60, block_seconds=30)
-    middleware = LoginRateLimitMiddleware(auth_app(), settings=settings)
+    middleware = limiter(settings)
     s = scope()
 
     assert run(request(middleware, s, " User@Example.COM ", "bad"))[0] == 401
@@ -84,7 +93,7 @@ def test_failed_logins_are_limited_by_normalized_email_and_ip():
 
 def test_success_resets_prior_failure_state():
     settings = LoginRateLimitSettings(max_failures=2, window_seconds=60, block_seconds=30)
-    middleware = LoginRateLimitMiddleware(auth_app(), settings=settings)
+    middleware = limiter(settings)
     s = scope()
 
     assert run(request(middleware, s, "user@example.com", "bad"))[0] == 401
@@ -96,7 +105,7 @@ def test_success_resets_prior_failure_state():
 
 def test_non_authentication_403_does_not_increment_failures():
     settings = LoginRateLimitSettings(max_failures=1, window_seconds=60, block_seconds=30)
-    middleware = LoginRateLimitMiddleware(auth_app(), settings=settings)
+    middleware = limiter(settings)
     s = scope()
 
     assert run(request(middleware, s, "user@example.com", "unset"))[0] == 403
@@ -105,7 +114,7 @@ def test_non_authentication_403_does_not_increment_failures():
 
 def test_rate_limit_key_separates_client_ip_and_email():
     settings = LoginRateLimitSettings(max_failures=1, window_seconds=60, block_seconds=30)
-    middleware = LoginRateLimitMiddleware(auth_app(), settings=settings)
+    middleware = limiter(settings)
 
     assert run(request(middleware, scope("10.0.0.5"), "a@example.com", "bad"))[0] == 401
     assert run(request(middleware, scope("10.0.0.5"), "a@example.com", "bad"))[0] == 429
@@ -130,3 +139,11 @@ def test_forwarded_headers_require_explicit_trusted_immediate_proxy():
 
     assert client_ip(scope("127.0.0.1", "203.0.113.10, 127.0.0.1"), trusted) == "203.0.113.10"
     assert client_ip(scope("127.0.0.1", "203.0.113.10"), untrusted_peer) == "127.0.0.1"
+
+
+def test_malformed_forwarded_ip_falls_back_to_trusted_peer():
+    trusted = LoginRateLimitSettings(
+        trust_proxy_headers=True,
+        trusted_proxy_ips=frozenset({"127.0.0.1"}),
+    )
+    assert client_ip(scope("127.0.0.1", "attacker-controlled"), trusted) == "127.0.0.1"

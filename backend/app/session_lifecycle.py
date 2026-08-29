@@ -13,9 +13,9 @@ from starlette.responses import JSONResponse
 
 from . import models
 from .database import SessionLocal
+from .session_security import COOKIE_NAME, current_session_version, revoke_user_sessions, token_session_is_current
 
 SESSION_SECRET = os.getenv("SESSION_SECRET", "local-command-center-secret")
-COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "operations_session")
 PUBLIC_PATHS = {"/api/health", "/api/auth/login"}
 
 
@@ -49,28 +49,45 @@ def _verify(token: str | None) -> dict[str, Any] | None:
         return None
 
 
-def _request_token(headers: dict[str, str]) -> str | None:
+def _cookie_token(headers: dict[str, str]) -> str | None:
+    raw_cookie = headers.get("cookie", "")
+    if not raw_cookie:
+        return None
+    cookie = SimpleCookie()
+    try:
+        cookie.load(raw_cookie)
+        morsel = cookie.get(COOKIE_NAME)
+        return morsel.value if morsel else None
+    except Exception:
+        return None
+
+
+def _request_token(headers: dict[str, str]) -> tuple[str | None, bool]:
     authorization = headers.get("authorization", "")
     if authorization.startswith("Bearer "):
-        return authorization.removeprefix("Bearer ").strip()
-    raw_cookie = headers.get("cookie", "")
-    if raw_cookie:
-        cookie = SimpleCookie()
-        try:
-            cookie.load(raw_cookie)
-            morsel = cookie.get(COOKIE_NAME)
-            return morsel.value if morsel else None
-        except Exception:
-            return None
-    return None
+        return authorization.removeprefix("Bearer ").strip(), False
+    token = _cookie_token(headers)
+    return token, bool(token)
 
 
 def _clear_cookie() -> bytes:
     return f"{COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax".encode("latin-1")
 
 
+def _session_cookie(token: str) -> bytes:
+    return f"{COOKIE_NAME}={token}; Path=/; HttpOnly; Secure; SameSite=Lax".encode("latin-1")
+
+
+def _inject_internal_bearer(scope, token: str) -> None:
+    headers = list(scope.get("headers", []))
+    if any(key.lower() == b"authorization" for key, _ in headers):
+        return
+    headers.append((b"authorization", f"Bearer {token}".encode("latin-1")))
+    scope["headers"] = headers
+
+
 class SessionLifecycleMiddleware:
-    """Add issued-at claims, revoke stale sessions, and support logout."""
+    """Issue HttpOnly browser sessions, revoke sessions durably, and validate freshness."""
 
     def __init__(self, app):
         self.app = app
@@ -83,15 +100,25 @@ class SessionLifecycleMiddleware:
         path = scope.get("path", "")
         method = scope.get("method", "GET").upper()
         headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])}
+        token, from_cookie = _request_token(headers)
 
         if path == "/api/auth/logout" and method == "POST":
+            payload = _verify(token)
+            if payload is not None:
+                try:
+                    user_id = int(payload.get("sub", 0))
+                except (TypeError, ValueError):
+                    user_id = 0
+                if user_id:
+                    with SessionLocal() as db:
+                        revoke_user_sessions(db, user_id)
             response = JSONResponse({"ok": True}, headers={"Cache-Control": "no-store"})
             response.raw_headers.append((b"set-cookie", _clear_cookie()))
             await response(scope, receive, send)
             return
 
         if path.startswith("/api/") and path not in PUBLIC_PATHS:
-            payload = _verify(_request_token(headers))
+            payload = _verify(token)
             if payload is not None:
                 issued_at = int(payload.get("iat", 0))
                 if issued_at <= 0:
@@ -102,11 +129,16 @@ class SessionLifecycleMiddleware:
                 with SessionLocal() as db:
                     user = db.get(models.User, int(payload.get("sub", 0)))
                     changed_at = int(user.password_set_at.timestamp()) if user and user.password_set_at else 0
-                    if not user or not user.is_active or issued_at < changed_at:
-                        response = JSONResponse(status_code=401, content={"detail": "Session is no longer valid. Please sign in again."}, headers={"Cache-Control": "no-store"})
-                        response.raw_headers.append((b"set-cookie", _clear_cookie()))
-                        await response(scope, receive, send)
-                        return
+                    current = bool(user and user.is_active and issued_at >= changed_at and token_session_is_current(db, payload))
+                if not current:
+                    response = JSONResponse(status_code=401, content={"detail": "Session is no longer valid. Please sign in again."}, headers={"Cache-Control": "no-store"})
+                    response.raw_headers.append((b"set-cookie", _clear_cookie()))
+                    await response(scope, receive, send)
+                    return
+                if from_cookie and token:
+                    # Existing dependencies continue to consume Authorization,
+                    # but the browser never receives or stores the bearer value.
+                    _inject_internal_bearer(scope, token)
 
         if path == "/api/auth/login" and method == "POST":
             buffered: list[dict] = []
@@ -121,9 +153,16 @@ class SessionLifecycleMiddleware:
                 data = json.loads(body or b"{}")
                 payload = _verify(data.get("token") if isinstance(data, dict) else None)
                 if payload:
+                    with SessionLocal() as db:
+                        version = current_session_version(db, int(payload.get("sub", 0)))
+                    if version is None:
+                        raise ValueError("unknown session user")
                     payload["iat"] = int(time.time())
+                    payload["sv"] = int(version)
                     replacement = _sign(payload)
-                    data["token"] = replacement
+                    # Cookie is the browser credential. Never expose the bearer
+                    # in response JSON where XSS/localStorage can capture it.
+                    data.pop("token", None)
                     new_body = json.dumps(data, separators=(",", ":")).encode()
                 else:
                     new_body = body
@@ -132,7 +171,10 @@ class SessionLifecycleMiddleware:
             for message in buffered:
                 if message.get("type") == "http.response.start" and replacement:
                     hs = [(k, v) for k, v in message.get("headers", []) if k.lower() not in {b"content-length", b"set-cookie"}]
-                    hs.extend([(b"content-length", str(len(new_body)).encode()), (b"set-cookie", f"{COOKIE_NAME}={replacement}; Path=/; HttpOnly; Secure; SameSite=Lax".encode("latin-1"))])
+                    hs.extend([
+                        (b"content-length", str(len(new_body)).encode()),
+                        (b"set-cookie", _session_cookie(replacement)),
+                    ])
                     message["headers"] = hs
                 elif message.get("type") == "http.response.body" and replacement:
                     message["body"] = new_body

@@ -16,18 +16,6 @@ export class ApiError extends Error {
   }
 }
 
-function authHeaders() {
-  if (typeof window === 'undefined') return {};
-  const raw = window.localStorage.getItem('cc_user');
-  if (!raw) return {};
-  try {
-    const user = JSON.parse(raw);
-    return user?.token ? { Authorization: `Bearer ${user.token}` } : {};
-  } catch {
-    return {};
-  }
-}
-
 function endpointFailureMessage(path: string, status: number) {
   if (path.startsWith('/review/queue')) return 'Review could not be loaded.';
   if (status === 403) return 'You do not have permission to complete this action.';
@@ -71,8 +59,8 @@ async function normalizedError(res: Response, path: string) {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = init?.body instanceof FormData
-    ? { ...authHeaders(), ...(init.headers || {}) }
-    : { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers || {}) };
+    ? { ...(init.headers || {}) }
+    : { 'Content-Type': 'application/json', ...(init?.headers || {}) };
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers,
@@ -93,7 +81,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 async function download(path: string, filename: string) {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: authHeaders(),
     cache: 'no-store',
     credentials: 'same-origin',
   });

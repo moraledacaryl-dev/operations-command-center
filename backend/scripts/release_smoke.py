@@ -69,6 +69,13 @@ def expect(label: str, actual: int, wanted: int):
     print(f"PASS | {label}: HTTP {actual}")
 
 
+def session_cookie(headers) -> str:
+    set_cookie = headers.get("Set-Cookie", "")
+    if not set_cookie or "operations_session=" not in set_cookie:
+        raise RuntimeError("login did not set operations_session cookie")
+    return set_cookie.split(";", 1)[0]
+
+
 def login_smoke():
     email = os.getenv("OPERATIONS_SMOKE_EMAIL", "").strip()
     password = os.getenv("OPERATIONS_SMOKE_PASSWORD", "")
@@ -77,16 +84,29 @@ def login_smoke():
             raise RuntimeError("OPERATIONS_SMOKE_EMAIL/PASSWORD are required for credential login smoke")
         print("SKIP | credential login smoke credentials are not configured")
         return
-    status, payload, _ = request("POST", "/auth/login", body={"email": email, "password": password})
+
+    status, payload, headers = request("POST", "/auth/login", body={"email": email, "password": password})
     expect("credential login smoke", status, 200)
-    if not isinstance(payload, dict) or not payload.get("token"):
-        raise RuntimeError("credential login smoke did not return a token")
+    if not isinstance(payload, dict):
+        raise RuntimeError("credential login smoke did not return an account payload")
+    if payload.get("token"):
+        raise RuntimeError("browser login unexpectedly exposed a bearer token")
+
+    cookie = session_cookie(headers)
+    if "HttpOnly" not in headers.get("Set-Cookie", ""):
+        raise RuntimeError("credential login cookie is not HttpOnly")
+    status, me, _ = request("GET", "/auth/me", cookie=cookie)
+    expect("credential cookie session smoke", status, 200)
+    if not isinstance(me, dict) or not me.get("id"):
+        raise RuntimeError("credential cookie session did not return a user")
+    print("PASS | browser credential stays in HttpOnly cookie; bearer absent from JSON")
 
 
 def main():
     task_id = None
     attachment_id = None
     stored_file: Path | None = None
+    logout_user_id = None
 
     login_smoke()
 
@@ -103,6 +123,26 @@ def main():
                 raise RuntimeError("Owner has no department for release smoke")
             now = int(time.time())
             bearer = sign_token({"sub": owner.id, "role": owner.role, "iat": now, "exp": now + 600})
+
+            # Logout revokes every session generation for a user. Use an isolated
+            # temporary account so a deployment smoke never signs out a real Owner.
+            logout_user = models.User(
+                name=f"{PREFIX} Logout",
+                email=f"deploy-smoke-{uuid.uuid4().hex}@invalid.hiddenoasis.local",
+                role="staff",
+                department_id=department_id,
+                is_active=True,
+            )
+            db.add(logout_user)
+            db.flush()
+            db.add(models.UserDepartment(
+                user_id=logout_user.id,
+                department_id=department_id,
+                is_primary=True,
+            ))
+            db.commit()
+            logout_user_id = int(logout_user.id)
+            logout_bearer = sign_token({"sub": logout_user_id, "role": "staff", "iat": now, "exp": now + 600, "sv": 0})
 
         status, me, _ = request("GET", "/auth/me", bearer=bearer)
         expect("authenticated read smoke", status, 200)
@@ -154,12 +194,15 @@ def main():
         status, _, headers = request(
             "POST",
             "/auth/logout",
-            cookie=f"operations_session={bearer}",
+            cookie=f"operations_session={logout_bearer}",
         )
-        expect("cookie logout smoke", status, 200)
+        expect("isolated cookie logout smoke", status, 200)
         set_cookie = headers.get("Set-Cookie", "")
-        if "operations_session=" not in set_cookie:
+        if "operations_session=" not in set_cookie or "Max-Age=0" not in set_cookie:
             raise RuntimeError("logout smoke did not clear operations_session cookie")
+
+        status, _, _ = request("GET", "/auth/me", bearer=logout_bearer)
+        expect("copied pre-logout bearer revocation smoke", status, 401)
 
         print("RELEASE APPLICATION SMOKE: PASS")
 
@@ -181,6 +224,13 @@ def main():
                 task = db.get(models.Task, task_id)
                 if task:
                     db.delete(task)
+            if logout_user_id:
+                db.query(models.UserDepartment).filter(
+                    models.UserDepartment.user_id == logout_user_id
+                ).delete(synchronize_session=False)
+                logout_user = db.get(models.User, logout_user_id)
+                if logout_user:
+                    db.delete(logout_user)
             db.commit()
         if stored_file:
             stored_file.unlink(missing_ok=True)
