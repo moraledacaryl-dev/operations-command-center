@@ -1,0 +1,29 @@
+:root {
+  /* WCAG AA-safe replacements for small muted/navigation text on the app's light surfaces. */
+  --muted: #5f6a63;
+  --muted-2: #626d65;
+}
+
+/* Keep status/supporting text readable when a tinted surface changes the local background. */
+.urgent-stat .eyebrow,
+.warn-stat .eyebrow,
+.card-important .eyebrow,
+.pill.urgent,
+.pill.ok,
+.pill.blue,
+.pill.warn {
+  opacity: 1;
+}
+
+/* A reusable visually-hidden label for compact controls that still need an explicit accessible name. */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
