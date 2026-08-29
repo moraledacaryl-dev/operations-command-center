@@ -16,6 +16,10 @@ export type CapabilitySource =
   | null
   | undefined;
 
+export function normalizeRole(role: unknown) {
+  return String(role || '').trim().toLowerCase();
+}
+
 function capabilityMap(source: CapabilitySource): Record<string, boolean> {
   if (!source) return {};
   if (Array.isArray(source)) return Object.fromEntries(source.map(name => [name, true]));
