@@ -111,8 +111,8 @@ test('Approvals page exposes only canonical one-time decision controls', async (
   await expect(page.getByText('Canonical approval')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add' })).toHaveCount(0);
   await page.getByRole('button', { name: /Canonical approval/i }).click();
-  await expect(page.getByRole('button', { name: 'Approve' })).toBeVisible();
-  await page.getByRole('button', { name: 'Approve' }).click();
+  await expect(page.getByRole('button', { name: 'Approve', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Approve', exact: true }).click();
   await expect.poll(() => canonicalCalled).toBe(true);
 });
 
