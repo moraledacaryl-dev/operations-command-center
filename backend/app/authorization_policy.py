@@ -70,6 +70,11 @@ RESOURCE_ACTION_CAPABILITIES: dict[str, dict[Action, str | None]] = {
         Action.DECIDE: "make_decisions",
         Action.COMMENT: None,
     },
+    "submissions": {
+        Action.VIEW: None,
+        Action.DECIDE: "make_decisions",
+        Action.COMMENT: None,
+    },
 }
 
 for _resource in (
