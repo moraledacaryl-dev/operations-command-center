@@ -28,8 +28,8 @@ export default function RoomsPage() {
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     <section className="panel" style={{ marginBottom: 16 }}>
       <div className="toolbar" style={{ marginBottom: 0 }}>
-        <input className="input" placeholder="Search room or area" value={query} onChange={event => setQuery(event.target.value)} />
-        <select className="select" value={kind} onChange={event => setKind(event.target.value)}>{kinds.map(value => <option key={value}>{value}</option>)}</select>
+        <input className="input" aria-label="Search rooms and areas" placeholder="Search room or area" value={query} onChange={event => setQuery(event.target.value)} />
+        <select className="select" aria-label="Room or area type" value={kind} onChange={event => setKind(event.target.value)}>{kinds.map(value => <option key={value}>{value}</option>)}</select>
       </div>
       <p className="muted" style={{ marginBottom: 0 }}>{visible.length} of {rooms.length} spaces shown. Open a space for its guest matters and maintenance history.</p>
     </section>
