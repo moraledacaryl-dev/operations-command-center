@@ -43,10 +43,9 @@ def _foreign_key_names(table_name: str) -> set[str]:
 
 
 def upgrade() -> None:
-    # The historical 0001 bootstrap uses Base.metadata.create_all(), so a true
-    # fresh database can already contain columns/constraints introduced by later
-    # models before Alembic reaches this revision. Inspect the actual schema and
-    # add only missing pieces. This also keeps upgrades safe for legacy DBs.
+    # Revision 0001 is frozen to the original production foundation schema.
+    # Keep these guards for databases that were already stamped/upgraded by the
+    # earlier mutable bootstrap or by pre-Alembic installations.
     if "department_id" not in _table_columns("submissions"):
         op.add_column(
             "submissions",
@@ -54,8 +53,8 @@ def upgrade() -> None:
         )
 
     # PostgreSQL supports adding the FK directly. SQLite cannot add a foreign
-    # key after table creation without table recreation, which is unsafe here
-    # because submissions has several cross-linked foreign keys.
+    # key after table creation without table recreation, so the SQLite migration
+    # keeps the column/index contract without adding a late FK.
     if _dialect_name() != "sqlite":
         fk_name = "fk_submissions_department_id_departments"
         if fk_name not in _foreign_key_names("submissions"):
@@ -118,4 +117,11 @@ def downgrade() -> None:
             )
 
     if "department_id" in _table_columns("submissions"):
-        op.drop_column("submissions", "department_id")
+        if _dialect_name() == "sqlite":
+            # SQLite DROP COLUMN is unsafe when the table participates in the
+            # application's linked-record FK graph. Alembic batch mode recreates
+            # the table from reflected schema and removes only this column.
+            with op.batch_alter_table("submissions", recreate="always") as batch:
+                batch.drop_column("department_id")
+        else:
+            op.drop_column("submissions", "department_id")
