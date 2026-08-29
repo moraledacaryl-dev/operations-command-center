@@ -8,6 +8,7 @@ import './accessibility.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { RolePresentationSync } from '@/components/RolePresentationSync';
+import { AccessibilitySync } from '@/components/AccessibilitySync';
 
 export const metadata: Metadata = {
   title: {
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-PH">
       <body>
         <RolePresentationSync />
+        <AccessibilitySync />
         <AppShell>{children}</AppShell>
       </body>
     </html>
