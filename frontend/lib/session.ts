@@ -8,12 +8,23 @@ export function getStoredUser(): Entity | null {
   if (typeof window === 'undefined') return null;
   const raw = window.localStorage.getItem(USER_KEY);
   if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
+  try {
+    const user = JSON.parse(raw);
+    if (user && typeof user === 'object' && 'token' in user) {
+      delete user.token;
+      window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+    }
+    return user;
+  } catch {
+    return null;
+  }
 }
 
 export function setStoredUser(user: Entity) {
-  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
-  const primary = user.primary_department_id || user.departments?.[0]?.id;
+  const safeUser = { ...user };
+  delete safeUser.token;
+  window.localStorage.setItem(USER_KEY, JSON.stringify(safeUser));
+  const primary = safeUser.primary_department_id || safeUser.departments?.[0]?.id;
   if (primary) window.localStorage.setItem(DEPT_KEY, String(primary));
 }
 
