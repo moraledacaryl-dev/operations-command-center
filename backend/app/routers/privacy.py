@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -62,7 +62,7 @@ def me(user: models.User = Depends(require_user), db: Session = Depends(get_db))
 def users(
     active: bool = Query(default=True),
     q: Optional[str] = Query(default=None),
-    limit: int = Query(default=100, le=500),
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
     user: models.User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
