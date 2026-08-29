@@ -6,6 +6,17 @@ const owner = {
   email: 'owner@example.test',
   role: 'owner',
   token: 'test-token',
+  capabilities: {
+    view_all_operations: true,
+    manage_department: true,
+    make_decisions: true,
+    manage_accounts: true,
+    manage_system: true,
+    view_system_health: true,
+    manage_approvals: true,
+    view_sensitive_user_metadata: true,
+    view_integration_summary: true,
+  },
   departments: [
     { id: 1, name: 'Front Office', is_primary: true },
     { id: 2, name: 'Maintenance', is_primary: false },
@@ -63,10 +74,6 @@ async function assertSession(page: Page, departmentId = 1) {
 }
 
 async function mockCommon(page: Page) {
-  // Keep the browser suite hermetic. Any API call that a test has not
-  // explicitly modeled must not reach the real backend with the synthetic
-  // bearer token, because a real 401 intentionally clears the browser
-  // session and redirects to /login.
   await page.route('**/api/**', route => route.fulfill({
     status: 404,
     contentType: 'application/json',
