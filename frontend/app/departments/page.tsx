@@ -167,7 +167,7 @@ export default function DepartmentsPage() {
   const pulse = urgentTasks.length ? 'Needs attention' : totalActive > 14 ? 'Busy' : 'Healthy';
 
   const key = tabs.find(([label]) => label === tab)?.[1] || 'tasks';
-  const allRows: Entity[] = key === 'overview' ? [] : workspace?.[key] || [];
+  const allRows = useMemo<Entity[]>(() => key === 'overview' ? [] : workspace?.[key] || [], [key, workspace]);
   const normalizedQuery = query.trim().toLowerCase();
   const rows = useMemo(() => sortRows(allRows.filter(item => !normalizedQuery || [titleFor(item), detailFor(item), item.status, item.priority, item.urgency, item.role, item.email, ownerFor(item)].filter(Boolean).join(' ').toLowerCase().includes(normalizedQuery))), [allRows, normalizedQuery]);
 
@@ -178,7 +178,7 @@ export default function DepartmentsPage() {
       eyebrow="Department workspace"
       title={activeDept?.name || 'Departments'}
       right={<div className="toolbar tight" style={{ marginBottom: 0 }}>
-        {departments.length > 1 ? <select className="select" style={{ maxWidth: 220 }} value={deptId || ''} onChange={event => switchDept(Number(event.target.value))} disabled={loading}>{departments.map((department: Entity) => <option key={department.id} value={department.id}>{department.name}</option>)}</select> : null}
+        {departments.length > 1 ? <select className="select" aria-label="Department workspace" style={{ maxWidth: 220 }} value={deptId || ''} onChange={event => switchDept(Number(event.target.value))} disabled={loading}>{departments.map((department: Entity) => <option key={department.id} value={department.id}>{department.name}</option>)}</select> : null}
         <button className="btn secondary" onClick={() => deptId && loadWorkspace(deptId)} disabled={!deptId || loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
       </div>}
     />
@@ -240,7 +240,7 @@ export default function DepartmentsPage() {
       </WorkspaceSection>
     </div> : <>
       <div className={styles.browserToolbar}>
-        <input className="input" value={query} onChange={event => setQuery(event.target.value)} placeholder={`Search ${tab.toLowerCase()} by title, owner, status, or details`} />
+        <input className="input" aria-label={`Search ${tab.toLowerCase()}`} value={query} onChange={event => setQuery(event.target.value)} placeholder={`Search ${tab.toLowerCase()} by title, owner, status, or details`} />
         {normalizedQuery ? <button className="btn secondary" onClick={() => setQuery('')}>Clear</button> : null}
       </div>
       <div className={styles.browserHeader}><div><b>{tab}</b><span>{rows.length} shown</span></div>{destination(tab) ? <Link className="btn small secondary" href={destination(tab)}>Open full module</Link> : null}</div>
