@@ -154,6 +154,7 @@ export const api = {
   runArchive: () => request<Entity>('/auto-archive/run', { method: 'POST' }),
   submitRequestApproval: (id: number, data: Entity = {}) => request<Entity>(`/workflow/requests/${id}/submit-approval`, { method: 'POST', body: JSON.stringify(data) }),
   decideApproval: (id: number, status: string, data: Entity = {}) => request<Entity>(`/workflow/approvals/${id}/decide?status=${encodeURIComponent(status)}`, { method: 'POST', body: JSON.stringify(data) }),
+  decideSubmission: (id: number, status: 'Accepted' | 'Rejected', data: Entity = {}) => request<Entity>(`/workflow/submissions/${id}/decide`, { method: 'POST', body: JSON.stringify({ status, ...data }) }),
   guestCreateFix: (id: number, data: Entity = {}) => request<Entity>(`/workflow/guests/${id}/create-fix`, { method: 'POST', body: JSON.stringify(data) }),
   workflowCreateTask: (resource: string, id: number, data: Entity = {}) => request<Entity>(`/workflow/${resource}/${id}/create-task`, { method: 'POST', body: JSON.stringify(data) }),
   externalCreateTask: (id: number, data: Entity = {}) => request<Entity>(`/integrations/review-items/${id}/create-task`, { method: 'POST', body: JSON.stringify(data) }),
