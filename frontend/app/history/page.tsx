@@ -54,8 +54,8 @@ export default function HistoryPage() {
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     <section className="panel" style={{ marginBottom: 16 }}>
       <div className="toolbar" style={{ marginBottom: 0 }}>
-        <input className="input" placeholder="Search title, note, owner, or archive reason" value={q} onChange={event => setQ(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') load(); }} />
-        <select className="select" value={kind} onChange={event => { setKind(event.target.value); load(q, event.target.value); }}>{kinds.map(value => <option value={value} key={value}>{value ? value.replaceAll('-', ' ') : 'All record types'}</option>)}</select>
+        <input className="input" aria-label="Search operational history" placeholder="Search title, note, owner, or archive reason" value={q} onChange={event => setQ(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') load(); }} />
+        <select className="select" aria-label="Record type" value={kind} onChange={event => { setKind(event.target.value); load(q, event.target.value); }}>{kinds.map(value => <option value={value} key={value}>{value ? value.replaceAll('-', ' ') : 'All record types'}</option>)}</select>
         {(q || kind) ? <button className="btn secondary" onClick={() => { setQ(''); setKind(''); load('', ''); }}>Clear</button> : null}
       </div>
       <p className="muted" style={{ marginBottom: 0 }}>{items.length} archived or completed records. Filters are saved in the URL.</p>
