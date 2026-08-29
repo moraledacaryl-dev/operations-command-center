@@ -63,10 +63,13 @@ test('successful browser login persists metadata only and uses cookie transport'
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByText(/Good (morning|afternoon|evening), Cookie/)).toBeVisible();
 
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}'));
-  expect(stored.id).toBe(91);
-  expect(stored.token).toBeUndefined();
-  expect(localStorage.getItem('operations_session')).toBeNull();
+  const browserStorage = await page.evaluate(() => ({
+    user: JSON.parse(localStorage.getItem('cc_user') || '{}'),
+    sessionValue: localStorage.getItem('operations_session'),
+  }));
+  expect(browserStorage.user.id).toBe(91);
+  expect(browserStorage.user.token).toBeUndefined();
+  expect(browserStorage.sessionValue).toBeNull();
 
   await expect.poll(() => protectedHeaders.length).toBeGreaterThan(0);
   for (const headers of protectedHeaders) {
