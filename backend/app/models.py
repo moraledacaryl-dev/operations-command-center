@@ -5,7 +5,6 @@ from .database import Base
 
 
 def utcnow():
-    """Return a naive UTC datetime for legacy DateTime columns without using deprecated utcnow()."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
@@ -119,3 +118,219 @@ class GuestNote(Base, TimestampMixin, ArchiveMixin):
     title = Column(String(180), nullable=False)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     room_area_id = Column(Integer, ForeignKey("rooms_areas.id"), nullable=True)
+    guest_name = Column(String(120), nullable=True)
+    issue_type = Column(String(40), nullable=True)
+    urgency = Column(String(20), default="Normal", nullable=False)
+    status = Column(String(40), default="Open", nullable=False)
+    assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action_taken = Column(Text, nullable=True)
+    follow_up_date = Column(DateTime, nullable=True)
+    note = Column(Text, nullable=True)
+    linked_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    linked_fix_id = Column(Integer, ForeignKey("fixes.id"), nullable=True)
+
+
+class Fix(Base, TimestampMixin, ArchiveMixin):
+    __tablename__ = "fixes"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(180), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    room_area_id = Column(Integer, ForeignKey("rooms_areas.id"), nullable=True)
+    problem = Column(Text, nullable=True)
+    urgency = Column(String(20), default="Normal", nullable=False)
+    status = Column(String(40), default="Open", nullable=False)
+    assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reported_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    verified_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+    note = Column(Text, nullable=True)
+    linked_guest_note_id = Column(Integer, ForeignKey("guest_notes.id"), nullable=True)
+    linked_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+
+
+class Post(Base, TimestampMixin, ArchiveMixin):
+    __tablename__ = "posts"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(180), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    platform = Column(String(40), nullable=True)
+    post_date = Column(DateTime, nullable=True)
+    content_type = Column(String(40), nullable=True)
+    assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    campaign = Column(String(120), nullable=True)
+    status = Column(String(40), default="Idea", nullable=False)
+    caption = Column(Text, nullable=True)
+    final_url = Column(Text, nullable=True)
+    results_json = Column(Text, nullable=True)
+    note = Column(Text, nullable=True)
+
+
+class PostVersion(Base, TimestampMixin):
+    __tablename__ = "post_versions"
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey("posts.id"), nullable=False)
+    version_no = Column(Integer, nullable=False)
+    filename = Column(String(220), nullable=True)
+    file_url = Column(Text, nullable=True)
+    caption_snapshot = Column(Text, nullable=True)
+    note = Column(Text, nullable=True)
+    uploaded_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_current = Column(Boolean, default=True, nullable=False)
+    __table_args__ = (UniqueConstraint("post_id", "version_no", name="uq_post_version_number"),)
+
+
+class Approval(Base, TimestampMixin, ArchiveMixin):
+    __tablename__ = "approvals"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(180), nullable=False)
+    source_type = Column(String(40), nullable=True)
+    source_id = Column(Integer, nullable=True)
+    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    status = Column(String(40), default="Pending", nullable=False)
+    priority = Column(String(20), default="Normal", nullable=False)
+    decision_note = Column(Text, nullable=True)
+    decided_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    decided_at = Column(DateTime, nullable=True)
+    note = Column(Text, nullable=True)
+
+
+class Memo(Base, TimestampMixin, ArchiveMixin):
+    __tablename__ = "memos"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(180), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    message = Column(Text, nullable=True)
+    status = Column(String(40), default="Open", nullable=False)
+    expiry_date = Column(DateTime, nullable=True)
+    must_ack = Column(Boolean, default=False, nullable=False)
+
+
+class Submission(Base, TimestampMixin, ArchiveMixin):
+    __tablename__ = "submissions"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(180), nullable=False)
+    source_app = Column(String(40), default="command_center", nullable=False)
+    source_type = Column(String(40), nullable=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    submitted_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    submitted_at = Column(DateTime, default=utcnow, nullable=False)
+    requires_review = Column(Boolean, default=True, nullable=False)
+    review_status = Column(String(40), default="New", nullable=False)
+    reviewed_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    payload_json = Column(Text, nullable=True)
+    linked_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    linked_guest_note_id = Column(Integer, ForeignKey("guest_notes.id"), nullable=True)
+    linked_fix_id = Column(Integer, ForeignKey("fixes.id"), nullable=True)
+    linked_post_id = Column(Integer, ForeignKey("posts.id"), nullable=True)
+    linked_room_area_id = Column(Integer, ForeignKey("rooms_areas.id"), nullable=True)
+    note = Column(Text, nullable=True)
+
+
+class ExternalReviewItem(Base, TimestampMixin):
+    __tablename__ = "external_review_items"
+    id = Column(Integer, primary_key=True)
+    external_source = Column(String(80), nullable=False)
+    external_id = Column(String(200), nullable=False)
+    event_type = Column(String(120), nullable=False)
+    source_app = Column(String(80), nullable=False)
+    source_record_type = Column(String(120), nullable=True)
+    source_record_id = Column(String(120), nullable=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    title = Column(String(180), nullable=False)
+    summary = Column(Text, nullable=True)
+    priority = Column(String(20), default="Normal", nullable=False)
+    status = Column(String(40), default="For Review", nullable=False)
+    payload_json = Column(Text, nullable=True)
+    linked_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    linked_approval_id = Column(Integer, ForeignKey("approvals.id"), nullable=True)
+    __table_args__ = (UniqueConstraint("external_source", "external_id", name="uq_external_review_item_external_event"),)
+
+
+class Request(Base, TimestampMixin, ArchiveMixin):
+    __tablename__ = "requests"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(180), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    request_type = Column(String(60), default="General", nullable=False)
+    urgency = Column(String(20), default="Normal", nullable=False)
+    status = Column(String(40), default="Draft", nullable=False)
+    reason = Column(Text, nullable=True)
+    decision = Column(Text, nullable=True)
+    linked_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    linked_project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    external_accounting_ref = Column(String(180), nullable=True)
+    note = Column(Text, nullable=True)
+
+
+class TalkMessage(Base, TimestampMixin, ArchiveMixin):
+    __tablename__ = "talk_messages"
+    id = Column(Integer, primary_key=True)
+    parent_type = Column(String(40), default="department", nullable=False)
+    parent_id = Column(Integer, nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    message_type = Column(String(40), default="Update", nullable=False)
+    body = Column(Text, nullable=False)
+    status = Column(String(40), default="Open", nullable=False)
+
+
+class DepartmentDoc(Base, TimestampMixin, ArchiveMixin):
+    __tablename__ = "department_docs"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(180), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    doc_type = Column(String(40), default="SOP", nullable=False)
+    body = Column(Text, nullable=True)
+    status = Column(String(40), default="Active", nullable=False)
+
+
+class RoutineTemplate(Base, TimestampMixin, ArchiveMixin):
+    __tablename__ = "routine_templates"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(180), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    frequency = Column(String(40), default="Weekly", nullable=False)
+    checklist = Column(Text, nullable=True)
+    status = Column(String(40), default="Active", nullable=False)
+    priority = Column(String(20), default="Normal", nullable=False)
+    last_generated_at = Column(DateTime, nullable=True)
+
+
+class Comment(Base, TimestampMixin):
+    __tablename__ = "comments"
+    id = Column(Integer, primary_key=True)
+    parent_type = Column(String(40), nullable=False)
+    parent_id = Column(Integer, nullable=False)
+    comment_type = Column(String(40), default="General", nullable=False)
+    body = Column(Text, nullable=False)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+class Attachment(Base, TimestampMixin):
+    __tablename__ = "attachments"
+    id = Column(Integer, primary_key=True)
+    parent_type = Column(String(40), nullable=False)
+    parent_id = Column(Integer, nullable=False)
+    filename = Column(String(220), nullable=False)
+    file_url = Column(Text, nullable=True)
+    mime_type = Column(String(120), nullable=True)
+    version_no = Column(Integer, nullable=True)
+    uploaded_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+    id = Column(Integer, primary_key=True)
+    actor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    entity_type = Column(String(40), nullable=False)
+    entity_id = Column(Integer, nullable=False)
+    action = Column(String(80), nullable=False)
+    message = Column(Text, nullable=True)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
