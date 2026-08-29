@@ -11,6 +11,20 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: operations_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d operations_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
@@ -46,6 +60,27 @@ jobs:
         run: |
           rm -f /tmp/operations-legacy.db
           alembic upgrade 0002_integration_identity
+          alembic upgrade head
+          alembic current
+      - name: Verify SQLite migration round trip
+        env:
+          ENVIRONMENT: local
+          DATABASE_URL: sqlite:////tmp/operations-roundtrip.db
+          PYTHONPATH: .
+        run: |
+          rm -f /tmp/operations-roundtrip.db
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+          alembic current
+      - name: Verify PostgreSQL migration round trip
+        env:
+          ENVIRONMENT: local
+          DATABASE_URL: postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/operations_ci
+          PYTHONPATH: .
+        run: |
+          alembic upgrade head
+          alembic downgrade base
           alembic upgrade head
           alembic current
 
