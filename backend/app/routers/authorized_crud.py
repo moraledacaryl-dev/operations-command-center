@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models
 from ..authorization_policy import Action, authorize_action, scope_query
 from ..database import get_db
+from ..schemas.resources import validate_resource_payload
 from ..utils import apply_payload, log_activity, mark_completed_if_needed, model_to_dict, serialize_many
 from .api import CommentPayload, StatusPayload, active_filter, apply_search, fetch_or_404, get_model, require_user
 
@@ -25,6 +29,7 @@ DERIVED_CREATE_FIELDS = {
     "fixes": "reported_by_id",
 }
 WORKFLOW_STATE_RESOURCES = {"requests", "fixes"}
+TASK_STATUS_ORDER = {"To Do": 0, "Doing": 1, "Review": 2, "Done": 3}
 
 
 def _reject_identity_fields(payload: dict[str, Any]) -> None:
@@ -33,14 +38,50 @@ def _reject_identity_fields(payload: dict[str, Any]) -> None:
         raise HTTPException(status_code=400, detail=f"Audit identity fields are server-controlled: {', '.join(supplied)}")
 
 
+def _validate_payload(resource: str, payload: dict[str, Any], *, patch: bool = False) -> dict[str, Any]:
+    try:
+        return validate_resource_payload(resource, payload, patch=patch)
+    except KeyError:
+        raise HTTPException(status_code=405, detail="This resource uses an explicit API contract.")
+    except ValidationError as exc:
+        raise RequestValidationError(exc.errors()) from exc
+
+
 def _department_id(payload: dict[str, Any], obj: Any = None) -> int | None:
     if "department_id" in payload:
         return payload.get("department_id")
     return getattr(obj, "department_id", None) if obj is not None else None
 
 
+def _commit_or_conflict(db: Session) -> None:
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="The requested change conflicts with an existing record or database constraint.",
+        ) from exc
+
+
+def _validate_task_transition(current: str, target: str) -> None:
+    if current not in TASK_STATUS_ORDER or target not in TASK_STATUS_ORDER:
+        raise HTTPException(status_code=422, detail="Unsupported Task status.")
+    if TASK_STATUS_ORDER[target] < TASK_STATUS_ORDER[current]:
+        raise HTTPException(status_code=409, detail="Task status cannot move backward. Use an explicit reopen action.")
+
+
 @router.get("/{resource}")
-def list_resource_authorized(resource: str, active: bool = Query(default=True), q: Optional[str] = Query(default=None), status: Optional[str] = Query(default=None), department_id: Optional[int] = Query(default=None), limit: int = Query(default=100, le=500), user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+def list_resource_authorized(
+    resource: str,
+    active: bool = Query(default=True),
+    q: Optional[str] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    department_id: Optional[int] = Query(default=None),
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     model = get_model(resource)
     authorize_action(db, user, resource, Action.VIEW, department_id=department_id)
     query = scope_query(db, user, model, db.query(model))
@@ -56,12 +97,17 @@ def list_resource_authorized(resource: str, active: bool = Query(default=True), 
 
 
 @router.post("/{resource}")
-def create_resource_authorized(resource: str, payload: dict[str, Any], user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+def create_resource_authorized(
+    resource: str,
+    payload: dict[str, Any],
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     model = get_model(resource)
     _reject_identity_fields(payload)
-    authorize_action(db, user, resource, Action.CREATE, department_id=payload.get("department_id"))
+    clean = _validate_payload(resource, payload)
+    authorize_action(db, user, resource, Action.CREATE, department_id=clean.get("department_id"))
     obj = model()
-    clean = dict(payload)
     if resource == "requests":
         clean["status"] = "Draft"
     elif resource == "fixes":
@@ -71,9 +117,16 @@ def create_resource_authorized(resource: str, payload: dict[str, Any], user: mod
         clean[derived_field] = user.id
     apply_payload(obj, clean)
     db.add(obj)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="The requested record conflicts with an existing record or database constraint.",
+        ) from exc
     log_activity(db, resource, obj.id, "created", f"Created {resource}", actor_id=user.id)
-    db.commit()
+    _commit_or_conflict(db)
     db.refresh(obj)
     return model_to_dict(obj)
 
@@ -91,17 +144,33 @@ def get_resource_authorized(resource: str, item_id: int, user: models.User = Dep
 
 
 @router.patch("/{resource}/{item_id}")
-def update_resource_authorized(resource: str, item_id: int, payload: dict[str, Any], user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+def update_resource_authorized(
+    resource: str,
+    item_id: int,
+    payload: dict[str, Any],
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
     _reject_identity_fields(payload)
     if resource in WORKFLOW_STATE_RESOURCES and "status" in payload:
         raise HTTPException(status_code=405, detail="Use the canonical workflow endpoint.")
-    authorize_action(db, user, resource, Action.EDIT, obj=obj, department_id=_department_id(payload, obj))
-    apply_payload(obj, payload, excluded={"id", "created_at", "updated_at"} | AUDIT_IDENTITY_FIELDS)
-    db.flush()
+    if resource == "tasks" and "status" in payload:
+        raise HTTPException(status_code=405, detail="Use the Task status endpoint.")
+    clean = _validate_payload(resource, payload, patch=True)
+    authorize_action(db, user, resource, Action.EDIT, obj=obj, department_id=_department_id(clean, obj))
+    apply_payload(obj, clean, excluded={"id", "created_at", "updated_at"} | AUDIT_IDENTITY_FIELDS)
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="The requested change conflicts with an existing record or database constraint.",
+        ) from exc
     log_activity(db, resource, obj.id, "updated", f"Updated {resource}", actor_id=user.id)
-    db.commit()
+    _commit_or_conflict(db)
     db.refresh(obj)
     return model_to_dict(obj)
 
@@ -116,10 +185,12 @@ def set_status_authorized(resource: str, item_id: int, payload: StatusPayload, u
     if not hasattr(obj, "status") and not hasattr(obj, "review_status"):
         raise HTTPException(status_code=400, detail="Resource has no status")
     target_field = "status" if hasattr(obj, "status") else "review_status"
+    if resource == "tasks":
+        _validate_task_transition(getattr(obj, target_field), payload.status)
     setattr(obj, target_field, payload.status)
     mark_completed_if_needed(obj, payload.status)
     log_activity(db, resource, obj.id, "status", f"Status → {payload.status}", actor_id=user.id, metadata={"note": payload.note})
-    db.commit()
+    _commit_or_conflict(db)
     db.refresh(obj)
     return model_to_dict(obj)
 
@@ -135,7 +206,7 @@ def archive_resource_authorized(resource: str, item_id: int, reason: str = "manu
     obj.archived_at = datetime.utcnow()
     obj.archive_reason = reason
     log_activity(db, resource, obj.id, "archived", reason, actor_id=user.id)
-    db.commit()
+    _commit_or_conflict(db)
     db.refresh(obj)
     return model_to_dict(obj)
 
@@ -148,7 +219,7 @@ def add_comment_authorized(resource: str, item_id: int, payload: CommentPayload,
     comment = models.Comment(parent_type=resource, parent_id=item_id, body=payload.body, author_id=user.id, comment_type=payload.comment_type)
     db.add(comment)
     log_activity(db, resource, item_id, "comment", payload.body[:120], actor_id=user.id)
-    db.commit()
+    _commit_or_conflict(db)
     db.refresh(comment)
     return model_to_dict(comment)
 
