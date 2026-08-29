@@ -1,0 +1,21 @@
+:root {
+  /* WCAG AA-safe secondary text tokens across panel, warning, urgent, and success surfaces. */
+  --muted: #5f6b62;
+  --muted-2: #69756d;
+}
+
+/* Preserve visible focus at 3:1+ against light surfaces. */
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline-color: rgba(16, 90, 77, 0.72);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
