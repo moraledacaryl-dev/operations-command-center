@@ -12,7 +12,7 @@
     "verify": "npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {
-    "next": "15.5.21",
+    "next": "15.5.24",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
@@ -21,7 +21,7 @@
     "@types/react": "18.2.67",
     "@types/react-dom": "18.2.22",
     "eslint": "8.57.1",
-    "eslint-config-next": "15.5.21",
+    "eslint-config-next": "15.5.24",
     "typescript": "5.4.2"
   }
 }
