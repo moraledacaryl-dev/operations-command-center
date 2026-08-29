@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -89,7 +88,7 @@ def complete_request(db: Session, user: models.User, request_id: int, note: str 
     if request.status != "Planned":
         raise HTTPException(status_code=409, detail="Only Planned requests can be completed")
     request.status = "Done"
-    request.completed_at = datetime.utcnow()
+    request.completed_at = models.utcnow()
     if note:
         request.note = f"{request.note or ''}\n\nCompletion: {note}".strip()
     log_activity(db, "requests", request.id, "completed", note or "Request completed", actor_id=user.id)
