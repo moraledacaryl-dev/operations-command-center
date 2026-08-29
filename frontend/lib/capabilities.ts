@@ -6,34 +6,27 @@ export type Capability =
   | 'manage_system'
   | 'view_system_health'
   | 'manage_approvals'
-  | 'view_sensitive_user_metadata';
+  | 'view_sensitive_user_metadata'
+  | 'view_integration_summary';
 
-const ROLE_CAPABILITIES: Record<string, ReadonlySet<Capability>> = {
-  owner: new Set<Capability>([
-    'view_all_operations', 'manage_department', 'make_decisions', 'manage_accounts',
-    'manage_system', 'view_system_health', 'manage_approvals', 'view_sensitive_user_metadata',
-  ]),
-  admin: new Set<Capability>([
-    'view_all_operations', 'manage_department', 'make_decisions', 'manage_accounts',
-    'manage_system', 'view_system_health', 'manage_approvals', 'view_sensitive_user_metadata',
-  ]),
-  manager: new Set<Capability>([
-    'view_all_operations', 'manage_department', 'make_decisions',
-    'view_system_health', 'manage_approvals',
-  ]),
-  lead: new Set<Capability>(['manage_department']),
-  supervisor: new Set<Capability>(['manage_department']),
-  staff: new Set<Capability>(),
-};
+export type CapabilitySource =
+  | { capabilities?: Record<string, boolean> | string[] | null }
+  | Record<string, boolean>
+  | string[]
+  | null
+  | undefined;
 
-export function normalizeRole(role: unknown) {
-  return String(role || '').trim().toLowerCase();
+function capabilityMap(source: CapabilitySource): Record<string, boolean> {
+  if (!source) return {};
+  if (Array.isArray(source)) return Object.fromEntries(source.map(name => [name, true]));
+  if ('capabilities' in source) {
+    const nested = source.capabilities;
+    if (Array.isArray(nested)) return Object.fromEntries(nested.map(name => [name, true]));
+    return nested || {};
+  }
+  return source;
 }
 
-export function hasCapability(role: unknown, capability: Capability) {
-  return ROLE_CAPABILITIES[normalizeRole(role)]?.has(capability) ?? false;
-}
-
-export function capabilitiesForRole(role: unknown) {
-  return ROLE_CAPABILITIES[normalizeRole(role)] ?? new Set<Capability>();
+export function hasCapability(source: CapabilitySource, capability: Capability) {
+  return capabilityMap(source)[capability] === true;
 }
