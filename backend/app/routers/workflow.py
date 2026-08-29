@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from .. import models
@@ -10,6 +12,7 @@ from ..services.approval_workflow import decide_approval
 from ..services.external_review_workflow import create_approval, create_task, mark_seen, reject_item
 from ..services.fix_workflow import finish_fix, reopen_fix, start_fix, verify_fix
 from ..services.request_workflow import complete_request, plan_request, submit_request
+from ..services.submission_workflow import decide_submission
 from ..utils import model_to_dict
 from .api import require_user
 
@@ -17,10 +20,19 @@ router = APIRouter(prefix="/api", tags=["workflow"])
 
 
 class WorkflowCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     note: str | None = None
     department_id: int | None = None
     proof_url: str | None = None
     filename: str | None = None
+
+
+class SubmissionDecisionCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["Accepted", "Rejected"]
+    note: str | None = None
 
 
 @router.post("/workflow/requests/{request_id}/submit-approval")
@@ -49,6 +61,11 @@ def approval_decide(approval_id: int, payload: WorkflowCommand, status: str = Qu
         "external_review_item": model_to_dict(external_item) if external_item else None,
         "task": None,
     }
+
+
+@router.post("/workflow/submissions/{submission_id}/decide")
+def submission_decide(submission_id: int, payload: SubmissionDecisionCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    return model_to_dict(decide_submission(db, user, submission_id, payload.status, payload.note))
 
 
 @router.post("/workflow/fixes/{fix_id}/start")
