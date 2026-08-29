@@ -38,8 +38,8 @@ const styles = {
   label: { display: 'grid', gap: 6, fontSize: 12, fontWeight: 650, color: '#565b55' },
   input: { width: '100%', padding: '11px 12px', borderRadius: 12, border: '1px solid #d7dad4', background: '#fff' },
   button: { width: '100%', padding: '11px 12px', borderRadius: 12, border: '1px solid #111', background: '#111', color: '#fff', fontWeight: 650, cursor: 'pointer' },
-  credit: { color: '#7b8179', fontSize: 12 },
-  error: { color: '#b42318', fontSize: 13, margin: 0 },
+  credit: { color: '#626d65', fontSize: 12 },
+  error: { color: '#9a2d2d', fontSize: 13, margin: 0 },
 };
 
 function loginErrorMessage(error: unknown) {
@@ -72,15 +72,39 @@ export default function LoginPage() {
     }
   }
 
+  const errorId = error ? 'login-error' : undefined;
+
   return (
     <main style={styles.shell}>
-      <section style={styles.card}>
-        <div style={styles.mark}>HO</div>
-        <h1 style={styles.title}>Operations</h1>
+      <section style={styles.card} aria-labelledby="login-title">
+        <div style={styles.mark} aria-hidden="true">HO</div>
+        <h1 id="login-title" style={styles.title}>Operations</h1>
         <form style={styles.form} onSubmit={(e) => { e.preventDefault(); login(); }}>
-          <label style={styles.label}>Email<input style={styles.input} value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" /></label>
-          <label style={styles.label}>Password<input style={styles.input} type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" /></label>
-          {error ? <p style={styles.error} role="alert">{error}</p> : null}
+          <label htmlFor="login-email" style={styles.label}>Email</label>
+          <input
+            id="login-email"
+            style={styles.input}
+            type="email"
+            inputMode="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            autoComplete="username"
+            required
+            aria-describedby={errorId}
+          />
+          <label htmlFor="login-password" style={styles.label}>Password</label>
+          <input
+            id="login-password"
+            style={styles.input}
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+            minLength={1}
+            aria-describedby={errorId}
+          />
+          {error ? <p id="login-error" style={styles.error} role="alert">{error}</p> : null}
           <button style={styles.button} type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
         </form>
         <small style={styles.credit}>by C.M.</small>
