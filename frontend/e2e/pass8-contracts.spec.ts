@@ -89,9 +89,9 @@ test('staff operational views do not advertise generic mutation controls', async
   await expect(page.getByText('Read-only task')).toBeVisible();
   await expect(page.getByTestId('create-tasks')).toHaveCount(0);
   await page.getByRole('button', { name: /Read-only task/i }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Edit' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Move workflow' })).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Comments' })).toBeVisible();
 });
 
 test('Approvals page exposes only canonical one-time decision controls', async ({ page }) => {
