@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -53,7 +52,7 @@ def verify_fix(db: Session, user: models.User, fix_id: int, note: str | None, pr
     if fix.status != "Done":
         raise HTTPException(status_code=409, detail="Only Done fixes can be verified")
 
-    now = datetime.utcnow()
+    now = models.utcnow()
     fix.status = "Verified"
     fix.verified_at = now
     fix.verified_by_id = user.id
