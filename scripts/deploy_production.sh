@@ -30,7 +30,10 @@ RELEASES_DIR="$APP_ROOT/releases"
 RELEASE="$RELEASES_DIR/$CANDIDATE_SHA"
 STAGING_RELEASE="$RELEASES_DIR/.staging-$CANDIDATE_SHA-$$"
 CURRENT="$APP_ROOT/current"
-PREVIOUS_RELEASE="$(readlink -f "$CURRENT" 2>/dev/null || true)"
+PREVIOUS_RELEASE=""
+if [[ -L "$CURRENT" ]]; then
+  PREVIOUS_RELEASE="$(readlink -f "$CURRENT" 2>/dev/null || true)"
+fi
 ACTIVATED=false
 BACKUP_FILE=""
 
@@ -42,6 +45,8 @@ cleanup_staging() {
 
 rollback_application() {
   local exit_code=$?
+  trap - ERR
+  set +e
   cleanup_staging
   if [[ "$ACTIVATED" == true && -n "$PREVIOUS_RELEASE" && -d "$PREVIOUS_RELEASE" ]]; then
     echo "ERROR | post-activation check failed; restoring $PREVIOUS_RELEASE" >&2
@@ -57,6 +62,20 @@ rollback_application() {
   exit "$exit_code"
 }
 trap rollback_application ERR
+
+wait_for_url() {
+  local url="$1"
+  local body=""
+  for _attempt in $(seq 1 30); do
+    if body="$(curl -fsS --max-time 5 "$url" 2>/dev/null)"; then
+      printf '%s' "$body"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "ERROR | timed out waiting for $url" >&2
+  return 1
+}
 
 mkdir -p "$RELEASES_DIR" "$BACKUP_DIR"
 getent group operations >/dev/null || groupadd --system operations
@@ -164,8 +183,8 @@ systemctl restart "$BACKEND_SERVICE" "$FRONTEND_SERVICE"
 systemctl is-active --quiet "$BACKEND_SERVICE"
 systemctl is-active --quiet "$FRONTEND_SERVICE"
 
-LIVE_JSON="$(curl -fsS "$PUBLIC_URL/api/livez")"
-READY_JSON="$(curl -fsS "$PUBLIC_URL/api/readyz")"
+LIVE_JSON="$(wait_for_url "$PUBLIC_URL/api/livez")"
+READY_JSON="$(wait_for_url "$PUBLIC_URL/api/readyz")"
 "$RELEASE/backend/.venv/bin/python" - "$CANDIDATE_SHA" "$LIVE_JSON" "$READY_JSON" <<'PY'
 import json
 import sys
@@ -179,7 +198,7 @@ if ready.get("ready") is not True:
     raise SystemExit(f"readiness failed: {ready}")
 PY
 
-HTML="$(curl -fsS "$PUBLIC_URL/login")"
+HTML="$(wait_for_url "$PUBLIC_URL/login")"
 ASSET_PATH="$(printf '%s' "$HTML" | grep -oE '/_next/static/[^" ]+\.(css|js)' | head -1)"
 test -n "$ASSET_PATH"
 curl -fsS -o /dev/null "$PUBLIC_URL$ASSET_PATH"

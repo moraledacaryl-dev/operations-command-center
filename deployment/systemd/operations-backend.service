@@ -12,7 +12,7 @@ EnvironmentFile=/etc/hiddenoasis/operations.env
 EnvironmentFile=-/opt/operations-command-center/current/release.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 UMask=0077
-ExecStart=/opt/operations-command-center/current/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8200 --proxy-headers --forwarded-allow-ips=127.0.0.1
+ExecStart=/opt/operations-command-center/current/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8200 --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30

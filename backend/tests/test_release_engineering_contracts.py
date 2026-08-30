@@ -58,6 +58,9 @@ def test_production_deploy_checks_readiness_and_real_hashed_asset():
     assert "git reset --hard" not in deploy
     assert 'OPERATIONS_SMOKE_BASE="$PUBLIC_URL/api"' in deploy
     assert "OPERATIONS_EXPECTED_SHA" in deploy
+    assert "wait_for_url" in deploy
+    assert 'if [[ -L "$CURRENT" ]]' in deploy
+    assert "trap - ERR" in deploy
 
 
 def test_production_deploy_isolates_pytest_from_production_secrets():
@@ -95,3 +98,9 @@ def test_operations_systemd_units_are_non_root_and_hardened():
         assert "ProtectSystem=strict" in unit
         assert "ProtectHome=true" in unit
         assert "CapabilityBoundingSet=" in unit
+
+
+def test_backend_systemd_uses_relocation_safe_virtualenv_entrypoint():
+    unit = (REPO_ROOT / "deployment" / "systemd" / "operations-backend.service").read_text()
+    assert "/backend/.venv/bin/python -m uvicorn" in unit
+    assert "/backend/.venv/bin/uvicorn" not in unit
