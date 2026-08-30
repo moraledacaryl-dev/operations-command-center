@@ -43,6 +43,13 @@ def test_frontend_has_dockerignore_for_secrets_and_build_outputs():
     assert ".env*" in dockerignore
 
 
+def test_frontend_html_sets_hsts_and_nonce_csp():
+    middleware = (REPO_ROOT / "frontend" / "middleware.ts").read_text()
+    assert "Strict-Transport-Security" in middleware
+    assert "max-age=31536000; includeSubDomains" in middleware
+    assert "script-src 'self' 'nonce-${nonce}' 'strict-dynamic'" in middleware
+
+
 def test_production_deploy_checks_readiness_and_real_hashed_asset():
     deploy = (REPO_ROOT / "scripts" / "deploy_production.sh").read_text()
     assert "/api/livez" in deploy
