@@ -42,7 +42,7 @@ CONSTRAINTS: dict[str, list[tuple[str, str]]] = {
     ],
     "posts": [
         ("ck_posts_status", "status IN ('Idea', 'Draft', 'Review', 'Fix', 'OK', 'Set', 'Posted')"),
-        ("ck_posts_platform", "platform IS NULL OR platform IN ('Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website')"),
+        ("ck_posts_platform", "platform IS NULL OR platform IN ('Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website', 'Internal')"),
         ("ck_posts_content_type", "content_type IS NULL OR content_type IN ('Reel', 'Story', 'Static', 'Carousel', 'Ad', 'Blog')"),
     ],
     "requests": [

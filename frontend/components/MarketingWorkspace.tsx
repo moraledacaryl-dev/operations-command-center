@@ -6,7 +6,7 @@ import { Drawer } from './Drawer';
 import { Pill } from './Pill';
 import { Tabs } from './Tabs';
 
-const platforms = ['Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website'];
+const platforms = ['Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website', 'Internal'];
 const formats = ['Reel', 'Story', 'Static', 'Carousel', 'Ad', 'Blog'];
 const propertyTimeZone = 'Asia/Manila';
 const actionLabels: Record<string, string> = { 'start-draft': 'Start draft', 'submit-review': 'Submit review', 'request-revision': 'Request revision', 'resubmit-review': 'Resubmit', approve: 'Approve', schedule: 'Schedule', publish: 'Publish', 'return-draft': 'Return to draft', reopen: 'Reopen' };

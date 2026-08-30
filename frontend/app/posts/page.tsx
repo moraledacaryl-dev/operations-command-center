@@ -12,7 +12,7 @@ import { hasCapability } from '@/lib/capabilities';
 import { getStoredUser } from '@/lib/session';
 
 const statuses = ['Idea', 'Draft', 'Review', 'Fix', 'OK', 'Set', 'Posted'];
-const platforms = ['Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website'];
+const platforms = ['Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website', 'Internal'];
 const types = ['Reel', 'Story', 'Static', 'Carousel', 'Ad', 'Blog'];
 const blank: Entity = { title: '', platform: 'Facebook', content_type: 'Reel', post_date: '', status: 'Idea', caption: '', campaign: '' };
 

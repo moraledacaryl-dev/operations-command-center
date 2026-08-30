@@ -45,7 +45,7 @@ def upgrade() -> None:
         batch.create_index("ix_content_concepts_campaign_pillar", ["campaign_id", "content_pillar", "updated_at"])
     with op.batch_alter_table("platform_deliverables", recreate="auto") as batch:
         batch.create_unique_constraint("uq_deliverable_concept_platform", ["concept_id", "platform"])
-        batch.create_check_constraint("ck_platform_deliverables_platform", "platform IN ('Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website')")
+        batch.create_check_constraint("ck_platform_deliverables_platform", "platform IN ('Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website', 'Internal')")
         batch.create_check_constraint("ck_platform_deliverables_format", "format IN ('Reel', 'Story', 'Static', 'Carousel', 'Ad', 'Blog')")
         batch.create_check_constraint("ck_platform_deliverables_status", "status IN ('Planned', 'Draft', 'Review', 'Fix', 'Approved', 'Scheduled', 'Published')")
         batch.create_index("ix_platform_deliverables_calendar", ["scheduled_at", "platform", "status", "id"])

@@ -40,7 +40,7 @@ class ConceptCreate(BaseModel):
     content_pillar: str = Field(default="General", min_length=1, max_length=80)
     brief: str | None = None
     owner_id: int | None = None
-    platforms: list[Platform] = Field(min_length=1, max_length=5)
+    platforms: list[Platform] = Field(min_length=1, max_length=6)
     format: ContentFormat
     scheduled_at: datetime | None = None
     shared_caption: str | None = None

@@ -80,6 +80,7 @@ class Platform(StrEnum):
     TIKTOK = "TikTok"
     GOOGLE_BUSINESS = "Google Business"
     WEBSITE = "Website"
+    INTERNAL = "Internal"
 
 
 class ContentFormat(StrEnum):

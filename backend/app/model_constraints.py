@@ -45,7 +45,7 @@ _add_check(models.GuestNote, "ck_guest_notes_urgency", "urgency IN ('Low', 'Norm
 _add_check(models.Fix, "ck_fixes_status", "status IN ('Open', 'Working', 'Done', 'Verified')")
 _add_check(models.Fix, "ck_fixes_urgency", "urgency IN ('Low', 'Normal', 'High', 'Urgent')")
 _add_check(models.Post, "ck_posts_status", "status IN ('Idea', 'Draft', 'Review', 'Fix', 'OK', 'Set', 'Posted')")
-_add_check(models.Post, "ck_posts_platform", "platform IS NULL OR platform IN ('Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website')")
+_add_check(models.Post, "ck_posts_platform", "platform IS NULL OR platform IN ('Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website', 'Internal')")
 _add_check(models.Post, "ck_posts_content_type", "content_type IS NULL OR content_type IN ('Reel', 'Story', 'Static', 'Carousel', 'Ad', 'Blog')")
 _add_check(models.Request, "ck_requests_status", "status IN ('Draft', 'Review', 'Approved', 'Rejected', 'Planned', 'Done')")
 _add_check(models.Request, "ck_requests_urgency", "urgency IN ('Low', 'Normal', 'High', 'Urgent')")
@@ -53,7 +53,7 @@ _add_check(models.Approval, "ck_approvals_status", "status IN ('Pending', 'Appro
 _add_check(models.Approval, "ck_approvals_priority", "priority IN ('Low', 'Normal', 'High', 'Urgent')")
 _add_check(foundation.MarketingCampaign, "ck_marketing_campaigns_status", "status IN ('Planning', 'Active', 'Paused', 'Completed', 'Archived')")
 _add_check(foundation.ContentConcept, "ck_content_concepts_status", "status IN ('Idea', 'Active', 'Completed', 'Archived')")
-_add_check(foundation.PlatformDeliverable, "ck_platform_deliverables_platform", "platform IN ('Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website')")
+_add_check(foundation.PlatformDeliverable, "ck_platform_deliverables_platform", "platform IN ('Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website', 'Internal')")
 _add_check(foundation.PlatformDeliverable, "ck_platform_deliverables_format", "format IN ('Reel', 'Story', 'Static', 'Carousel', 'Ad', 'Blog')")
 _add_check(foundation.PlatformDeliverable, "ck_platform_deliverables_status", "status IN ('Planned', 'Draft', 'Review', 'Fix', 'Approved', 'Scheduled', 'Published')")
 

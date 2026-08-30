@@ -91,3 +91,11 @@ def test_invalid_platform_is_rejected_by_database(context):
     with pytest.raises(IntegrityError):
         db.commit()
     db.rollback()
+
+
+def test_internal_channel_is_supported_for_legacy_and_staff_content(context):
+    db, _owner, _campaign, concept, _deliverable = context
+    internal = foundation.PlatformDeliverable(concept_id=concept.id, platform="Internal", format="Static")
+    db.add(internal)
+    db.commit()
+    assert internal.id is not None
