@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models
-from ..authorization_policy import Action, authorize_action, scope_query
+from ..authorization_policy import Action, SYSTEM_OWNED_RESOURCES, authorize_action, scope_query
 from ..database import get_db
 from ..schemas.resources import validate_resource_payload
 from ..utils import apply_payload, log_activity, mark_completed_if_needed, model_to_dict, serialize_many
@@ -104,6 +104,8 @@ def create_resource_authorized(
     db: Session = Depends(get_db),
 ):
     model = get_model(resource)
+    if resource in SYSTEM_OWNED_RESOURCES:
+        authorize_action(db, user, resource, Action.CREATE)
     _reject_identity_fields(payload)
     clean = _validate_payload(resource, payload)
     authorize_action(db, user, resource, Action.CREATE, department_id=clean.get("department_id"))
