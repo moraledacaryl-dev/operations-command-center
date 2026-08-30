@@ -1,20 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..clock import utc_now
 from ..database import get_db
 from ..utils import model_to_dict
 from .api import require_user
 
 router = APIRouter(prefix="/api")
-
-
-def _utc_naive_now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 @router.get("/my-work")
@@ -27,7 +22,7 @@ def my_work(user: models.User = Depends(require_user), db: Session = Depends(get
         .all()
     )
     departments = {row.id: row.name for row in db.query(models.Department).all()}
-    now = _utc_naive_now()
+    now = utc_now()
 
     grouped = {"overdue": [], "today": [], "upcoming": [], "waiting": [], "recently_completed": []}
     for task in tasks:

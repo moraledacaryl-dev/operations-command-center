@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
@@ -22,22 +22,31 @@ export default function UsersPage() {
   const [mode, setMode] = useState<Mode>('');
   const [selected, setSelected] = useState<Entity | null>(null);
   const [query, setQuery] = useState('');
+  const [appliedQuery, setAppliedQuery] = useState('');
   const [membership, setMembership] = useState<Entity>({ user_id: '', department_id: '', is_primary: false, role_override: '' });
   const [createForm, setCreateForm] = useState<Entity>(EMPTY_CREATE);
   const [resetForm, setResetForm] = useState<Entity>({ user_id: '', new_password: '' });
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
   const [busy, setBusy] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  async function load() {
-    const [users, operationalMeta] = await Promise.all([api.users(), api.meta()]);
-    setDirectory(users);
+  const load = useCallback(async (cursor?: string | null, searchQuery = '') => {
+    const [page, operationalMeta] = await Promise.all([api.usersPage({ limit: 30, cursor: cursor || '', q: searchQuery }), api.meta()]);
+    setDirectory(existing => cursor ? [...existing, ...page.items] : page.items);
+    setNextCursor(page.next_cursor || null);
     setMeta(operationalMeta);
+  }, []);
+
+  useEffect(() => { load().catch((err: any) => setError(err.message || 'Could not load users.')); }, [load]);
+
+  async function searchDirectory(nextQuery: string) {
+    const normalized = nextQuery.trim();
+    setAppliedQuery(normalized);
+    setError('');
+    try { await load(null, normalized); } catch (err: any) { setError(err.message || 'Could not search users.'); }
   }
-
-  useEffect(() => { load().catch((err: any) => setError(err.message || 'Could not load users.')); }, []);
-
-  const visible = useMemo(() => directory.filter(user => !query.trim() || [user.name, user.email, user.role, ...(user.departments || []).map((department: Entity) => department.name)].filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase())), [directory, query]);
 
   function open(modeName: Mode, user?: Entity) {
     setError(''); setSaved(''); setMode(modeName); setSelected(user || {});
@@ -60,7 +69,7 @@ export default function UsersPage() {
     try {
       await api.adminCreateUser({ ...createForm, department_id: createForm.department_id ? Number(createForm.department_id) : null });
       setCreateForm(EMPTY_CREATE);
-      await load();
+      await load(null, appliedQuery);
       closeAfterSuccess('User created.');
     } catch (err: any) { setError(err.message || 'Could not create user.'); setBusy(false); }
   }
@@ -71,7 +80,7 @@ export default function UsersPage() {
     try {
       await api.adminResetUserPassword(Number(resetForm.user_id), resetForm.new_password);
       setResetForm({ user_id: '', new_password: '' });
-      await load();
+      await load(null, appliedQuery);
       closeAfterSuccess('Password reset saved.');
     } catch (err: any) { setError(err.message || 'Could not reset password.'); setBusy(false); }
   }
@@ -82,7 +91,7 @@ export default function UsersPage() {
     try {
       await api.create('user-departments', { ...membership, user_id: Number(membership.user_id), department_id: Number(membership.department_id), is_primary: Boolean(membership.is_primary) });
       setMembership({ user_id: '', department_id: '', is_primary: false, role_override: '' });
-      await load();
+      await load(null, appliedQuery);
       closeAfterSuccess('Department access saved.');
     } catch (err: any) { setError(err.message || 'Could not add department access.'); setBusy(false); }
   }
@@ -96,14 +105,15 @@ export default function UsersPage() {
 
     <section className="panel" style={{ marginBottom: 16 }}>
       <div className="toolbar" style={{ marginBottom: 0 }}>
-        <input className="input" placeholder="Search name, email, role, or department" value={query} onChange={event => setQuery(event.target.value)} />
-        {query ? <button className="btn secondary" onClick={() => setQuery('')}>Clear</button> : null}
+        <input className="input" placeholder="Search name, email, or role" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void searchDirectory(query); }} />
+        <button className="btn secondary" onClick={() => void searchDirectory(query)}>Search</button>
+        {(query || appliedQuery) ? <button className="btn secondary" onClick={() => { setQuery(''); void searchDirectory(''); }}>Clear</button> : null}
       </div>
-      <p className="muted" style={{ marginBottom: 0 }}>{visible.length} of {directory.length} accounts. Password and access actions open in protected drawers.</p>
+      <p className="muted" style={{ marginBottom: 0 }}>{directory.length} account{directory.length === 1 ? '' : 's'} loaded{appliedQuery ? ` for “${appliedQuery}”` : ''}. Password and access actions open in protected drawers.</p>
     </section>
 
     <div className="grid cols-2">
-      {visible.map(user => <article className="card" key={user.id}>
+      {directory.map(user => <article className="card" key={user.id}>
         <div className="card-title">{user.name}</div>
         <div className="card-line"><Pill value={user.role} />{!user.is_active ? <Pill value="Inactive" /> : <Pill value="Active" />}{user.departments?.map((department: Entity) => <Pill key={department.id} value={`${department.name}${department.is_primary ? ' · primary' : ''}`} />)}</div>
         <span className="muted">{user.email}</span>
@@ -113,8 +123,9 @@ export default function UsersPage() {
           <button className="btn small secondary" onClick={() => open('reset', user)}>Reset password</button>
         </div>
       </article>)}
-      {!visible.length ? <div className="empty">No matching accounts.</div> : null}
+      {!directory.length ? <div className="empty">No matching accounts.</div> : null}
     </div>
+    {nextCursor ? <div className="load-more"><button className="btn secondary" disabled={loadingMore} onClick={async () => { setLoadingMore(true); try { await load(nextCursor, appliedQuery); } catch (err: any) { setError(err.message || 'Could not load more users.'); } finally { setLoadingMore(false); } }}>{loadingMore ? 'Loading…' : 'Load more accounts'}</button><span className="muted" aria-live="polite">{directory.length} accounts loaded</span></div> : null}
 
     <Drawer item={selected} title={mode === 'create' ? 'Create user' : mode === 'reset' ? 'Reset password' : mode === 'access' ? 'Department access' : 'People & access'} onClose={close}>
       {activeDrawerError}

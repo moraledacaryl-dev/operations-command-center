@@ -21,13 +21,17 @@ export default function HistoryPage() {
   const [q, setQ] = useState(search.get('q') || '');
   const [kind, setKind] = useState(search.get('kind') || '');
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  const load = useCallback(async (nextQ: string, nextKind: string) => {
-    setLoading(true);
+  const load = useCallback(async (nextQ: string, nextKind: string, cursor?: string | null) => {
+    if (cursor) setLoadingMore(true); else setLoading(true);
     setError('');
     try {
-      setItems(await api.history({ q: nextQ, kind: nextKind }));
+      const page = await api.history({ q: nextQ, kind: nextKind, cursor: cursor || '', limit: 50 });
+      setItems(existing => cursor ? [...existing, ...page.items] : page.items);
+      setNextCursor(page.next_cursor || null);
       const params = new URLSearchParams();
       if (nextQ.trim()) params.set('q', nextQ.trim());
       if (nextKind) params.set('kind', nextKind);
@@ -36,6 +40,7 @@ export default function HistoryPage() {
       setError(err.message || 'History could not be loaded.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [router]);
 
@@ -78,5 +83,6 @@ export default function HistoryPage() {
       </div>
     </section>)}
     {!loading && !items.length ? <div className="panel"><div className="empty">No history matches these filters.</div></div> : null}
+    {nextCursor ? <div className="load-more"><button className="btn secondary" disabled={loadingMore} onClick={() => void load(q, kind, nextCursor)}>{loadingMore ? 'Loading…' : 'Load older records'}</button><span className="muted" aria-live="polite">{items.length} records loaded</span></div> : null}
   </>;
 }

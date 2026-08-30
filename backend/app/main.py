@@ -16,13 +16,16 @@ from .http_protection import enforce_request_boundary, request_id
 from .identity_boundary import IdentityBoundaryMiddleware
 from .internal_read_boundary import InternalReadBoundaryMiddleware
 from .login_rate_limit import LoginRateLimitMiddleware
+from .observability import RequestObservabilityMiddleware
 from .readiness import router as readiness_router
 from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.authorized_crud import router as authorized_crud_router
 from .routers.integrations_v2 import router as integrations_v2_router
 from .routers.my_work import router as my_work_router
+from .routers.marketing import router as marketing_router
 from .routers.operational_meta import router as operational_meta_router
+from .routers.observability import router as observability_router
 from .routers.privacy import router as privacy_router
 from .routers.review import router as review_router
 from .routers.uploads_hardened import router as uploads_hardened_router
@@ -87,6 +90,7 @@ app.add_middleware(ApiReadBoundaryMiddleware)
 app.add_middleware(CsrfProtectionMiddleware)
 app.add_middleware(WriteContractMiddleware)
 app.add_middleware(SecurityAuditMiddleware)
+app.add_middleware(RequestObservabilityMiddleware)
 
 
 @app.middleware("http")
@@ -117,40 +121,13 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-def remove_shadowed_legacy_routes() -> None:
-    shadowed_paths = {
-        "/api/review/queue",
-        "/api/workflow/requests/{request_id}/submit-approval",
-        "/api/workflow/approvals/{approval_id}/decide",
-        "/api/workflow/fixes/{fix_id}/verify",
-        "/api/integrations/review-items/{item_id}/create-task",
-        "/api/integrations/review-items/{item_id}/create-approval",
-        "/api/integrations/review-items/{item_id}/mark-seen",
-        "/api/integrations/review-items/{item_id}/reject",
-        "/api/integrations/overview",
-        "/api/auth/login",
-        "/api/auth/me",
-        "/api/admin/users",
-        "/api/departments/{department_id}/workspace",
-        "/api/users",
-        "/api/meta",
-        "/api/{resource}",
-        "/api/{resource}/{item_id}",
-        "/api/{resource}/{item_id}/status",
-        "/api/{resource}/{item_id}/archive",
-        "/api/{resource}/{item_id}/comments",
-        "/api/{resource}/{item_id}/attachments",
-        "/api/posts/{post_id}/versions",
-    }
-    router.routes[:] = [route for route in router.routes if getattr(route, "path", None) not in shadowed_paths]
-
-
-remove_shadowed_legacy_routes()
 app.include_router(readiness_router)
 app.include_router(review_router)
 app.include_router(my_work_router)
+app.include_router(marketing_router)
 app.include_router(privacy_router)
 app.include_router(operational_meta_router)
+app.include_router(observability_router)
 app.include_router(uploads_hardened_router)
 app.include_router(workflow_router)
 # Register concrete API routes before the generic CRUD catch-alls so public

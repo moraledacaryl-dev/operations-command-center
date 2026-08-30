@@ -5,6 +5,7 @@ import { api, Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Drawer } from '@/components/Drawer';
+import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 
@@ -91,9 +92,7 @@ export default function ApprovalsPage() {
       <div className="toolbar" style={{ marginTop: 12 }}>
         <input className="input" placeholder="Search approvals" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
-      <div className="tabs">
-        {['Pending', 'Approved', 'Rejected', 'All'].map(status => <button key={status} className={`tab ${filter === status ? 'active' : ''}`} onClick={() => setFilter(status)}>{status}</button>)}
-      </div>
+      <Tabs values={['Pending', 'Approved', 'Rejected', 'All']} active={filter} onChange={setFilter} label="Approval status" />
     </section>
 
     <section className="panel">

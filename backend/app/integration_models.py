@@ -1,12 +1,7 @@
-from datetime import datetime
+from sqlalchemy import Column, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
-
+from .clock import UTCDateTime as DateTime, utc_now
 from .database import Base
-
-
-def utcnow():
-    return datetime.utcnow()
 
 
 class ExternalUserIdentity(Base):
@@ -26,8 +21,8 @@ class ExternalUserIdentity(Base):
     external_email = Column(String(160), nullable=True)
     external_name = Column(String(180), nullable=True)
     status = Column(String(40), default="active", nullable=False)
-    first_seen_at = Column(DateTime, default=utcnow, nullable=False)
-    last_seen_at = Column(DateTime, default=utcnow, nullable=False)
+    first_seen_at = Column(DateTime, default=utc_now, nullable=False)
+    last_seen_at = Column(DateTime, default=utc_now, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("source_app", "external_user_id", name="uq_external_user_identity_source_id"),
@@ -50,7 +45,7 @@ class IntegrationDelivery(Base):
     subject_id = Column(String(180), nullable=True)
     status = Column(String(40), default="received", nullable=False)
     payload_sha256 = Column(String(64), nullable=False)
-    received_at = Column(DateTime, default=utcnow, nullable=False)
+    received_at = Column(DateTime, default=utc_now, nullable=False)
     processed_at = Column(DateTime, nullable=True)
     last_error = Column(Text, nullable=True)
 

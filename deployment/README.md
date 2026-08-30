@@ -46,15 +46,30 @@ deployment/scripts/deploy-operations.sh
 deployment/scripts/deploy-staff.sh
 ```
 
-The scripts:
+`scripts/deploy_production.sh` is the canonical Operations deployment gate;
+`deployment/scripts/deploy-operations.sh` is a compatibility wrapper only.
+
+The Operations deployment:
 
 - use `set -euo pipefail`
 - refuse missing or placeholder env files
 - avoid printing secret values
-- build in a timestamped release directory
-- switch the `current` symlink only after compile/build succeeds
+- exports the exact `origin/main` SHA into an immutable SHA-named release
+- runs backend tests plus frontend lint/typecheck/standalone build in the candidate
+- pairs a checksummed PostgreSQL backup with a checksummed uploads backup
+- stamps the release SHA and Alembic head in a manifest
+- switches the `current` symlink only after all pre-activation gates succeed
+- runs authenticated smoke through the public origin and checks the live SHA
+- flips `current` back to the prior immutable release on post-activation failure
 - install systemd units from this repo
 - restart only the target service
+
+The production environment must set `ENVIRONMENT=production`, use the public
+HTTPS origin in `ALLOWED_ORIGINS`, and set `TRUST_PROXY_HEADERS=true` with
+`TRUSTED_PROXY_IPS=127.0.0.1` because nginx is the only trusted hop to Uvicorn.
+The Compose stack intentionally defaults to `ENVIRONMENT=local` for its
+localhost gateway; production Compose deployments must override the origin,
+host, and environment together.
 
 `deploy-accounting.sh` and `deploy-pos.sh` are conservative guard scripts because those apps are already live. They validate env presence, back up `/opt`, and stop before replacing live files.
 

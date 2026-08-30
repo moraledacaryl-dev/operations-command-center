@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..authorization_policy import Action, authorize_action
+from ..clock import utc_now
 from ..capabilities import has_capability
 from ..utils import log_activity
 
@@ -52,7 +53,7 @@ def verify_fix(db: Session, user: models.User, fix_id: int, note: str | None, pr
     if fix.status != "Done":
         raise HTTPException(status_code=409, detail="Only Done fixes can be verified")
 
-    now = models.utcnow()
+    now = utc_now()
     fix.status = "Verified"
     fix.verified_at = now
     fix.verified_by_id = user.id

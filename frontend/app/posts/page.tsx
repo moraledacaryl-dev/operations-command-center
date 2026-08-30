@@ -2,10 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API_BASE, api, Entity } from '@/lib/api';
-import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
 import { Drawer } from '@/components/Drawer';
+import { Tabs } from '@/components/Tabs';
+import { MarketingWorkspace } from '@/components/MarketingWorkspace';
+import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
+import { hasCapability } from '@/lib/capabilities';
+import { getStoredUser } from '@/lib/session';
 
 const statuses = ['Idea', 'Draft', 'Review', 'Fix', 'OK', 'Set', 'Posted'];
 const platforms = ['Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website'];
@@ -33,14 +37,19 @@ function monthKey(value?: string) {
   return new Intl.DateTimeFormat('en-PH', { month: 'long', year: 'numeric' }).format(date);
 }
 
-function nextAction(status?: string) {
-  if (status === 'Idea') return { label: 'Start draft', target: 'Draft' };
-  if (status === 'Draft' || status === 'Fix') return { label: 'Submit for review', target: 'Review' };
-  if (status === 'Review') return { label: 'Approve creative', target: 'OK' };
-  if (status === 'OK') return { label: 'Schedule', target: 'Set' };
-  if (status === 'Set') return { label: 'Mark posted', target: 'Posted' };
-  return null;
-}
+const actionLabels: Record<string, string> = {
+  'start-draft': 'Start draft',
+  'submit-review': 'Submit for review',
+  'resubmit-review': 'Resubmit for review',
+  'request-revision': 'Needs revision',
+  approve: 'Approve creative',
+  schedule: 'Schedule',
+  publish: 'Mark posted',
+  'return-draft-from-fix': 'Return to draft',
+  'return-draft-from-ok': 'Return to draft',
+  'return-draft-from-set': 'Return to draft',
+  reopen: 'Reopen as draft',
+};
 
 export default function MarketingPage() {
   const [items, setItems] = useState<Entity[]>([]);
@@ -51,25 +60,74 @@ export default function MarketingPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [data, setData] = useState<Entity>(blank);
   const [comment, setComment] = useState('');
+  const [transitionNote, setTransitionNote] = useState('');
   const [version, setVersion] = useState({ filename: '', file_url: '', note: '', caption_snapshot: '' });
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [currentDeptId, setCurrentDeptId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const { hydrated } = useActiveDepartment();
+  const [user] = useState(() => getStoredUser());
+  const canManage = hasCapability(user, 'manage_department');
+  const canViewAll = hasCapability(user, 'view_all_operations');
+  const [departmentId, setDepartmentId] = useState<number | null>(null);
+  const [scopeReady, setScopeReady] = useState(false);
+  const beginRequest = useLatestRequest();
+  const openCreate = useCallback(() => { if (canManage && departmentId) setShowAdd(true); }, [canManage, departmentId]);
+  useCreateIntent(openCreate);
 
   useEffect(() => {
-    const user = getStoredUser();
-    setCurrentDeptId(getCurrentDepartmentId(user));
-  }, []);
+    if (!hydrated) return;
+    let cancelled = false;
+    const membership = (user?.departments || []).find((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
+    if (membership?.id) {
+      setDepartmentId(Number(membership.id));
+      setScopeReady(true);
+      return;
+    }
+    if (!canViewAll) {
+      setDepartmentId(null);
+      setScopeReady(true);
+      return;
+    }
+    api.meta().then(meta => {
+      if (cancelled) return;
+      const marketing = (meta.departments || []).find((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
+      setDepartmentId(marketing?.id ? Number(marketing.id) : null);
+      setScopeReady(true);
+    }).catch(err => {
+      if (!cancelled) {
+        setError(err.message || 'Marketing workspace could not be resolved.');
+        setScopeReady(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [canViewAll, hydrated, user?.departments]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (cursor?: string | null) => {
+    if (!hydrated || !scopeReady) return;
+    if (!departmentId) {
+      setItems([]);
+      setError('No accessible Marketing workspace is assigned to this account.');
+      return;
+    }
+    const request = beginRequest();
+    setLoading(true);
     setError('');
     try {
-      setItems(await api.list('posts', { active: true, department_id: currentDeptId || '' }));
+      const page = await api.page('posts', { active: true, department_id: departmentId, limit: 30, cursor: cursor || '' }, { signal: request.signal });
+      if (request.isCurrent()) {
+        setItems(existing => cursor ? [...existing, ...page.items] : page.items);
+        setNextCursor(page.next_cursor || null);
+      }
     } catch (err: any) {
-      setError(err.message || 'Marketing work could not be loaded.');
+      if (err?.name === 'AbortError') return;
+      if (request.isCurrent()) setError(err.message || 'Marketing work could not be loaded.');
+    } finally {
+      if (request.isCurrent()) setLoading(false);
     }
-  }, [currentDeptId]);
+  }, [beginRequest, departmentId, hydrated, scopeReady]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -77,6 +135,7 @@ export default function MarketingPage() {
     try {
       const fresh = await api.get('posts', item.id);
       setSelected(fresh);
+      setTransitionNote('');
       setVersions(await api.versions(item.id));
     } catch (err: any) {
       setError(err.message || 'Marketing item could not be opened.');
@@ -84,13 +143,13 @@ export default function MarketingPage() {
   }
 
   async function create() {
-    if (!String(data.title || '').trim() || busy) {
+    if (!canManage || !departmentId || !String(data.title || '').trim() || busy) {
       if (!String(data.title || '').trim()) setError('Title is required.');
       return;
     }
     setBusy(true);
     try {
-      await api.create('posts', currentDeptId && !data.department_id ? { ...data, department_id: currentDeptId } : data);
+      await api.create('posts', departmentId && !data.department_id ? { ...data, department_id: departmentId } : data);
       setData(blank);
       setShowAdd(false);
       await load();
@@ -101,11 +160,12 @@ export default function MarketingPage() {
     }
   }
 
-  async function setStatus(status: string) {
+  async function transition(action: string) {
     if (!selected || busy) return;
     setBusy(true);
     try {
-      await api.status('posts', selected.id, status);
+      await api.workflowAction('posts', selected.id, action, { note: transitionNote.trim() || null });
+      setTransitionNote('');
       await open(selected);
       await load();
     } catch (err: any) {
@@ -171,17 +231,19 @@ export default function MarketingPage() {
   const awaitingReview = items.filter(item => item.status === 'Review').length;
   const needsFix = items.filter(item => item.status === 'Fix').length;
   const scheduled = items.filter(item => item.status === 'Set').length;
-  const action = nextAction(selected?.status);
+  const allowedActions: string[] = selected?.allowed_actions || [];
 
   return <>
-    <Top eyebrow="Publishing calendar" title="Marketing" right={<button className="btn" onClick={() => setShowAdd(value => !value)}>New content</button>} />
+    <Top eyebrow="Publishing calendar" title="Marketing" right={canManage && departmentId ? <button className="btn" onClick={() => setShowAdd(value => !value)}>New content</button> : undefined} />
+    {departmentId ? <MarketingWorkspace departmentId={departmentId} canManage={canManage} /> : null}
+    <div className="legacy-section-head"><div><p className="eyebrow">Compatibility workspace</p><h2>Legacy content records</h2></div><p className="muted">Existing posts remain available while campaigns and platform deliverables become the primary planning model.</p></div>
     <div className="grid cols-3" style={{ marginBottom: 16 }}>
       <div className="panel"><div className="eyebrow">Awaiting review</div><h2>{awaitingReview}</h2></div>
       <div className="panel"><div className="eyebrow">Needs revision</div><h2>{needsFix}</h2></div>
       <div className="panel"><div className="eyebrow">Scheduled</div><h2>{scheduled}</h2></div>
     </div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
+    {canManage && showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
       <h2>Create content item</h2>
       <div className="form" style={{ marginTop: 14 }}>
         <div className="form-grid">
@@ -196,7 +258,7 @@ export default function MarketingPage() {
       </div>
     </section> : null}
     <div className="toolbar" style={{ alignItems: 'center' }}>
-      <div className="tabs">{['Active', 'All', ...statuses].map(value => <button key={value} className={`tab ${filter === value ? 'active' : ''}`} onClick={() => setFilter(value)}>{value}</button>)}</div>
+      <Tabs values={['Active', 'All', ...statuses]} active={filter} onChange={setFilter} label="Marketing status" />
       <select className="select" aria-label="Filter by platform" value={platformFilter} onChange={event => setPlatformFilter(event.target.value)}><option>All</option>{platforms.map(value => <option key={value}>{value}</option>)}</select>
     </div>
     <div className="grid">
@@ -213,17 +275,20 @@ export default function MarketingPage() {
       </section>)}
       {!visible.length ? <div className="empty">No marketing items match this view.</div> : null}
     </div>
+    {nextCursor ? <div className="load-more"><button className="btn secondary" disabled={loading} onClick={() => void load(nextCursor)}>{loading ? 'Loading…' : 'Load more content'}</button><span className="muted" aria-live="polite">{items.length} items loaded</span></div> : null}
     <Drawer item={selected} title="Marketing item" onClose={() => { if (!busy) setSelected(null); }}>
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}>
           <div className="eyebrow">Publishing readiness</div>
-          <h2>{selected.status === 'Posted' ? 'Published' : action?.label || 'No next action'}</h2>
+          <h2>{selected.status === 'Posted' ? 'Published' : allowedActions.length ? 'Ready for action' : 'No next action'}</h2>
           <div className="card-line"><Pill value={selected.status || 'Idea'} /><Pill value={selected.platform || 'Platform'} /><Pill value={formatDate(selected.post_date)} /></div>
           <p className="muted">{selected.caption || 'No caption or creative brief yet.'}</p>
+          {allowedActions.length ? <label className="label">Action note<textarea className="textarea" value={transitionNote} onChange={event => setTransitionNote(event.target.value)} placeholder="Required for revisions, returns, and reopen actions" /></label> : null}
           <div className="toolbar">
-            {action ? <button className="btn" disabled={busy} onClick={() => setStatus(action.target)}>{busy ? 'Saving…' : action.label}</button> : null}
-            {selected.status === 'Review' ? <button className="btn secondary" disabled={busy} onClick={() => setStatus('Fix')}>Needs revision</button> : null}
-            {selected.status !== 'Posted' && selected.status !== 'Idea' ? <button className="btn secondary" disabled={busy} onClick={() => setStatus('Draft')}>Return to draft</button> : null}
+            {allowedActions.map(action => {
+              const needsNote = action === 'request-revision' || action.startsWith('return-draft') || action === 'reopen';
+              return <button className={['approve', 'publish', 'start-draft', 'submit-review', 'resubmit-review', 'schedule'].includes(action) ? 'btn' : 'btn secondary'} key={action} disabled={busy || (needsNote && !transitionNote.trim())} onClick={() => transition(action)}>{busy ? 'Saving…' : actionLabels[action] || action}</button>;
+            })}
           </div>
         </section>
         <section className="panel" style={{ marginBottom: 16 }}>

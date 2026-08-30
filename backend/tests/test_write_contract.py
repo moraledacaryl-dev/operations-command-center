@@ -49,8 +49,8 @@ def test_unknown_task_field_is_rejected():
 
 def test_invalid_status_is_rejected():
     response = make_client().post('/api/tasks/12/status', json={'status': 'Whatever'})
-    assert response.status_code == 422
-    assert 'Invalid status' in response.json()['detail']
+    assert response.status_code == 405
+    assert response.json()['detail'] == 'Use the canonical workflow endpoint.'
 
 
 def test_valid_task_write_passes_contract():
@@ -59,25 +59,22 @@ def test_valid_task_write_passes_contract():
     assert response.json()['title'] == 'Check room'
 
 
-def test_fix_workflow_status_passes_through_to_canonical_route_guard():
+def test_fix_workflow_status_requires_canonical_route():
     response = make_client().post('/api/fixes/9/status', json={'status': 'Verified'})
-    assert response.status_code == 200
-    assert response.json()['status'] == 'Verified'
+    assert response.status_code == 405
 
 
-def test_request_workflow_status_passes_through_to_canonical_route_guard():
+def test_request_workflow_status_requires_canonical_route():
     response = make_client().post('/api/requests/4/status', json={'status': 'Approved'})
-    assert response.status_code == 200
-    assert response.json()['status'] == 'Approved'
+    assert response.status_code == 405
 
 
 def test_request_cannot_be_rejected_through_generic_patch():
     response = make_client().patch('/api/requests/4', json={'status': 'Rejected'})
-    assert response.status_code == 422
-    assert 'linked Approval workflow' in response.json()['detail']
+    assert response.status_code == 405
+    assert response.json()['detail'] == 'Use the canonical workflow endpoint.'
 
 
-def test_request_non_decision_status_still_allowed():
+def test_request_non_decision_status_requires_canonical_route():
     response = make_client().post('/api/requests/4/status', json={'status': 'Planned'})
-    assert response.status_code == 200
-    assert response.json()['status'] == 'Planned'
+    assert response.status_code == 405

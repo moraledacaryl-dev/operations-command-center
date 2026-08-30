@@ -22,6 +22,7 @@ export default function TeamTasksPage() {
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState('Normal');
   const [query, setQuery] = useState('');
+  const [actionNote, setActionNote] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const { departmentId, hydrated } = useActiveDepartment();
@@ -60,11 +61,15 @@ export default function TeamTasksPage() {
   }
 
   async function move(item: Entity, status: string) {
+    if (busy) return;
+    setBusy(true);
     try {
-      await api.status('tasks', item.id, status);
-      if (selected?.id === item.id) setSelected({ ...selected, status });
+      const updated = await api.workflowAction('tasks', item.id, status, { note: actionNote.trim() || null });
+      if (selected?.id === item.id) setSelected({ ...selected, ...updated });
+      setActionNote('');
       await load();
     } catch (err: any) { setError(err.message || 'Task could not be updated.'); }
+    finally { setBusy(false); }
   }
 
   return <>
@@ -89,7 +94,7 @@ export default function TeamTasksPage() {
       {columns.map(status => <section className="panel" key={status}>
         <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>{status}</h2><Pill value={String(visible.filter(item => item.status === status).length)} /></div>
         <div className="grid" style={{ marginTop: 12 }}>
-          {visible.filter(item => item.status === status).map(item => <button type="button" className="card" key={item.id} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
+          {visible.filter(item => item.status === status).map(item => <button type="button" className="card" key={item.id} onClick={async () => { try { setSelected(await api.get('tasks', item.id)); } catch (err: any) { setError(err.message || 'Task could not be opened.'); } }} style={{ textAlign: 'left' }}>
             <strong>{item.title}</strong>
             <span className="card-line"><Pill value={item.priority || 'Normal'} />{item.project_id ? <Pill value="Project task" /> : null}</span>
             <span className="muted">{dueLabel(item.due_date)}</span>
@@ -99,7 +104,7 @@ export default function TeamTasksPage() {
       </section>)}
     </div>
     <Drawer item={selected} title="Team task" onClose={() => setSelected(null)}>
-      {selected ? <section className="panel"><h2>Move task</h2><div className="toolbar">{columns.map(status => <button className="btn small secondary" key={status} disabled={selected.status === status} onClick={() => move(selected, status)}>{status}</button>)}</div></section> : null}
+      {selected ? <section className="panel"><h2>Move task</h2>{(selected.allowed_actions || []).some((action: string) => ['request-changes', 'reopen'].includes(action)) ? <label className="label">Reason<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} /></label> : null}<div className="toolbar">{(selected.allowed_actions || []).map((action: string) => <button className="btn small secondary" key={action} disabled={busy || (['request-changes', 'reopen'].includes(action) && !actionNote.trim())} onClick={() => move(selected, action)}>{({ start: 'Start work', 'submit-review': 'Submit for review', 'request-changes': 'Request changes', complete: 'Complete', reopen: 'Reopen' } as Record<string, string>)[action] || action}</button>)}</div>{!(selected.allowed_actions || []).length ? <p className="muted">No task transition is available for your role and this state.</p> : null}</section> : null}
     </Drawer>
   </>;
 }

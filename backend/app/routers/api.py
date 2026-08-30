@@ -5,7 +5,6 @@ import json
 import os
 import shutil
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
@@ -20,15 +19,22 @@ from ..auth import (
     validate_password_strength,
     verify_password,
 )
+from ..clock import utc_now
 from ..database import get_db
 from .. import models
 from ..utils import apply_payload, log_activity, mark_completed_if_needed, model_to_dict, serialize_many
 from ..auto_archive import run_auto_archive
+from ..pagination import decode_history_cursor, encode_history_cursor
+from ..services.guest_workflow import create_fix_from_guest
 
 router = APIRouter(prefix="/api")
+# Transitional home for superseded handlers that are still imported by a few
+# tests/services. It is deliberately never included in the application.
+unmounted_legacy_router = APIRouter(prefix="/api", include_in_schema=False)
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
+RELEASE_SHA = os.getenv("RELEASE_SHA", "development").strip() or "development"
 SESSION_SECRET = os.getenv("SESSION_SECRET", "local-command-center-secret")
 INTEGRATION_API_KEY = os.getenv("INTEGRATION_API_KEY", "").strip()
 TOKEN_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", str(60 * 60 * 24 * 14)))
@@ -485,6 +491,7 @@ def health(db: Session = Depends(get_db)):
         "status": "ok" if not warnings else "needs_attention",
         "app": "Manager Operations Command Center",
         "environment": ENVIRONMENT,
+        "release_sha": RELEASE_SHA,
         "readiness": {"ok": not warnings, "warnings": warnings},
     }
 
@@ -504,12 +511,12 @@ async def receive_pos_status(payload: Dict[str, Any], db: Session = Depends(get_
     return store_external_review_item(db, payload, POS_EVENTS, "dedicated_pos_cloud")
 
 
-@router.get("/integrations/overview")
+@unmounted_legacy_router.get("/integrations/overview")
 async def integrations_overview(db: Session = Depends(get_db)):
     return overview_cards(db)
 
 
-@router.post("/integrations/review-items/{item_id}/create-task")
+@unmounted_legacy_router.post("/integrations/review-items/{item_id}/create-task")
 async def create_task_from_external_item(
     item_id: int,
     payload: WorkflowPayload,
@@ -534,7 +541,7 @@ async def create_task_from_external_item(
     return {"task": model_to_dict(task), "review_item": model_to_dict(item)}
 
 
-@router.post("/integrations/review-items/{item_id}/mark-seen")
+@unmounted_legacy_router.post("/integrations/review-items/{item_id}/mark-seen")
 async def mark_external_item_seen(
     item_id: int,
     payload: WorkflowPayload,
@@ -551,7 +558,7 @@ async def mark_external_item_seen(
     return model_to_dict(item)
 
 
-@router.post("/integrations/review-items/{item_id}/reject")
+@unmounted_legacy_router.post("/integrations/review-items/{item_id}/reject")
 async def reject_external_item(
     item_id: int,
     payload: WorkflowPayload,
@@ -569,7 +576,7 @@ async def reject_external_item(
     return model_to_dict(item)
 
 
-@router.post("/integrations/review-items/{item_id}/create-approval")
+@unmounted_legacy_router.post("/integrations/review-items/{item_id}/create-approval")
 async def create_approval_from_external_item(
     item_id: int,
     payload: WorkflowPayload,
@@ -599,7 +606,7 @@ async def create_approval_from_external_item(
     return {"approval": model_to_dict(approval), "review_item": model_to_dict(item)}
 
 
-@router.post("/auth/login")
+@unmounted_legacy_router.post("/auth/login")
 def login(payload: LoginPayload, db: Session = Depends(get_db)):
     user = find_user_by_email(db, payload.email)
     if not user or not user.is_active:
@@ -608,7 +615,7 @@ def login(payload: LoginPayload, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Password is not set for this account yet.")
     if not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid login")
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = utc_now()
     db.commit()
     data = serialize_user(db, user)
     data["token"] = sign_token({"sub": user.id, "role": user.role, "exp": int(time.time()) + TOKEN_TTL_SECONDS})
@@ -621,12 +628,12 @@ def change_password(payload: PasswordChangePayload, user: models.User = Depends(
         raise HTTPException(status_code=400, detail="Current password is incorrect.")
     validate_password_or_400(payload.new_password)
     user.password_hash = hash_password(payload.new_password)
-    user.password_set_at = datetime.utcnow()
+    user.password_set_at = utc_now()
     db.commit()
     return {"ok": True, "password_set_at": user.password_set_at.isoformat()}
 
 
-@router.post("/admin/users")
+@unmounted_legacy_router.post("/admin/users")
 def admin_create_user(payload: AdminUserCreatePayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     require_admin_user(user)
     validate_password_or_400(payload.password)
@@ -646,7 +653,7 @@ def admin_create_user(payload: AdminUserCreatePayload, user: models.User = Depen
         department_id=payload.department_id,
         is_active=bool(payload.is_active),
         password_hash=hash_password(payload.password),
-        password_set_at=datetime.utcnow(),
+        password_set_at=utc_now(),
     )
     db.add(new_user)
     db.flush()
@@ -664,17 +671,17 @@ def admin_reset_password(user_id: int, payload: AdminResetPasswordPayload, user:
     validate_password_or_400(payload.new_password)
     target = fetch_or_404(db, models.User, user_id)
     target.password_hash = hash_password(payload.new_password)
-    target.password_set_at = datetime.utcnow()
+    target.password_set_at = utc_now()
     log_activity(db, "users", target.id, "password_reset", "Password reset by admin", actor_id=user.id)
     db.commit()
     return {"ok": True, "user_id": target.id, "password_set_at": target.password_set_at.isoformat()}
 
 
-@router.get("/auth/me")
+@unmounted_legacy_router.get("/auth/me")
 def me(user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     return serialize_user(db, user)
 
-@router.get("/meta")
+@unmounted_legacy_router.get("/meta")
 def meta(user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     users = db.query(models.User).filter(models.User.is_active == True).order_by(models.User.name).all()
     departments = db.query(models.Department).order_by(models.Department.name).all()
@@ -687,7 +694,7 @@ def meta(user: models.User = Depends(require_user), db: Session = Depends(get_db
         "departments": serialize_many(departments),
     }
 
-@router.get("/departments/{department_id}/workspace")
+@unmounted_legacy_router.get("/departments/{department_id}/workspace")
 def department_workspace(department_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     assert_department_access(db, user, department_id)
     dept = fetch_or_404(db, models.Department, department_id)
@@ -717,7 +724,7 @@ def dashboard(department_id: Optional[int] = Query(default=None), user: models.U
         return q
     counts = {
         "tasks": dq(models.Task).filter(models.Task.hidden_from_active == False).count(),
-        "late": dq(models.Task).filter(models.Task.hidden_from_active == False, models.Task.due_date < datetime.utcnow(), models.Task.status != "Done").count(),
+        "late": dq(models.Task).filter(models.Task.hidden_from_active == False, models.Task.due_date < utc_now(), models.Task.status != "Done").count(),
         "guests": dq(models.GuestNote).filter(models.GuestNote.hidden_from_active == False, models.GuestNote.status != "Done").count(),
         "fixes": dq(models.Fix).filter(models.Fix.hidden_from_active == False, models.Fix.status != "Verified").count(),
         "posts": dq(models.Post).filter(models.Post.hidden_from_active == False, models.Post.status.in_(["Review", "Fix"])).count(),
@@ -739,7 +746,7 @@ def dashboard(department_id: Optional[int] = Query(default=None), user: models.U
     }
 
 
-@router.post("/workflow/requests/{request_id}/submit-approval")
+@unmounted_legacy_router.post("/workflow/requests/{request_id}/submit-approval")
 def workflow_submit_request(
     request_id: int,
     payload: WorkflowPayload,
@@ -780,7 +787,7 @@ def workflow_submit_request(
     return {"request": model_to_dict(request), "approval": model_to_dict(approval)}
 
 
-@router.post("/workflow/approvals/{approval_id}/decide")
+@unmounted_legacy_router.post("/workflow/approvals/{approval_id}/decide")
 def workflow_decide_approval(
     approval_id: int,
     payload: WorkflowPayload,
@@ -794,7 +801,7 @@ def workflow_decide_approval(
     assert_resource_access(db, user, approval)
     approval.status = status
     approval.decided_by_id = user.id
-    approval.decided_at = datetime.utcnow()
+    approval.decided_at = utc_now()
     approval.decision_note = payload.note
     mark_completed_if_needed(approval, status)
     created_task = None
@@ -824,38 +831,14 @@ def workflow_decide_approval(
     return {"approval": model_to_dict(approval), "task": model_to_dict(created_task) if created_task else None}
 
 
-@router.post("/workflow/guests/{guest_id}/create-fix")
+@unmounted_legacy_router.post("/workflow/guests/{guest_id}/create-fix")
 def workflow_guest_create_fix(
     guest_id: int,
     payload: WorkflowPayload,
     user: models.User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    guest = fetch_or_404(db, models.GuestNote, guest_id)
-    assert_resource_access(db, user, guest)
-    department_id = payload.department_id or guest.department_id
-    assert_department_access(db, user, department_id)
-    guest.department_id = guest.department_id or department_id
-    fix = models.Fix(
-        title=guest.title,
-        department_id=department_id,
-        room_area_id=guest.room_area_id,
-        problem=payload.note or guest.note or guest.action_taken or guest.issue_type,
-        urgency=guest.urgency or "Normal",
-        status="Open",
-        reported_by_id=user.id,
-        linked_guest_note_id=guest.id,
-        note=f"Created from guest note #{guest.id}.",
-    )
-    db.add(fix)
-    db.flush()
-    guest.linked_fix_id = fix.id
-    guest.status = "Follow"
-    log_activity(db, "guests", guest.id, "created_fix", f"Created fix #{fix.id}", actor_id=user.id)
-    log_activity(db, "fixes", fix.id, "created", f"Created from guest note #{guest.id}", actor_id=user.id)
-    db.commit()
-    db.refresh(guest)
-    db.refresh(fix)
+    guest, fix = create_fix_from_guest(db, user, guest_id, payload.department_id, payload.note)
     return {"guest": model_to_dict(guest), "fix": model_to_dict(fix)}
 
 
@@ -874,6 +857,7 @@ def workflow_create_task(
     assert_department_access(db, user, department_id)
     priority = getattr(obj, "priority", None) or getattr(obj, "urgency", None) or "Normal"
     link_fields = {
+        "projects": {"project_id": item_id},
         "guests": {"linked_guest_note_id": item_id},
         "fixes": {"linked_fix_id": item_id},
         "posts": {"linked_post_id": item_id},
@@ -895,7 +879,7 @@ def workflow_create_task(
     return {"task": model_to_dict(task)}
 
 
-@router.post("/workflow/fixes/{fix_id}/verify")
+@unmounted_legacy_router.post("/workflow/fixes/{fix_id}/verify")
 def workflow_verify_fix(
     fix_id: int,
     payload: WorkflowPayload,
@@ -907,7 +891,7 @@ def workflow_verify_fix(
     if not payload.note:
         raise HTTPException(status_code=400, detail="Verification note is required")
     fix.status = "Verified"
-    fix.verified_at = datetime.utcnow()
+    fix.verified_at = utc_now()
     fix.verified_by_id = user.id
     mark_completed_if_needed(fix, "Verified")
     if fix.linked_guest_note_id:
@@ -938,7 +922,7 @@ def workflow_verify_fix(
     db.refresh(fix)
     return model_to_dict(fix)
 
-@router.get("/{resource}")
+@unmounted_legacy_router.get("/{resource}")
 def list_resource(
     resource: str,
     active: bool = Query(default=True),
@@ -966,7 +950,7 @@ def list_resource(
         query = query.order_by(getattr(model, "updated_at").desc())
     return serialize_many(query.limit(limit).all())
 
-@router.post("/{resource}")
+@unmounted_legacy_router.post("/{resource}")
 def create_resource(resource: str, payload: Dict[str, Any], user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     if resource in ["users", "user-departments", "departments"] and not can_view_all(user):
@@ -983,7 +967,7 @@ def create_resource(resource: str, payload: Dict[str, Any], user: models.User = 
     db.refresh(obj)
     return model_to_dict(obj)
 
-@router.get("/{resource}/{item_id}")
+@unmounted_legacy_router.get("/{resource}/{item_id}")
 def get_resource(resource: str, item_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
@@ -994,7 +978,7 @@ def get_resource(resource: str, item_id: int, user: models.User = Depends(requir
     data["activity"] = serialize_many(db.query(models.ActivityLog).filter(models.ActivityLog.entity_type == resource, models.ActivityLog.entity_id == item_id).order_by(models.ActivityLog.created_at.desc()).limit(30).all())
     return data
 
-@router.patch("/{resource}/{item_id}")
+@unmounted_legacy_router.patch("/{resource}/{item_id}")
 def update_resource(resource: str, item_id: int, payload: Dict[str, Any], user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
@@ -1013,7 +997,7 @@ def update_resource(resource: str, item_id: int, payload: Dict[str, Any], user: 
     db.refresh(obj)
     return model_to_dict(obj)
 
-@router.post("/{resource}/{item_id}/status")
+@unmounted_legacy_router.post("/{resource}/{item_id}/status")
 def set_status(resource: str, item_id: int, payload: StatusPayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
@@ -1024,10 +1008,10 @@ def set_status(resource: str, item_id: int, payload: StatusPayload, user: models
     setattr(obj, target_field, payload.status)
     mark_completed_if_needed(obj, payload.status)
     if isinstance(obj, models.Fix) and payload.status == "Verified":
-        obj.verified_at = datetime.utcnow()
+        obj.verified_at = utc_now()
         obj.verified_by_id = payload.actor_id or user.id
     if isinstance(obj, models.Approval) and payload.status in ["Approved", "Rejected"]:
-        obj.decided_at = datetime.utcnow()
+        obj.decided_at = utc_now()
         obj.decided_by_id = payload.actor_id or user.id
         if payload.note:
             obj.decision_note = payload.note
@@ -1036,7 +1020,7 @@ def set_status(resource: str, item_id: int, payload: StatusPayload, user: models
     db.refresh(obj)
     return model_to_dict(obj)
 
-@router.post("/{resource}/{item_id}/archive")
+@unmounted_legacy_router.post("/{resource}/{item_id}/archive")
 def archive_resource(resource: str, item_id: int, reason: str = "manual", user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
@@ -1044,14 +1028,14 @@ def archive_resource(resource: str, item_id: int, reason: str = "manual", user: 
     if not hasattr(obj, "hidden_from_active"):
         raise HTTPException(status_code=400, detail="Resource cannot be archived")
     obj.hidden_from_active = True
-    obj.archived_at = datetime.utcnow()
+    obj.archived_at = utc_now()
     obj.archive_reason = reason
     log_activity(db, resource, obj.id, "archived", reason, actor_id=user.id)
     db.commit()
     db.refresh(obj)
     return model_to_dict(obj)
 
-@router.post("/{resource}/{item_id}/comments")
+@unmounted_legacy_router.post("/{resource}/{item_id}/comments")
 def add_comment(resource: str, item_id: int, payload: CommentPayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
@@ -1063,7 +1047,7 @@ def add_comment(resource: str, item_id: int, payload: CommentPayload, user: mode
     db.refresh(comment)
     return model_to_dict(comment)
 
-@router.get("/{resource}/{item_id}/comments")
+@unmounted_legacy_router.get("/{resource}/{item_id}/comments")
 def comments(resource: str, item_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
@@ -1071,7 +1055,7 @@ def comments(resource: str, item_id: int, user: models.User = Depends(require_us
     return serialize_many(db.query(models.Comment).filter(models.Comment.parent_type == resource, models.Comment.parent_id == item_id).order_by(models.Comment.created_at.desc()).all())
 
 
-@router.post("/{resource}/{item_id}/attachments")
+@unmounted_legacy_router.post("/{resource}/{item_id}/attachments")
 def add_attachment(
     resource: str,
     item_id: int,
@@ -1111,7 +1095,7 @@ def add_attachment(
     db.refresh(attachment)
     return model_to_dict(attachment)
 
-@router.post("/posts/{post_id}/versions")
+@unmounted_legacy_router.post("/posts/{post_id}/versions")
 def add_post_version(
     post_id: int,
     filename: str = Form(default=""),
@@ -1154,7 +1138,7 @@ def add_post_version(
     db.refresh(version)
     return model_to_dict(version)
 
-@router.get("/posts/{post_id}/versions")
+@unmounted_legacy_router.get("/posts/{post_id}/versions")
 def list_post_versions(post_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     post = fetch_or_404(db, models.Post, post_id)
     assert_resource_access(db, user, post)
@@ -1165,12 +1149,14 @@ def history_search(
     q: Optional[str] = None,
     kind: Optional[str] = None,
     department_id: Optional[int] = None,
-    limit: int = 200,
+    limit: int = Query(default=50, ge=1, le=100),
+    cursor: Optional[str] = None,
     user: models.User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
     assert_department_access(db, user, department_id)
     resources = [kind] if kind else ["projects", "tasks", "shift-notes", "guests", "fixes", "posts", "requests", "approvals", "memos", "submissions", "talk", "docs", "routines"]
+    cursor_key = decode_history_cursor(cursor) if cursor else None
     results = []
     for resource in resources:
         model = RESOURCE_MODELS.get(resource)
@@ -1184,11 +1170,19 @@ def history_search(
         query = apply_search(query, model, resource, q)
         if hasattr(model, "updated_at"):
             query = query.order_by(model.updated_at.desc())
-        for item in query.limit(limit).all():
+        for item in query.limit(limit + 1).all():
+            updated_at = item.updated_at
+            key = (updated_at, resource, item.id)
+            if cursor_key and key >= cursor_key:
+                continue
             data = model_to_dict(item)
             data["kind"] = resource
-            results.append(data)
-    return results[:limit]
+            results.append((updated_at, resource, item.id, data))
+    results.sort(key=lambda row: (row[0], row[1], row[2]), reverse=True)
+    page_rows = results[:limit]
+    has_more = len(results) > limit
+    next_cursor = encode_history_cursor(page_rows[-1][0], page_rows[-1][1], page_rows[-1][2]) if has_more and page_rows else None
+    return {"items": [row[3] for row in page_rows], "next_cursor": next_cursor, "has_more": has_more}
 
 @router.get("/rooms/{room_id}/memory")
 def room_memory(room_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
@@ -1205,7 +1199,7 @@ def room_memory(room_id: int, user: models.User = Depends(require_user), db: Ses
 def generate_routine_task(routine_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     routine = fetch_or_404(db, models.RoutineTemplate, routine_id)
     assert_resource_access(db, user, routine)
-    today = datetime.utcnow().date().isoformat()
+    today = utc_now().date().isoformat()
     existing = db.query(models.Task).filter(
         models.Task.department_id == routine.department_id,
         models.Task.title == routine.title,
@@ -1222,7 +1216,7 @@ def generate_routine_task(routine_id: int, user: models.User = Depends(require_u
         priority=routine.priority,
         note=f"Generated from routine {routine_id} on {today}.\n\nChecklist:\n{routine.checklist or ''}",
     )
-    routine.last_generated_at = datetime.utcnow()
+    routine.last_generated_at = utc_now()
     db.add(task)
     db.flush()
     log_activity(db, "routines", routine.id, "generated", f"Generated task #{task.id}")
@@ -1231,7 +1225,7 @@ def generate_routine_task(routine_id: int, user: models.User = Depends(require_u
     db.refresh(task)
     return model_to_dict(task)
 
-@router.get("/review/queue")
+@unmounted_legacy_router.get("/review/queue")
 def review_queue(department_id: Optional[int] = Query(default=None), user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     assert_department_access(db, user, department_id)
     def maybe_dept(q, model):

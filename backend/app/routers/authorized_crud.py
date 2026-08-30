@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -11,8 +10,12 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..authorization_policy import Action, SYSTEM_OWNED_RESOURCES, authorize_action, scope_query
+from ..clock import utc_now
 from ..database import get_db
+from ..domain_values import WORKFLOW_RESOURCES
+from ..pagination import cursor_page
 from ..schemas.resources import validate_resource_payload
+from ..services.operational_workflow import allowed_actions_for
 from ..utils import apply_payload, log_activity, mark_completed_if_needed, model_to_dict, serialize_many
 from .api import CommentPayload, StatusPayload, active_filter, apply_search, fetch_or_404, get_model, require_user
 
@@ -21,6 +24,7 @@ router = APIRouter(prefix="/api")
 AUDIT_IDENTITY_FIELDS = {
     "requested_by_id", "submitted_by_id", "reported_by_id", "verified_by_id",
     "actor_id", "author_id", "uploaded_by_id", "decided_by_id", "reviewed_by_id",
+    "seen_by_id", "seen_at",
 }
 DERIVED_CREATE_FIELDS = {
     "requests": "requested_by_id",
@@ -28,7 +32,7 @@ DERIVED_CREATE_FIELDS = {
     "shift-notes": "submitted_by_id",
     "fixes": "reported_by_id",
 }
-WORKFLOW_STATE_RESOURCES = {"requests", "fixes"}
+WORKFLOW_STATE_RESOURCES = WORKFLOW_RESOURCES
 TASK_STATUS_ORDER = {"To Do": 0, "Doing": 1, "Review": 2, "Done": 3}
 
 
@@ -79,6 +83,8 @@ def list_resource_authorized(
     status: Optional[str] = Query(default=None),
     department_id: Optional[int] = Query(default=None),
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    paginated: bool = Query(default=False),
+    cursor: Optional[str] = Query(default=None),
     user: models.User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
@@ -91,8 +97,10 @@ def list_resource_authorized(
         query = query.filter(getattr(model, "status") == status)
     if department_id and hasattr(model, "department_id"):
         query = query.filter(getattr(model, "department_id") == department_id)
+    if paginated:
+        return cursor_page(query, model, resource, min(limit, 100), cursor)
     if hasattr(model, "updated_at"):
-        query = query.order_by(getattr(model, "updated_at").desc())
+        query = query.order_by(getattr(model, "updated_at").desc(), model.id.desc())
     return serialize_many(query.limit(limit).all())
 
 
@@ -142,6 +150,7 @@ def get_resource_authorized(resource: str, item_id: int, user: models.User = Dep
     data["comments"] = serialize_many(db.query(models.Comment).filter(models.Comment.parent_type == resource, models.Comment.parent_id == item_id).order_by(models.Comment.created_at.desc()).all())
     data["attachments"] = serialize_many(db.query(models.Attachment).filter(models.Attachment.parent_type == resource, models.Attachment.parent_id == item_id).order_by(models.Attachment.created_at.desc()).all())
     data["activity"] = serialize_many(db.query(models.ActivityLog).filter(models.ActivityLog.entity_type == resource, models.ActivityLog.entity_id == item_id).order_by(models.ActivityLog.created_at.desc()).limit(30).all())
+    data["allowed_actions"] = allowed_actions_for(db, user, resource, obj)
     return data
 
 
@@ -158,8 +167,6 @@ def update_resource_authorized(
     _reject_identity_fields(payload)
     if resource in WORKFLOW_STATE_RESOURCES and "status" in payload:
         raise HTTPException(status_code=405, detail="Use the canonical workflow endpoint.")
-    if resource == "tasks" and "status" in payload:
-        raise HTTPException(status_code=405, detail="Use the Task status endpoint.")
     clean = _validate_payload(resource, payload, patch=True)
     authorize_action(db, user, resource, Action.EDIT, obj=obj, department_id=_department_id(clean, obj))
     apply_payload(obj, clean, excluded={"id", "created_at", "updated_at"} | AUDIT_IDENTITY_FIELDS)
@@ -187,8 +194,6 @@ def set_status_authorized(resource: str, item_id: int, payload: StatusPayload, u
     if not hasattr(obj, "status") and not hasattr(obj, "review_status"):
         raise HTTPException(status_code=400, detail="Resource has no status")
     target_field = "status" if hasattr(obj, "status") else "review_status"
-    if resource == "tasks":
-        _validate_task_transition(getattr(obj, target_field), payload.status)
     setattr(obj, target_field, payload.status)
     mark_completed_if_needed(obj, payload.status)
     log_activity(db, resource, obj.id, "status", f"Status → {payload.status}", actor_id=user.id, metadata={"note": payload.note})
@@ -205,7 +210,7 @@ def archive_resource_authorized(resource: str, item_id: int, reason: str = "manu
     if not hasattr(obj, "hidden_from_active"):
         raise HTTPException(status_code=400, detail="Resource cannot be archived")
     obj.hidden_from_active = True
-    obj.archived_at = datetime.utcnow()
+    obj.archived_at = utc_now()
     obj.archive_reason = reason
     log_activity(db, resource, obj.id, "archived", reason, actor_id=user.id)
     _commit_or_conflict(db)

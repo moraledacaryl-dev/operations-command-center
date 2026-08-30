@@ -1,14 +1,36 @@
 [Unit]
 Description=Operations Command Center Frontend
-After=network.target operations-backend.service
+After=network-online.target operations-backend.service
+Wants=network-online.target
 
 [Service]
-User=root
-WorkingDirectory=/opt/operations-command-center/current/frontend
+Type=simple
+User=operations
+Group=operations
+WorkingDirectory=/opt/operations-command-center/current/frontend/.next/standalone
 EnvironmentFile=/etc/hiddenoasis/operations.env
-ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1 --port 3200
-Restart=always
+EnvironmentFile=-/opt/operations-command-center/current/release.env
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3200
+UMask=0077
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
 RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/cache/operations-command-center/frontend
 
 [Install]
 WantedBy=multi-user.target

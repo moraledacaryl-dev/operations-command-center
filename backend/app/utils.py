@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, Iterable, Optional
 from sqlalchemy import DateTime, inspect
 from . import models
+from .clock import UTCDateTime, as_utc, utc_now
 
 SENSITIVE_MODEL_FIELDS = {"password_hash"}
 
@@ -15,11 +16,11 @@ def parse_datetime(value: Any) -> Any:
     if isinstance(value, str):
         normalized = value.replace("Z", "+00:00")
         try:
-            return datetime.fromisoformat(normalized).replace(tzinfo=None)
+            return as_utc(datetime.fromisoformat(normalized))
         except ValueError:
             # Accept YYYY-MM-DD from date inputs.
             try:
-                return datetime.fromisoformat(value + "T00:00:00")
+                return as_utc(datetime.fromisoformat(value + "T00:00:00"))
             except ValueError:
                 return value
     return value
@@ -32,7 +33,7 @@ def model_to_dict(obj: Any) -> Dict[str, Any]:
             continue
         value = getattr(obj, column.key)
         if isinstance(value, datetime):
-            out[column.key] = value.isoformat()
+            out[column.key] = as_utc(value).isoformat().replace("+00:00", "Z")
         else:
             out[column.key] = value
     return out
@@ -49,7 +50,7 @@ def apply_payload(obj: Any, payload: Dict[str, Any], excluded: Optional[set] = N
         if key in excluded or key not in columns:
             continue
         column = columns[key]
-        if isinstance(column.type, DateTime):
+        if isinstance(column.type, (DateTime, UTCDateTime)):
             value = parse_datetime(value)
         setattr(obj, key, value)
     return obj
@@ -71,6 +72,6 @@ def log_activity(db, entity_type: str, entity_id: int, action: str, message: str
 def mark_completed_if_needed(obj: Any, status: str):
     done_statuses = {"Done", "Verified", "Posted", "Approved", "Rejected", "OK"}
     if status in done_statuses and hasattr(obj, "completed_at") and not getattr(obj, "completed_at", None):
-        obj.completed_at = models.utcnow()
+        obj.completed_at = utc_now()
     if status not in done_statuses and hasattr(obj, "completed_at"):
         obj.completed_at = None

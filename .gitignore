@@ -3,6 +3,7 @@ node_modules
 .venv
 __pycache__
 *.pyc
+*.tsbuildinfo
 command_center.db
 uploads/*
 !uploads/.gitkeep

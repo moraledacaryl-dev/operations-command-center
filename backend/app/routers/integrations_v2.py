@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..auth import normalize_email
+from ..clock import utc_now
 from ..database import get_db
 from ..foundation_models import IntegrationEventInbox
 from ..integration_models import ExternalUserIdentity, IntegrationDelivery
@@ -279,7 +280,7 @@ def receive_event(
             external_event_id=event_id,
             event_type=event.event_type,
             payload_json=json.dumps(payload, default=str),
-            processed_at=datetime.utcnow(),
+            processed_at=utc_now(),
             attempts=1,
         )
     )
@@ -300,7 +301,7 @@ def receive_event(
     )
     db.add(review_item)
     delivery.status = "processed"
-    delivery.processed_at = datetime.utcnow()
+    delivery.processed_at = utc_now()
 
     try:
         db.commit()
@@ -353,7 +354,7 @@ def link_identity(
     row.external_email = normalize_email(payload.email) or None
     row.external_name = payload.display_name
     row.status = payload.status or "active"
-    row.last_seen_at = datetime.utcnow()
+    row.last_seen_at = utc_now()
     db.commit()
 
     return IdentityLinkResponse(

@@ -7,6 +7,7 @@ import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
 import { Drawer } from '@/components/Drawer';
+import { Tabs } from '@/components/Tabs';
 
 const sources = [
   ['external', 'Imported'],
@@ -114,7 +115,10 @@ export default function ReviewPage() {
         if (action === 'Approval') await api.externalCreateApproval(selected.id, { note: note.trim() || undefined });
         if (action === 'Rejected') await api.externalReject(selected.id, { note: note.trim() });
       } else if (kind === 'Verify') await api.verifyFix(selected.id, { note: note.trim() });
-      else if (kind === 'Posts') await api.status('posts', selected.id, action, note.trim() || undefined);
+      else if (kind === 'Posts') {
+        const workflowAction = action === 'OK' ? 'approve' : 'request-revision';
+        await api.workflowAction('posts', selected.id, workflowAction, { note: note.trim() || undefined });
+      }
       setSelected(null);
       await load();
     } catch (err: any) {
@@ -145,9 +149,7 @@ export default function ReviewPage() {
       <div className="toolbar" style={{ marginTop: 12 }}>
         <input className="input" placeholder="Search decisions" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
-      <div className="tabs">
-        {['All', ...sources.map(([, label]) => label)].map(label => <button key={label} className={`tab ${filter === label ? 'active' : ''}`} onClick={() => setFilter(label)}>{label}</button>)}
-      </div>
+      <Tabs values={['All', ...sources.map(([, label]) => label)]} active={filter} onChange={setFilter} label="Decision source" />
     </section>
 
     <section className="panel">

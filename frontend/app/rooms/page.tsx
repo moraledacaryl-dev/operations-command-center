@@ -11,10 +11,24 @@ export default function RoomsPage() {
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState('All');
   const [error, setError] = useState('');
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    api.list('rooms', { active: false }).then(setRooms).catch((err: any) => setError(err.message || 'Rooms could not be loaded.'));
-  }, []);
+  async function load(cursor?: string | null) {
+    setLoading(true);
+    setError('');
+    try {
+      const page = await api.page('rooms', { active: false, limit: 30, cursor: cursor || '' });
+      setRooms(existing => cursor ? [...existing, ...page.items] : page.items);
+      setNextCursor(page.next_cursor || null);
+    } catch (err: any) {
+      setError(err.message || 'Rooms could not be loaded.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
 
   const kinds = useMemo(() => ['All', ...Array.from(new Set(rooms.map(room => String(room.kind || 'Room'))))], [rooms]);
   const visible = useMemo(() => rooms.filter(room => {
@@ -41,5 +55,6 @@ export default function RoomsPage() {
       </Link>)}
       {!visible.length ? <div className="empty">No matching rooms or areas.</div> : null}
     </div>
+    {nextCursor ? <div className="load-more"><button className="btn secondary" disabled={loading} onClick={() => void load(nextCursor)}>{loading ? 'Loading…' : 'Load more spaces'}</button><span className="muted" aria-live="polite">{rooms.length} spaces loaded</span></div> : null}
   </>;
 }

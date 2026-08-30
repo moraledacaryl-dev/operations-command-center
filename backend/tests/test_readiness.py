@@ -13,6 +13,7 @@ def test_livez_is_independent_of_dependencies():
     assert readiness.livez() == {
         "status": "ok",
         "app": "Manager Operations Command Center",
+        "release_sha": readiness.RELEASE_SHA,
     }
 
 

@@ -35,7 +35,12 @@ def test_production_deploy_checks_readiness_and_real_hashed_asset():
     assert "npm ci" in deploy
     assert "_next/static" in deploy
     assert "operations-frontend" in deploy
-    assert "127.0.0.1:3200" in deploy
+    assert 'RELEASE="$RELEASES_DIR/$CANDIDATE_SHA"' in deploy
+    assert "release-manifest.json" in deploy
+    assert 'ln -sfn "$RELEASE" "$CURRENT"' in deploy
+    assert "git reset --hard" not in deploy
+    assert 'OPERATIONS_SMOKE_BASE="$PUBLIC_URL/api"' in deploy
+    assert "OPERATIONS_EXPECTED_SHA" in deploy
 
 
 def test_production_deploy_isolates_pytest_from_production_secrets():
@@ -43,7 +48,8 @@ def test_production_deploy_isolates_pytest_from_production_secrets():
     assert "-u SESSION_SECRET" in deploy
     assert "-u INTEGRATION_API_KEY" in deploy
     assert "ENVIRONMENT=local" in deploy
-    assert "DATABASE_URL=sqlite:////tmp/operations-deploy-tests.db" in deploy
+    assert 'TEST_DB="$(mktemp /tmp/operations-deploy-tests.' in deploy
+    assert 'DATABASE_URL="sqlite:///$TEST_DB"' in deploy
 
 
 def test_production_deploy_normalizes_sqlalchemy_url_for_pg_dump():
@@ -53,3 +59,22 @@ def test_production_deploy_normalizes_sqlalchemy_url_for_pg_dump():
     assert 'url.set(drivername="postgresql")' in deploy
     assert 'pg_dump --format=custom --no-owner --no-acl --dbname="$PG_DUMP_URL"' in deploy
     assert "unset PG_DUMP_URL" in deploy
+
+
+def test_compose_exposes_only_same_origin_gateway_and_uses_one_shot_migration():
+    compose = (REPO_ROOT / "docker-compose.yml").read_text()
+    assert "gateway:" in compose
+    assert "migrate:" in compose
+    assert "service_completed_successfully" in compose
+    assert "NEXT_PUBLIC_API_BASE" not in compose
+    assert compose.count("ports:") == 1
+
+
+def test_operations_systemd_units_are_non_root_and_hardened():
+    for name in ("operations-backend.service", "operations-frontend.service"):
+        unit = (REPO_ROOT / "deployment" / "systemd" / name).read_text()
+        assert "User=operations" in unit
+        assert "NoNewPrivileges=true" in unit
+        assert "ProtectSystem=strict" in unit
+        assert "ProtectHome=true" in unit
+        assert "CapabilityBoundingSet=" in unit

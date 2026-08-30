@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from .client_ip import TrustedProxySettings, trusted_client_ip
+from .clock import utc_now
 
 
 logger = logging.getLogger("operations.security")
@@ -38,14 +39,6 @@ def _ensure_request_id(scope, headers: dict[str, str]) -> str:
     return correlation_id
 
 
-def _client_ip(scope, headers: dict[str, str]) -> str:
-    forwarded = headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
-    if forwarded:
-        return forwarded[:64]
-    client = scope.get("client")
-    return str(client[0])[:64] if client else "unknown"
-
-
 def _auth_mode(headers: dict[str, str]) -> str:
     authorization = headers.get("authorization", "")
     if authorization.startswith("Bearer "):
@@ -60,8 +53,9 @@ def _auth_mode(headers: dict[str, str]) -> str:
 class SecurityAuditMiddleware:
     """Emit structured, secret-free security events to the service journal."""
 
-    def __init__(self, app):
+    def __init__(self, app, proxy_settings: TrustedProxySettings | None = None):
         self.app = app
+        self.proxy_settings = proxy_settings or TrustedProxySettings.from_env()
 
     async def __call__(self, scope, receive, send):
         if scope.get("type") != "http":
@@ -91,11 +85,11 @@ class SecurityAuditMiddleware:
 
         event = {
             "event": "security_response",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": utc_now().isoformat().replace("+00:00", "Z"),
             "status": status_code,
             "method": str(scope.get("method", ""))[:16],
             "path": str(scope.get("path", ""))[:512],
-            "client_ip": _client_ip(scope, headers),
+            "client_ip": trusted_client_ip(scope, self.proxy_settings),
             "auth_mode": _auth_mode(headers),
             "request_id": response_request_id or correlation_id,
             "origin": headers.get("origin", "")[:256],

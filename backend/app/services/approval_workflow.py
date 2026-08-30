@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..authorization_policy import Action, authorize_action
+from ..clock import utc_now
 from ..utils import log_activity
 
 
@@ -26,7 +27,7 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
     if approval.status != "Pending":
         raise HTTPException(status_code=409, detail="Approval has already been decided")
 
-    now = models.utcnow()
+    now = utc_now()
     approval.status = decision
     approval.decided_by_id = user.id
     approval.decided_at = now

@@ -1,16 +1,12 @@
-from datetime import datetime, timezone
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
+from .clock import UTCDateTime as DateTime, utc_now
 from .database import Base
 
 
-def utcnow():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
 class TimestampMixin:
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 
 class ArchiveMixin:
@@ -215,7 +211,7 @@ class Submission(Base, TimestampMixin, ArchiveMixin):
     source_type = Column(String(40), nullable=True)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     submitted_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    submitted_at = Column(DateTime, default=utcnow, nullable=False)
+    submitted_at = Column(DateTime, default=utc_now, nullable=False)
     requires_review = Column(Boolean, default=True, nullable=False)
     review_status = Column(String(40), default="New", nullable=False)
     reviewed_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -333,4 +329,4 @@ class ActivityLog(Base):
     action = Column(String(80), nullable=False)
     message = Column(Text, nullable=True)
     metadata_json = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)

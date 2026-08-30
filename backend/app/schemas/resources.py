@@ -1,9 +1,23 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
+
+from ..domain_values import (
+    ContentFormat,
+    Platform,
+    PostStatus,
+    Priority,
+    ProjectStatus,
+    RoomKind,
+    RoomStatus,
+    ShiftStatus,
+    TaskStatus,
+    GuestStatus,
+    WORKFLOW_RESOURCES,
+)
 
 
 class StrictResourcePayload(BaseModel):
@@ -54,8 +68,8 @@ RESOURCE_CREATE_SCHEMAS = {
     }),
     "rooms": _schema("RoomCreatePayload", {
         "name": _required_text(80),
-        "kind": (str, Field(default="room", min_length=1, max_length=20)),
-        "status": (str, Field(default="active", min_length=1, max_length=40)),
+        "kind": (RoomKind, RoomKind.ROOM),
+        "status": (RoomStatus, RoomStatus.ACTIVE),
         "note": (str | None, None),
     }),
     "requests": _schema("RequestCreatePayload", {
@@ -63,10 +77,9 @@ RESOURCE_CREATE_SCHEMAS = {
         "department_id": _optional_int(),
         "assigned_to_id": _optional_int(),
         "request_type": (str, Field(default="General", min_length=1, max_length=60)),
-        "urgency": (str, Field(default="Normal", min_length=1, max_length=20)),
-        "status": _optional_text(40),
+        "urgency": (Priority, Priority.NORMAL),
+        "status": (Literal["Draft"] | None, None),
         "reason": (str | None, None),
-        "decision": (str | None, None),
         "linked_task_id": _optional_int(),
         "linked_project_id": _optional_int(),
         "external_accounting_ref": _optional_text(180),
@@ -94,7 +107,7 @@ RESOURCE_CREATE_SCHEMAS = {
         "frequency": (str, Field(default="Weekly", min_length=1, max_length=40)),
         "checklist": (str | None, None),
         "status": (str, Field(default="Active", min_length=1, max_length=40)),
-        "priority": (str, Field(default="Normal", min_length=1, max_length=20)),
+        "priority": (Priority, Priority.NORMAL),
         "last_generated_at": _optional_datetime(),
     }),
     "projects": _schema("ProjectCreatePayload", {
@@ -103,8 +116,8 @@ RESOURCE_CREATE_SCHEMAS = {
         "owner_id": _optional_int(),
         "start_date": _optional_datetime(),
         "due_date": _optional_datetime(),
-        "status": (str, Field(default="Planned", min_length=1, max_length=40)),
-        "priority": (str, Field(default="Normal", min_length=1, max_length=20)),
+        "status": (Literal["Planned"], "Planned"),
+        "priority": (Priority, Priority.NORMAL),
         "note": (str | None, None),
     }),
     "tasks": _schema("TaskCreatePayload", {
@@ -117,8 +130,8 @@ RESOURCE_CREATE_SCHEMAS = {
         "linked_fix_id": _optional_int(),
         "linked_post_id": _optional_int(),
         "due_date": _optional_datetime(),
-        "status": (str, Field(default="To Do", min_length=1, max_length=40)),
-        "priority": (str, Field(default="Normal", min_length=1, max_length=20)),
+        "status": (Literal["To Do"], "To Do"),
+        "priority": (Priority, Priority.NORMAL),
         "note": (str | None, None),
     }),
     "shift-notes": _schema("ShiftNoteCreatePayload", {
@@ -126,14 +139,12 @@ RESOURCE_CREATE_SCHEMAS = {
         "shift": _optional_text(40),
         "category": _optional_text(40),
         "department_id": _optional_int(),
-        "urgency": (str, Field(default="Normal", min_length=1, max_length=20)),
-        "status": (str, Field(default="New", min_length=1, max_length=40)),
+        "urgency": (Priority, Priority.NORMAL),
+        "status": (Literal["New"], "New"),
         "note": (str | None, None),
         "linked_task_id": _optional_int(),
         "linked_guest_note_id": _optional_int(),
         "linked_fix_id": _optional_int(),
-        "seen_by_id": _optional_int(),
-        "seen_at": _optional_datetime(),
     }),
     "guests": _schema("GuestNoteCreatePayload", {
         "title": _required_text(180),
@@ -141,8 +152,8 @@ RESOURCE_CREATE_SCHEMAS = {
         "room_area_id": _optional_int(),
         "guest_name": _optional_text(120),
         "issue_type": _optional_text(40),
-        "urgency": (str, Field(default="Normal", min_length=1, max_length=20)),
-        "status": (str, Field(default="Open", min_length=1, max_length=40)),
+        "urgency": (Priority, Priority.NORMAL),
+        "status": (Literal["Open"], "Open"),
         "assigned_to_id": _optional_int(),
         "action_taken": (str | None, None),
         "follow_up_date": _optional_datetime(),
@@ -155,8 +166,8 @@ RESOURCE_CREATE_SCHEMAS = {
         "department_id": _optional_int(),
         "room_area_id": _optional_int(),
         "problem": (str | None, None),
-        "urgency": (str, Field(default="Normal", min_length=1, max_length=20)),
-        "status": _optional_text(40),
+        "urgency": (Priority, Priority.NORMAL),
+        "status": (Literal["Open"] | None, None),
         "assigned_to_id": _optional_int(),
         "note": (str | None, None),
         "linked_guest_note_id": _optional_int(),
@@ -165,13 +176,13 @@ RESOURCE_CREATE_SCHEMAS = {
     "posts": _schema("PostCreatePayload", {
         "title": _required_text(180),
         "department_id": _optional_int(),
-        "platform": _optional_text(40),
+        "platform": (Platform | None, None),
         "post_date": _optional_datetime(),
-        "content_type": _optional_text(40),
+        "content_type": (ContentFormat | None, None),
         "assigned_to_id": _optional_int(),
         "project_id": _optional_int(),
         "campaign": _optional_text(120),
-        "status": (str, Field(default="Idea", min_length=1, max_length=40)),
+        "status": (Literal["Idea"], "Idea"),
         "caption": (str | None, None),
         "final_url": (str | None, None),
         "results_json": (str | None, None),
@@ -183,7 +194,7 @@ RESOURCE_CREATE_SCHEMAS = {
         "source_id": _optional_int(),
         "department_id": _optional_int(),
         "status": _optional_text(40),
-        "priority": (str, Field(default="Normal", min_length=1, max_length=20)),
+        "priority": (Priority, Priority.NORMAL),
         "decision_note": (str | None, None),
         "note": (str | None, None),
     }),
@@ -221,7 +232,7 @@ RESOURCE_CREATE_SCHEMAS = {
         "department_id": _optional_int(),
         "title": _required_text(180),
         "summary": (str | None, None),
-        "priority": (str, Field(default="Normal", min_length=1, max_length=20)),
+        "priority": (Priority, Priority.NORMAL),
         "status": (str, Field(default="For Review", min_length=1, max_length=40)),
         "payload_json": (str | None, None),
         "linked_task_id": _optional_int(),
@@ -236,7 +247,7 @@ RESOURCE_CREATE_SCHEMAS = {
 def _patch_schema(resource: str, create_schema: type[BaseModel]) -> type[BaseModel]:
     fields: dict[str, tuple[Any, Any]] = {}
     for name, field in create_schema.model_fields.items():
-        if resource == "tasks" and name == "status":
+        if resource in WORKFLOW_RESOURCES and name == "status":
             continue
         annotation = field.annotation
         if annotation is not None and type(None) not in getattr(annotation, "__args__", ()):
@@ -257,7 +268,7 @@ def validate_resource_payload(resource: str, payload: dict[str, Any], *, patch: 
     if schema is None:
         raise KeyError(resource)
     validated = schema.model_validate(payload)
-    return validated.model_dump(exclude_unset=True)
+    return validated.model_dump(exclude_unset=True, mode="json")
 
 
 __all__ = [

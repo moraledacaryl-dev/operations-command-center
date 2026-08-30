@@ -4,6 +4,26 @@ from app.main import app
 
 
 class RouteOrderingTests(unittest.TestCase):
+    def test_every_method_and_path_pair_is_registered_once(self):
+        seen = set()
+        duplicates = []
+        for route in app.routes:
+            for method in getattr(route, "methods", set()):
+                key = (method, getattr(route, "path", None))
+                if key in seen:
+                    duplicates.append(key)
+                seen.add(key)
+        self.assertEqual(duplicates, [], f"Duplicate route registrations: {duplicates}")
+
+    def test_openapi_operation_ids_are_unique(self):
+        operation_ids = [
+            operation["operationId"]
+            for path in app.openapi()["paths"].values()
+            for operation in path.values()
+            if isinstance(operation, dict) and "operationId" in operation
+        ]
+        self.assertEqual(len(operation_ids), len(set(operation_ids)))
+
     def test_review_queue_is_registered_before_generic_item_route(self):
         paths = [getattr(route, "path", None) for route in app.routes]
         review_index = paths.index("/api/review/queue")

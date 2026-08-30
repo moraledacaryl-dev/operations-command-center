@@ -97,6 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const isLogin = path === '/login';
+  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/posts', '/history', '/approvals', '/approve', '/my-work', '/admin'].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -134,6 +135,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const deptOptions = user?.departments || [];
   const currentDept = deptOptions.find((d: Entity) => Number(d.id) === Number(deptId)) || deptOptions[0];
   const visibleAdminItems = adminItems.filter(item => hasCapability(user, item.capability));
+  const canOpenMarketing = hasCapability(user, 'view_all_operations') || deptOptions.some((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
+  const visibleGroups = groups.map(group => ({
+    ...group,
+    items: group.items.filter(item => item.href !== '/posts' || canOpenMarketing),
+  })).filter(group => group.items.length);
 
   function changeDept(value: string) {
     const id = Number(value);
@@ -156,6 +162,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (isLogin) return <>{children}</>;
+  if (!isKnownRoute) return <>{children}</>;
   if (!user) return <SignInRequired />;
 
   return (
@@ -210,7 +217,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {primaryItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}
           </div>
 
-          {groups.map(group => (
+          {visibleGroups.map(group => (
             <div className="nav-group" key={group.label}>
               <span className="nav-label">{group.label}</span>
               {group.items.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}

@@ -2,25 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import ipaddress
 import json
 import math
 import os
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Callable, Protocol
 
-from sqlalchemy import Column, DateTime, Index, Integer, MetaData, String, Table, delete, func, select
+from sqlalchemy import Column, Index, Integer, String, Table, delete, func, select
 from starlette.responses import JSONResponse
 
 from .auth import normalize_email
+from .client_ip import TrustedProxySettings, trusted_client_ip
+from .clock import UTCDateTime, utc_now
 from .database import Base, SessionLocal
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 login_failure_events = Table(
@@ -28,7 +25,7 @@ login_failure_events = Table(
     Base.metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("key_hash", String(64), nullable=False),
-    Column("occurred_at", DateTime, nullable=False),
+    Column("occurred_at", UTCDateTime, nullable=False),
     Index("ix_login_failure_events_key_time", "key_hash", "occurred_at"),
     extend_existing=True,
 )
@@ -74,7 +71,7 @@ class DatabaseLoginFailureStore:
 
     def __init__(self, settings: LoginRateLimitSettings, clock: Callable[[], datetime] | None = None):
         self.settings = settings
-        self.clock = clock or _utcnow
+        self.clock = clock or utc_now
 
     async def retry_after(self, key: tuple[str, str]) -> int:
         now = self.clock()
@@ -160,32 +157,14 @@ class MemoryLoginFailureStore:
             self._blocked_until.pop(key, None)
 
 
-def _headers(scope) -> dict[str, str]:
-    return {
-        key.decode("latin-1").lower(): value.decode("latin-1")
-        for key, value in scope.get("headers", [])
-    }
-
-
-def _valid_ip(value: str) -> str | None:
-    try:
-        return str(ipaddress.ip_address(value.strip()))
-    except ValueError:
-        return None
-
-
 def client_ip(scope, settings: LoginRateLimitSettings) -> str:
-    peer = ""
-    client = scope.get("client")
-    if client:
-        peer = _valid_ip(str(client[0] or "")) or ""
-
-    if not settings.trust_proxy_headers or peer not in settings.trusted_proxy_ips:
-        return peer or "unknown"
-
-    forwarded = _headers(scope).get("x-forwarded-for", "")
-    candidate = _valid_ip(forwarded.split(",", 1)[0]) if forwarded else None
-    return candidate or peer or "unknown"
+    return trusted_client_ip(
+        scope,
+        TrustedProxySettings(
+            trust_proxy_headers=settings.trust_proxy_headers,
+            trusted_proxy_ips=settings.trusted_proxy_ips,
+        ),
+    )
 
 
 async def _read_body(receive) -> bytes:

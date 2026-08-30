@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..authorization_policy import Action, authorize_action
+from ..clock import utc_now
 from ..utils import log_activity
 
 ALLOWED_DECISIONS = {"Accepted", "Rejected"}
@@ -38,7 +39,7 @@ def decide_submission(
     if submission.review_status != "New":
         raise HTTPException(status_code=409, detail="This submission has already been decided.")
 
-    now = models.utcnow()
+    now = utc_now()
     submission.review_status = decision
     submission.reviewed_by_id = user.id
     submission.reviewed_at = now

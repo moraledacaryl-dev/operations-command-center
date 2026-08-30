@@ -1,16 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from sqlalchemy.orm import Session
 from . import models
+from .clock import utc_now
 
 
 def _hide(obj, reason: str):
     obj.hidden_from_active = True
-    obj.archived_at = datetime.utcnow()
+    obj.archived_at = utc_now()
     obj.archive_reason = reason
 
 
 def run_auto_archive(db: Session) -> dict:
-    now = datetime.utcnow()
+    now = utc_now()
     counts = {
         "tasks": 0,
         "guests": 0,

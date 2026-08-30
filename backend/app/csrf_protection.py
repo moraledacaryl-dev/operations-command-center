@@ -6,6 +6,8 @@ from urllib.parse import urlparse
 
 from starlette.responses import JSONResponse
 
+from .security import load_security_settings
+
 
 COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "operations_session")
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -13,8 +15,10 @@ EXEMPT_PATHS = {"/api/auth/login"}
 
 
 def _configured_origins() -> set[str]:
-    raw = os.getenv("ALLOWED_ORIGINS", os.getenv("CORS_ALLOWED_ORIGINS", ""))
-    return {value.strip().rstrip("/") for value in raw.split(",") if value.strip()}
+    if "CORS_ALLOWED_ORIGINS" in os.environ and "ALLOWED_ORIGINS" not in os.environ:
+        raw = os.environ["CORS_ALLOWED_ORIGINS"]
+        return {value.strip().rstrip("/") for value in raw.split(",") if value.strip()}
+    return {value.rstrip("/") for value in load_security_settings().allowed_origins}
 
 
 def _headers(scope) -> dict[str, str]:
@@ -60,15 +64,6 @@ def _request_origin(headers: dict[str, str]) -> str | None:
     return _origin_from_referer(headers.get("referer", ""))
 
 
-def _allowed_origins(headers: dict[str, str]) -> set[str]:
-    allowed = _configured_origins()
-    host = headers.get("x-forwarded-host") or headers.get("host")
-    proto = headers.get("x-forwarded-proto", "https").split(",", 1)[0].strip()
-    if host and proto in {"http", "https"}:
-        allowed.add(f"{proto}://{host}".rstrip("/"))
-    return allowed
-
-
 class CsrfProtectionMiddleware:
     """Reject cross-site state changes made with the browser session cookie.
 
@@ -78,6 +73,7 @@ class CsrfProtectionMiddleware:
 
     def __init__(self, app):
         self.app = app
+        self.allowed_origins = _configured_origins()
 
     async def __call__(self, scope, receive, send):
         if scope.get("type") != "http":
@@ -96,7 +92,7 @@ class CsrfProtectionMiddleware:
             return
 
         origin = _request_origin(headers)
-        if not origin or origin not in _allowed_origins(headers):
+        if not origin or origin not in self.allowed_origins:
             response = JSONResponse(
                 status_code=403,
                 content={"detail": "Cross-site request rejected. Refresh the page and try again."},

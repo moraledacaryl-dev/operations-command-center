@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { Drawer } from '@/components/Drawer';
+import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
@@ -27,6 +28,7 @@ export default function GuestMattersPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<Entity>({ ...emptyForm });
+  const [actionNote, setActionNote] = useState('');
   const { departmentId, hydrated } = useActiveDepartment();
   const beginRequest = useLatestRequest();
 
@@ -79,9 +81,9 @@ export default function GuestMattersPage() {
     finally { setBusy(false); }
   }
 
-  async function move(status: string) {
+  async function move(action: string) {
     if (!selected || busy) return; setBusy(true);
-    try { await api.status('guests', selected.id, status); setSelected({ ...selected, status }); await load(); }
+    try { const updated = await api.workflowAction('guests', selected.id, action, { note: actionNote.trim() || null }); setSelected({ ...selected, ...updated }); setActionNote(''); await load(); }
     catch (err: any) { setError(err.message || 'Guest matter could not be updated.'); }
     finally { setBusy(false); }
   }
@@ -114,10 +116,10 @@ export default function GuestMattersPage() {
       <label className="label">Recovery action / context<textarea className="textarea" value={String(form.note || '')} onChange={e => setForm({ ...form, note: e.target.value })} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !String(form.title || '').trim()} onClick={createMatter}>{busy ? 'Saving…' : 'Save matter'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
-    <div className="tabs" style={{ marginBottom: 16 }}>{['Active', 'Urgent', 'Open', 'Follow', 'Done', 'All'].map(value => <button className={`tab ${filter === value ? 'active' : ''}`} key={value} onClick={() => setFilter(value)}>{value}</button>)}</div>
-    <div className="grid cols-3">{visible.map(item => <button type="button" className={`card ${['Urgent', 'High'].includes(String(item.urgency)) && item.status !== 'Done' ? 'card-important' : ''}`} key={item.id} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}><strong className="card-title">{item.title}</strong><span className="card-line"><Pill value={String(item.status || 'Open')} /><Pill value={String(item.urgency || 'Normal')} /><Pill value={String(item.issue_type || 'Guest')} /></span><span className="muted">{item.guest_name || 'Guest not recorded'} · {roomName(item.room_area_id)}</span><span className="muted">Follow-up: {dateLabel(item.follow_up_date)}</span></button>)}{!visible.length ? <div className="empty">No guest matters in this view.</div> : null}</div>
+    <Tabs values={['Active', 'Urgent', 'Open', 'Follow', 'Done', 'All']} active={filter} onChange={setFilter} label="Guest matter filters" />
+    <div className="grid cols-3">{visible.map(item => <button type="button" className={`card ${['Urgent', 'High'].includes(String(item.urgency)) && item.status !== 'Done' ? 'card-important' : ''}`} key={item.id} onClick={async () => { try { setSelected(await api.get('guests', item.id)); } catch (err: any) { setError(err.message || 'Guest matter could not be opened.'); } }} style={{ textAlign: 'left' }}><strong className="card-title">{item.title}</strong><span className="card-line"><Pill value={String(item.status || 'Open')} /><Pill value={String(item.urgency || 'Normal')} /><Pill value={String(item.issue_type || 'Guest')} /></span><span className="muted">{item.guest_name || 'Guest not recorded'} · {roomName(item.room_area_id)}</span><span className="muted">Follow-up: {dateLabel(item.follow_up_date)}</span></button>)}{!visible.length ? <div className="empty">No guest matters in this view.</div> : null}</div>
     <Drawer item={selected} title="Guest matter" onClose={() => setSelected(null)}>
-      {selected ? <><section className="panel" style={{ marginBottom: 16 }}><div className="eyebrow">Service recovery</div><h2>{selected.guest_name || 'Guest'} · {roomName(selected.room_area_id)}</h2><p>{selected.note || 'No recovery note yet.'}</p><p className="muted">Follow-up: {dateLabel(selected.follow_up_date)}</p><div className="card-line"><Pill value={String(selected.issue_type || 'Guest')} /><Pill value={String(selected.urgency || 'Normal')} /><Pill value={String(selected.status || 'Open')} /></div></section><section className="panel"><h2>Next action</h2><div className="toolbar"><button className="btn small" disabled={busy || selected.status === 'Follow'} onClick={() => move('Follow')}>Needs follow-up</button><button className="btn small secondary" disabled={busy} onClick={createFix}>Create maintenance</button><button className="btn small secondary" disabled={busy || selected.status === 'Done'} onClick={() => move('Done')}>Resolve</button></div></section></> : null}
+      {selected ? <><section className="panel" style={{ marginBottom: 16 }}><div className="eyebrow">Service recovery</div><h2>{selected.guest_name || 'Guest'} · {roomName(selected.room_area_id)}</h2><p>{selected.note || 'No recovery note yet.'}</p><p className="muted">Follow-up: {dateLabel(selected.follow_up_date)}</p><div className="card-line"><Pill value={String(selected.issue_type || 'Guest')} /><Pill value={String(selected.urgency || 'Normal')} /><Pill value={String(selected.status || 'Open')} /></div></section><section className="panel"><h2>Next action</h2>{(selected.allowed_actions || []).includes('reopen') ? <label className="label">Reopen reason<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} /></label> : null}<div className="toolbar">{(selected.allowed_actions || []).map((action: string) => <button className="btn small secondary" disabled={busy || (action === 'reopen' && !actionNote.trim())} key={action} onClick={() => move(action)}>{({ 'follow-up': 'Needs follow-up', 'resolve-open': 'Resolve', 'resolve-follow': 'Resolve', reopen: 'Reopen' } as Record<string, string>)[action] || action}</button>)}<button className="btn small secondary" disabled={busy} onClick={createFix}>Create maintenance</button></div></section></> : null}
     </Drawer>
   </>;
 }

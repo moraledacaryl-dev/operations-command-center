@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,8 +9,10 @@ from sqlalchemy.orm import Session
 from .. import models
 from ..auth import hash_password, normalize_email, verify_password
 from ..authorization_policy import department_ids_for
+from ..clock import utc_now
 from ..capabilities import has_capability
 from ..database import get_db
+from ..pagination import cursor_page
 from ..user_dto import AdminUserResponse, CurrentUserResponse, admin_user, current_user, operational_user
 from ..utils import log_activity, model_to_dict, serialize_many
 from .api import (
@@ -44,7 +45,7 @@ def login(payload: LoginPayload, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Password is not set for this account yet.")
     if not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid login")
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = utc_now()
     db.commit()
     data = current_user(db, user).model_dump(mode="json")
     data["token"] = sign_token(
@@ -74,6 +75,23 @@ def users(
     return [admin_user(db, candidate) for candidate in query.limit(limit).all()]
 
 
+@router.get("/users/page")
+def users_page(
+    active: bool = Query(default=True),
+    q: Optional[str] = Query(default=None),
+    limit: Annotated[int, Query(ge=1, le=100)] = 30,
+    cursor: Optional[str] = Query(default=None),
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    require_capability(user, "view_sensitive_user_metadata")
+    query = active_filter(db.query(models.User), models.User, active)
+    query = apply_search(query, models.User, "users", q)
+    page = cursor_page(query, models.User, "users", limit, cursor)
+    page["items"] = [admin_user(db, db.get(models.User, item["id"])).model_dump(mode="json") for item in page["items"]]
+    return page
+
+
 @router.post("/admin/users", response_model=AdminUserResponse)
 def create_user(
     payload: AdminUserCreatePayload,
@@ -97,7 +115,7 @@ def create_user(
         department_id=payload.department_id,
         is_active=bool(payload.is_active),
         password_hash=hash_password(payload.password),
-        password_set_at=datetime.utcnow(),
+        password_set_at=utc_now(),
     )
     db.add(new_user)
     db.flush()

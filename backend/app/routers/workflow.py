@@ -11,8 +11,10 @@ from ..database import get_db
 from ..services.approval_workflow import decide_approval
 from ..services.external_review_workflow import create_approval, create_task, mark_seen, reject_item
 from ..services.fix_workflow import finish_fix, reopen_fix, start_fix, verify_fix
+from ..services.guest_workflow import create_fix_from_guest
 from ..services.request_workflow import complete_request, plan_request, submit_request
 from ..services.submission_workflow import decide_submission
+from ..services.operational_workflow import allowed_actions_for, transition_operational
 from ..utils import model_to_dict
 from .api import require_user
 
@@ -33,6 +35,44 @@ class SubmissionDecisionCommand(BaseModel):
 
     status: Literal["Accepted", "Rejected"]
     note: str | None = None
+
+
+def _operational_result(db: Session, user: models.User, resource: str, item_id: int, action: str, note: str | None):
+    obj = transition_operational(db, user, resource, item_id, action, note)
+    result = model_to_dict(obj)
+    result["allowed_actions"] = allowed_actions_for(db, user, resource, obj)
+    return result
+
+
+@router.post("/workflow/tasks/{item_id}/{action}")
+def task_transition(item_id: int, action: Literal["start", "submit-review", "request-changes", "complete", "reopen"], payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    return _operational_result(db, user, "tasks", item_id, action, payload.note)
+
+
+@router.post("/workflow/projects/{item_id}/{action}")
+def project_transition(item_id: int, action: Literal["start", "pause", "resume", "complete", "reopen"], payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    return _operational_result(db, user, "projects", item_id, action, payload.note)
+
+
+@router.post("/workflow/posts/{item_id}/{action}")
+def post_transition(item_id: int, action: Literal["start-draft", "submit-review", "resubmit-review", "request-revision", "approve", "schedule", "publish", "return-draft-from-fix", "return-draft-from-ok", "return-draft-from-set", "reopen"], payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    return _operational_result(db, user, "posts", item_id, action, payload.note)
+
+
+@router.post("/workflow/guests/{item_id}/create-fix")
+def guest_create_fix(item_id: int, payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    guest, fix = create_fix_from_guest(db, user, item_id, payload.department_id, payload.note)
+    return {"guest": model_to_dict(guest), "fix": model_to_dict(fix)}
+
+
+@router.post("/workflow/guests/{item_id}/{action}")
+def guest_transition(item_id: int, action: Literal["follow-up", "resolve-open", "resolve-follow", "reopen"], payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    return _operational_result(db, user, "guests", item_id, action, payload.note)
+
+
+@router.post("/workflow/shift-notes/{item_id}/{action}")
+def shift_transition(item_id: int, action: Literal["acknowledge", "follow-up-new", "follow-up-seen", "resolve-new", "resolve-seen", "resolve-follow", "reopen"], payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    return _operational_result(db, user, "shift-notes", item_id, action, payload.note)
 
 
 @router.post("/workflow/requests/{request_id}/submit-approval")

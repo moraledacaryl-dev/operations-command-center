@@ -11,10 +11,12 @@ from pathlib import Path
 from app import models
 from app.database import SessionLocal
 from app.routers.api import UPLOAD_DIR, sign_token
+from app.session_security import current_session_version
 
 BASE = os.getenv("OPERATIONS_SMOKE_BASE", "http://127.0.0.1:8200/api").rstrip("/")
 PUBLIC_ORIGIN = os.getenv("OPERATIONS_PUBLIC_ORIGIN", "https://operations.hiddenoasis.app").rstrip("/")
 REQUIRE_LOGIN = os.getenv("OPERATIONS_REQUIRE_LOGIN_SMOKE", "false").strip().lower() in {"1", "true", "yes"}
+EXPECTED_SHA = os.getenv("OPERATIONS_EXPECTED_SHA", "").strip()
 STAMP = str(int(time.time()))
 PREFIX = f"DEPLOY-SMOKE-{STAMP}"
 
@@ -108,6 +110,11 @@ def main():
     stored_file: Path | None = None
     logout_user_id = None
 
+    status, live, _ = request("GET", "/livez")
+    expect("public liveness smoke", status, 200)
+    if EXPECTED_SHA and live.get("release_sha") != EXPECTED_SHA:
+        raise RuntimeError(f"release SHA mismatch: live={live.get('release_sha')} expected={EXPECTED_SHA}")
+
     login_smoke()
 
     try:
@@ -122,7 +129,10 @@ def main():
             if not department_id:
                 raise RuntimeError("Owner has no department for release smoke")
             now = int(time.time())
-            bearer = sign_token({"sub": owner.id, "role": owner.role, "iat": now, "exp": now + 600})
+            session_version = current_session_version(db, owner.id)
+            if session_version is None:
+                raise RuntimeError("Owner session version is unavailable")
+            bearer = sign_token({"sub": owner.id, "role": owner.role, "iat": now, "exp": now + 600, "sv": session_version})
 
             # Logout revokes every session generation for a user. Use an isolated
             # temporary account so a deployment smoke never signs out a real Owner.

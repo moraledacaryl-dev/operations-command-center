@@ -1,17 +1,12 @@
-from datetime import datetime
+from sqlalchemy import Boolean, Column, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
-
+from .clock import UTCDateTime as DateTime, utc_now
 from .database import Base
 
 
-def utcnow():
-    return datetime.utcnow()
-
-
 class FoundationTimestampMixin:
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 
 class Notification(Base, FoundationTimestampMixin):
@@ -66,7 +61,7 @@ class ActivityEvent(Base):
     event_type = Column(String(100), nullable=False)
     summary = Column(Text, nullable=True)
     metadata_json = Column(Text, nullable=True)
-    occurred_at = Column(DateTime, default=utcnow, nullable=False)
+    occurred_at = Column(DateTime, default=utc_now, nullable=False)
     __table_args__ = (Index("ix_activity_entity_time", "entity_type", "entity_id", "occurred_at"),)
 
 
@@ -159,7 +154,7 @@ class IntegrationEventInbox(Base):
     external_event_id = Column(String(180), nullable=False)
     event_type = Column(String(120), nullable=False)
     payload_json = Column(Text, nullable=False)
-    received_at = Column(DateTime, default=utcnow, nullable=False)
+    received_at = Column(DateTime, default=utc_now, nullable=False)
     processed_at = Column(DateTime, nullable=True)
     attempts = Column(Integer, default=0, nullable=False)
     last_error = Column(Text, nullable=True)
@@ -174,7 +169,7 @@ class IntegrationEventOutbox(Base):
     aggregate_type = Column(String(80), nullable=False)
     aggregate_id = Column(String(120), nullable=False)
     payload_json = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
     published_at = Column(DateTime, nullable=True)
     attempts = Column(Integer, default=0, nullable=False)
     last_error = Column(Text, nullable=True)
@@ -184,6 +179,7 @@ class IntegrationEventOutbox(Base):
 class MarketingCampaign(Base, FoundationTimestampMixin):
     __tablename__ = "marketing_campaigns"
     id = Column(Integer, primary_key=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
     name = Column(String(180), nullable=False)
     objective = Column(Text, nullable=True)
     status = Column(String(40), default="Planning", nullable=False)
@@ -197,6 +193,7 @@ class ContentConcept(Base, FoundationTimestampMixin):
     __tablename__ = "content_concepts"
     id = Column(Integer, primary_key=True)
     campaign_id = Column(Integer, ForeignKey("marketing_campaigns.id"), nullable=False)
+    content_pillar = Column(String(80), default="General", nullable=False)
     title = Column(String(180), nullable=False)
     brief = Column(Text, nullable=True)
     status = Column(String(40), default="Idea", nullable=False)
@@ -217,6 +214,7 @@ class PlatformDeliverable(Base, FoundationTimestampMixin):
     assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     scheduled_at = Column(DateTime, nullable=True)
     final_url = Column(Text, nullable=True)
+    __table_args__ = (UniqueConstraint("concept_id", "platform", name="uq_deliverable_concept_platform"),)
 
 
 class Asset(Base, FoundationTimestampMixin):
@@ -259,7 +257,7 @@ class PerformanceSnapshot(Base, FoundationTimestampMixin):
     __tablename__ = "performance_snapshots"
     id = Column(Integer, primary_key=True)
     deliverable_id = Column(Integer, ForeignKey("platform_deliverables.id"), nullable=False)
-    captured_at = Column(DateTime, default=utcnow, nullable=False)
+    captured_at = Column(DateTime, default=utc_now, nullable=False)
     reach = Column(Integer, nullable=True)
     impressions = Column(Integer, nullable=True)
     engagements = Column(Integer, nullable=True)

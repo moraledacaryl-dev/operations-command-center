@@ -128,8 +128,12 @@ Mac files included:
 docker compose up --build
 ```
 
+For a manual two-process launch, run Uvicorn on port `8200` and build/start the
+frontend with `OPERATIONS_API_ORIGIN=http://127.0.0.1:8200`. The browser still
+uses same-origin `/api` requests; Next.js performs the local server-side proxy.
+
 Frontend: `http://localhost:3000`  
-Backend: `http://localhost:8000/api/health`
+Backend: `http://localhost:8200/api/health`
 
 ## Manual local run
 

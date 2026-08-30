@@ -6,9 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from app import models
-from app.routers.api import StatusPayload
-from app.routers.authorized_crud import set_status_authorized, update_resource_authorized
+from app.routers.authorized_crud import update_resource_authorized
 from app.schemas.resources import validate_resource_payload
+from app.services.operational_workflow import transition_operational
 
 
 @pytest.fixture()
@@ -51,6 +51,11 @@ def test_required_create_fields_and_unknown_keys_are_rejected():
         validate_resource_payload("departments", {"name": "Operations", "mystery": "ignored-before"})
     assert any(error["type"] == "extra_forbidden" for error in exc.value.errors())
 
+    with pytest.raises(ValidationError):
+        validate_resource_payload("tasks", {"title": "Invalid", "priority": "Eventually"})
+    with pytest.raises(ValidationError):
+        validate_resource_payload("rooms", {"name": "Invalid", "kind": "Spaceship"})
+
 
 def test_negative_limit_contract_is_declared_on_collection_route():
     route = next(
@@ -90,25 +95,18 @@ def test_task_progression_sets_completion_and_blocks_regression(db):
     db.add(task)
     db.commit()
 
-    result = set_status_authorized(
-        "tasks",
-        task.id,
-        StatusPayload(status="Done"),
-        user=owner,
-        db=db,
-    )
-    assert result["status"] == "Done"
-    assert result["completed_at"] is not None
+    transition_operational(db, owner, "tasks", task.id, "start")
+    transition_operational(db, owner, "tasks", task.id, "submit-review")
+    result = transition_operational(db, owner, "tasks", task.id, "complete")
+    assert result.status == "Done"
+    assert result.completed_at is not None
 
     with pytest.raises(HTTPException) as exc:
-        set_status_authorized(
-            "tasks",
-            task.id,
-            StatusPayload(status="To Do"),
-            user=owner,
-            db=db,
-        )
-    assert exc.value.status_code == 409
+        transition_operational(db, owner, "tasks", task.id, "reopen")
+    assert exc.value.status_code == 400
+
+    reopened = transition_operational(db, owner, "tasks", task.id, "reopen", "Additional work is required")
+    assert reopened.status == "Doing"
 
 
 def test_duplicate_membership_is_impossible_in_metadata_schema(db):

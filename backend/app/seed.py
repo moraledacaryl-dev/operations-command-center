@@ -1,8 +1,9 @@
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 from sqlalchemy.orm import Session
 from . import models
 from .auth import hash_password, normalize_email, validate_password_strength
+from .clock import utc_now
 
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
@@ -45,7 +46,7 @@ def ensure_bootstrap_owner(db: Session):
         db.add(models.UserDepartment(user_id=user.id, department_id=management.id, is_primary=True))
     if not user.password_hash:
         user.password_hash = hash_password(BOOTSTRAP_OWNER_PASSWORD)
-        user.password_set_at = datetime.utcnow()
+        user.password_set_at = utc_now()
     db.commit()
 
 
@@ -56,7 +57,7 @@ def backfill_local_user_passwords(db: Session):
         user.email = normalize_email(user.email)
         if not user.password_hash:
             user.password_hash = hash_password(LOCAL_SEED_PASSWORD)
-            user.password_set_at = datetime.utcnow()
+            user.password_set_at = utc_now()
     db.commit()
 
 
@@ -76,12 +77,12 @@ def seed_if_empty(db: Session):
         db.flush()
         dept_map[name] = dept
 
-    caryl = models.User(name="Caryl", email=normalize_email("caryl@example.com"), role="owner", department_id=dept_map["Management"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
-    manager = models.User(name="Manager", email=normalize_email("manager@example.com"), role="manager", department_id=dept_map["Management"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
-    marketing = models.User(name="Marketing Lead", email=normalize_email("marketing@example.com"), role="lead", department_id=dept_map["Marketing"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
-    maintenance = models.User(name="Maintenance", email=normalize_email("fix@example.com"), role="lead", department_id=dept_map["Maintenance"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
-    frontdesk = models.User(name="Front Desk Lead", email=normalize_email("frontdesk@example.com"), role="lead", department_id=dept_map["Front Desk"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
-    cafelead = models.User(name="Café Lead", email=normalize_email("cafe@example.com"), role="lead", department_id=dept_map["Café"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=datetime.utcnow())
+    caryl = models.User(name="Caryl", email=normalize_email("caryl@example.com"), role="owner", department_id=dept_map["Management"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=utc_now())
+    manager = models.User(name="Manager", email=normalize_email("manager@example.com"), role="manager", department_id=dept_map["Management"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=utc_now())
+    marketing = models.User(name="Marketing Lead", email=normalize_email("marketing@example.com"), role="lead", department_id=dept_map["Marketing"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=utc_now())
+    maintenance = models.User(name="Maintenance", email=normalize_email("fix@example.com"), role="lead", department_id=dept_map["Maintenance"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=utc_now())
+    frontdesk = models.User(name="Front Desk Lead", email=normalize_email("frontdesk@example.com"), role="lead", department_id=dept_map["Front Desk"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=utc_now())
+    cafelead = models.User(name="Café Lead", email=normalize_email("cafe@example.com"), role="lead", department_id=dept_map["Café"].id, password_hash=hash_password(LOCAL_SEED_PASSWORD), password_set_at=utc_now())
     db.add_all([caryl, manager, marketing, maintenance, frontdesk, cafelead])
     db.flush()
 
@@ -117,24 +118,24 @@ def seed_if_empty(db: Session):
         owner_id=marketing.id,
         status="Active",
         priority="Normal",
-        due_date=datetime.utcnow() + timedelta(days=21),
+        due_date=utc_now() + timedelta(days=21),
         note="Low-word campaign plan for rooms, café, pool, and event bookings.",
     )
     db.add(project)
     db.flush()
 
     db.add_all([
-        models.Task(title="Review weekend promos", department_id=dept_map["Marketing"].id, assigned_to_id=caryl.id, project_id=project.id, due_date=datetime.utcnow() + timedelta(days=1), status="Review", priority="Normal"),
-        models.Task(title="Verify pool towels", department_id=dept_map["Housekeeping"].id, assigned_to_id=manager.id, due_date=datetime.utcnow(), status="To Do", priority="Normal"),
-        models.Task(title="Check Room 205 AC", department_id=dept_map["Maintenance"].id, assigned_to_id=maintenance.id, due_date=datetime.utcnow(), status="Doing", priority="Urgent"),
+        models.Task(title="Review weekend promos", department_id=dept_map["Marketing"].id, assigned_to_id=caryl.id, project_id=project.id, due_date=utc_now() + timedelta(days=1), status="Review", priority="Normal"),
+        models.Task(title="Verify pool towels", department_id=dept_map["Housekeeping"].id, assigned_to_id=manager.id, due_date=utc_now(), status="To Do", priority="Normal"),
+        models.Task(title="Check Room 205 AC", department_id=dept_map["Maintenance"].id, assigned_to_id=maintenance.id, due_date=utc_now(), status="Doing", priority="Urgent"),
         models.ShiftNote(title="Room 205 AC weak", shift="Night", category="Room", department_id=dept_map["Front Desk"].id, urgency="Urgent", status="New", note="Guest said cooling was weak. Monitor next shift."),
         models.ShiftNote(title="Pool towels low", shift="PM", category="Supply", department_id=dept_map["Housekeeping"].id, urgency="Normal", status="Follow", note="Check laundry before morning shift."),
         models.GuestNote(title="Late checkout", department_id=dept_map["Front Desk"].id, room_area_id=room_map["Room 203"].id, issue_type="Checkout", urgency="Normal", status="Open", note="Guest requested late checkout. Needs approval."),
         models.Fix(title="Room 205 AC", department_id=dept_map["Maintenance"].id, room_area_id=room_map["Room 205"].id, problem="Weak cooling reported by guest.", urgency="Urgent", status="Working", assigned_to_id=maintenance.id),
-        models.Post(title="Burger Reel", department_id=dept_map["Marketing"].id, platform="TikTok", content_type="Reel", post_date=datetime.utcnow() + timedelta(days=2), assigned_to_id=marketing.id, project_id=project.id, status="Review", caption="Hook: Two burgers, one craving. Hidden Oasis café weekend feature.", campaign="June Café Push"),
-        models.Post(title="Pool Staycation Story", department_id=dept_map["Marketing"].id, platform="Instagram", content_type="Story", post_date=datetime.utcnow() + timedelta(days=1), assigned_to_id=marketing.id, project_id=project.id, status="Draft", campaign="Weekend Staycation"),
+        models.Post(title="Burger Reel", department_id=dept_map["Marketing"].id, platform="TikTok", content_type="Reel", post_date=utc_now() + timedelta(days=2), assigned_to_id=marketing.id, project_id=project.id, status="Review", caption="Hook: Two burgers, one craving. Hidden Oasis café weekend feature.", campaign="June Café Push"),
+        models.Post(title="Pool Staycation Story", department_id=dept_map["Marketing"].id, platform="Instagram", content_type="Story", post_date=utc_now() + timedelta(days=1), assigned_to_id=marketing.id, project_id=project.id, status="Draft", campaign="Weekend Staycation"),
         models.Approval(title="Late checkout Room 203", source_type="guest", source_id=1, requested_by_id=manager.id, department_id=dept_map["Front Desk"].id, status="Pending", priority="Normal", note="Guest requested extension."),
-        models.Memo(title="Function Hall", department_id=dept_map["Front Desk"].id, message="Event setup 2 PM.", expiry_date=datetime.utcnow() + timedelta(days=1), must_ack=True),
+        models.Memo(title="Function Hall", department_id=dept_map["Front Desk"].id, message="Event setup 2 PM.", expiry_date=utc_now() + timedelta(days=1), must_ack=True),
     ])
 
     # Department requests/proposals, lightweight docs/talk, and recurring routine templates.

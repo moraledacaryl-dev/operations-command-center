@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..authorization_policy import Action, authorize_action
+from ..clock import utc_now
 from ..utils import log_activity
 
 
@@ -88,7 +89,7 @@ def complete_request(db: Session, user: models.User, request_id: int, note: str 
     if request.status != "Planned":
         raise HTTPException(status_code=409, detail="Only Planned requests can be completed")
     request.status = "Done"
-    request.completed_at = models.utcnow()
+    request.completed_at = utc_now()
     if note:
         request.note = f"{request.note or ''}\n\nCompletion: {note}".strip()
     log_activity(db, "requests", request.id, "completed", note or "Request completed", actor_id=user.id)

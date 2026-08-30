@@ -1,60 +1,95 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: command-center-db
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-command_center}
       POSTGRES_USER: ${POSTGRES_USER:-command_center}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-command_center_local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the Compose environment}
     volumes:
       - command_center_postgres:/var/lib/postgresql/data
+    networks:
+      - operations_private
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-command_center} -d ${POSTGRES_DB:-command_center}"]
       interval: 5s
       timeout: 5s
-      retries: 12
+      retries: 20
 
-  backend:
+  migrate:
     build: ./backend
-    container_name: command-center-backend
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://command_center:command_center_local@db:5432/command_center}
-      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
-      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
-      DB_POOL_RECYCLE_SECONDS: ${DB_POOL_RECYCLE_SECONDS:-1800}
-      UPLOAD_DIR: ${UPLOAD_DIR:-/uploads}
-      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+    command: ["alembic", "upgrade", "head"]
+    environment: &backend_environment
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-command_center}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-command_center}
+      UPLOAD_DIR: /uploads
       ENVIRONMENT: ${ENVIRONMENT:-local}
-      ALLOW_DEMO_SEED: ${ALLOW_DEMO_SEED:-false}
-      ALLOW_DEFAULT_ADMIN_BOOTSTRAP: ${ALLOW_DEFAULT_ADMIN_BOOTSTRAP:-false}
-      LOCAL_SEED_PASSWORD: ${LOCAL_SEED_PASSWORD:-}
-      BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
-      BOOTSTRAP_OWNER_NAME: ${BOOTSTRAP_OWNER_NAME:-Operations Owner}
-      BOOTSTRAP_OWNER_PASSWORD: ${BOOTSTRAP_OWNER_PASSWORD:-}
-      SESSION_SECRET: ${SESSION_SECRET:-local-command-center-secret}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in the Compose environment}
+      INTEGRATION_API_KEY: ${INTEGRATION_API_KEY:?Set INTEGRATION_API_KEY in the Compose environment}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
-    ports:
-      - "8000:8000"
-    volumes:
-      - command_center_uploads:/uploads
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      TRUST_PROXY_HEADERS: "true"
+      TRUSTED_PROXY_IPS: 172.28.0.10
+      RELEASE_SHA: ${RELEASE_SHA:-compose-local}
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - operations_private
+    restart: "no"
+
+  backend:
+    build: ./backend
+    environment: *backend_environment
+    volumes:
+      - command_center_uploads:/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - operations_private
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
-      interval: 20s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/readyz')"]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   frontend:
     build: ./frontend
-    container_name: command-center-frontend
-    environment:
-      NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8000/api}
-    ports:
-      - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    networks:
+      - operations_private
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  gateway:
+    image: nginx:1.27-alpine
+    ports:
+      - "${OPERATIONS_PORT:-3000}:80"
+    volumes:
+      - ./deployment/nginx/operations-compose.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    networks:
+      operations_private:
+        ipv4_address: 172.28.0.10
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/api/livez"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  operations_private:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
   command_center_uploads:

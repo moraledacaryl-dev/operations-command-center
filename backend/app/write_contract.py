@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
+from .domain_values import ALLOWED_STATUSES, WORKFLOW_RESOURCES
+
 
 WRITE_FIELDS: dict[str, frozenset[str]] = {
     "tasks": frozenset({
@@ -47,27 +49,15 @@ REQUIRED_CREATE_FIELDS: dict[str, tuple[str, ...]] = {
     resource: ("title",) for resource in WRITE_FIELDS
 }
 
-ALLOWED_STATUSES: dict[str, frozenset[str]] = {
-    "tasks": frozenset({"To Do", "Doing", "Review", "Done"}),
-    "projects": frozenset({"Planned", "Active", "Paused", "Done"}),
-    # These sets still constrain create/PATCH payload validation. Their generic
-    # /status routes are workflow-owned and must reach the route-level 405 guard.
-    "requests": frozenset({"Draft", "Review", "Planned", "Done"}),
-    "shift-notes": frozenset({"New", "Seen", "Follow", "Done"}),
-    "guests": frozenset({"Open", "Follow", "Done"}),
-    "fixes": frozenset({"Open", "Working", "Done"}),
-    "posts": frozenset({"Idea", "Draft", "Review", "Fix", "OK", "Set", "Posted"}),
-}
-
-WORKFLOW_STATUS_RESOURCES = frozenset({"requests", "fixes"})
+WORKFLOW_STATUS_RESOURCES = WORKFLOW_RESOURCES
 
 _COLLECTION_RE = re.compile(r"^/api/([^/]+)$")
 _ITEM_RE = re.compile(r"^/api/([^/]+)/(\d+)$")
 _STATUS_RE = re.compile(r"^/api/([^/]+)/(\d+)/status$")
 
 
-def _error(detail: str) -> JSONResponse:
-    return JSONResponse(status_code=422, content={"detail": detail})
+def _error(detail: str, status_code: int = 422) -> JSONResponse:
+    return JSONResponse(status_code=status_code, content={"detail": detail})
 
 
 def _json_object(raw: bytes) -> dict[str, Any] | None:
@@ -104,11 +94,9 @@ class WriteContractMiddleware(BaseHTTPMiddleware):
         if not resource or resource not in WRITE_FIELDS:
             return await call_next(request)
 
-        # Request and Fix state changes are owned by canonical workflow commands.
-        # Do not let value validation mask that API contract with a 422; the
-        # generic route itself returns 405 for every attempted status mutation.
+        # Stateful resource changes are owned by canonical workflow commands.
         if mode == "status" and resource in WORKFLOW_STATUS_RESOURCES:
-            return await call_next(request)
+            return _error("Use the canonical workflow endpoint.", status_code=405)
 
         raw = await request.body()
         payload = _json_object(raw)
@@ -125,6 +113,9 @@ class WriteContractMiddleware(BaseHTTPMiddleware):
                     value = payload.get(field)
                     if value is None or (isinstance(value, str) and not value.strip()):
                         return _error(f"{field.replace('_', ' ').title()} is required.")
+
+            if mode == "update" and resource in WORKFLOW_STATUS_RESOURCES and "status" in payload:
+                return _error("Use the canonical workflow endpoint.", status_code=405)
 
             if "status" in payload:
                 allowed = ALLOWED_STATUSES.get(resource)

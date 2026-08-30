@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api")
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 ALEMBIC_INI = BACKEND_ROOT / "alembic.ini"
 DEFAULT_UPLOAD_DIR = BACKEND_ROOT / "uploads"
+RELEASE_SHA = os.getenv("RELEASE_SHA", "development").strip() or "development"
 
 
 def _check_database() -> tuple[bool, str]:
@@ -85,7 +86,7 @@ def readiness_checks() -> dict[str, dict[str, object]]:
 
 @router.get("/livez")
 def livez():
-    return {"status": "ok", "app": "Manager Operations Command Center"}
+    return {"status": "ok", "app": "Manager Operations Command Center", "release_sha": RELEASE_SHA}
 
 
 @router.get("/readyz")
@@ -95,6 +96,7 @@ def readyz():
     payload = {
         "status": "ok" if ok else "not_ready",
         "ready": ok,
+        "release_sha": RELEASE_SHA,
         "checks": checks,
     }
     return JSONResponse(status_code=200 if ok else 503, content=payload)

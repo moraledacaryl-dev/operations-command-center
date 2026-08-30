@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { Drawer } from '@/components/Drawer';
+import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
@@ -26,6 +27,7 @@ export default function ShiftPage() {
   const [filter, setFilter] = useState('Unresolved');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [actionNote, setActionNote] = useState('');
   const { departmentId, hydrated } = useActiveDepartment();
   const beginRequest = useLatestRequest();
 
@@ -64,11 +66,12 @@ export default function ShiftPage() {
     finally { setBusy(false); }
   }
 
-  async function move(status: string) {
+  async function move(action: string) {
     if (!selected || busy) return;
     setBusy(true);
     try {
-      await api.status('shift-notes', selected.id, status);
+      await api.workflowAction('shift-notes', selected.id, action, { note: actionNote.trim() || null });
+      setActionNote('');
       setSelected(null); await load();
     } catch (err: any) { setError(err.message || 'Handover note could not be updated.'); }
     finally { setBusy(false); }
@@ -97,9 +100,9 @@ export default function ShiftPage() {
       <label className="label">Handover detail<textarea className="textarea" value={note} onChange={e => setNote(e.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim() || !note.trim()} onClick={createNote}>{busy ? 'Saving…' : 'Publish handover'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
-    <div className="tabs" style={{ marginBottom: 16 }}>{['Unresolved','Urgent','AM','PM','Night','All'].map(value => <button key={value} className={`tab ${filter === value ? 'active' : ''}`} onClick={() => setFilter(value)}>{value}</button>)}</div>
+    <Tabs values={['Unresolved','Urgent','AM','PM','Night','All']} active={filter} onChange={setFilter} label="Shift note filters" />
     <div className="grid">
-      {visible.map(item => <button type="button" className={`card ${item.urgency === 'Urgent' && item.status !== 'Done' ? 'card-important' : ''}`} key={item.id} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
+      {visible.map(item => <button type="button" className={`card ${item.urgency === 'Urgent' && item.status !== 'Done' ? 'card-important' : ''}`} key={item.id} onClick={async () => { try { setSelected(await api.get('shift-notes', item.id)); } catch (err: any) { setError(err.message || 'Handover note could not be opened.'); } }} style={{ textAlign: 'left' }}>
         <span className="card-line"><Pill value={item.shift || 'Shift'} /><Pill value={item.category || 'Other'} /><Pill value={item.status || 'New'} />{item.urgency === 'Urgent' ? <Pill value="Urgent" /> : null}</span>
         <strong className="card-title">{item.title}</strong>
         <span>{String(item.note || '').slice(0, 220)}</span>
@@ -110,10 +113,8 @@ export default function ShiftPage() {
     <Drawer item={selected} title="Handover note" onClose={() => !busy && setSelected(null)}>
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}><div className="card-line"><Pill value={selected.shift || 'Shift'} /><Pill value={selected.category || 'Other'} /><Pill value={selected.status || 'New'} /></div><h2>{selected.title}</h2><p style={{ lineHeight: 1.6 }}>{selected.note}</p><p className="muted">Recorded {formatStamp(selected.created_at || selected.updated_at)}</p></section>
-        <section className="panel"><h2>Handover action</h2><div className="toolbar">
-          {selected.status === 'New' ? <button className="btn" disabled={busy} onClick={() => move('Seen')}>Acknowledge</button> : null}
-          {!['Follow','Done'].includes(selected.status) ? <button className="btn secondary" disabled={busy} onClick={() => move('Follow')}>Carry forward</button> : null}
-          {selected.status !== 'Done' ? <button className="btn secondary" disabled={busy} onClick={() => move('Done')}>Resolve</button> : null}
+        <section className="panel"><h2>Handover action</h2>{(selected.allowed_actions || []).includes('reopen') ? <label className="label">Reopen reason<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} /></label> : null}<div className="toolbar">
+          {(selected.allowed_actions || []).map((action: string) => <button className={action === 'acknowledge' ? 'btn' : 'btn secondary'} disabled={busy || (action === 'reopen' && !actionNote.trim())} key={action} onClick={() => move(action)}>{({ acknowledge: 'Acknowledge', 'follow-up-new': 'Carry forward', 'follow-up-seen': 'Carry forward', 'resolve-new': 'Resolve', 'resolve-seen': 'Resolve', 'resolve-follow': 'Resolve', reopen: 'Reopen' } as Record<string, string>)[action] || action}</button>)}
         </div></section>
       </> : null}
     </Drawer>

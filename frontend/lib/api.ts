@@ -1,6 +1,7 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export type Entity = Record<string, any>;
+export type CursorPage = { items: Entity[]; next_cursor?: string | null; has_more: boolean };
 
 export class ApiError extends Error {
   status: number;
@@ -104,16 +105,25 @@ export const api = {
     });
     return request<Entity[]>(`/${resource}${qs.toString() ? `?${qs}` : ''}`, { signal: options.signal });
   },
+  page: (resource: string, params: Record<string, any> = {}, options: { signal?: AbortSignal } = {}) => {
+    const qs = new URLSearchParams({ paginated: 'true' });
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+    });
+    return request<CursorPage>(`/${resource}?${qs}`, { signal: options.signal });
+  },
   get: (resource: string, id: number) => request<Entity>(`/${resource}/${id}`),
   create: (resource: string, data: Entity) => request<Entity>(`/${resource}`, { method: 'POST', body: JSON.stringify(data) }),
   update: (resource: string, id: number, data: Entity) => request<Entity>(`/${resource}/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   status: (resource: string, id: number, status: string, note?: string) => request<Entity>(`/${resource}/${id}/status`, { method: 'POST', body: JSON.stringify({ status, note }) }),
+  workflowAction: (resource: string, id: number, action: string, data: Entity = {}) => request<Entity>(`/workflow/${resource}/${id}/${action}`, { method: 'POST', body: JSON.stringify(data) }),
   archive: (resource: string, id: number) => request<Entity>(`/${resource}/${id}/archive`, { method: 'POST' }),
   comment: (resource: string, id: number, body: string, comment_type = 'General') => request<Entity>(`/${resource}/${id}/comments`, { method: 'POST', body: JSON.stringify({ body, comment_type }) }),
   login: (email: string, password: string) => request<Entity>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   logout: () => request<Entity>('/auth/logout', { method: 'POST' }),
   me: () => request<Entity>('/auth/me'),
   users: () => request<Entity[]>('/users'),
+  usersPage: (params: Record<string, any> = {}) => { const qs = new URLSearchParams(); Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); }); return request<CursorPage>(`/users/page?${qs}`); },
   health: () => request<Entity>('/health'),
   changePassword: (current_password: string, new_password: string) => request<Entity>('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
   adminCreateUser: (data: Entity) => request<Entity>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
@@ -131,7 +141,7 @@ export const api = {
   history: (params: Record<string, any> = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => { if (v) qs.set(k, String(v)); });
-    return request<Entity[]>(`/history/search/all${qs.toString() ? `?${qs}` : ''}`);
+    return request<CursorPage>(`/history/search/all${qs.toString() ? `?${qs}` : ''}`);
   },
   versions: (postId: number) => request<Entity[]>(`/posts/${postId}/versions`),
   addVersion: (postId: number, form: FormData) => request<Entity>(`/posts/${postId}/versions`, { method: 'POST', body: form }),
@@ -149,5 +159,12 @@ export const api = {
   externalMarkSeen: (id: number, data: Entity = {}) => request<Entity>(`/integrations/review-items/${id}/mark-seen`, { method: 'POST', body: JSON.stringify(data) }),
   externalReject: (id: number, data: Entity = {}) => request<Entity>(`/integrations/review-items/${id}/reject`, { method: 'POST', body: JSON.stringify(data) }),
   verifyFix: (id: number, data: Entity) => request<Entity>(`/workflow/fixes/${id}/verify`, { method: 'POST', body: JSON.stringify(data) }),
+  marketingCampaigns: () => request<Entity[]>('/marketing/campaigns'),
+  createMarketingCampaign: (data: Entity) => request<Entity>('/marketing/campaigns', { method: 'POST', body: JSON.stringify(data) }),
+  marketingConcepts: (campaignId?: number) => request<Entity[]>(`/marketing/concepts${campaignId ? `?campaign_id=${campaignId}` : ''}`),
+  createMarketingConcept: (data: Entity) => request<Entity>('/marketing/concepts', { method: 'POST', body: JSON.stringify(data) }),
+  marketingCalendar: (params: Record<string, any>) => { const qs = new URLSearchParams(); Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); }); return request<Entity[]>(`/marketing/calendar?${qs}`); },
+  marketingDeliverableAction: (id: number, action: string, data: Entity = {}) => request<Entity>(`/marketing/deliverables/${id}/transition/${action}`, { method: 'POST', body: JSON.stringify(data) }),
+  rescheduleMarketingDeliverable: (id: number, scheduledAt: string | null) => request<Entity>(`/marketing/deliverables/${id}/reschedule`, { method: 'POST', body: JSON.stringify({ scheduled_at: scheduledAt }) }),
   attach: (resource: string, id: number, form: FormData) => request<Entity>(`/${resource}/${id}/attachments`, { method: 'POST', body: form }),
 };

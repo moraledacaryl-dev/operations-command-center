@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { workflowApi } from '@/lib/workflow-api';
 import { Drawer } from '@/components/Drawer';
+import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
@@ -108,7 +109,7 @@ export default function RequestsPage() {
       <label className="label">Business reason<textarea className="textarea" value={reason} onChange={e => setReason(e.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim() || !reason.trim()} onClick={createRequest}>{busy ? 'Saving…' : 'Create draft'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
-    <div className="tabs" style={{ marginBottom: 16 }}>{['Open','Draft','Review','Approved','Planned','Done','Rejected','All'].map(status => <button key={status} className={`tab ${filter === status ? 'active' : ''}`} onClick={() => setFilter(status)}>{status}</button>)}</div>
+    <Tabs values={['Open','Draft','Review','Approved','Planned','Done','Rejected','All']} active={filter} onChange={setFilter} label="Request status" />
     <div className="grid cols-3">
       {visible.map(item => <button type="button" key={item.id} className={`card ${item.urgency === 'Urgent' ? 'card-important' : ''}`} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
         <strong className="card-title">{item.title}</strong><span className="card-line"><Pill value={item.status} /><Pill value={item.urgency || 'Normal'} /><Pill value={item.request_type || 'General'} /></span><span className="muted">{String(item.reason || '').slice(0, 150)}</span>
