@@ -23,5 +23,10 @@
     "eslint": "8.57.1",
     "eslint-config-next": "15.5.24",
     "typescript": "5.4.2"
+  },
+  "overrides": {
+    "nanoid": "3.3.18",
+    "postcss": "8.5.23",
+    "sharp": "0.35.3"
   }
 }
