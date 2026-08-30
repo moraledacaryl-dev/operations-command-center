@@ -1,7 +1,24 @@
+import ast
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_alembic_revision_ids_fit_postgresql_version_column():
+    revisions = []
+    for migration in (REPO_ROOT / "backend" / "alembic" / "versions").glob("*.py"):
+        tree = ast.parse(migration.read_text())
+        assignment = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "revision" for target in node.targets)
+        )
+        revision = ast.literal_eval(assignment.value)
+        assert len(revision) <= 32, f"{migration.name} revision exceeds Alembic's default VARCHAR(32)"
+        revisions.append(revision)
+    assert len(revisions) == len(set(revisions))
 
 
 def test_frontend_dockerfile_uses_lockfile_and_npm_ci():

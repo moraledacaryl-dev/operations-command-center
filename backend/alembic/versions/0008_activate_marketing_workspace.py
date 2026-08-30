@@ -1,6 +1,6 @@
 """activate scoped campaigns, concepts, and platform deliverables
 
-Revision ID: 0008_activate_marketing_workspace
+Revision ID: 0008_marketing_workspace
 Revises: 0007_timezone_aware_utc
 """
 
@@ -8,7 +8,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "0008_activate_marketing_workspace"
+revision = "0008_marketing_workspace"
 down_revision = "0007_timezone_aware_utc"
 branch_labels = None
 depends_on = None
