@@ -27,7 +27,9 @@ function range(anchor: Date, view: string) {
   const to = new Date(anchor);
   if (view === 'Month') {
     from.setDate(1); from.setHours(0, 0, 0, 0);
+    from.setDate(from.getDate() - ((from.getDay() + 6) % 7));
     to.setMonth(to.getMonth() + 1, 1); to.setHours(0, 0, 0, 0);
+    to.setDate(to.getDate() + ((8 - to.getDay()) % 7));
   } else if (view === 'Week') {
     const offset = (from.getDay() + 6) % 7;
     from.setDate(from.getDate() - offset); from.setHours(0, 0, 0, 0);
@@ -51,6 +53,7 @@ export function MarketingWorkspace({ departmentId, canManage }: { departmentId: 
   const [campaign, setCampaign] = useState({ name: '', objective: '', start_at: '', end_at: '' });
   const [concept, setConcept] = useState({ campaign_id: '', title: '', content_pillar: 'General', brief: '', format: 'Reel', scheduled_at: '', shared_caption: '' });
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['Facebook', 'Instagram']);
+  const [platformOverrides, setPlatformOverrides] = useState<Record<string, { format: string; scheduled_at: string; caption: string }>>({});
   const [note, setNote] = useState('');
   const [finalUrl, setFinalUrl] = useState('');
   const [busy, setBusy] = useState(false);
@@ -80,13 +83,12 @@ export function MarketingWorkspace({ departmentId, canManage }: { departmentId: 
     const days: Date[] = [];
     const start = new Date(dates.from);
     const end = new Date(dates.to);
-    if (view === 'Month') start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
-    while (start < end || (view === 'Month' && days.length % 7)) {
+    while (start < end) {
       days.push(new Date(start)); start.setDate(start.getDate() + 1);
       if (days.length >= 42) break;
     }
     return days;
-  }, [dates, view]);
+  }, [dates]);
   const scheduled = calendar.filter(item => item.scheduled_at);
   const unscheduled = calendar.filter(item => !item.scheduled_at);
 
@@ -112,8 +114,19 @@ export function MarketingWorkspace({ departmentId, canManage }: { departmentId: 
     if (!concept.campaign_id || !concept.title.trim() || !selectedPlatforms.length || busy) return;
     setBusy(true);
     try {
-      await api.createMarketingConcept({ ...concept, campaign_id: Number(concept.campaign_id), platforms: selectedPlatforms, scheduled_at: concept.scheduled_at ? new Date(`${concept.scheduled_at}T09:00:00+08:00`).toISOString() : null });
+      const sharedScheduledAt = concept.scheduled_at ? new Date(`${concept.scheduled_at}T09:00:00+08:00`).toISOString() : null;
+      const deliverables = selectedPlatforms.map(platform => {
+        const override = platformOverrides[platform];
+        return {
+          platform,
+          format: override?.format || concept.format,
+          scheduled_at: override?.scheduled_at ? new Date(`${override.scheduled_at}T09:00:00+08:00`).toISOString() : sharedScheduledAt,
+          caption: override?.caption || concept.shared_caption || null,
+        };
+      });
+      await api.createMarketingConcept({ ...concept, campaign_id: Number(concept.campaign_id), platforms: selectedPlatforms, deliverables, scheduled_at: sharedScheduledAt });
       setConcept({ campaign_id: concept.campaign_id, title: '', content_pillar: 'General', brief: '', format: 'Reel', scheduled_at: '', shared_caption: '' });
+      setPlatformOverrides({});
       setShowConcept(false); await load();
     } catch (err: any) { setError(err.message || 'Content concept could not be created.'); } finally { setBusy(false); }
   }
@@ -137,7 +150,7 @@ export function MarketingWorkspace({ departmentId, canManage }: { departmentId: 
     <div className="topbar"><div><p className="eyebrow">Campaign workspace</p><h2>Multi-platform calendar</h2><p className="muted">Plan one concept, then manage each platform deliverable independently.</p></div>{canManage ? <div className="toolbar"><button className="btn secondary" onClick={() => setShowCampaign(value => !value)}>New campaign</button><button className="btn" disabled={!campaigns.length} onClick={() => setShowConcept(value => !value)}>New concept</button></div> : null}</div>
     {error ? <div className="pill urgent" role="alert">{error}</div> : null}
     {showCampaign ? <div className="panel marketing-form"><h3>Create campaign</h3><div className="form-grid"><label className="label">Campaign name<input className="input" value={campaign.name} onChange={event => setCampaign({ ...campaign, name: event.target.value })} /></label><label className="label">Objective<input className="input" value={campaign.objective} onChange={event => setCampaign({ ...campaign, objective: event.target.value })} /></label><label className="label">Start<input className="input" type="date" value={campaign.start_at} onChange={event => setCampaign({ ...campaign, start_at: event.target.value })} /></label><label className="label">End<input className="input" type="date" value={campaign.end_at} onChange={event => setCampaign({ ...campaign, end_at: event.target.value })} /></label></div><button className="btn" disabled={busy || !campaign.name.trim()} onClick={createCampaign}>Create campaign</button></div> : null}
-    {showConcept ? <div className="panel marketing-form"><h3>Create multi-platform concept</h3><div className="form-grid"><label className="label">Campaign<select className="select" value={concept.campaign_id} onChange={event => setConcept({ ...concept, campaign_id: event.target.value })}><option value="">Select campaign</option>{campaigns.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="label">Content pillar<input className="input" value={concept.content_pillar} onChange={event => setConcept({ ...concept, content_pillar: event.target.value })} /></label><label className="label">Concept title<input className="input" value={concept.title} onChange={event => setConcept({ ...concept, title: event.target.value })} /></label><label className="label">Shared format<select className="select" value={concept.format} onChange={event => setConcept({ ...concept, format: event.target.value })}>{formats.map(value => <option key={value}>{value}</option>)}</select></label><label className="label">Publishing date<input className="input" type="date" value={concept.scheduled_at} onChange={event => setConcept({ ...concept, scheduled_at: event.target.value })} /></label></div><fieldset className="platform-picker"><legend>Platforms</legend>{platforms.map(platform => <label key={platform}><input type="checkbox" checked={selectedPlatforms.includes(platform)} onChange={event => setSelectedPlatforms(values => event.target.checked ? [...values, platform] : values.filter(value => value !== platform))} />{platform}</label>)}</fieldset><label className="label">Brief<textarea className="textarea" value={concept.brief} onChange={event => setConcept({ ...concept, brief: event.target.value })} /></label><label className="label">Shared caption<textarea className="textarea" value={concept.shared_caption} onChange={event => setConcept({ ...concept, shared_caption: event.target.value })} /></label><button className="btn" disabled={busy || !concept.campaign_id || !concept.title.trim() || !selectedPlatforms.length} onClick={createConcept}>Create {selectedPlatforms.length} deliverable{selectedPlatforms.length === 1 ? '' : 's'}</button></div> : null}
+    {showConcept ? <div className="panel marketing-form"><h3>Create multi-platform concept</h3><div className="form-grid"><label className="label">Campaign<select className="select" value={concept.campaign_id} onChange={event => setConcept({ ...concept, campaign_id: event.target.value })}><option value="">Select campaign</option>{campaigns.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="label">Content pillar<input className="input" value={concept.content_pillar} onChange={event => setConcept({ ...concept, content_pillar: event.target.value })} /></label><label className="label">Concept title<input className="input" value={concept.title} onChange={event => setConcept({ ...concept, title: event.target.value })} /></label><label className="label">Shared format<select className="select" value={concept.format} onChange={event => setConcept({ ...concept, format: event.target.value })}>{formats.map(value => <option key={value}>{value}</option>)}</select></label><label className="label">Publishing date<input className="input" type="date" value={concept.scheduled_at} onChange={event => setConcept({ ...concept, scheduled_at: event.target.value })} /></label></div><fieldset className="platform-picker"><legend>Platforms</legend>{platforms.map(platform => <label key={platform}><input type="checkbox" checked={selectedPlatforms.includes(platform)} onChange={event => setSelectedPlatforms(values => event.target.checked ? [...values, platform] : values.filter(value => value !== platform))} />{platform}</label>)}</fieldset><label className="label">Brief<textarea className="textarea" value={concept.brief} onChange={event => setConcept({ ...concept, brief: event.target.value })} /></label><label className="label">Shared caption<textarea className="textarea" value={concept.shared_caption} onChange={event => setConcept({ ...concept, shared_caption: event.target.value })} /></label><div className="grid cols-2"><h4 style={{ gridColumn: '1 / -1' }}>Platform overrides</h4>{selectedPlatforms.map(platform => { const override = platformOverrides[platform] || { format: '', scheduled_at: '', caption: '' }; return <section className="card" key={platform}><strong>{platform}</strong><label className="label">Format<select className="select" value={override.format} onChange={event => setPlatformOverrides(values => ({ ...values, [platform]: { ...override, format: event.target.value } }))}><option value="">Use shared format</option>{formats.map(value => <option key={value}>{value}</option>)}</select></label><label className="label">Date<input className="input" type="date" value={override.scheduled_at} onChange={event => setPlatformOverrides(values => ({ ...values, [platform]: { ...override, scheduled_at: event.target.value } }))} /></label><label className="label">Caption<textarea className="textarea" placeholder="Use shared caption" value={override.caption} onChange={event => setPlatformOverrides(values => ({ ...values, [platform]: { ...override, caption: event.target.value } }))} /></label></section>; })}</div><button className="btn" disabled={busy || !concept.campaign_id || !concept.title.trim() || !selectedPlatforms.length} onClick={createConcept}>Create {selectedPlatforms.length} deliverable{selectedPlatforms.length === 1 ? '' : 's'}</button></div> : null}
     <div className="calendar-toolbar"><Tabs values={['Month', 'Week', 'List']} active={view} onChange={setView} label="Calendar view" /><div className="toolbar"><button className="btn small secondary" onClick={() => move(-1)}>Previous</button><button className="btn small secondary" onClick={() => setAnchor(new Date())}>Today</button><button className="btn small secondary" onClick={() => move(1)}>Next</button></div></div>
     <div><h3>{new Intl.DateTimeFormat('en-PH', { month: 'long', year: 'numeric' }).format(anchor)}</h3><span className="muted">Publishing times use Philippine Time (UTC+8).</span></div>
     {view !== 'List' ? <div className={`social-calendar ${view.toLowerCase()}`}>{calendarDays.map(day => { const rows = scheduled.filter(item => dayKey(item.scheduled_at) === dayKey(day)); return <div className={`calendar-day ${day.getMonth() !== anchor.getMonth() && view === 'Month' ? 'outside' : ''}`} key={day.toISOString()}><span>{new Intl.DateTimeFormat('en-PH', { weekday: 'short', day: 'numeric' }).format(day)}</span>{rows.map(item => <button type="button" key={item.id} onClick={() => setSelected(concepts.find(concept => concept.id === item.concept_id) || null)}><b>{item.concept_title}</b><small>{item.platform} · {item.status}</small></button>)}</div>; })}</div> : <div className="grid">{scheduled.map(item => <button type="button" className="card" key={item.id} onClick={() => setSelected(concepts.find(concept => concept.id === item.concept_id) || null)}><strong>{item.concept_title}</strong><div className="card-line"><Pill value={item.platform} /><Pill value={item.status} /><Pill value={item.campaign_name} /></div><span className="muted">{new Date(item.scheduled_at).toLocaleString('en-PH', { timeZone: propertyTimeZone })} PHT</span></button>)}</div>}

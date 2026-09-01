@@ -156,7 +156,7 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
 
   async function saveEdit() {
     if (!selected || !canManage) return;
-    await runAction('edit', async () => { const updated = await api.update(config.resource, selected.id, editData); const fresh = await api.get(config.resource, selected.id); setSelected({ ...fresh, ...updated }); await load(); });
+    await runAction('edit', async () => { const updated = await api.update(config.resource, selected.id, { ...editData, expected_updated_at: selected.updated_at }); const fresh = await api.get(config.resource, selected.id); setSelected({ ...fresh, ...updated }); await load(); });
   }
 
   async function setStatus(status: string) {

@@ -151,9 +151,9 @@ echo "PASS | paired database/upload backup checksummed"
 
 (
   cd "$STAGING_RELEASE/backend"
-  PYTHONPATH=. .venv/bin/alembic upgrade head
+  PYTHONPATH=. .venv/bin/python -m alembic upgrade head
 )
-MIGRATION_HEAD="$(cd "$STAGING_RELEASE/backend" && PYTHONPATH=. .venv/bin/alembic heads | awk '{print $1}' | paste -sd, -)"
+MIGRATION_HEAD="$(cd "$STAGING_RELEASE/backend" && PYTHONPATH=. .venv/bin/python -m alembic heads | awk '{print $1}' | paste -sd, -)"
 
 cat > "$STAGING_RELEASE/release.env" <<EOF
 RELEASE_SHA=$CANDIDATE_SHA
@@ -172,6 +172,14 @@ else
 fi
 chown -R root:root "$RELEASE"
 chmod -R a-w "$RELEASE"
+
+# Console-script shebangs retain their staging path after an immutable release
+# is moved. Production commands therefore use `python -m`, and activation must
+# prove the relocated interpreter can still inspect the migration state.
+(
+  cd "$RELEASE/backend"
+  PYTHONPATH=. .venv/bin/python -m alembic current >/dev/null
+)
 
 install -m 0644 "$RELEASE/deployment/systemd/operations-backend.service" /etc/systemd/system/operations-backend.service
 install -m 0644 "$RELEASE/deployment/systemd/operations-frontend.service" /etc/systemd/system/operations-frontend.service

@@ -23,6 +23,7 @@ from .routers.api import router
 from .routers.authorized_crud import router as authorized_crud_router
 from .routers.integrations_v2 import router as integrations_v2_router
 from .routers.my_work import router as my_work_router
+from .routers.notifications import router as notifications_router
 from .routers.marketing import router as marketing_router
 from .routers.operational_meta import router as operational_meta_router
 from .routers.observability import router as observability_router
@@ -124,6 +125,7 @@ async def security_headers(request: Request, call_next):
 app.include_router(readiness_router)
 app.include_router(review_router)
 app.include_router(my_work_router)
+app.include_router(notifications_router)
 app.include_router(marketing_router)
 app.include_router(privacy_router)
 app.include_router(operational_meta_router)

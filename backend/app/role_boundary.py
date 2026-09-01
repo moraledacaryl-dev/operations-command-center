@@ -38,6 +38,8 @@ def _token_payload(authorization: str | None) -> dict[str, Any] | None:
 
 
 def _required_capability(method: str, path: str) -> str | None:
+    if path.startswith("/api/admin/user-departments"):
+        return "manage_accounts"
     if path.startswith("/api/admin/users"):
         return "manage_accounts"
     if path.startswith("/api/admin/"):

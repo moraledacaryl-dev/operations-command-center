@@ -104,7 +104,7 @@ class WriteContractMiddleware(BaseHTTPMiddleware):
             return _error("Request body must be a JSON object.")
 
         if mode in {"create", "update"}:
-            unknown = sorted(set(payload) - set(WRITE_FIELDS[resource]))
+            unknown = sorted(set(payload) - set(WRITE_FIELDS[resource]) - {"expected_updated_at"})
             if unknown:
                 return _error(f"Unknown field(s) for {resource}: {', '.join(unknown)}")
 

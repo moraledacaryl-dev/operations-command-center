@@ -7,6 +7,7 @@ import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 
 const statuses = ['Open', 'Working', 'Done', 'Verified'];
@@ -16,6 +17,7 @@ export default function MaintenancePage() {
   const [items, setItems] = useState<Entity[]>([]); const [rooms, setRooms] = useState<Entity[]>([]); const [people, setPeople] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<Entity | null>(null); const [showAdd, setShowAdd] = useState(false); const [filter, setFilter] = useState('Active');
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [verificationNote, setVerificationNote] = useState(''); const [proofUrl, setProofUrl] = useState(''); const [reopenReason, setReopenReason] = useState('');
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Entity>({ ...emptyForm });
   const { departmentId, hydrated } = useActiveDepartment();
   const beginRequest = useLatestRequest();
@@ -29,11 +31,12 @@ export default function MaintenancePage() {
   const load = useCallback(async () => {
     if (!hydrated) return;
     const request = beginRequest();
+    setLoading(true);
     try {
       setError('');
       const [workItems, roomItems, meta] = await Promise.all([
-        api.list('fixes', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
-        api.list('rooms', { active: false }, { signal: request.signal }),
+        api.listAll('fixes', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
+        api.listAll('rooms', { active: false }, { signal: request.signal }),
         api.meta(),
       ]);
       if (!request.isCurrent()) return;
@@ -41,7 +44,7 @@ export default function MaintenancePage() {
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       if (request.isCurrent()) setError(err.message || 'Maintenance work could not be loaded.');
-    }
+    } finally { if (request.isCurrent()) setLoading(false); }
   }, [beginRequest, departmentId, hydrated]);
 
   useEffect(() => { void load(); }, [load]);
@@ -53,6 +56,7 @@ export default function MaintenancePage() {
   async function reopen() { if (!selected || !reopenReason.trim() || busy) return; setBusy(true); try { const updated = await workflowApi.reopenFix(selected.id, { note: reopenReason.trim() }); setSelected({ ...selected, ...updated }); setReopenReason(''); await load(); } catch (err: any) { setError(err.message || 'Maintenance item could not be reopened.'); } finally { setBusy(false); } }
 
   const active = items.filter(item => item.status !== 'Verified').length; const working = items.filter(item => item.status === 'Working').length; const verifyCount = items.filter(item => item.status === 'Done').length;
+  if (!hydrated || loading) return <><Top eyebrow="Repair execution" title="Maintenance" /><LoadingPanel label="Loading maintenance work…" /></>;
   return <>
     <Top eyebrow="Repair execution" title="Maintenance" right={<button data-testid="create-fix" className="btn" onClick={() => setShowAdd(value => !value)}>New maintenance item</button>} />
     <div className="grid cols-3" style={{ marginBottom: 16 }}><div className="panel"><div className="eyebrow">Active</div><h2>{active}</h2></div><div className="panel"><div className="eyebrow">In progress</div><h2>{working}</h2></div><div className="panel"><div className="eyebrow">Awaiting verification</div><h2>{verifyCount}</h2></div></div>

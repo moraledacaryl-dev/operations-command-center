@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { landingPathForUser, setStoredUser } from '@/lib/session';
 
@@ -16,6 +16,7 @@ function loginErrorMessage(error: unknown) {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -51,6 +52,7 @@ export default function LoginPage() {
       <div className="auth-mobile-brand"><span className="logo big" aria-hidden="true">HO</span><span><strong>Hidden Oasis</strong><small>Operations</small></span></div>
       <div><p className="eyebrow">Welcome back</p><h2 id="login-title">Sign in to Operations</h2><p className="muted">Use your personal work account.</p></div>
       <form className="form" onSubmit={event => { event.preventDefault(); void login(); }}>
+        {searchParams.get('password') === 'changed' ? <p className="pill ok" role="status">Password updated. Sign in with your new password.</p> : null}
         <label className="label" htmlFor="login-email">Email<input id="login-email" className="input" type="email" inputMode="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="username" required aria-describedby={errorId} autoFocus /></label>
         <label className="label" htmlFor="login-password">Password<input id="login-password" className="input" type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required aria-describedby={errorId} /></label>
         {error ? <p id="login-error" className="auth-error" role="alert">{error}</p> : null}

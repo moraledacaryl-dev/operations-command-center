@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -14,6 +16,7 @@ from ..capabilities import has_capability
 from ..clock import utc_now
 from ..database import get_db
 from ..domain_values import ContentFormat, Platform
+from ..pagination import cursor_page, decode_cursor, encode_cursor
 from ..services.marketing_workflow import allowed_deliverable_actions, authorize_campaign, campaign_or_404, transition_deliverable
 from ..utils import log_activity, model_to_dict
 from .api import require_user
@@ -33,6 +36,17 @@ class CampaignCreate(BaseModel):
     budget_note: str | None = None
 
 
+class PlatformDeliverableCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    platform: Platform
+    format: ContentFormat
+    scheduled_at: datetime | None = None
+    caption: str | None = None
+    call_to_action: str | None = None
+    hashtags: str | None = None
+    assigned_to_id: int | None = None
+
+
 class ConceptCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     campaign_id: int
@@ -44,6 +58,7 @@ class ConceptCreate(BaseModel):
     format: ContentFormat
     scheduled_at: datetime | None = None
     shared_caption: str | None = None
+    deliverables: list[PlatformDeliverableCreate] | None = Field(default=None, max_length=6)
 
 
 class DeliverableCommand(BaseModel):
@@ -68,11 +83,19 @@ def _deliverable_payload(db: Session, user: models.User, deliverable: foundation
 
 
 @router.get("/campaigns")
-def campaigns(user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+def campaigns(
+    paginated: bool = Query(default=False),
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    cursor: str | None = Query(default=None),
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     query = db.query(foundation.MarketingCampaign)
     if not has_capability(user.role, "view_all_operations"):
         query = query.filter(foundation.MarketingCampaign.department_id.in_(department_ids_for(db, user)))
-    return [_campaign_payload(row) for row in query.order_by(foundation.MarketingCampaign.updated_at.desc()).limit(100).all()]
+    if paginated:
+        return cursor_page(query, foundation.MarketingCampaign, "marketing-campaigns", limit, cursor)
+    return [_campaign_payload(row) for row in query.order_by(foundation.MarketingCampaign.updated_at.desc()).all()]
 
 
 @router.post("/campaigns")
@@ -90,19 +113,33 @@ def create_campaign(payload: CampaignCreate, user: models.User = Depends(require
 
 
 @router.get("/concepts")
-def concepts(campaign_id: int | None = None, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+def concepts(
+    campaign_id: int | None = None,
+    paginated: bool = Query(default=False),
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    cursor: str | None = Query(default=None),
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     query = db.query(foundation.ContentConcept).join(foundation.MarketingCampaign, foundation.MarketingCampaign.id == foundation.ContentConcept.campaign_id)
     if campaign_id:
         query = query.filter(foundation.ContentConcept.campaign_id == campaign_id)
     if not has_capability(user.role, "view_all_operations"):
         query = query.filter(foundation.MarketingCampaign.department_id.in_(department_ids_for(db, user)))
-    rows = query.order_by(foundation.ContentConcept.updated_at.desc()).limit(100).all()
+    if paginated:
+        page = cursor_page(query, foundation.ContentConcept, "marketing-concepts", limit, cursor)
+        rows = [db.get(foundation.ContentConcept, item["id"]) for item in page["items"]]
+    else:
+        rows = query.order_by(foundation.ContentConcept.updated_at.desc()).all()
     result = []
     for concept in rows:
         data = model_to_dict(concept)
         data["campaign"] = _campaign_payload(db.get(foundation.MarketingCampaign, concept.campaign_id))
         data["deliverables"] = [_deliverable_payload(db, user, row) for row in db.query(foundation.PlatformDeliverable).filter(foundation.PlatformDeliverable.concept_id == concept.id).order_by(foundation.PlatformDeliverable.platform).all()]
         result.append(data)
+    if paginated:
+        page["items"] = result
+        return page
     return result
 
 
@@ -123,14 +160,20 @@ def create_concept(payload: ConceptCreate, user: models.User = Depends(require_u
     )
     db.add(concept)
     db.flush()
+    overrides = {item.platform.value: item for item in (payload.deliverables or [])}
+    if set(overrides) - set(platforms):
+        raise HTTPException(status_code=422, detail="Deliverable overrides must match the selected platforms.")
     for platform in platforms:
+        override = overrides.get(platform)
         db.add(foundation.PlatformDeliverable(
             concept_id=concept.id,
             platform=platform,
-            format=payload.format.value,
-            caption=payload.shared_caption,
-            assigned_to_id=payload.owner_id or user.id,
-            scheduled_at=payload.scheduled_at,
+            format=override.format.value if override else payload.format.value,
+            caption=override.caption if override and override.caption is not None else payload.shared_caption,
+            call_to_action=override.call_to_action if override else None,
+            hashtags=override.hashtags if override else None,
+            assigned_to_id=override.assigned_to_id if override and override.assigned_to_id else payload.owner_id or user.id,
+            scheduled_at=override.scheduled_at if override else payload.scheduled_at,
             status="Planned",
         ))
     log_activity(db, "content-concepts", concept.id, "created", f"Created {len(platforms)} platform deliverables", actor_id=user.id)
@@ -171,6 +214,9 @@ def marketing_calendar(
     date_from: datetime = Query(...),
     date_to: datetime = Query(...),
     department_id: int | None = Query(default=None),
+    paginated: bool = Query(default=False),
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+    cursor: str | None = Query(default=None),
     user: models.User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
@@ -188,12 +234,29 @@ def marketing_calendar(
         (foundation.PlatformDeliverable.scheduled_at.is_(None)) |
         ((foundation.PlatformDeliverable.scheduled_at >= date_from) & (foundation.PlatformDeliverable.scheduled_at < date_to))
     )
-    rows = query.order_by(foundation.PlatformDeliverable.scheduled_at.asc().nullsfirst(), foundation.PlatformDeliverable.id).limit(500).all()
-    return [{
+    if paginated and cursor:
+        timestamp, item_id = decode_cursor("marketing-calendar", cursor)
+        query = query.filter(or_(
+            foundation.PlatformDeliverable.updated_at < timestamp,
+            and_(foundation.PlatformDeliverable.updated_at == timestamp, foundation.PlatformDeliverable.id < item_id),
+        ))
+    ordered = query.order_by(foundation.PlatformDeliverable.updated_at.desc(), foundation.PlatformDeliverable.id.desc())
+    rows = ordered.limit(limit + 1).all() if paginated else ordered.all()
+    has_more = bool(paginated and len(rows) > limit)
+    page_rows = rows[:limit] if paginated else rows
+    items = [{
         **_deliverable_payload(db, user, deliverable),
         "concept_title": concept.title,
         "content_pillar": concept.content_pillar,
         "campaign_id": campaign.id,
         "campaign_name": campaign.name,
         "department_id": campaign.department_id,
-    } for deliverable, concept, campaign in rows]
+    } for deliverable, concept, campaign in page_rows]
+    if not paginated:
+        return items
+    last = page_rows[-1][0] if has_more and page_rows else None
+    return {
+        "items": items,
+        "next_cursor": encode_cursor("marketing-calendar", last.updated_at, last.id) if last else None,
+        "has_more": has_more,
+    }

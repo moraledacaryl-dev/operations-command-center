@@ -15,10 +15,10 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], channel: process.env.PLAYWRIGHT_USE_SYSTEM_CHROME === 'true' ? 'chrome' : undefined } },
   ],
   webServer: {
-    command: `npm run build && npm run start -- -p ${port}`,
+    command: `npm run build && PORT=${port} HOSTNAME=127.0.0.1 node .next/standalone/server.js`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 180_000,

@@ -25,6 +25,7 @@ from .. import models
 from ..utils import apply_payload, log_activity, mark_completed_if_needed, model_to_dict, serialize_many
 from ..auto_archive import run_auto_archive
 from ..pagination import decode_history_cursor, encode_history_cursor
+from ..session_security import revoke_user_sessions
 from ..services.guest_workflow import create_fix_from_guest
 
 router = APIRouter(prefix="/api")
@@ -630,6 +631,7 @@ def change_password(payload: PasswordChangePayload, user: models.User = Depends(
     user.password_hash = hash_password(payload.new_password)
     user.password_set_at = utc_now()
     db.commit()
+    revoke_user_sessions(db, user.id)
     return {"ok": True, "password_set_at": user.password_set_at.isoformat()}
 
 
@@ -674,6 +676,7 @@ def admin_reset_password(user_id: int, payload: AdminResetPasswordPayload, user:
     target.password_set_at = utc_now()
     log_activity(db, "users", target.id, "password_reset", "Password reset by admin", actor_id=user.id)
     db.commit()
+    revoke_user_sessions(db, target.id)
     return {"ok": True, "user_id": target.id, "password_set_at": target.password_set_at.isoformat()}
 
 

@@ -125,6 +125,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .primary-nav { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .nav-admin { border-top: 1px solid var(--line); padding-top: 12px; }
 .nav-admin summary { cursor: pointer; list-style: none; color: var(--muted-2); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; padding: 4px 10px 8px; border-radius: 7px; }
+.nav-badge { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--urgent); color: #fff; font-size: 11px; font-weight: 800; }
 .nav-admin summary::-webkit-details-marker { display: none; }
 .nav-admin summary::after { content: '+'; float: right; font-size: 14px; line-height: 10px; }
 .nav-admin[open] summary::after { content: '−'; }
@@ -210,6 +211,10 @@ p { margin-top: 0; }
 .btn.ghost:hover:not(:disabled) { background: var(--soft); border-color: transparent; }
 .btn.small { min-height: 32px; padding: 6px 10px; border-radius: 8px; font-size: 12px; }
 .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+.loading-state { min-height: 120px; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--muted-2); font-weight: 700; }
+.loading-spinner { width: 18px; height: 18px; border: 2px solid var(--line-strong); border-top-color: var(--accent); border-radius: 50%; animation: operations-spin .75s linear infinite; }
+@keyframes operations-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .loading-spinner { animation: none; border-top-color: var(--line-strong); } }
 
 .input, .select, .textarea {
   width: 100%;

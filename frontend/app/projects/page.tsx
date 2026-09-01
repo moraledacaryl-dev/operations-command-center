@@ -6,6 +6,7 @@ import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 import { hasCapability } from '@/lib/capabilities';
 import { getStoredUser } from '@/lib/session';
@@ -38,6 +39,7 @@ export default function ProjectsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const { departmentId, hydrated } = useActiveDepartment();
   const beginRequest = useLatestRequest();
   const [user] = useState(() => getStoredUser());
@@ -49,11 +51,12 @@ export default function ProjectsPage() {
   const load = useCallback(async () => {
     if (!hydrated) return;
     const request = beginRequest();
+    setLoading(true);
     try {
       setError('');
       const [projectRows, taskRows] = await Promise.all([
-        api.list('projects', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
-        api.list('tasks', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
+        api.listAll('projects', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
+        api.listAll('tasks', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
       ]);
       if (!request.isCurrent()) return;
       setProjects(projectRows);
@@ -61,7 +64,7 @@ export default function ProjectsPage() {
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       if (request.isCurrent()) setError(err.message || 'Projects could not be loaded.');
-    }
+    } finally { if (request.isCurrent()) setLoading(false); }
   }, [beginRequest, departmentId, hydrated]);
 
   useEffect(() => { void load(); }, [load]);
@@ -148,7 +151,7 @@ export default function ProjectsPage() {
       setTaskNote('');
       await load();
       const detail = await api.get('projects', selected.id);
-      const linked = (await api.list('tasks', { active: true, department_id: selected.department_id || departmentId })).filter(task => Number(task.project_id) === Number(selected.id));
+      const linked = (await api.listAll('tasks', { active: true, department_id: selected.department_id || departmentId })).filter(task => Number(task.project_id) === Number(selected.id));
       setSelected({ ...selected, ...detail, linked_tasks: linked });
     } catch (err: any) {
       setError(err.message || 'Linked task could not be created.');
@@ -174,6 +177,8 @@ export default function ProjectsPage() {
       setBusy(false);
     }
   }
+
+  if (!hydrated || loading) return <><Top eyebrow="Delivery portfolio" title="Projects" /><LoadingPanel label="Loading projects and progress…" /></>;
 
   return <>
     <Top eyebrow="Delivery portfolio" title="Projects" right={canManage ? <button data-testid="create-project" className="btn" onClick={() => setShowAdd(value => !value)}>New project</button> : undefined} />
@@ -228,7 +233,8 @@ export default function ProjectsPage() {
         <section className="panel" style={{ marginTop: 16 }}>
           <h2>Project discussion</h2>
           <div className="form" style={{ marginTop: 12 }}><select className="select" aria-label="Discussion type" value={commentType} onChange={event => setCommentType(event.target.value)}>{['Update', 'Question', 'Decision', 'Risk', 'Blocker'].map(value => <option key={value}>{value}</option>)}</select><textarea className="textarea" placeholder="Add context that stays attached to this project" value={comment} onChange={event => setComment(event.target.value)} /><button className="btn secondary" disabled={busy || !comment.trim()} onClick={addComment}>Add {commentType.toLowerCase()}</button></div>
-          <div className="grid" style={{ marginTop: 12 }}>{(selected.comments || []).map((item: Entity) => <div className="card" key={item.id}><div className="card-line"><Pill value={item.comment_type || 'Update'} />{item.author_id ? <span className="muted">Author #{item.author_id}</span> : null}</div><span>{item.body}</span><span className="muted">{formatDate(item.created_at)}</span></div>)}{!(selected.comments || []).length ? <div className="empty">No project discussion yet.</div> : null}</div>
+          <p className="muted">Mention a teammate as <code>@[Full Name]</code> or with their email address to notify them.</p>
+          <div className="grid" style={{ marginTop: 12 }}>{(selected.comments || []).map((item: Entity) => <div className="card" key={item.id}><div className="card-line"><Pill value={item.comment_type || 'Update'} />{item.author_name ? <span className="muted">{item.author_name}</span> : null}</div><span>{item.body}</span><span className="muted">{formatDate(item.created_at)}</span></div>)}{!(selected.comments || []).length ? <div className="empty">No project discussion yet.</div> : null}</div>
         </section>
         <section className="panel" style={{ marginTop: 16 }}>
           <h2>Files & activity</h2>

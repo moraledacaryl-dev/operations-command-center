@@ -12,6 +12,7 @@ type NavItem = {
   label: string;
   shortLabel?: string;
   icon: string;
+  badge?: number;
 };
 
 type NavGroup = {
@@ -44,6 +45,7 @@ const groups: NavGroup[] = [
     label: 'Planning',
     items: [
       { href: '/posts', label: 'Marketing', icon: 'K' },
+      { href: '/notifications', label: 'Notifications', icon: 'N' },
       { href: '/history', label: 'History', icon: 'H' },
     ],
   },
@@ -85,6 +87,7 @@ function NavLink({ item, path, onNavigate }: { item: NavItem; path: string; onNa
     <Link className={active ? 'active' : ''} href={item.href} onClick={onNavigate} aria-current={active ? 'page' : undefined}>
       <span className="nav-icon" aria-hidden="true">{item.icon}</span>
       <span className="nav-copy">{item.label}</span>
+      {item.badge ? <span className="nav-badge" aria-label={`${item.badge} unread`}>{item.badge > 99 ? '99+' : item.badge}</span> : null}
     </Link>
   );
 }
@@ -96,8 +99,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [deptId, setDeptId] = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const isLogin = path === '/login';
-  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/posts', '/history', '/approvals', '/approve', '/my-work', '/admin'].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
+  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/admin'].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -105,6 +109,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setDeptId(getCurrentDepartmentId(stored));
     setMobileOpen(false);
   }, [path]);
+
+  useEffect(() => {
+    if (!user) { setUnreadCount(0); return; }
+    let cancelled = false;
+    const refresh = () => api.notifications({ unread_only: true, limit: 1 }).then(page => { if (!cancelled) setUnreadCount(Number(page.unread_count || 0)); }).catch(() => undefined);
+    void refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [path, user]);
 
   useEffect(() => {
     function syncDepartment() {
@@ -134,6 +147,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const deptOptions = user?.departments || [];
   const currentDept = deptOptions.find((d: Entity) => Number(d.id) === Number(deptId)) || deptOptions[0];
+  const fixedMarketingWorkspace = path.startsWith('/posts');
+  const workspaceName = fixedMarketingWorkspace ? 'Marketing' : currentDept?.name || 'Hidden Oasis';
   const visibleAdminItems = adminItems.filter(item => hasCapability(user, item.capability));
   const canOpenMarketing = hasCapability(user, 'view_all_operations') || deptOptions.some((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
   const visibleGroups = groups.map(group => ({
@@ -170,7 +185,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="mobile-header">
         <Link className="mobile-brand" href="/">
           <span className="logo">HO</span>
-          <span><strong>Operations</strong><small>{currentDept?.name || 'Hidden Oasis'}</small></span>
+          <span><strong>Operations</strong><small>{workspaceName}</small></span>
         </Link>
         <button
           className="menu-toggle"
@@ -201,7 +216,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/account" className="account-link" onClick={() => setMobileOpen(false)}>Account</Link>
         </div>
 
-        {deptOptions.length > 0 && (
+        {fixedMarketingWorkspace ? <div className="dept-switch"><label><span>Current workspace</span><strong>Marketing</strong></label></div> : deptOptions.length > 0 && (
           <div className="dept-switch">
             <label>
               <span>Current workspace</span>
@@ -220,7 +235,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {visibleGroups.map(group => (
             <div className="nav-group" key={group.label}>
               <span className="nav-label">{group.label}</span>
-              {group.items.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}
+              {group.items.map(item => <NavLink key={item.href} item={{ ...item, badge: item.href === '/notifications' ? unreadCount : undefined }} path={path} onNavigate={() => setMobileOpen(false)} />)}
             </div>
           ))}
 

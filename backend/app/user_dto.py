@@ -13,6 +13,7 @@ class DepartmentMembershipResponse(BaseModel):
     id: int
     name: str
     is_primary: bool
+    membership_id: int | None = None
     role_override: str | None = None
 
 
@@ -52,6 +53,7 @@ def department_memberships(db: Session, user: models.User) -> list[DepartmentMem
                     id=department.id,
                     name=department.name,
                     is_primary=True,
+                    membership_id=None,
                     role_override=None,
                 )
             )
@@ -60,11 +62,12 @@ def department_memberships(db: Session, user: models.User) -> list[DepartmentMem
             department = db.get(models.Department, membership.department_id)
             if department:
                 rows.append(
-                    DepartmentMembershipResponse(
-                        id=department.id,
-                        name=department.name,
-                        is_primary=membership.is_primary,
-                        role_override=membership.role_override,
+                DepartmentMembershipResponse(
+                    id=department.id,
+                    name=department.name,
+                    is_primary=membership.is_primary,
+                    membership_id=membership.id,
+                    role_override=membership.role_override,
                     )
                 )
     rows.sort(key=lambda row: (not row.is_primary, row.name))

@@ -7,6 +7,7 @@ from .. import models
 from ..authorization_policy import Action, authorize_action
 from ..clock import utc_now
 from ..utils import log_activity
+from .notifications import notify_user
 
 
 def _locked_approval(db: Session, approval_id: int) -> models.Approval:
@@ -60,6 +61,17 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
         log_activity(db, "external-review-items", external_item.id, "decision", f"External review item {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
 
     log_activity(db, "approvals", approval.id, "decision", f"Approval {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
+    notify_user(
+        db,
+        approval.requested_by_id,
+        "approval-decision",
+        f"{approval.title}: {decision}",
+        approval.decision_note,
+        source_type="approvals",
+        source_id=approval.id,
+        action_url="/approvals",
+        priority=approval.priority or "Normal",
+    )
     db.commit()
     db.refresh(approval)
     if request is not None:

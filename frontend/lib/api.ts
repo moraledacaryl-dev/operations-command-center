@@ -97,6 +97,26 @@ async function download(path: string, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+async function allCursorPages(path: string, params: Record<string, any> = {}): Promise<Entity[]> {
+  const items: Entity[] = [];
+  let cursor = '';
+  do {
+    const qs = new URLSearchParams({ paginated: 'true', limit: '100' });
+    Object.entries({ ...params, cursor }).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') qs.set(key, String(value));
+    });
+    const response = await request<CursorPage | Entity[]>(`${path}?${qs}`);
+    if (Array.isArray(response)) {
+      items.push(...response);
+      break;
+    }
+    const page = response;
+    items.push(...page.items);
+    cursor = page.has_more && page.next_cursor ? page.next_cursor : '';
+  } while (cursor);
+  return items;
+}
+
 export const api = {
   list: (resource: string, params: Record<string, any> = {}, options: { signal?: AbortSignal } = {}) => {
     const qs = new URLSearchParams();
@@ -111,6 +131,25 @@ export const api = {
       if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
     });
     return request<CursorPage>(`/${resource}?${qs}`, { signal: options.signal });
+  },
+  listAll: async (resource: string, params: Record<string, any> = {}, options: { signal?: AbortSignal } = {}) => {
+    const items: Entity[] = [];
+    let cursor = '';
+    do {
+      const qs = new URLSearchParams({ paginated: 'true', limit: '100' });
+      Object.entries({ ...params, cursor }).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+      });
+      const response = await request<CursorPage | Entity[]>(`/${resource}?${qs}`, { signal: options.signal });
+      if (Array.isArray(response)) {
+        items.push(...response);
+        break;
+      }
+      const page = response;
+      items.push(...page.items);
+      cursor = page.has_more && page.next_cursor ? page.next_cursor : '';
+    } while (cursor);
+    return items;
   },
   get: (resource: string, id: number) => request<Entity>(`/${resource}/${id}`),
   create: (resource: string, data: Entity) => request<Entity>(`/${resource}`, { method: 'POST', body: JSON.stringify(data) }),
@@ -128,6 +167,9 @@ export const api = {
   changePassword: (current_password: string, new_password: string) => request<Entity>('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
   adminCreateUser: (data: Entity) => request<Entity>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
   adminResetUserPassword: (id: number, new_password: string) => request<Entity>(`/admin/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ new_password }) }),
+  adminUpdateUser: (id: number, data: Entity) => request<Entity>(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  adminUpdateMembership: (id: number, data: Entity) => request<Entity>(`/admin/user-departments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  adminDeleteMembership: (id: number) => request<void>(`/admin/user-departments/${id}`, { method: 'DELETE' }),
   meta: () => request<Entity>('/meta'),
   departmentWorkspace: (departmentId: number) => request<Entity>(`/departments/${departmentId}/workspace`),
   reviewQueue: (params: Record<string, any> = {}) => { const qs = new URLSearchParams(); Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); }); return request<Entity>(`/review/queue${qs.toString() ? `?${qs}` : ''}`); },
@@ -159,12 +201,16 @@ export const api = {
   externalMarkSeen: (id: number, data: Entity = {}) => request<Entity>(`/integrations/review-items/${id}/mark-seen`, { method: 'POST', body: JSON.stringify(data) }),
   externalReject: (id: number, data: Entity = {}) => request<Entity>(`/integrations/review-items/${id}/reject`, { method: 'POST', body: JSON.stringify(data) }),
   verifyFix: (id: number, data: Entity) => request<Entity>(`/workflow/fixes/${id}/verify`, { method: 'POST', body: JSON.stringify(data) }),
-  marketingCampaigns: () => request<Entity[]>('/marketing/campaigns'),
+  marketingCampaigns: () => allCursorPages('/marketing/campaigns'),
   createMarketingCampaign: (data: Entity) => request<Entity>('/marketing/campaigns', { method: 'POST', body: JSON.stringify(data) }),
-  marketingConcepts: (campaignId?: number) => request<Entity[]>(`/marketing/concepts${campaignId ? `?campaign_id=${campaignId}` : ''}`),
+  marketingConcepts: (campaignId?: number) => allCursorPages('/marketing/concepts', campaignId ? { campaign_id: campaignId } : {}),
   createMarketingConcept: (data: Entity) => request<Entity>('/marketing/concepts', { method: 'POST', body: JSON.stringify(data) }),
-  marketingCalendar: (params: Record<string, any>) => { const qs = new URLSearchParams(); Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); }); return request<Entity[]>(`/marketing/calendar?${qs}`); },
+  marketingCalendar: (params: Record<string, any>) => allCursorPages('/marketing/calendar', params),
   marketingDeliverableAction: (id: number, action: string, data: Entity = {}) => request<Entity>(`/marketing/deliverables/${id}/transition/${action}`, { method: 'POST', body: JSON.stringify(data) }),
   rescheduleMarketingDeliverable: (id: number, scheduledAt: string | null) => request<Entity>(`/marketing/deliverables/${id}/reschedule`, { method: 'POST', body: JSON.stringify({ scheduled_at: scheduledAt }) }),
+  notifications: (params: Record<string, any> = {}) => { const qs = new URLSearchParams(); Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); }); return request<CursorPage & { unread_count: number }>(`/notifications${qs.toString() ? `?${qs}` : ''}`); },
+  readNotification: (id: number) => request<Entity>(`/notifications/${id}/read`, { method: 'POST' }),
+  readAllNotifications: () => request<Entity>('/notifications/read-all', { method: 'POST' }),
+  dismissNotification: (id: number) => request<Entity>(`/notifications/${id}/dismiss`, { method: 'POST' }),
   attach: (resource: string, id: number, form: FormData) => request<Entity>(`/${resource}/${id}/attachments`, { method: 'POST', body: form }),
 };

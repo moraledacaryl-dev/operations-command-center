@@ -1,9 +1,12 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { clearStoredUser } from '@/lib/session';
 import { Top } from '@/components/Top';
 
 export default function AccountPage() {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,10 +28,12 @@ export default function AccountPage() {
     setBusy(true);
     try {
       await api.changePassword(currentPassword, newPassword);
-      setSaved('Password updated.');
+      setSaved('Password updated. Sign in again with the new password.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      clearStoredUser();
+      window.setTimeout(() => router.replace('/login?password=changed'), 500);
     } catch (err: any) {
       setError(err.message || 'Could not change password.');
     } finally {

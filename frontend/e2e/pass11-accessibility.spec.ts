@@ -29,7 +29,7 @@ const owner = {
 const routes = [
   '/', '/account', '/admin/approve', '/admin/health', '/admin/users', '/approvals', '/approve',
   '/departments', '/fixes', '/guests', '/history', '/my-work', '/posts', '/projects', '/requests',
-  '/review', '/rooms', '/rooms/1', '/shift', '/tasks', '/does-not-exist',
+  '/review', '/rooms', '/rooms/1', '/shift', '/tasks', '/notifications', '/does-not-exist',
 ];
 
 const viewports = [
@@ -60,6 +60,10 @@ async function seedAuthenticatedShell(page: Page) {
     else if (path.match(/\/api\/rooms\/\d+$/)) body = { id: 1, name: 'Room 1', kind: 'Room', status: 'Active' };
     else if (path.endsWith('/api/meta')) body = { departments };
     else if (path.endsWith('/api/users')) body = [owner];
+    else if (path.endsWith('/api/users/page')) body = { items: [owner], next_cursor: null, has_more: false };
+    else if (path.endsWith('/api/history/search/all')) body = { items: [], next_cursor: null, has_more: false };
+    else if (path.endsWith('/api/notifications')) body = { items: [], next_cursor: null, has_more: false, unread_count: 0 };
+    else if (path.endsWith('/api/rooms') && url.searchParams.get('paginated') === 'true') body = { items: [], next_cursor: null, has_more: false };
 
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
@@ -90,6 +94,7 @@ for (const viewport of viewports) {
       await seedAuthenticatedShell(page);
       await page.goto(path);
       await expect(page.locator('body')).toBeVisible();
+      await expect(page.locator('#__next_error__')).toHaveCount(0);
       await expectNoBlockingAxeViolations(page);
     });
   }

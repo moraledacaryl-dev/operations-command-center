@@ -7,6 +7,7 @@ import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 
 export default function RequestsPage() {
@@ -21,6 +22,7 @@ export default function RequestsPage() {
   const [filter, setFilter] = useState('Open');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { departmentId, hydrated } = useActiveDepartment();
   const beginRequest = useLatestRequest();
 
@@ -30,14 +32,15 @@ export default function RequestsPage() {
   const load = useCallback(async () => {
     if (!hydrated) return;
     const request = beginRequest();
+    setLoading(true);
     try {
       setError('');
-      const rows = await api.list('requests', { active: true, department_id: departmentId || '' }, { signal: request.signal });
+      const rows = await api.listAll('requests', { active: false, department_id: departmentId || '' }, { signal: request.signal });
       if (request.isCurrent()) setItems(rows);
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       if (request.isCurrent()) setError(err.message || 'Requests could not be loaded.');
-    }
+    } finally { if (request.isCurrent()) setLoading(false); }
   }, [beginRequest, departmentId, hydrated]);
 
   useEffect(() => { void load(); }, [load]);
@@ -90,6 +93,8 @@ export default function RequestsPage() {
   const pending = items.filter(item => item.status === 'Review').length;
   const approved = items.filter(item => ['Approved', 'Planned'].includes(item.status)).length;
   const urgent = items.filter(item => item.urgency === 'Urgent' && !['Done', 'Rejected'].includes(item.status)).length;
+
+  if (!hydrated || loading) return <><Top eyebrow="Proposal pipeline" title="Requests" /><LoadingPanel label="Loading requests and decisions…" /></>;
 
   return <>
     <Top eyebrow="Proposal pipeline" title="Requests" right={<button data-testid="create-request" className="btn" onClick={() => setShowAdd(value => !value)}>Add</button>} />

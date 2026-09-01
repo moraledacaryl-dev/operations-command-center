@@ -9,7 +9,7 @@ import { Tabs } from '@/components/Tabs';
 import { MarketingWorkspace } from '@/components/MarketingWorkspace';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 import { hasCapability } from '@/lib/capabilities';
-import { getStoredUser } from '@/lib/session';
+import { getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
 const statuses = ['Idea', 'Draft', 'Review', 'Fix', 'OK', 'Set', 'Posted'];
 const platforms = ['Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website', 'Internal'];
@@ -83,6 +83,7 @@ export default function MarketingPage() {
     const membership = (user?.departments || []).find((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
     if (membership?.id) {
       setDepartmentId(Number(membership.id));
+      setCurrentDepartmentId(Number(membership.id));
       setScopeReady(true);
       return;
     }
@@ -95,6 +96,7 @@ export default function MarketingPage() {
       if (cancelled) return;
       const marketing = (meta.departments || []).find((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
       setDepartmentId(marketing?.id ? Number(marketing.id) : null);
+      if (marketing?.id) setCurrentDepartmentId(Number(marketing.id));
       setScopeReady(true);
     }).catch(err => {
       if (!cancelled) {

@@ -5,6 +5,7 @@ import { api, Entity } from '@/lib/api';
 import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 
 const columns = ['To Do', 'Doing', 'Review', 'Done'];
@@ -25,6 +26,7 @@ export default function TeamTasksPage() {
   const [actionNote, setActionNote] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { departmentId, hydrated } = useActiveDepartment();
   const beginRequest = useLatestRequest();
 
@@ -34,14 +36,15 @@ export default function TeamTasksPage() {
   const load = useCallback(async () => {
     if (!hydrated) return;
     const request = beginRequest();
+    setLoading(true);
     try {
       setError('');
-      const rows = await api.list('tasks', { active: true, department_id: departmentId || '' }, { signal: request.signal });
+      const rows = await api.listAll('tasks', { active: true, department_id: departmentId || '' }, { signal: request.signal });
       if (request.isCurrent()) setItems(rows);
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       if (request.isCurrent()) setError(err.message || 'Team tasks could not be loaded.');
-    }
+    } finally { if (request.isCurrent()) setLoading(false); }
   }, [beginRequest, departmentId, hydrated]);
 
   useEffect(() => { void load(); }, [load]);
@@ -71,6 +74,8 @@ export default function TeamTasksPage() {
     } catch (err: any) { setError(err.message || 'Task could not be updated.'); }
     finally { setBusy(false); }
   }
+
+  if (!hydrated || loading) return <><Top eyebrow="Team execution" title="Tasks" /><LoadingPanel label="Loading team tasks…" /></>;
 
   return <>
     <Top eyebrow="Team execution" title="Tasks" right={<button data-testid="create-task" className="btn" onClick={() => setShowAdd(value => !value)}>New task</button>} />

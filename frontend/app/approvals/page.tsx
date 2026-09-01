@@ -33,8 +33,8 @@ export default function ApprovalsPage() {
     setLoading(true);
     setError('');
     try {
-      setItems(await api.list('approvals', {
-        active: true,
+      setItems(await api.listAll('approvals', {
+        active: false,
         department_id: departmentId || '',
       }));
     } catch (err: any) {
@@ -113,9 +113,9 @@ export default function ApprovalsPage() {
           <h2 style={{ marginTop: 12 }}>{selected.title || 'Approval'}</h2>
           {selected.note ? <p className="muted">{selected.note}</p> : null}
           <div className="grid cols-2" style={{ marginTop: 12 }}>
-            <div className="card"><span className="muted">Requested by</span><b>{selected.requested_by_id || '—'}</b></div>
+            <div className="card"><span className="muted">Requested by</span><b>{selected.requested_by_name || '—'}</b></div>
             <div className="card"><span className="muted">Created</span><b>{formatDate(selected.created_at)}</b></div>
-            <div className="card"><span className="muted">Decided by</span><b>{selected.decided_by_id || '—'}</b></div>
+            <div className="card"><span className="muted">Decided by</span><b>{selected.decided_by_name || '—'}</b></div>
             <div className="card"><span className="muted">Decision time</span><b>{formatDate(selected.decided_at)}</b></div>
           </div>
           {selected.decision_note ? <div className="card" style={{ marginTop: 12 }}><span className="muted">Decision note</span><p>{selected.decision_note}</p></div> : null}

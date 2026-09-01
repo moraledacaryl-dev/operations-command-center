@@ -101,6 +101,11 @@ test('mobile Drawer is portaled, traps focus, hides background nav, and restores
     contentType: 'application/json',
     body: JSON.stringify([{ id: 11, title: 'Drawer probe', status: 'To Do', priority: 'Normal', department_id: 1 }]),
   }));
+  await page.route('**/api/tasks/11', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ id: 11, title: 'Drawer probe', status: 'To Do', priority: 'Normal', department_id: 1, allowed_actions: ['start'], comments: [], attachments: [], activity: [] }),
+  }));
 
   await page.goto('/tasks');
   await assertSession(page);
@@ -155,10 +160,10 @@ test('quick-create is declarative and Tasks render four desktop columns', async 
 test('People & Access uses protected directory account state', async ({ page }) => {
   await seedSession(page);
   await mockCommon(page);
-  await page.route('**/api/users', route => route.fulfill({
+  await page.route('**/api/users/page?*', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify([{
+    body: JSON.stringify({ items: [{
       id: 7,
       name: 'Active Manager',
       email: 'manager@example.test',
@@ -166,7 +171,7 @@ test('People & Access uses protected directory account state', async ({ page }) 
       is_active: true,
       last_login_at: '2026-08-26T08:00:00Z',
       departments: [{ id: 1, name: 'Front Office', is_primary: true }],
-    }]),
+    }], next_cursor: null, has_more: false }),
   }));
 
   await page.goto('/admin/users');

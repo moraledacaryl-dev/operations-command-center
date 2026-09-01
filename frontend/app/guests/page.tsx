@@ -6,6 +6,7 @@ import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 
 function dateLabel(value?: string) {
@@ -29,6 +30,7 @@ export default function GuestMattersPage() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<Entity>({ ...emptyForm });
   const [actionNote, setActionNote] = useState('');
+  const [loading, setLoading] = useState(true);
   const { departmentId, hydrated } = useActiveDepartment();
   const beginRequest = useLatestRequest();
 
@@ -43,11 +45,12 @@ export default function GuestMattersPage() {
   const load = useCallback(async () => {
     if (!hydrated) return;
     const request = beginRequest();
+    setLoading(true);
     try {
       setError('');
       const [guestItems, roomItems] = await Promise.all([
-        api.list('guests', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
-        api.list('rooms', { active: false }, { signal: request.signal }),
+        api.listAll('guests', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
+        api.listAll('rooms', { active: false }, { signal: request.signal }),
       ]);
       if (!request.isCurrent()) return;
       setItems(guestItems);
@@ -55,7 +58,7 @@ export default function GuestMattersPage() {
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       if (request.isCurrent()) setError(err.message || 'Guest matters could not be loaded.');
-    }
+    } finally { if (request.isCurrent()) setLoading(false); }
   }, [beginRequest, departmentId, hydrated]);
 
   useEffect(() => { void load(); }, [load]);
@@ -74,7 +77,7 @@ export default function GuestMattersPage() {
         title: String(form.title).trim(), guest_name: String(form.guest_name || '').trim() || null,
         room_area_id: form.room_area_id ? Number(form.room_area_id) : null, issue_type: form.issue_type,
         urgency: form.urgency, note: String(form.note || '').trim() || null,
-        follow_up_date: form.follow_up_date || null, status: 'Open', department_id: departmentId || null,
+        follow_up_date: form.follow_up_date ? new Date(`${form.follow_up_date}:00+08:00`).toISOString() : null, status: 'Open', department_id: departmentId || null,
       });
       setForm({ ...emptyForm }); setShowAdd(false); await load();
     } catch (err: any) { setError(err.message || 'Guest matter could not be created.'); }
@@ -98,6 +101,8 @@ export default function GuestMattersPage() {
   const active = items.filter(item => item.status !== 'Done').length;
   const urgent = items.filter(item => item.status !== 'Done' && ['Urgent', 'High'].includes(String(item.urgency))).length;
   const follow = items.filter(item => item.status === 'Follow').length;
+
+  if (!hydrated || loading) return <><Top eyebrow="Service recovery" title="Guest matters" /><LoadingPanel label="Loading guest matters…" /></>;
 
   return <>
     <Top eyebrow="Service recovery" title="Guest matters" right={<button data-testid="create-guest" className="btn" onClick={() => setShowAdd(value => !value)}>New guest matter</button>} />
