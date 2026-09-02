@@ -10,6 +10,7 @@ from app.routers.integrations_v2 import (
     _event_summary,
     _event_title,
     _payload_hash,
+    _source_keys,
 )
 
 
@@ -99,6 +100,56 @@ def test_source_specific_keys_cannot_cross_source(monkeypatch):
     with pytest.raises(HTTPException) as exc:
         _authenticate_source("dedicated_pos_cloud", "source-a")
     assert exc.value.status_code == 401
+
+
+def test_production_rejects_legacy_shared_integration_key(monkeypatch):
+    monkeypatch.delenv("INTEGRATION_API_KEYS_JSON", raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("INTEGRATION_API_KEY", "legacy-shared-key")
+
+    with pytest.raises(HTTPException) as exc:
+        _source_keys()
+
+    assert exc.value.status_code == 503
+    assert "source-specific" in exc.value.detail
+
+
+def test_nonproduction_keeps_legacy_shared_key_compatibility(monkeypatch):
+    monkeypatch.delenv("INTEGRATION_API_KEYS_JSON", raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.setenv("INTEGRATION_API_KEY", "legacy-shared-key")
+
+    keys = _source_keys()
+
+    assert set(keys) == set((
+        "hidden_oasis_staff_payroll",
+        "accounting_program",
+        "dedicated_pos_cloud",
+        "inventory_procurement",
+    ))
+    assert set(keys.values()) == {"legacy-shared-key"}
+
+
+def test_production_accepts_source_specific_json_even_if_legacy_key_is_present(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("INTEGRATION_API_KEY", "legacy-shared-key")
+    monkeypatch.setenv(
+        "INTEGRATION_API_KEYS_JSON",
+        json.dumps(
+            {
+                "hidden_oasis_staff_payroll": "source-a",
+                "accounting_program": "source-b",
+                "dedicated_pos_cloud": "source-c",
+                "inventory_procurement": "source-d",
+            }
+        ),
+    )
+
+    keys = _source_keys()
+
+    assert len(keys) == 4
+    assert len(set(keys.values())) == 4
+    assert keys["hidden_oasis_staff_payroll"] == "source-a"
 
 
 def test_replay_digest_ignores_scrubbed_private_value_changes():
