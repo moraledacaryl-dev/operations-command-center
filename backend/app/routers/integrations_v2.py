@@ -193,11 +193,19 @@ def _source_keys() -> Dict[str, str]:
     if raw:
         try:
             parsed = json.loads(raw)
-            if isinstance(parsed, dict):
-                return {str(key): str(value) for key, value in parsed.items() if value}
         except json.JSONDecodeError as exc:
             raise HTTPException(status_code=503, detail="INTEGRATION_API_KEYS_JSON is invalid") from exc
+        if not isinstance(parsed, dict):
+            raise HTTPException(status_code=503, detail="INTEGRATION_API_KEYS_JSON must be an object")
+        return {str(key): str(value) for key, value in parsed.items() if value}
+
+    environment = os.getenv("ENVIRONMENT", "development").strip().lower()
     legacy = os.getenv("INTEGRATION_API_KEY", "").strip()
+    if environment == "production" and legacy:
+        raise HTTPException(
+            status_code=503,
+            detail="Production integrations require source-specific INTEGRATION_API_KEYS_JSON credentials",
+        )
     return {source: legacy for source in SOURCE_EVENT_TYPES} if legacy else {}
 
 
