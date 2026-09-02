@@ -13,14 +13,17 @@ from app.routers.integrations_v2 import (
 )
 
 
-def test_v2_scrubs_nested_private_fields():
+def test_v2_scrubs_nested_private_and_narrative_fields():
     event = IntegrationEventEnvelope(
         event_id="evt-privacy-1",
         event_type="staff.operations.snapshot",
-        title="Untrusted private title",
-        summary="Untrusted private summary",
+        title="SENTINEL_TITLE",
+        summary="SENTINEL_SUMMARY",
         payload={
             "counts": {"attendance_exceptions": 1},
+            "note": "SENTINEL_NOTE",
+            "reason": "SENTINEL_REASON",
+            "description": "SENTINEL_DESCRIPTION",
             "employee": {
                 "name": "Visible operational name",
                 "hourly_rate": 999,
@@ -36,10 +39,20 @@ def test_v2_scrubs_nested_private_fields():
     encoded = json.dumps(payload)
 
     for forbidden in (
+        "title",
+        "summary",
+        "note",
+        "reason",
+        "description",
         "hourly_rate",
         "private_hr_notes",
         "bank_account",
         "government_id",
+        "SENTINEL_TITLE",
+        "SENTINEL_SUMMARY",
+        "SENTINEL_NOTE",
+        "SENTINEL_REASON",
+        "SENTINEL_DESCRIPTION",
         "SENTINEL_PRIVATE_HR",
         "SENTINEL_ACCOUNT",
         "SENTINEL_ID",
@@ -48,9 +61,10 @@ def test_v2_scrubs_nested_private_fields():
 
     assert payload["payload"]["employee"]["name"] == "Visible operational name"
     assert payload["payload"]["rows"][0]["safe_status"] == "pending"
+    assert payload["metadata"]["safe_marker"] == "ok"
 
 
-def test_review_card_does_not_promote_untrusted_free_text():
+def test_review_card_uses_event_type_and_structured_aggregates_only():
     event = IntegrationEventEnvelope(
         event_id="evt-privacy-2",
         event_type="payroll.ready_for_owner_review",
@@ -65,8 +79,7 @@ def test_review_card_does_not_promote_untrusted_free_text():
 
     assert _event_title(event) == "Payroll Ready For Owner Review"
     assert _event_summary(payload) == "payroll_ready_for_owner_review: 1"
-    assert "SENTINEL" not in _event_title(event)
-    assert "SENTINEL" not in _event_summary(payload)
+    assert "SENTINEL" not in json.dumps(payload)
 
 
 def test_source_specific_keys_cannot_cross_source(monkeypatch):
