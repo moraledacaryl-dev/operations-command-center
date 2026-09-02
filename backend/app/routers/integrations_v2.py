@@ -239,7 +239,7 @@ def _payload_hash(payload: Dict[str, Any]) -> str:
 
 
 def _event_title(event: IntegrationEventEnvelope) -> str:
-    return event.event_type.replace(".", " ").title()
+    return event.event_type.replace(".", " ").replace("_", " ").title()
 
 
 def _event_summary(payload: Dict[str, Any]) -> str:
