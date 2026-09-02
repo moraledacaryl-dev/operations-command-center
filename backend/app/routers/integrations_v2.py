@@ -112,6 +112,17 @@ SENSITIVE_KEYS = {
     "password",
     "secret",
     "api_key",
+    # Narrative text supplied by source applications is not a safe replication
+    # boundary. Operations retains structured operational facts and source links;
+    # detailed narrative remains authoritative in the source application.
+    "title",
+    "summary",
+    "note",
+    "reason",
+    "description",
+    "details",
+    "message",
+    "privacy_note",
 }
 SENSITIVE_KEY_FRAGMENTS = (
     "salary",
@@ -228,16 +239,10 @@ def _payload_hash(payload: Dict[str, Any]) -> str:
 
 
 def _event_title(event: IntegrationEventEnvelope) -> str:
-    # Integration free text is not trusted as a privacy-safe display surface.
-    # A deterministic event-type title prevents sensitive details embedded in
-    # producer-supplied title fields from escaping key-based payload scrubbing.
     return event.event_type.replace(".", " ").title()
 
 
 def _event_summary(payload: Dict[str, Any]) -> str:
-    # Summaries are intentionally limited to structured operational aggregates.
-    # Free-form producer text remains inside the scrubbed payload for authorized
-    # review but is never promoted into the high-visibility review-card summary.
     body = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
     for key in ("counts", "totals"):
         value = body.get(key)
@@ -307,7 +312,6 @@ def receive_event(
     db.add(delivery)
     db.flush()
 
-    # Keep the original durable inbox contract populated for replay/worker tooling.
     db.add(
         IntegrationEventInbox(
             source_app=source_app,
@@ -433,5 +437,5 @@ def integration_contract():
         "sources": {source: sorted(events) for source, events in SOURCE_EVENT_TYPES.items()},
         "identity_rule": "One Operations user may map to one app-specific identifier per source app.",
         "idempotency_rule": "source_app + event_id is unique; replay with a changed payload is rejected.",
-        "privacy_rule": "Payroll, government identifiers, rates, HR-private fields, credentials, and payment-account secrets are recursively stripped; review-card title/summary are derived from trusted structured fields.",
+        "privacy_rule": "Operations stores structured operational facts only: sensitive identifiers, compensation, financial-account/credential fields, and untrusted narrative text are recursively stripped; detailed narrative remains in the source application.",
     }
