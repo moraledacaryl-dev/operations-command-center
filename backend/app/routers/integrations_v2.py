@@ -93,9 +93,45 @@ SENSITIVE_KEYS = {
     "pagibig_number",
     "tin",
     "private_hr_notes",
+    "hr_notes",
+    "notes_private",
+    "annual_review_content",
+    "memo_body",
     "payroll_lines",
+    "benefits",
     "cash_advance_balance",
+    "card_number",
+    "pan",
+    "cvv",
+    "cvc",
+    "bank_account",
+    "account_number",
+    "routing_number",
+    "access_token",
+    "refresh_token",
+    "password",
+    "secret",
+    "api_key",
 }
+SENSITIVE_KEY_FRAGMENTS = (
+    "salary",
+    "government_id",
+    "sss_number",
+    "philhealth_number",
+    "pagibig_number",
+    "private_hr",
+    "hr_notes",
+    "memo_body",
+    "card_number",
+    "bank_account",
+    "account_number",
+    "routing_number",
+    "access_token",
+    "refresh_token",
+    "password",
+    "secret",
+    "api_key",
+)
 
 
 class EventSubject(BaseModel):
@@ -168,11 +204,8 @@ def _scrub(value: Any) -> Any:
     if isinstance(value, dict):
         cleaned = {}
         for key, item in value.items():
-            normalized = str(key).lower()
-            if normalized in SENSITIVE_KEYS or any(
-                token in normalized
-                for token in ("salary", "government_id", "sss_number", "philhealth_number", "pagibig_number")
-            ):
+            normalized = str(key).strip().lower()
+            if normalized in SENSITIVE_KEYS or any(token in normalized for token in SENSITIVE_KEY_FRAGMENTS):
                 continue
             cleaned[key] = _scrub(item)
         return cleaned
@@ -195,18 +228,19 @@ def _payload_hash(payload: Dict[str, Any]) -> str:
 
 
 def _event_title(event: IntegrationEventEnvelope) -> str:
-    return event.title or event.payload.get("title") or event.event_type.replace(".", " ").title()
+    # Integration free text is not trusted as a privacy-safe display surface.
+    # A deterministic event-type title prevents sensitive details embedded in
+    # producer-supplied title fields from escaping key-based payload scrubbing.
+    return event.event_type.replace(".", " ").title()
 
 
-def _event_summary(event: IntegrationEventEnvelope) -> str:
-    if event.summary:
-        return event.summary
-    for key in ("summary", "privacy_note", "note"):
-        value = event.payload.get(key)
-        if value:
-            return str(value)
+def _event_summary(payload: Dict[str, Any]) -> str:
+    # Summaries are intentionally limited to structured operational aggregates.
+    # Free-form producer text remains inside the scrubbed payload for authorized
+    # review but is never promoted into the high-visibility review-card summary.
+    body = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
     for key in ("counts", "totals"):
-        value = event.payload.get(key)
+        value = body.get(key)
         if isinstance(value, dict):
             return ", ".join(f"{name}: {amount}" for name, amount in value.items())
     return ""
@@ -294,7 +328,7 @@ def receive_event(
         source_record_id=subject.id if subject else None,
         department_id=event.department_id,
         title=_event_title(event),
-        summary=_event_summary(event),
+        summary=_event_summary(payload),
         priority=event.priority or "Normal",
         status="For Review",
         payload_json=json.dumps(payload, default=str),
@@ -399,5 +433,5 @@ def integration_contract():
         "sources": {source: sorted(events) for source, events in SOURCE_EVENT_TYPES.items()},
         "identity_rule": "One Operations user may map to one app-specific identifier per source app.",
         "idempotency_rule": "source_app + event_id is unique; replay with a changed payload is rejected.",
-        "privacy_rule": "Payroll, government identifiers, rates, and private HR content are stripped.",
+        "privacy_rule": "Payroll, government identifiers, rates, HR-private fields, credentials, and payment-account secrets are recursively stripped; review-card title/summary are derived from trusted structured fields.",
     }
