@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API_BASE, api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
@@ -21,6 +22,10 @@ function assetHref(url?: string) {
   if (url.startsWith('http')) return url;
   if (url.startsWith('/uploads')) return `${API_BASE.replace('/api', '')}${url}`;
   return url;
+}
+
+function isAnnotatableAsset(item: Entity) {
+  return /\.(png|jpe?g|webp)$/i.test(String(item.filename || item.file_url || ''));
 }
 
 function formatDate(value?: string) {
@@ -236,7 +241,7 @@ export default function MarketingPage() {
   const allowedActions: string[] = selected?.allowed_actions || [];
 
   return <>
-    <Top eyebrow="Publishing calendar" title="Marketing" right={canManage && departmentId ? <button className="btn" onClick={() => setShowAdd(value => !value)}>New content</button> : undefined} />
+    <Top eyebrow="Publishing calendar" title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Annotation studio</Link>{canManage && departmentId ? <button className="btn" onClick={() => setShowAdd(value => !value)}>New content</button> : null}</div>} />
     {departmentId ? <MarketingWorkspace departmentId={departmentId} canManage={canManage} /> : null}
     <div className="legacy-section-head"><div><p className="eyebrow">Compatibility workspace</p><h2>Legacy content records</h2></div><p className="muted">Existing posts remain available while campaigns and platform deliverables become the primary planning model.</p></div>
     <div className="grid cols-3" style={{ marginBottom: 16 }}>
@@ -294,7 +299,7 @@ export default function MarketingPage() {
           </div>
         </section>
         <section className="panel" style={{ marginBottom: 16 }}>
-          <h2>Creative versions</h2>
+          <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>Creative versions</h2><Link className="btn small secondary" href={`/posts/editor?postId=${selected.id}`}>Open annotation studio</Link></div>
           <div className="form" style={{ marginTop: 12 }}>
             <div className="form-grid"><label className="label">File<input className="input" type="file" onChange={event => setFile(event.target.files?.[0] || null)} /></label><label className="label">Asset URL<input className="input" value={version.file_url} onChange={event => setVersion({ ...version, file_url: event.target.value })} /></label></div>
             <label className="label">Display name<input className="input" value={version.filename} onChange={event => setVersion({ ...version, filename: event.target.value })} /></label>
@@ -302,7 +307,7 @@ export default function MarketingPage() {
             <label className="label">Version note<textarea className="textarea" value={version.note} onChange={event => setVersion({ ...version, note: event.target.value })} /></label>
             <button className="btn secondary" disabled={busy} onClick={addVersion}>Add version</button>
           </div>
-          <div className="grid" style={{ marginTop: 12 }}>{versions.map(item => <div className="card" key={item.id}><strong>V{item.version_no}{item.is_current ? ' · Current' : ''}</strong><span>{item.filename || 'Creative asset'}</span>{item.file_url ? <a className="btn small secondary" href={assetHref(item.file_url)} target="_blank" rel="noreferrer">Open asset</a> : null}<span className="muted">{item.note}</span></div>)}{!versions.length ? <div className="empty">No creative versions uploaded.</div> : null}</div>
+          <div className="grid" style={{ marginTop: 12 }}>{versions.map(item => <div className="card" key={item.id}><strong>V{item.version_no}{item.is_current ? ' · Current' : ''}</strong><span>{item.filename || 'Creative asset'}</span><div className="toolbar">{item.file_url ? <a className="btn small secondary" href={assetHref(item.file_url)} target="_blank" rel="noreferrer">Open asset</a> : null}{isAnnotatableAsset(item) ? <Link className="btn small" href={`/posts/editor?postId=${selected.id}&versionId=${item.id}`}>Annotate</Link> : null}</div><span className="muted">{item.note}</span></div>)}{!versions.length ? <div className="empty">No creative versions uploaded.</div> : null}</div>
         </section>
         <section className="panel">
           <h2>Review conversation</h2>
