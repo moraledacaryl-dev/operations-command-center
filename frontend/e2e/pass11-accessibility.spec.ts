@@ -28,7 +28,7 @@ const owner = {
 
 const routes = [
   '/', '/account', '/admin/approve', '/admin/health', '/admin/users', '/approvals', '/approve',
-  '/departments', '/fixes', '/guests', '/history', '/my-work', '/posts', '/projects', '/requests',
+  '/departments', '/fixes', '/guests', '/history', '/my-work', '/posts', '/posts/editor', '/projects', '/requests',
   '/review', '/rooms', '/rooms/1', '/shift', '/tasks', '/notifications', '/does-not-exist',
 ];
 
