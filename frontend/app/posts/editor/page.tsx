@@ -14,7 +14,9 @@ function safeFilename(value?: string) {
 }
 
 export default function MarketingAnnotationStudio() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const annotationCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const requestedVersionRef = useRef('');
   const [posts, setPosts] = useState<Entity[]>([]);
   const [postId, setPostId] = useState('');
   const [versions, setVersions] = useState<Entity[]>([]);
@@ -37,39 +39,43 @@ export default function MarketingAnnotationStudio() {
 
   const selectedPost = useMemo(() => posts.find(item => String(item.id) === postId), [postId, posts]);
   const selectedVersion = useMemo(() => versions.find(item => String(item.id) === versionId), [versionId, versions]);
+  const imageVersions = useMemo(() => versions.filter(row => /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || ''))), [versions]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedPost = params.get('postId') || '';
+    requestedVersionRef.current = params.get('versionId') || '';
+    if (requestedPost) setPostId(requestedPost);
     api.listAll('posts', { active: true }).then(setPosts).catch(err => setError(err.message || 'Marketing posts could not be loaded.'));
   }, []);
 
   useEffect(() => {
     if (!postId) { setVersions([]); setVersionId(''); return; }
+    setLoaded(false); setHistory([]); setFuture([]); setSaved('');
     api.versions(Number(postId)).then(rows => {
       setVersions(rows);
-      const image = rows.find(row => /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
+      const requested = rows.find(row => String(row.id) === requestedVersionRef.current && /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
+      const image = requested || rows.find(row => /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
       setVersionId(image ? String(image.id) : '');
+      requestedVersionRef.current = '';
     }).catch(err => setError(err.message || 'Creative versions could not be loaded.'));
   }, [postId]);
 
-  function currentSnapshot() { return canvasRef.current?.toDataURL('image/png') || ''; }
+  function currentAnnotation() { return annotationCanvasRef.current?.toDataURL('image/png') || ''; }
   function checkpoint() {
-    const current = currentSnapshot();
+    const current = currentAnnotation();
     if (!current) return;
     setHistory(items => [...items.slice(-24), current]);
-    setFuture([]);
-    setSaved('');
+    setFuture([]); setSaved('');
   }
-  function restore(dataUrl: string) {
-    const canvas = canvasRef.current;
+  function restoreAnnotation(dataUrl: string) {
+    const canvas = annotationCanvasRef.current;
     if (!canvas) return;
     const image = new Image();
     image.onload = () => {
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
       const ctx = canvas.getContext('2d');
       ctx?.clearRect(0, 0, canvas.width, canvas.height);
-      ctx?.drawImage(image, 0, 0);
-      setLoaded(true);
+      ctx?.drawImage(image, 0, 0, canvas.width, canvas.height);
     };
     image.src = dataUrl;
   }
@@ -79,16 +85,21 @@ export default function MarketingAnnotationStudio() {
     const url = URL.createObjectURL(blob);
     const image = new Image();
     image.onload = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+      const base = baseCanvasRef.current;
+      const annotation = annotationCanvasRef.current;
+      if (!base || !annotation) return;
       const max = 2400;
       const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight));
-      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const width = Math.max(1, Math.round(image.naturalWidth * scale));
+      const height = Math.max(1, Math.round(image.naturalHeight * scale));
+      base.width = annotation.width = width;
+      base.height = annotation.height = height;
+      const baseCtx = base.getContext('2d');
+      const annotationCtx = annotation.getContext('2d');
+      if (!baseCtx || !annotationCtx) return;
+      baseCtx.clearRect(0, 0, width, height);
+      baseCtx.drawImage(image, 0, 0, width, height);
+      annotationCtx.clearRect(0, 0, width, height);
       URL.revokeObjectURL(url);
       setLoaded(true); setSourceName(filename); setZoom(1); setHistory([]); setFuture([]); setSaved(''); setError('');
     };
@@ -150,7 +161,7 @@ export default function MarketingAnnotationStudio() {
   }
 
   function addText() {
-    const canvas = canvasRef.current;
+    const canvas = annotationCanvasRef.current;
     const value = textValue.trim();
     if (!canvas || !value) { setTextOpen(false); return; }
     checkpoint();
@@ -166,27 +177,39 @@ export default function MarketingAnnotationStudio() {
   function undo() {
     const previous = history[history.length - 1];
     if (!previous) return;
-    const current = currentSnapshot();
+    const current = currentAnnotation();
     if (current) setFuture(items => [...items, current]);
-    setHistory(items => items.slice(0, -1)); restore(previous); setSaved('');
+    setHistory(items => items.slice(0, -1)); restoreAnnotation(previous); setSaved('');
   }
   function redo() {
     const next = future[future.length - 1];
     if (!next) return;
-    const current = currentSnapshot();
+    const current = currentAnnotation();
     if (current) setHistory(items => [...items, current]);
-    setFuture(items => items.slice(0, -1)); restore(next); setSaved('');
+    setFuture(items => items.slice(0, -1)); restoreAnnotation(next); setSaved('');
+  }
+
+  function compositeCanvas() {
+    const base = baseCanvasRef.current;
+    const annotation = annotationCanvasRef.current;
+    if (!base || !annotation || !loaded) return null;
+    const output = document.createElement('canvas');
+    output.width = base.width; output.height = base.height;
+    const ctx = output.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(base, 0, 0); ctx.drawImage(annotation, 0, 0);
+    return output;
   }
 
   function exportImage() {
-    const canvas = canvasRef.current;
-    if (!canvas || !loaded) return;
+    const canvas = compositeCanvas();
+    if (!canvas) return;
     const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = safeFilename(sourceName || selectedPost?.title); link.click();
   }
 
   async function saveVersion() {
-    const canvas = canvasRef.current;
-    if (!canvas || !loaded || !postId || busy) return;
+    const canvas = compositeCanvas();
+    if (!canvas || !postId || busy) return;
     setBusy(true); setError(''); setSaved('');
     try {
       const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Canvas export failed.')), 'image/png'));
@@ -199,25 +222,44 @@ export default function MarketingAnnotationStudio() {
     finally { setBusy(false); }
   }
 
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target && ['INPUT','TEXTAREA','SELECT'].includes(target.tagName)) return;
+      const key = event.key.toLowerCase();
+      if ((event.metaKey || event.ctrlKey) && key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) redo(); else undo();
+        return;
+      }
+      if (key === 'p') setTool('pen');
+      if (key === 'h') setTool('highlighter');
+      if (key === 'e') setTool('eraser');
+      if (key === 't') setTool('text');
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
+
   return <main className={styles.page}>
     <header className={styles.hero}><div className={styles.heroCopy}><div className={styles.eyebrow}>Marketing · Creative review</div><h1>Annotation studio</h1><p>Mark up creative assets without touching the original. Draw, highlight, erase, add text, then save the result as a new version for review.</p></div><Link className={styles.back} href="/posts">← Back to Marketing</Link></header>
     {error ? <div className="pill urgent" role="alert">{error}</div> : null}
     <div className={styles.shell}>
       <aside className={styles.rail} aria-label="Annotation controls">
-        <section className={styles.section}><div className={styles.sectionTitle}>Creative source</div><select className={styles.select} value={postId} onChange={e => setPostId(e.target.value)}><option value="">Choose marketing post</option>{posts.map(post => <option key={post.id} value={post.id}>{post.title}</option>)}</select><select className={styles.select} value={versionId} onChange={e => setVersionId(e.target.value)} disabled={!postId}><option value="">Choose image version</option>{versions.map(version => <option key={version.id} value={version.id}>v{version.version_no || version.id} · {version.filename || 'Asset'}</option>)}</select><button className={styles.secondary} onClick={loadSelectedVersion} disabled={!versionId || busy}>{busy ? 'Opening…' : 'Open version'}</button><label className={styles.upload}>Upload image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={localUpload} /></label></section>
-        <section className={styles.section}><div className={styles.sectionTitle}>Tools</div><div className={styles.toolGrid}>{(['pen','highlighter','eraser','text'] as Tool[]).map(value => <button key={value} className={`${styles.tool} ${tool === value ? styles.toolActive : ''}`} onClick={() => setTool(value)} aria-pressed={tool === value}>{value === 'pen' ? '✎ Pen' : value === 'highlighter' ? '▰ Highlight' : value === 'eraser' ? '⌫ Eraser' : 'T Text'}</button>)}</div></section>
-        <section className={styles.section}><div className={styles.sectionTitle}>Color</div><div className={styles.swatches}>{swatches.map(value => <button key={value} title={value} aria-label={`Use ${value}`} className={`${styles.swatch} ${color === value ? styles.swatchActive : ''}`} style={{ background: value }} onClick={() => setColor(value)} />)}</div></section>
+        <section className={styles.section}><div className={styles.sectionTitle}>Creative source</div><select className={styles.select} value={postId} onChange={e => setPostId(e.target.value)}><option value="">Choose marketing post</option>{posts.map(post => <option key={post.id} value={post.id}>{post.title}</option>)}</select><select className={styles.select} value={versionId} onChange={e => setVersionId(e.target.value)} disabled={!postId || !imageVersions.length}><option value="">{postId && !imageVersions.length ? 'No image versions yet' : 'Choose image version'}</option>{imageVersions.map(version => <option key={version.id} value={version.id}>v{version.version_no || version.id} · {version.filename || 'Image asset'}</option>)}</select><button className={styles.secondary} onClick={loadSelectedVersion} disabled={!versionId || busy}>{busy ? 'Opening…' : 'Open version'}</button><label className={styles.upload}>Upload image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={localUpload} /></label></section>
+        <section className={styles.section}><div className={styles.sectionTitle}>Tools</div><div className={styles.toolGrid}>{(['pen','highlighter','eraser','text'] as Tool[]).map(value => <button key={value} className={`${styles.tool} ${tool === value ? styles.toolActive : ''}`} onClick={() => setTool(value)} aria-pressed={tool === value}>{value === 'pen' ? '✎ Pen' : value === 'highlighter' ? '▰ Highlight' : value === 'eraser' ? '⌫ Eraser' : 'T Text'}</button>)}</div><span className={styles.saveState}>Shortcuts: P · H · E · T</span></section>
+        <section className={styles.section}><div className={styles.sectionTitle}>Color</div><div className={styles.swatches}>{swatches.map(value => <button key={value} title={value} aria-label={`Use ${value}`} className={`${styles.swatch} ${color === value ? styles.swatchActive : ''}`} style={{ background: value }} onClick={() => setColor(value)} />)}</div><input aria-label="Custom annotation color" type="color" className={styles.colorInput} value={color} onChange={e => setColor(e.target.value)} /></section>
         <section className={styles.section}><div className={styles.sectionTitle}>Stroke · {size}px</div><input className={styles.range} type="range" min="2" max="24" value={size} onChange={e => setSize(Number(e.target.value))} /></section>
-        <section className={styles.section}><div className={styles.sectionTitle}>History</div><div className={styles.miniRow}><button className={styles.secondary} onClick={undo} disabled={!history.length}>↶ Undo</button><button className={styles.secondary} onClick={redo} disabled={!future.length}>↷ Redo</button></div></section>
+        <section className={styles.section}><div className={styles.sectionTitle}>History</div><div className={styles.miniRow}><button className={styles.secondary} onClick={undo} disabled={!history.length}>↶ Undo</button><button className={styles.secondary} onClick={redo} disabled={!future.length}>↷ Redo</button></div><span className={styles.saveState}>⌘/Ctrl Z · Shift ⌘/Ctrl Z</span></section>
       </aside>
       <section className={styles.workspace}>
         <div className={styles.topbar}><div className={styles.status}><span className={styles.dot} />{loaded ? sourceName || 'Creative loaded' : 'No creative loaded'}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.max(.35, value - .15))}>−</button><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.min(2.5, value + .15))}>+</button></div></div>
         <div className={styles.stageWrap}>
-          <div className={styles.canvasFrame} style={{ transform: `scale(${zoom})`, visibility: loaded ? 'visible' : 'hidden', position: loaded ? 'relative' : 'absolute' }}><canvas ref={canvasRef} className={styles.canvas} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} /></div>
+          <div className={styles.canvasFrame} style={{ transform: `scale(${zoom})`, visibility: loaded ? 'visible' : 'hidden', position: loaded ? 'relative' : 'absolute' }}><canvas ref={baseCanvasRef} className={styles.baseCanvas} /><canvas ref={annotationCanvasRef} className={styles.canvas} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} /></div>
           {!loaded ? <div className={styles.empty}><strong>Open a creative to start annotating</strong><span>Select an existing image version from a marketing post, or upload a PNG, JPEG, or WebP from your computer.</span><label className={styles.upload}>Choose image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={localUpload} /></label></div> : null}
           {textOpen ? <div className={styles.textDialog} role="dialog" aria-modal="true" aria-label="Add text annotation"><div className={styles.textCard}><h3>Add text</h3><input autoFocus className={styles.input} value={textValue} onChange={e => setTextValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addText(); if (e.key === 'Escape') setTextOpen(false); }} placeholder="Type annotation…" /><div className={styles.miniRow}><button className={styles.secondary} onClick={() => setTextOpen(false)}>Cancel</button><button className={styles.primary} onClick={addText} disabled={!textValue.trim()}>Add text</button></div></div></div> : null}
         </div>
-        <div className={styles.footer}><div><div className={styles.footerHint}>Tip: use <span className={styles.kbd}>Highlighter</span> for review notes and <span className={styles.kbd}>Eraser</span> to remove only your markup.</div>{saved ? <div className={styles.saveState}>{saved}</div> : null}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={exportImage}>Export PNG</button><button className={styles.primary} disabled={!loaded || !postId || busy} onClick={saveVersion}>{busy ? 'Saving…' : 'Save annotated version'}</button></div></div>
+        <div className={styles.footer}><div><div className={styles.footerHint}>Your original creative is locked underneath. The eraser removes annotations only.</div>{saved ? <div className={styles.saveState}>{saved}</div> : null}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={exportImage}>Export PNG</button><button className={styles.primary} disabled={!loaded || !postId || busy} onClick={saveVersion}>{busy ? 'Saving…' : 'Save annotated version'}</button></div></div>
       </section>
     </div>
   </main>;
