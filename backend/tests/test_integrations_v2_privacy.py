@@ -102,9 +102,10 @@ def test_source_specific_keys_cannot_cross_source(monkeypatch):
     assert exc.value.status_code == 401
 
 
-def test_production_rejects_legacy_shared_integration_key(monkeypatch):
+@pytest.mark.parametrize("environment", ["prod", "production"])
+def test_production_rejects_legacy_shared_integration_key(monkeypatch, environment):
     monkeypatch.delenv("INTEGRATION_API_KEYS_JSON", raising=False)
-    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("ENVIRONMENT", environment)
     monkeypatch.setenv("INTEGRATION_API_KEY", "legacy-shared-key")
 
     with pytest.raises(HTTPException) as exc:
