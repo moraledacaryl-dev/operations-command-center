@@ -201,7 +201,7 @@ def _source_keys() -> Dict[str, str]:
 
     environment = os.getenv("ENVIRONMENT", "development").strip().lower()
     legacy = os.getenv("INTEGRATION_API_KEY", "").strip()
-    if environment == "production" and legacy:
+    if environment in {"prod", "production"} and legacy:
         raise HTTPException(
             status_code=503,
             detail="Production integrations require source-specific INTEGRATION_API_KEYS_JSON credentials",
