@@ -89,7 +89,7 @@ test('Annotation studio auto-loads selected stored image even with generic MIME 
   await seedMarketing(page);
   await page.goto('/posts/editor?postId=7&versionId=11');
 
-  await expect(page.getByText('creative.png', { exact: true }).last()).toBeVisible();
+  await expect(page.getByLabel('Creative image version')).toHaveValue('11');
   await expect(page.locator('canvas').first()).toHaveAttribute('width', '1');
   await expect(page.getByRole('button', { name: 'Export PNG' })).toBeEnabled();
 });
