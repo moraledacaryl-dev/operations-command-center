@@ -79,7 +79,15 @@ export default function MarketingPage() {
   const [departmentId, setDepartmentId] = useState<number | null>(null);
   const [scopeReady, setScopeReady] = useState(false);
   const beginRequest = useLatestRequest();
-  const openCreate = useCallback(() => { if (canManage && departmentId) setShowAdd(true); }, [canManage, departmentId]);
+  const openCreate = useCallback(() => {
+    if (!canManage || !departmentId) return;
+    setShowAdd(true);
+    window.setTimeout(() => {
+      const panel = document.getElementById('new-marketing-content');
+      panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      (panel?.querySelector('input') as HTMLInputElement | null)?.focus();
+    }, 0);
+  }, [canManage, departmentId]);
   useCreateIntent(openCreate);
 
   useEffect(() => {
@@ -241,7 +249,7 @@ export default function MarketingPage() {
   const allowedActions: string[] = selected?.allowed_actions || [];
 
   return <>
-    <Top eyebrow="Publishing calendar" title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Annotation studio</Link>{canManage && departmentId ? <button className="btn" onClick={() => setShowAdd(value => !value)}>New content</button> : null}</div>} />
+    <Top eyebrow="Publishing calendar" title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Annotation studio</Link>{canManage && departmentId ? <button className="btn" aria-expanded={showAdd} aria-controls="new-marketing-content" onClick={() => showAdd ? setShowAdd(false) : openCreate()}>{showAdd ? 'Close form' : 'New content'}</button> : null}</div>} />
     {departmentId ? <MarketingWorkspace departmentId={departmentId} canManage={canManage} /> : null}
     <div className="legacy-section-head"><div><p className="eyebrow">Compatibility workspace</p><h2>Legacy content records</h2></div><p className="muted">Existing posts remain available while campaigns and platform deliverables become the primary planning model.</p></div>
     <div className="grid cols-3" style={{ marginBottom: 16 }}>
@@ -250,8 +258,8 @@ export default function MarketingPage() {
       <div className="panel"><div className="eyebrow">Scheduled</div><h2>{scheduled}</h2></div>
     </div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {canManage && showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
-      <h2>Create content item</h2>
+    {canManage && showAdd ? <section id="new-marketing-content" className="panel" style={{ marginBottom: 16, scrollMarginTop: 24 }}>
+      <div className="card-line" style={{ justifyContent: 'space-between' }}><div><div className="eyebrow">New marketing record</div><h2>Create content item</h2></div><Pill value="Draft setup" /></div>
       <div className="form" style={{ marginTop: 14 }}>
         <div className="form-grid">
           <label className="label">Title<input className="input" value={data.title} onChange={event => setData({ ...data, title: event.target.value })} /></label>
