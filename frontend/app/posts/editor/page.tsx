@@ -17,6 +17,14 @@ function isImageAsset(value?: string) {
   return /\.(png|jpe?g|webp)(?:$|[?#])/i.test(String(value || ''));
 }
 
+function imageMimeForFilename(value: string) {
+  const normalized = value.toLowerCase().split(/[?#]/, 1)[0];
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) return 'image/jpeg';
+  return '';
+}
+
 function assetHref(url?: string) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
@@ -96,14 +104,15 @@ export default function MarketingAnnotationStudio() {
 
   function loadBlob(blob: Blob, filename: string) {
     const validMime = /^image\/(png|jpeg|webp)$/i.test(blob.type);
-    const validFilename = isImageAsset(filename);
-    if (!validMime && !validFilename) { setError('Use a PNG, JPEG, or WebP image.'); return; }
-    const url = URL.createObjectURL(blob);
+    const inferredMime = imageMimeForFilename(filename);
+    if (!validMime && !inferredMime) { setLoaded(false); setError('Use a PNG, JPEG, or WebP image.'); return; }
+    const decodeBlob = validMime ? blob : new Blob([blob], { type: inferredMime });
+    const url = URL.createObjectURL(decodeBlob);
     const image = new Image();
     image.onload = () => {
       const base = baseCanvasRef.current;
       const annotation = annotationCanvasRef.current;
-      if (!base || !annotation) { URL.revokeObjectURL(url); setError('Annotation canvas could not be initialized.'); return; }
+      if (!base || !annotation) { URL.revokeObjectURL(url); setLoaded(false); setError('Annotation canvas could not be initialized.'); return; }
       const max = 2400;
       const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight));
       const width = Math.max(1, Math.round(image.naturalWidth * scale));
@@ -112,14 +121,14 @@ export default function MarketingAnnotationStudio() {
       base.height = annotation.height = height;
       const baseCtx = base.getContext('2d');
       const annotationCtx = annotation.getContext('2d');
-      if (!baseCtx || !annotationCtx) { URL.revokeObjectURL(url); setError('Annotation canvas could not be initialized.'); return; }
+      if (!baseCtx || !annotationCtx) { URL.revokeObjectURL(url); setLoaded(false); setError('Annotation canvas could not be initialized.'); return; }
       baseCtx.clearRect(0, 0, width, height);
       baseCtx.drawImage(image, 0, 0, width, height);
       annotationCtx.clearRect(0, 0, width, height);
       URL.revokeObjectURL(url);
       setLoaded(true); setSourceName(filename); setZoom(1); setHistory([]); setFuture([]); setSaved(''); setError('');
     };
-    image.onerror = () => { URL.revokeObjectURL(url); setLoaded(false); setError('This image could not be opened.'); };
+    image.onerror = () => { URL.revokeObjectURL(url); setLoaded(false); setError('This image could not be opened. The file may be damaged or use an unsupported encoding.'); };
     image.src = url;
   }
 
@@ -141,7 +150,7 @@ export default function MarketingAnnotationStudio() {
     try {
       const result = await fetchVersionBlob();
       loadBlob(result.blob, result.filename);
-    } catch (err: any) { setError(err.message || 'Creative file could not be loaded.'); }
+    } catch (err: any) { setLoaded(false); setError(err.message || 'Creative file could not be loaded.'); }
     finally { setBusy(false); }
   }
 
