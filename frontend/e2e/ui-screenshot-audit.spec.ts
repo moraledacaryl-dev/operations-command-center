@@ -117,9 +117,13 @@ async function captureAnnotation(page: Page, name: string) {
   const versionSelect = page.getByRole('combobox', { name: 'Creative image version' });
   await expect(versionSelect).toHaveValue('501');
   await page.getByRole('button', { name: 'Open version' }).click();
-  await expect(page.getByText('september-campaign.png', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export PNG' })).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Save annotated version' })).toBeEnabled();
+  await expect(page.getByText('Open a creative to start annotating')).toHaveCount(0);
+  const canvasRegion = page.getByRole('region', { name: 'Creative annotation canvas' });
+  await expect(canvasRegion.locator('canvas').first()).toBeVisible();
+  await expect(canvasRegion.locator('canvas').first()).toHaveAttribute('width', '320');
+  await expect(canvasRegion.locator('canvas').first()).toHaveAttribute('height', '180');
   await page.screenshot({ path: `test-results/ui-audit/annotation-${name}.png`, fullPage: true });
 }
 
