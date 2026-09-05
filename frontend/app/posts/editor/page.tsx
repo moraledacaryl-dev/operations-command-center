@@ -13,10 +13,22 @@ function safeFilename(value?: string) {
   return `${base || 'annotated-creative'}-annotated.png`;
 }
 
+function isImageAsset(value?: string) {
+  return /\.(png|jpe?g|webp)(?:$|[?#])/i.test(String(value || ''));
+}
+
+function assetHref(url?: string) {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/uploads')) return `${API_BASE.replace('/api', '')}${url}`;
+  return url;
+}
+
 export default function MarketingAnnotationStudio() {
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const annotationCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const requestedVersionRef = useRef('');
+  const autoLoadRef = useRef('');
   const [posts, setPosts] = useState<Entity[]>([]);
   const [postId, setPostId] = useState('');
   const [versions, setVersions] = useState<Entity[]>([]);
@@ -39,7 +51,7 @@ export default function MarketingAnnotationStudio() {
 
   const selectedPost = useMemo(() => posts.find(item => String(item.id) === postId), [postId, posts]);
   const selectedVersion = useMemo(() => versions.find(item => String(item.id) === versionId), [versionId, versions]);
-  const imageVersions = useMemo(() => versions.filter(row => /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || ''))), [versions]);
+  const imageVersions = useMemo(() => versions.filter(row => isImageAsset(String(row.filename || row.file_url || ''))), [versions]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -51,12 +63,14 @@ export default function MarketingAnnotationStudio() {
 
   useEffect(() => {
     if (!postId) { setVersions([]); setVersionId(''); return; }
-    setLoaded(false); setHistory([]); setFuture([]); setSaved('');
+    setLoaded(false); setHistory([]); setFuture([]); setSaved(''); setError('');
     api.versions(Number(postId)).then(rows => {
       setVersions(rows);
-      const requested = rows.find(row => String(row.id) === requestedVersionRef.current && /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
-      const image = requested || rows.find(row => /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
-      setVersionId(image ? String(image.id) : '');
+      const requested = rows.find(row => String(row.id) === requestedVersionRef.current && isImageAsset(String(row.filename || row.file_url || '')));
+      const image = requested || rows.find(row => isImageAsset(String(row.filename || row.file_url || '')));
+      const nextVersionId = image ? String(image.id) : '';
+      setVersionId(nextVersionId);
+      autoLoadRef.current = nextVersionId;
       requestedVersionRef.current = '';
     }).catch(err => setError(err.message || 'Creative versions could not be loaded.'));
   }, [postId]);
@@ -81,13 +95,15 @@ export default function MarketingAnnotationStudio() {
   }
 
   function loadBlob(blob: Blob, filename: string) {
-    if (!/^image\/(png|jpeg|webp)$/i.test(blob.type)) { setError('Use a PNG, JPEG, or WebP image.'); return; }
+    const validMime = /^image\/(png|jpeg|webp)$/i.test(blob.type);
+    const validFilename = isImageAsset(filename);
+    if (!validMime && !validFilename) { setError('Use a PNG, JPEG, or WebP image.'); return; }
     const url = URL.createObjectURL(blob);
     const image = new Image();
     image.onload = () => {
       const base = baseCanvasRef.current;
       const annotation = annotationCanvasRef.current;
-      if (!base || !annotation) return;
+      if (!base || !annotation) { URL.revokeObjectURL(url); setError('Annotation canvas could not be initialized.'); return; }
       const max = 2400;
       const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight));
       const width = Math.max(1, Math.round(image.naturalWidth * scale));
@@ -96,27 +112,46 @@ export default function MarketingAnnotationStudio() {
       base.height = annotation.height = height;
       const baseCtx = base.getContext('2d');
       const annotationCtx = annotation.getContext('2d');
-      if (!baseCtx || !annotationCtx) return;
+      if (!baseCtx || !annotationCtx) { URL.revokeObjectURL(url); setError('Annotation canvas could not be initialized.'); return; }
       baseCtx.clearRect(0, 0, width, height);
       baseCtx.drawImage(image, 0, 0, width, height);
       annotationCtx.clearRect(0, 0, width, height);
       URL.revokeObjectURL(url);
       setLoaded(true); setSourceName(filename); setZoom(1); setHistory([]); setFuture([]); setSaved(''); setError('');
     };
-    image.onerror = () => { URL.revokeObjectURL(url); setError('This image could not be opened.'); };
+    image.onerror = () => { URL.revokeObjectURL(url); setLoaded(false); setError('This image could not be opened.'); };
     image.src = url;
+  }
+
+  async function fetchVersionBlob() {
+    const filename = String(selectedVersion?.filename || selectedVersion?.file_url || selectedPost?.title || 'creative');
+    const protectedResponse = await fetch(`${API_BASE}/posts/${postId}/versions/${versionId}/download`, { credentials: 'same-origin', cache: 'no-store' });
+    if (protectedResponse.ok) return { blob: await protectedResponse.blob(), filename };
+
+    const fallbackUrl = assetHref(String(selectedVersion?.file_url || ''));
+    if (!fallbackUrl) throw new Error(`Creative file could not be downloaded (HTTP ${protectedResponse.status}).`);
+    const fallbackResponse = await fetch(fallbackUrl, { credentials: fallbackUrl.startsWith('/') ? 'same-origin' : 'omit', cache: 'no-store' });
+    if (!fallbackResponse.ok) throw new Error(`Creative asset could not be loaded (HTTP ${fallbackResponse.status}).`);
+    return { blob: await fallbackResponse.blob(), filename };
   }
 
   async function loadSelectedVersion() {
     if (!postId || !versionId || busy) return;
-    setBusy(true); setError('');
+    setBusy(true); setLoaded(false); setError(''); setSaved('');
     try {
-      const res = await fetch(`${API_BASE}/posts/${postId}/versions/${versionId}/download`, { credentials: 'same-origin', cache: 'no-store' });
-      if (!res.ok) throw new Error('Creative file could not be downloaded.');
-      loadBlob(await res.blob(), String(selectedVersion?.filename || selectedPost?.title || 'creative'));
+      const result = await fetchVersionBlob();
+      loadBlob(result.blob, result.filename);
     } catch (err: any) { setError(err.message || 'Creative file could not be loaded.'); }
     finally { setBusy(false); }
   }
+
+  useEffect(() => {
+    if (!versionId || !selectedVersion || autoLoadRef.current !== versionId) return;
+    autoLoadRef.current = '';
+    void loadSelectedVersion();
+    // selectedVersion becoming available is the signal that the chosen version is ready to load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versionId, selectedVersion]);
 
   function localUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -246,17 +281,17 @@ export default function MarketingAnnotationStudio() {
     {error ? <div className="pill urgent" role="alert">{error}</div> : null}
     <div className={styles.shell}>
       <aside className={styles.rail} aria-label="Annotation controls">
-        <section className={styles.section}><div className={styles.sectionTitle}>Creative source</div><select aria-label="Marketing post" className={styles.select} value={postId} onChange={e => setPostId(e.target.value)}><option value="">Choose marketing post</option>{posts.map(post => <option key={post.id} value={post.id}>{post.title}</option>)}</select><select aria-label="Creative image version" className={styles.select} value={versionId} onChange={e => setVersionId(e.target.value)} disabled={!postId || !imageVersions.length}><option value="">{postId && !imageVersions.length ? 'No image versions yet' : 'Choose image version'}</option>{imageVersions.map(version => <option key={version.id} value={version.id}>v{version.version_no || version.id} · {version.filename || 'Image asset'}</option>)}</select><button className={styles.secondary} onClick={loadSelectedVersion} disabled={!versionId || busy}>{busy ? 'Opening…' : 'Open version'}</button><label className={styles.upload}>Upload image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={localUpload} /></label></section>
+        <section className={styles.section}><div className={styles.sectionTitle}>Creative source</div><select aria-label="Marketing post" className={styles.select} value={postId} onChange={e => { setPostId(e.target.value); autoLoadRef.current = ''; }}><option value="">Choose marketing post</option>{posts.map(post => <option key={post.id} value={post.id}>{post.title}</option>)}</select><select aria-label="Creative image version" className={styles.select} value={versionId} onChange={e => { setVersionId(e.target.value); autoLoadRef.current = e.target.value; }} disabled={!postId || !imageVersions.length}><option value="">{postId && !imageVersions.length ? 'No image versions yet' : 'Choose image version'}</option>{imageVersions.map(version => <option key={version.id} value={version.id}>v{version.version_no || version.id} · {version.filename || 'Image asset'}</option>)}</select><button className={styles.secondary} onClick={loadSelectedVersion} disabled={!versionId || busy}>{busy ? 'Opening…' : 'Reload version'}</button><label className={styles.upload}>Upload image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={localUpload} /></label></section>
         <section className={styles.section}><div className={styles.sectionTitle}>Tools</div><div className={styles.toolGrid}>{(['pen','highlighter','eraser','text'] as Tool[]).map(value => <button key={value} className={`${styles.tool} ${tool === value ? styles.toolActive : ''}`} onClick={() => setTool(value)} aria-pressed={tool === value}>{value === 'pen' ? '✎ Pen' : value === 'highlighter' ? '▰ Highlight' : value === 'eraser' ? '⌫ Eraser' : 'T Text'}</button>)}</div><span className={styles.saveState}>Shortcuts: P · H · E · T</span></section>
         <section className={styles.section}><div className={styles.sectionTitle}>Color</div><div className={styles.swatches}>{swatches.map(value => <button key={value} title={value} aria-label={`Use ${value}`} className={`${styles.swatch} ${color === value ? styles.swatchActive : ''}`} style={{ background: value }} onClick={() => setColor(value)} />)}</div><input aria-label="Custom annotation color" type="color" className={styles.colorInput} value={color} onChange={e => setColor(e.target.value)} /></section>
         <section className={styles.section}><div className={styles.sectionTitle}>Stroke · {size}px</div><input aria-label="Annotation stroke size" className={styles.range} type="range" min="2" max="24" value={size} onChange={e => setSize(Number(e.target.value))} /></section>
         <section className={styles.section}><div className={styles.sectionTitle}>History</div><div className={styles.miniRow}><button className={styles.secondary} onClick={undo} disabled={!history.length}>↶ Undo</button><button className={styles.secondary} onClick={redo} disabled={!future.length}>↷ Redo</button></div><span className={styles.saveState}>⌘/Ctrl Z · Shift ⌘/Ctrl Z</span></section>
       </aside>
       <section className={styles.workspace}>
-        <div className={styles.topbar}><div className={styles.status}><span className={styles.dot} />{loaded ? sourceName || 'Creative loaded' : 'No creative loaded'}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.max(.35, value - .15))}>−</button><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.min(2.5, value + .15))}>+</button></div></div>
-        <div className={styles.stageWrap} tabIndex={0} role="region" aria-label="Creative annotation canvas">
+        <div className={styles.topbar}><div className={styles.status}><span className={styles.dot} />{busy ? 'Loading creative…' : loaded ? sourceName || 'Creative loaded' : versionId ? 'Creative selected' : 'No creative loaded'}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.max(.35, value - .15))}>−</button><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.min(2.5, value + .15))}>+</button></div></div>
+        <div className={styles.stageWrap} tabIndex={0} role="region" aria-label="Creative annotation canvas" aria-busy={busy}>
           <div className={styles.canvasFrame} style={{ transform: `scale(${zoom})`, visibility: loaded ? 'visible' : 'hidden', position: loaded ? 'relative' : 'absolute' }}><canvas ref={baseCanvasRef} className={styles.baseCanvas} /><canvas ref={annotationCanvasRef} className={styles.canvas} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} /></div>
-          {!loaded ? <div className={styles.empty}><strong>Open a creative to start annotating</strong><span>Select an existing image version from a marketing post, or upload a PNG, JPEG, or WebP from your computer.</span><label className={styles.upload}>Choose image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={localUpload} /></label></div> : null}
+          {!loaded ? <div className={styles.empty}><strong>{busy ? 'Loading creative…' : 'Open a creative to start annotating'}</strong><span>{busy ? 'The selected image is being prepared for the canvas.' : 'Select an existing image version from a marketing post, or upload a PNG, JPEG, or WebP from your computer.'}</span>{!busy ? <label className={styles.upload}>Choose image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={localUpload} /></label> : null}</div> : null}
           {textOpen ? <div className={styles.textDialog} role="dialog" aria-modal="true" aria-label="Add text annotation"><div className={styles.textCard}><h3>Add text</h3><input autoFocus className={styles.input} value={textValue} onChange={e => setTextValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addText(); if (e.key === 'Escape') setTextOpen(false); }} placeholder="Type annotation…" /><div className={styles.miniRow}><button className={styles.secondary} onClick={() => setTextOpen(false)}>Cancel</button><button className={styles.primary} onClick={addText} disabled={!textValue.trim()}>Add text</button></div></div></div> : null}
         </div>
         <div className={styles.footer}><div><div className={styles.footerHint}>Your original creative is locked underneath. The eraser removes annotations only.</div>{saved ? <div className={styles.saveState}>{saved}</div> : null}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={exportImage}>Export PNG</button><button className={styles.primary} disabled={!loaded || !postId || busy} onClick={saveVersion}>{busy ? 'Saving…' : 'Save annotated version'}</button></div></div>
