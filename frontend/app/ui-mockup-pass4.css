@@ -25,10 +25,10 @@ h3, .card-title { font-weight: 650; }
 .nav a[href="/posts"] .nav-icon::before { font-size: 10px; }
 
 /* KPI strips: smaller and closer to the reference proportions. */
-.main > .grid.cols-3:first-of-type { grid-template-columns: repeat(3, minmax(112px, 164px)); gap: 6px; }
-.main > .grid.cols-3:first-of-type > .panel { min-height: 52px; padding: 7px 9px; }
-.main > .grid.cols-3:first-of-type > .panel h2 { font-size: 17px; line-height: 1.05; }
-.main > .grid.cols-3:first-of-type > .panel p { margin-top: 2px; font-size: 8.5px; }
+.home-metrics { grid-template-columns: repeat(3, minmax(112px, 164px)) !important; gap: 6px !important; justify-content: start; }
+.home-metrics > .panel { min-height: 52px; padding: 7px 9px; }
+.home-metrics > .panel strong { font-size: 17px !important; line-height: 1.05; }
+.home-metrics > .panel .muted { margin-top: 2px; font-size: 8.5px; }
 
 /* Home: stronger image crop and integrated action cluster. */
 .main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type {
@@ -75,7 +75,7 @@ h3, .card-title { font-weight: 650; }
 .main:has(a[href="/admin/users"]) .panel,
 .main:has([data-testid="departments-page"]) .panel { box-shadow: none; }
 
-/* Mobile: reduce the bottom-nav visual mass and avoid a three-card KPI stack. */
+/* Mobile: reduce bottom-nav mass and keep KPI metrics in a compact one-row strip. */
 @media (max-width: 980px) {
   .mobile-bottom-nav { min-height: 50px; padding: 3px 4px; border-radius: 11px; }
   .mobile-bottom-nav a, .mobile-bottom-nav button { min-height: 40px; font-size: 8.5px; }
@@ -83,20 +83,21 @@ h3, .card-title { font-weight: 650; }
 }
 
 @media (max-width: 620px) {
-  .main > .grid.cols-3:first-of-type {
+  .home-metrics {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 5px !important;
   }
-  .main > .grid.cols-3:first-of-type > .panel,
-  .main > .grid.cols-3:first-of-type > .panel:nth-child(3) {
+  .home-metrics > .panel {
     grid-column: auto !important;
     min-width: 0 !important;
-    min-height: 54px !important;
+    min-height: 58px !important;
     padding: 6px !important;
+    gap: 3px !important;
   }
-  .main > .grid.cols-3:first-of-type > .panel h2 { font-size: 15px; }
-  .main > .grid.cols-3:first-of-type > .panel p { font-size: 7.5px; line-height: 1.2; }
+  .home-metrics > .panel .eyebrow { font-size: 6.5px; line-height: 1.1; }
+  .home-metrics > .panel strong { font-size: 15px !important; }
+  .home-metrics > .panel .muted { font-size: 7px; line-height: 1.15; }
   .room-card-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
   .room-card-media { aspect-ratio: 16 / 8; }
   .room-card-info { padding: 7px; gap: 4px; }
