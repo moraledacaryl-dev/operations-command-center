@@ -7,6 +7,7 @@ import './interactions.css';
 import './accessibility.css';
 import './ui-v3.css';
 import './ui-v3-accessibility.css';
+import './ui-v3-core.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { RolePresentationSync } from '@/components/RolePresentationSync';

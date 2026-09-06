@@ -8,7 +8,6 @@ import { Capability, hasCapability } from '@/lib/capabilities';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
 type NavItem = { href: string; label: string; shortLabel?: string; icon: string; badge?: number };
-type NavGroup = { label: string; items: NavItem[] };
 type AdminNavItem = NavItem & { capability: Capability };
 
 const homeItems: NavItem[] = [
