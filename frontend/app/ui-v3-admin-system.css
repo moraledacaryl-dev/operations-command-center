@@ -1,0 +1,123 @@
+/* Operations UI v3 — Pass 5: people, system and account surfaces. */
+
+/* People & access */
+.main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type {
+  padding: 24px 26px;
+  margin-bottom: 26px !important;
+}
+
+.main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type .toolbar {
+  max-width: 760px;
+  gap: 12px;
+}
+
+.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 {
+  gap: 18px;
+}
+
+.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 > .card {
+  min-height: 178px;
+  padding: 20px;
+  gap: 12px;
+  align-content: start;
+}
+
+.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 > .card .toolbar {
+  margin-top: auto !important;
+  padding-top: 6px;
+}
+
+/* System health */
+.admin-health > .grid.cols-2 {
+  gap: 20px;
+}
+
+.admin-health > .grid.cols-2 > .panel {
+  min-height: 180px;
+  padding: 24px;
+}
+
+.admin-health > .grid.cols-2 > .panel:first-child {
+  grid-column: span 2;
+  min-height: 150px;
+}
+
+.admin-health .card-line {
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* Account security stays deliberately narrow and focused. */
+.main:has(.form-grid input[type="password"]) > .panel {
+  padding: 28px;
+  border-radius: 22px;
+}
+
+.main:has(.form-grid input[type="password"]) > .panel .form-grid {
+  gap: 18px;
+  margin-top: 18px !important;
+}
+
+.main:has(.form-grid input[type="password"]) > .panel .toolbar {
+  margin-top: 22px;
+  margin-bottom: 0;
+}
+
+/* Connected apps: visually separate navigation destinations from internal modules. */
+.sidebar .nav-group:has(.nav-icon.external) {
+  margin-top: 4px;
+  padding: 14px 10px 10px;
+  border: 1px solid var(--v3-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--v3-accent-soft) 38%, white);
+}
+
+.sidebar .nav-group:has(.nav-icon.external) a {
+  min-height: 40px;
+}
+
+.sidebar .nav-icon.external {
+  font-size: 14px;
+}
+
+/* Administration is capability-gated and should read as a secondary group. */
+.nav-admin {
+  border-top: 1px solid var(--v3-line);
+  border-bottom: 1px solid var(--v3-line);
+  padding: 8px 0;
+}
+
+.nav-admin summary {
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--v3-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.nav-admin[open] summary {
+  color: var(--v3-ink);
+}
+
+/* Department workspace already has a dedicated CSS architecture; only add breathing room at shell boundaries. */
+.main:has(select[aria-label="Department workspace"]) > section:first-of-type {
+  margin-bottom: 22px;
+}
+
+@media (max-width: 760px) {
+  .admin-health > .grid.cols-2 > .panel:first-child {
+    grid-column: auto;
+  }
+
+  .main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type,
+  .main:has(.form-grid input[type="password"]) > .panel {
+    padding: 20px;
+  }
+}

@@ -40,7 +40,7 @@ const activityItems: NavItem[] = [
 
 const adminItems: AdminNavItem[] = [
   { href: '/admin/users', label: 'People & Access', shortLabel: 'People', icon: 'U', capability: 'manage_accounts' },
-  { href: '/admin/approve', label: 'Approval Setup', shortLabel: 'Setup', icon: 'A', capability: 'manage_approvals' },
+  { href: '/admin/approve', label: 'Approval Administration', shortLabel: 'Approvals', icon: 'A', capability: 'manage_approvals' },
   { href: '/admin/health', label: 'System Health', shortLabel: 'Health', icon: 'Y', capability: 'view_system_health' },
 ];
 
