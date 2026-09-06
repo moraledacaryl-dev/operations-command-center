@@ -1,0 +1,203 @@
+/* Mockup fidelity Pass 2 — page-by-page composition.
+   Loaded last so the locked visual target wins over earlier spacious UI-v3 layers.
+   Presentation only: no route, workflow, authorization or API behavior changes. */
+
+/* Core surfaces --------------------------------------------------------- */
+.main > .muted:first-of-type { max-width: 620px; font-size: 11px; line-height: 1.45; }
+.main > .grid.cols-3:first-of-type { gap: 8px; margin-bottom: 12px !important; }
+.main > .grid.cols-3:first-of-type > .panel { min-height: 72px; padding: 10px 12px; }
+.main > .grid.cols-3:first-of-type > .panel .eyebrow { margin-bottom: 3px; }
+.main > .grid.cols-3:first-of-type > .panel h2 { font-size: 21px; }
+
+/* Home: compact visual command center, closer to the reference. */
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type {
+  min-height: 122px;
+  padding: 14px 16px;
+  margin-bottom: 10px !important;
+}
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type .topbar h2 {
+  max-width: 500px; font-size: 19px; line-height: 1.14; margin-top: 2px;
+}
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type .topbar p {
+  max-width: 520px; margin: 5px 0 0; line-height: 1.4; font-size: 10px;
+}
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type .toolbar { max-width: 420px; gap: 5px; }
+.main:has(a[href="/tasks?create=1"]) > .grid.cols-2 { gap: 9px; }
+.main:has(a[href="/tasks?create=1"]) > .grid.cols-2 > .panel { min-height: 168px; padding: 11px; }
+.main:has(a[href="/tasks?create=1"]) > .grid.cols-2 > .panel > .topbar { margin-bottom: 8px !important; }
+.main:has(a[href="/tasks?create=1"]) > .grid.cols-2 > .panel .card { min-height: 48px; padding: 7px 8px; }
+
+/* My Work: five compact queue sections, not oversized dashboards. */
+.main > .grid > .panel > .topbar:has(+ .grid.cols-3),
+.main > .grid > .panel > .topbar:has(+ .empty) {
+  margin-bottom: 8px; padding-bottom: 6px;
+}
+.main > .grid > .panel > .topbar:has(+ .grid.cols-3) h2,
+.main > .grid > .panel > .topbar:has(+ .empty) h2 { font-size: 15px; }
+.main > .grid > .panel > .grid.cols-3 { gap: 7px; }
+.main > .grid > .panel > .grid.cols-3 .card { min-height: 72px; padding: 8px; }
+
+/* Tasks: narrow four-column kanban like the locked mockup. */
+[data-testid="tasks-board"] { grid-template-columns: repeat(4,minmax(190px,1fr)); gap: 8px; padding-bottom: 6px; }
+[data-testid="tasks-board"] > .panel { min-width: 190px; min-height: 300px; padding: 9px; border-radius: 8px; }
+[data-testid="tasks-board"] > .panel:nth-child(1) { background: #eef8f5; }
+[data-testid="tasks-board"] > .panel:nth-child(2) { background: #eef5fb; }
+[data-testid="tasks-board"] > .panel:nth-child(3) { background: #f5f1fa; }
+[data-testid="tasks-board"] > .panel:nth-child(4) { background: #eff8f0; }
+[data-testid="tasks-board"] > .panel > .card-line:first-child { min-height: 25px; padding-bottom: 6px; }
+[data-testid="tasks-board"] > .panel > .grid { gap: 7px !important; margin-top: 7px !important; }
+[data-testid="tasks-board"] .card { min-height: 76px; padding: 8px; gap: 5px; }
+[data-testid="tasks-board"] .empty { min-height: 70px; }
+
+/* Tabs across list workspaces should read like compact filter strips. */
+.tabs { margin: 3px 0 10px; padding: 2px; border-radius: 7px; }
+.tabs button { min-height: 27px; padding: 4px 8px; border-radius: 5px; font-size: 9px; }
+
+/* Projects / Requests: transform card wall into compact operational rows. */
+.main > .tabs + .grid.cols-3,
+.main > .tabs + .grid { grid-template-columns: 1fr !important; gap: 6px; }
+.main > .tabs + .grid.cols-3 > .card,
+.main > .tabs + .grid > .card { min-height: 54px; padding: 7px 9px; align-content: center; }
+.main > .tabs + .grid .card-title { font-size: 11px; line-height: 1.25; }
+.main > .tabs + .grid .card-line { margin-top: 0; }
+.main > .tabs + .grid .muted { line-height: 1.3; font-size: 9px; }
+
+/* Operational workspaces ----------------------------------------------- */
+.main:has([data-testid="create-guest"]),
+.main:has([data-testid="create-fix"]),
+.main:has([data-testid="create-shift"]) { --ops-card-min: 54px; }
+.main:has([data-testid="create-guest"]) > .grid.cols-3:first-of-type,
+.main:has([data-testid="create-fix"]) > .grid.cols-3:first-of-type,
+.main:has([data-testid="create-shift"]) > .grid.cols-3:first-of-type { margin-bottom: 10px !important; }
+.main:has([data-testid="create-guest"]) > .grid.cols-3 + .pill,
+.main:has([data-testid="create-fix"]) > .grid.cols-3 + .pill,
+.main:has([data-testid="create-shift"]) > .grid.cols-3 + .pill { margin-bottom: 8px !important; }
+
+/* Guest Matters + Maintenance become queue rows. */
+.main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type),
+.main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type) {
+  grid-template-columns: 1fr !important; gap: 6px;
+}
+.main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type) .card,
+.main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type) .card {
+  min-height: 54px; padding: 7px 9px; gap: 4px; align-content: center;
+}
+.main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type) .card-title,
+.main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type) .card-title { font-size: 11px; line-height: 1.25; }
+
+/* Creation panels stay available but visually secondary. */
+[data-testid="create-guest-form"],
+[data-testid="create-fix-form"],
+[data-testid="create-shift-form"] { margin-bottom: 10px !important; padding: 11px; }
+[data-testid="create-guest-form"] .form-grid,
+[data-testid="create-fix-form"] .form-grid,
+[data-testid="create-shift-form"] .form-grid { gap: 8px; margin-top: 8px !important; }
+[data-testid="create-guest-form"] > .label,
+[data-testid="create-fix-form"] > .label,
+[data-testid="create-shift-form"] > .label { margin-top: 8px; }
+[data-testid="create-guest-form"] .toolbar,
+[data-testid="create-fix-form"] .toolbar,
+[data-testid="create-shift-form"] .toolbar { margin-top: 9px; }
+
+/* Shift Handover becomes the compact chronological list in the mockup. */
+.main:has([data-testid="create-shift"]) > .grid:not(.cols-3) { gap: 6px; max-width: none; }
+.main:has([data-testid="create-shift"]) > .grid:not(.cols-3) .card { min-height: 52px; padding: 7px 9px; gap: 4px; border-left-width: 2px; }
+.main:has([data-testid="create-shift"]) > .grid:not(.cols-3) .card-title { font-size: 11px; }
+
+/* Rooms: intentionally photo-led using the owner-controlled placeholder until room-specific media exists. */
+.main:has(input[placeholder="Search room or area"]) > .panel:first-of-type { padding: 9px 10px; margin-bottom: 9px !important; }
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card {
+  position: relative; min-height: 132px; padding: 76px 8px 8px; overflow: hidden; align-content: end;
+  background: #fff;
+}
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card::before {
+  content: ""; position: absolute; inset: 0 0 auto; height: 68px;
+  background-image: linear-gradient(rgba(255,255,255,.08),rgba(255,255,255,.08)), var(--property-room-placeholder, none);
+  background-size: cover; background-position: center; border-bottom: 1px solid var(--v3-line);
+}
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card .card-title { font-size: 11px; z-index: 1; }
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card .card-line,
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card .muted { z-index: 1; }
+.load-more { margin-top: 10px; gap: 7px; }
+
+/* Room detail: tighter two-column operational memory. */
+.main:has(a[href="/rooms"]) > .grid.cols-3 { margin-bottom: 10px !important; }
+.main:has(a[href="/rooms"]) > .grid.cols-2 { gap: 9px; }
+.main:has(a[href="/rooms"]) > .grid.cols-2 > .panel { min-height: 210px; padding: 10px; }
+.main:has(a[href="/rooms"]) > .grid.cols-2 > .panel .topbar { padding-bottom: 6px; margin-bottom: 7px !important; }
+.main:has(a[href="/rooms"]) > .grid.cols-2 > .panel .card { min-height: 58px; padding: 7px; }
+
+/* Decisions, content and activity -------------------------------------- */
+.main:has(input[placeholder="Search decisions"]) > .panel:first-of-type,
+.main:has(input[placeholder="Search approvals"]) > .panel:first-of-type { padding: 10px; margin-bottom: 9px !important; }
+.main:has(input[placeholder="Search decisions"]) > .panel:first-of-type .toolbar,
+.main:has(input[placeholder="Search approvals"]) > .panel:first-of-type .toolbar { max-width: none; margin-top: 7px !important; }
+.main:has(input[placeholder="Search decisions"]) > .panel:first-of-type .tabs,
+.main:has(input[placeholder="Search approvals"]) > .panel:first-of-type .tabs { margin-top: 7px; }
+.main:has(input[placeholder="Search decisions"]) > .panel:last-of-type,
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type { padding: 10px; }
+.main:has(input[placeholder="Search decisions"]) > .panel:last-of-type > .topbar,
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type > .topbar { padding-bottom: 6px; margin-bottom: 7px !important; }
+.main:has(input[placeholder="Search decisions"]) > .panel:last-of-type > .grid,
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type > .grid { gap: 6px; }
+.main:has(input[placeholder="Search decisions"]) > .panel:last-of-type .card { min-height: 52px; padding: 7px 8px; gap: 4px; }
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type .grid.cols-3 { grid-template-columns: 1fr !important; gap: 6px; }
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type .card { min-height: 54px; padding: 7px 8px; gap: 4px; }
+
+/* Marketing: compress campaign/work cards while retaining real workflow. */
+.main:has(select[aria-label="Filter by platform"]) .legacy-section-head { margin: 14px 0 8px; padding-top: 10px; }
+.main:has(select[aria-label="Filter by platform"]) > .grid.cols-3:first-of-type { margin-bottom: 10px !important; }
+.main:has(select[aria-label="Filter by platform"]) > .toolbar { gap: 7px; margin: 2px 0 9px; padding: 2px 0; }
+.main:has(select[aria-label="Filter by platform"]) > .toolbar > .select { width: min(180px,100%); flex-basis: 180px; }
+.main:has(select[aria-label="Filter by platform"]) > .grid > .panel { padding: 10px; margin-bottom: 5px; }
+.main:has(select[aria-label="Filter by platform"]) > .grid > .panel > .card-line:first-child { padding-bottom: 6px; }
+.main:has(select[aria-label="Filter by platform"]) > .grid > .panel > .grid.cols-3 { grid-template-columns: 1fr !important; gap: 6px; margin-top: 7px !important; }
+.main:has(select[aria-label="Filter by platform"]) > .grid > .panel .card { min-height: 54px; padding: 7px 8px; gap: 4px; }
+.main:has(section[aria-label="Create marketing content"]) > section[aria-label="Create marketing content"] { padding: 11px; margin-bottom: 10px !important; }
+.main:has(section[aria-label="Create marketing content"]) > section[aria-label="Create marketing content"] .form { margin-top: 8px !important; gap: 8px; }
+.main:has(section[aria-label="Create marketing content"]) > section[aria-label="Create marketing content"] .form-grid { gap: 8px; }
+
+/* Notifications / History become compact scan lists. */
+.main:has(.card .btn[href]) > .grid,
+.main:has(.card button.btn.small) > .grid { gap: 6px; }
+.main:has(.card .btn[href]) > .grid > .card,
+.main:has(.card button.btn.small) > .grid > .card { padding: 7px 9px; min-height: 54px; gap: 4px; }
+.main:has(input[aria-label="Search operational history"]) > .panel:first-of-type { padding: 9px; margin-bottom: 9px !important; }
+.main:has(input[aria-label="Search operational history"]) > .panel:first-of-type .toolbar { gap: 6px; }
+.main:has(input[aria-label="Search operational history"]) > section.panel:not(:first-of-type) { padding: 10px; margin-bottom: 8px !important; }
+.main:has(input[aria-label="Search operational history"]) > section.panel:not(:first-of-type) > .topbar { padding-bottom: 5px; margin-bottom: 6px !important; }
+.main:has(input[aria-label="Search operational history"]) .grid.cols-2 { grid-template-columns: 1fr !important; gap: 5px; }
+.main:has(input[aria-label="Search operational history"]) .grid.cols-2 > .card { min-height: 48px; padding: 7px 8px; gap: 4px; }
+
+/* People, system, account ---------------------------------------------- */
+.main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type { padding: 9px; margin-bottom: 9px !important; }
+.main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type .toolbar { max-width: none; gap: 6px; }
+.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 { grid-template-columns: 1fr !important; gap: 6px; }
+.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 > .card { min-height: 58px; padding: 7px 9px; gap: 4px; }
+.admin-health > .grid.cols-2 { gap: 8px; }
+.admin-health > .grid.cols-2 > .panel { min-height: 96px; padding: 10px; }
+.admin-health > .grid.cols-2 > .panel:first-child { min-height: 84px; }
+.main:has(.form-grid input[type="password"]) > .panel { padding: 12px; border-radius: 10px; }
+.main:has(.form-grid input[type="password"]) > .panel .form-grid { gap: 8px; margin-top: 8px !important; }
+.main:has(.form-grid input[type="password"]) > .panel .toolbar { margin-top: 10px; }
+.sidebar .nav-group:has(.nav-icon.external) { margin-top: 2px; padding: 5px 4px; border-radius: 7px; }
+.sidebar .nav-group:has(.nav-icon.external) a { min-height: 29px; }
+.nav-admin { border-top: 0; border-bottom: 0; padding: 0; }
+.nav-admin summary { padding: 3px 8px; border-radius: 5px; font-size: 7.5px; }
+
+@media (max-width:1100px) {
+  .main:has(a[href^="/rooms/"]) > .grid.cols-3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+
+@media (max-width:760px) {
+  [data-testid="tasks-board"] { grid-template-columns: repeat(4,minmax(245px,82vw)); }
+  [data-testid="tasks-board"] > .panel { min-width: 245px; }
+  .main:has(a[href^="/rooms/"]) > .grid.cols-3 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width:520px) {
+  .main:has(a[href^="/rooms/"]) > .grid.cols-3 { grid-template-columns: 1fr 1fr; }
+  .main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card { min-height: 122px; padding-top: 70px; }
+}
