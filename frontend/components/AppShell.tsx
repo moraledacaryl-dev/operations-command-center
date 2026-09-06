@@ -7,54 +7,42 @@ import { api, Entity } from '@/lib/api';
 import { Capability, hasCapability } from '@/lib/capabilities';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
-type NavItem = {
-  href: string;
-  label: string;
-  shortLabel?: string;
-  icon: string;
-  badge?: number;
-};
-
-type NavGroup = {
-  label: string;
-  items: NavItem[];
-};
-
+type NavItem = { href: string; label: string; shortLabel?: string; icon: string; badge?: number };
+type NavGroup = { label: string; items: NavItem[] };
 type AdminNavItem = NavItem & { capability: Capability };
 
-const primaryItems: NavItem[] = [
-  { href: '/', label: 'Today', icon: 'T' },
-  { href: '/tasks', label: 'My work', icon: 'W' },
-  { href: '/departments', label: 'Department', icon: 'D' },
-  { href: '/projects', label: 'Projects', icon: 'P' },
-  { href: '/review', label: 'Review', icon: 'R' },
+const homeItems: NavItem[] = [
+  { href: '/', label: 'Home', icon: 'H' },
+  { href: '/my-work', label: 'My Work', shortLabel: 'My Work', icon: 'M' },
 ];
 
-const groups: NavGroup[] = [
-  {
-    label: 'Operations',
-    items: [
-      { href: '/requests', label: 'Requests', icon: 'Q' },
-      { href: '/shift', label: 'Shift handover', shortLabel: 'Handover', icon: 'S' },
-      { href: '/guests', label: 'Guest matters', shortLabel: 'Guests', icon: 'G' },
-      { href: '/fixes', label: 'Maintenance', icon: 'F' },
-      { href: '/rooms', label: 'Rooms', icon: 'M' },
-    ],
-  },
-  {
-    label: 'Planning',
-    items: [
-      { href: '/posts', label: 'Marketing', icon: 'K' },
-      { href: '/notifications', label: 'Notifications', icon: 'N' },
-      { href: '/history', label: 'History', icon: 'H' },
-    ],
-  },
+const workItems: NavItem[] = [
+  { href: '/tasks', label: 'Tasks', icon: 'T' },
+  { href: '/projects', label: 'Projects', icon: 'P' },
+  { href: '/requests', label: 'Requests', icon: 'Q' },
+];
+
+const operationsItems: NavItem[] = [
+  { href: '/guests', label: 'Guest Matters', shortLabel: 'Guests', icon: 'G' },
+  { href: '/fixes', label: 'Maintenance', icon: 'F' },
+  { href: '/rooms', label: 'Rooms', icon: 'R' },
+  { href: '/shift', label: 'Shift Handover', shortLabel: 'Handover', icon: 'S' },
+];
+
+const decisionItems: NavItem[] = [
+  { href: '/review', label: 'Review', icon: 'V' },
+  { href: '/approvals', label: 'Approvals', icon: 'A' },
+];
+
+const activityItems: NavItem[] = [
+  { href: '/notifications', label: 'Notifications', icon: 'N' },
+  { href: '/history', label: 'History', icon: 'Y' },
 ];
 
 const adminItems: AdminNavItem[] = [
-  { href: '/admin/users', label: 'People & access', shortLabel: 'People', icon: 'U', capability: 'manage_accounts' },
-  { href: '/admin/approve', label: 'Approval setup', shortLabel: 'Approvals', icon: 'A', capability: 'manage_approvals' },
-  { href: '/admin/health', label: 'System health', shortLabel: 'Health', icon: 'Y', capability: 'view_system_health' },
+  { href: '/admin/users', label: 'People & Access', shortLabel: 'People', icon: 'U', capability: 'manage_accounts' },
+  { href: '/admin/approve', label: 'Approval Setup', shortLabel: 'Setup', icon: 'A', capability: 'manage_approvals' },
+  { href: '/admin/health', label: 'System Health', shortLabel: 'Health', icon: 'Y', capability: 'view_system_health' },
 ];
 
 const connectedApps = [
@@ -92,6 +80,15 @@ function NavLink({ item, path, onNavigate }: { item: NavItem; path: string; onNa
   );
 }
 
+function NavSection({ label, items, path, onNavigate }: { label?: string; items: NavItem[]; path: string; onNavigate: () => void }) {
+  return (
+    <div className="nav-group">
+      {label ? <span className="nav-label">{label}</span> : null}
+      {items.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={onNavigate} />)}
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
@@ -120,9 +117,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [path, user]);
 
   useEffect(() => {
-    function syncDepartment() {
-      setDeptId(getCurrentDepartmentId(getStoredUser()));
-    }
+    function syncDepartment() { setDeptId(getCurrentDepartmentId(getStoredUser())); }
     window.addEventListener(DEPARTMENT_CHANGE_EVENT, syncDepartment);
     window.addEventListener('storage', syncDepartment);
     return () => {
@@ -135,9 +130,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!mobileOpen) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobileOpen(false);
-    };
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileOpen(false); };
     window.addEventListener('keydown', onKeyDown);
     return () => {
       document.body.style.overflow = previous;
@@ -151,10 +144,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const workspaceName = fixedMarketingWorkspace ? 'Marketing' : currentDept?.name || 'Hidden Oasis';
   const visibleAdminItems = adminItems.filter(item => hasCapability(user, item.capability));
   const canOpenMarketing = hasCapability(user, 'view_all_operations') || deptOptions.some((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
-  const visibleGroups = groups.map(group => ({
-    ...group,
-    items: group.items.filter(item => item.href !== '/posts' || canOpenMarketing),
-  })).filter(group => group.items.length);
+  const contentItems: NavItem[] = canOpenMarketing ? [
+    { href: '/posts', label: 'Marketing', icon: 'K' },
+    { href: '/posts/editor', label: 'Annotation Studio', shortLabel: 'Studio', icon: 'I' },
+  ] : [];
+  const peopleItems: NavItem[] = [{ href: '/departments', label: 'Departments', icon: 'D' }];
+  const closeMobile = () => setMobileOpen(false);
 
   function changeDept(value: string) {
     const id = Number(value);
@@ -165,9 +160,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   async function logout() {
     if (signingOut) return;
     setSigningOut(true);
-    try {
-      await api.logout();
-    } finally {
+    try { await api.logout(); }
+    finally {
       clearStoredUser();
       setUser(null);
       setMobileOpen(false);
@@ -187,78 +181,54 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="logo">HO</span>
           <span><strong>Operations</strong><small>{workspaceName}</small></span>
         </Link>
-        <button
-          className="menu-toggle"
-          type="button"
-          aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
-          aria-expanded={mobileOpen}
-          aria-controls="mobile-sidebar"
-          onClick={() => setMobileOpen(open => !open)}
-        >
+        <button className="menu-toggle" type="button" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} aria-controls="mobile-sidebar" onClick={() => setMobileOpen(open => !open)}>
           {mobileOpen ? 'Close' : 'Menu'}
         </button>
       </header>
 
-      {mobileOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
+      {mobileOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={closeMobile} />}
 
       <aside id="mobile-sidebar" className={`sidebar ${mobileOpen ? 'open' : ''}`} aria-hidden={!mobileOpen ? undefined : false}>
         <div className="brand">
           <div className="logo">HO</div>
-          <div>
-            <strong>Operations</strong>
-            <small>Hidden Oasis command center</small>
-          </div>
+          <div><strong>Operations</strong><small>Hidden Oasis command center</small></div>
         </div>
 
         <div className="user-summary">
           <span className="user-avatar" aria-hidden="true">{String(user.name || 'U').slice(0, 1).toUpperCase()}</span>
           <span><strong>{user.name || 'User'}</strong><small>{user.role}</small></span>
-          <Link href="/account" className="account-link" onClick={() => setMobileOpen(false)}>Account</Link>
+          <Link href="/account" className="account-link" onClick={closeMobile}>Account</Link>
         </div>
 
-        {fixedMarketingWorkspace ? <div className="dept-switch"><label><span>Current workspace</span><strong>Marketing</strong></label></div> : deptOptions.length > 0 && (
-          <div className="dept-switch">
-            <label>
-              <span>Current workspace</span>
-              <select className="select" value={currentDept?.id || ''} onChange={e => changeDept(e.target.value)}>
-                {deptOptions.map((dept: Entity) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
-              </select>
-            </label>
-          </div>
-        )}
+        {fixedMarketingWorkspace ? (
+          <div className="dept-switch"><label><span>Current workspace</span><strong>Marketing</strong></label></div>
+        ) : deptOptions.length > 0 ? (
+          <div className="dept-switch"><label><span>Current workspace</span><select className="select" value={currentDept?.id || ''} onChange={e => changeDept(e.target.value)}>{deptOptions.map((dept: Entity) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}</select></label></div>
+        ) : null}
 
         <nav className="nav grouped" aria-label="Main navigation">
-          <div className="nav-group primary-nav">
-            {primaryItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}
-          </div>
+          <NavSection items={homeItems} path={path} onNavigate={closeMobile} />
+          <NavSection label="Work" items={workItems} path={path} onNavigate={closeMobile} />
+          <NavSection label="Operations" items={operationsItems} path={path} onNavigate={closeMobile} />
+          <NavSection label="Decisions" items={decisionItems} path={path} onNavigate={closeMobile} />
+          {contentItems.length ? <NavSection label="Content" items={contentItems} path={path} onNavigate={closeMobile} /> : null}
+          <NavSection label="People & System" items={peopleItems} path={path} onNavigate={closeMobile} />
 
-          {visibleGroups.map(group => (
-            <div className="nav-group" key={group.label}>
-              <span className="nav-label">{group.label}</span>
-              {group.items.map(item => <NavLink key={item.href} item={{ ...item, badge: item.href === '/notifications' ? unreadCount : undefined }} path={path} onNavigate={() => setMobileOpen(false)} />)}
-            </div>
-          ))}
-
-          {connectedApps.length > 0 && (
-            <div className="nav-group">
-              <span className="nav-label">Connected apps</span>
-              {connectedApps.map(([label, href]) => (
-                <a href={href} key={label} rel="noreferrer" target="_blank">
-                  <span className="nav-icon external" aria-hidden="true">↗</span>
-                  <span className="nav-copy">{label}</span>
-                </a>
-              ))}
-            </div>
-          )}
-
-          {visibleAdminItems.length > 0 && (
+          {visibleAdminItems.length > 0 ? (
             <details className="nav-admin" open={path.startsWith('/admin')}>
               <summary>Administration</summary>
-              <div className="nav-group">
-                {visibleAdminItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={() => setMobileOpen(false)} />)}
-              </div>
+              <NavSection items={visibleAdminItems} path={path} onNavigate={closeMobile} />
             </details>
-          )}
+          ) : null}
+
+          <NavSection label="Activity" items={activityItems.map(item => item.href === '/notifications' ? { ...item, badge: unreadCount } : item)} path={path} onNavigate={closeMobile} />
+
+          {connectedApps.length > 0 ? (
+            <div className="nav-group">
+              <span className="nav-label">Connected Apps</span>
+              {connectedApps.map(([label, href]) => <a href={href} key={label} rel="noreferrer" target="_blank"><span className="nav-icon external" aria-hidden="true">↗</span><span className="nav-copy">{label}</span></a>)}
+            </div>
+          ) : null}
         </nav>
 
         <button className="btn secondary logout" disabled={signingOut} onClick={logout}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
@@ -267,15 +237,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="main" key={deptId ?? 'no-department'}>{children}</main>
 
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
-        {primaryItems.map(item => {
+        {[homeItems[0], homeItems[1], workItems[0], decisionItems[0]].map(item => {
           const active = isActivePath(path, item.href);
-          return (
-            <Link key={item.href} href={item.href} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>
-              <span aria-hidden="true">{item.icon}</span>
-              <small>{item.shortLabel || item.label}</small>
-            </Link>
-          );
+          return <Link key={item.href} href={item.href} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}><span aria-hidden="true">{item.icon}</span><small>{item.shortLabel || item.label}</small></Link>;
         })}
+        <button type="button" aria-label="Open all navigation" onClick={() => setMobileOpen(true)}><span aria-hidden="true">•••</span><small>More</small></button>
       </nav>
     </div>
   );
