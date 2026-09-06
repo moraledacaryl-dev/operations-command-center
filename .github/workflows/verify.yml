@@ -125,3 +125,11 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run browser and accessibility regressions
         run: npx playwright test --config=playwright.config.ts
+      - name: Upload UI audit screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-audit-screenshots
+          path: frontend/test-results/ui-audit/*.png
+          if-no-files-found: error
+          retention-days: 7

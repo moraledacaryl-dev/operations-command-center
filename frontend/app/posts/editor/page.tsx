@@ -13,8 +13,12 @@ function safeFilename(value?: string) {
   return `${base || 'annotated-creative'}-annotated.png`;
 }
 
-function supportedImage(filename: string, mimeType: string) {
-  return /^image\/(png|jpeg|webp)$/i.test(mimeType) || /\.(png|jpe?g|webp)$/i.test(filename);
+function imageMime(filename: string, mimeType: string) {
+  if (/^image\/(png|jpeg|webp)$/i.test(mimeType)) return mimeType.toLowerCase();
+  if (/\.png$/i.test(filename)) return 'image/png';
+  if (/\.jpe?g$/i.test(filename)) return 'image/jpeg';
+  if (/\.webp$/i.test(filename)) return 'image/webp';
+  return '';
 }
 
 export default function MarketingAnnotationStudio() {
@@ -85,8 +89,10 @@ export default function MarketingAnnotationStudio() {
   }
 
   function loadBlob(blob: Blob, filename: string) {
-    if (!supportedImage(filename, blob.type)) { setError('Use a PNG, JPEG, or WebP image.'); return; }
-    const url = URL.createObjectURL(blob);
+    const mimeType = imageMime(filename, blob.type);
+    if (!mimeType) { setError('Use a PNG, JPEG, or WebP image.'); return; }
+    const sourceBlob = blob.type.toLowerCase() === mimeType ? blob : new Blob([blob], { type: mimeType });
+    const url = URL.createObjectURL(sourceBlob);
     const image = new Image();
     image.onload = () => {
       const base = baseCanvasRef.current;
