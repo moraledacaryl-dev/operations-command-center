@@ -1,0 +1,9 @@
+/* UI v3 accessibility corrections kept separate so design-token adjustments
+   remain explicit and testable across legacy and v3 surfaces. */
+:root {
+  --v3-muted: #657168;
+}
+
+.muted {
+  color: var(--v3-muted);
+}
