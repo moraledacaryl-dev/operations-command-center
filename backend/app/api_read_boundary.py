@@ -54,6 +54,11 @@ def _valid_session(token: str | None) -> bool:
         return False
 
 
+def _matches_public_prefix(path: str, prefix: str) -> bool:
+    """Match one deliberate route prefix without granting lookalike siblings."""
+    return path == prefix or path.startswith(f"{prefix}/")
+
+
 class ApiReadBoundaryMiddleware:
     """Require authentication for internal API GETs except deliberate public presentation/health routes."""
 
@@ -67,7 +72,7 @@ class ApiReadBoundaryMiddleware:
 
         method = scope.get("method", "GET").upper()
         path = scope.get("path", "")
-        public = path in PUBLIC_GET_PATHS or any(path.startswith(prefix) for prefix in PUBLIC_GET_PREFIXES)
+        public = path in PUBLIC_GET_PATHS or any(_matches_public_prefix(path, prefix) for prefix in PUBLIC_GET_PREFIXES)
         if method != "GET" or not path.startswith("/api") or public:
             await self.app(scope, receive, send)
             return
