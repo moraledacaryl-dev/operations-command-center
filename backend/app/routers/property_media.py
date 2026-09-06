@@ -5,7 +5,7 @@ import time
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Session
@@ -79,16 +79,22 @@ def _public_row(slot: str, row: PropertyMedia | None) -> dict:
         "slot": slot,
         "label": ALLOWED_SLOTS[slot],
         "configured": bool(row),
-        "filename": row.filename if row else None,
-        "mime_type": row.mime_type if row else None,
         "content_url": f"/api/property-media/{slot}/content" if row else None,
         "updated_at": row.updated_at.isoformat() if row and row.updated_at else None,
     }
 
 
+def _owner_row(slot: str, row: PropertyMedia | None) -> dict:
+    value = _public_row(slot, row)
+    value["filename"] = row.filename if row else None
+    value["mime_type"] = row.mime_type if row else None
+    return value
+
+
 @router.get("")
-def list_property_media(db: Session = Depends(get_db)):
+def list_property_media(response: Response, db: Session = Depends(get_db)):
     rows = {row.slot: row for row in db.query(PropertyMedia).all() if row.slot in ALLOWED_SLOTS}
+    response.headers["Cache-Control"] = "no-store"
     return [_public_row(slot, rows.get(slot)) for slot in ALLOWED_SLOTS]
 
 
@@ -101,7 +107,15 @@ def property_media_content(slot: str, db: Session = Depends(get_db)):
     target = _stored_path(row.file_url)
     if target is None or not target.is_file():
         raise HTTPException(status_code=404, detail="Stored property media was not found.")
-    return FileResponse(target, media_type=row.mime_type or "application/octet-stream", filename=row.filename, content_disposition_type="inline")
+    suffix = Path(row.filename).suffix.lower()
+    public_name = f"hidden-oasis-{slot.replace('_', '-')}{suffix if suffix in IMAGE_MIME_BY_SUFFIX else ''}"
+    return FileResponse(
+        target,
+        media_type=row.mime_type or "application/octet-stream",
+        filename=public_name,
+        content_disposition_type="inline",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @router.post("/{slot}")
@@ -163,7 +177,7 @@ def replace_property_media(
         db.refresh(row)
         if old_path is not None and old_path != target:
             old_path.unlink(missing_ok=True)
-        return _public_row(slot, row)
+        return _owner_row(slot, row)
     except Exception:
         db.rollback()
         target.unlink(missing_ok=True)
