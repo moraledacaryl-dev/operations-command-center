@@ -1,0 +1,172 @@
+/* Mockup fidelity Pass 3 — final visual reconciliation.
+   Loaded after Pass 2. Presentation only: no route, workflow, authorization,
+   API, integration, or persisted business-data changes. */
+
+:root {
+  --mockup-sidebar: 202px;
+  --mockup-border: #dce7df;
+  --mockup-ink: #17352d;
+  --mockup-green: #08745e;
+  --mockup-soft: #f6f9f6;
+}
+
+/* Brand and navigation: match the reference's compact resort command-center identity. */
+.app { grid-template-columns: var(--mockup-sidebar) minmax(0, 1fr); }
+.sidebar { padding: 13px 10px 14px; }
+.brand { margin-bottom: 10px; padding: 2px 4px 3px; align-items: center; }
+.brand .logo { width: 38px; height: 38px; flex-basis: 38px; border-width: 1.5px; font-size: 0; }
+.brand .logo::before { content: "HO"; font-size: 10px; font-weight: 800; letter-spacing: -.04em; }
+.brand strong { display: block; font-size: 0; line-height: 1.05; }
+.brand strong::before { content: "Hidden Oasis"; font-size: 12px; font-weight: 790; letter-spacing: .01em; text-transform: uppercase; }
+.brand small { display: block; font-size: 0; margin-top: 2px; }
+.brand small::before { content: "Operations Command Center"; font-size: 8px; letter-spacing: .055em; text-transform: uppercase; color: #66776f; }
+
+.mobile-brand strong { font-size: 0; }
+.mobile-brand strong::before { content: "Hidden Oasis"; font-size: 12px; text-transform: uppercase; letter-spacing: .02em; }
+.mobile-brand small { font-size: 0; }
+.mobile-brand small::before { content: "Operations Command Center"; font-size: 8px; text-transform: uppercase; letter-spacing: .05em; }
+
+.user-summary { padding: 7px 6px; border-radius: 8px; }
+.user-avatar { width: 28px; height: 28px; font-size: 9px; }
+.dept-switch { padding: 6px; }
+.nav { gap: 8px; }
+.nav-group { gap: 0; }
+.nav-label { padding: 0 7px 3px; font-size: 7px; letter-spacing: .13em; }
+.nav a { min-height: 29px; padding: 4px 6px; gap: 6px; font-size: 9.5px; }
+.nav-icon { width: 17px; height: 17px; flex-basis: 17px; border: 0; background: transparent; font-size: 0; color: #52675e; }
+.nav-icon::before { font-size: 12px; line-height: 1; font-weight: 650; }
+.nav a.active .nav-icon { background: transparent; color: var(--mockup-green); }
+.nav a[href="/"] .nav-icon::before { content: "⌂"; }
+.nav a[href="/my-work"] .nav-icon::before { content: "✓"; }
+.nav a[href="/tasks"] .nav-icon::before { content: "□"; }
+.nav a[href="/projects"] .nav-icon::before { content: "◇"; }
+.nav a[href="/requests"] .nav-icon::before { content: "≡"; }
+.nav a[href="/guests"] .nav-icon::before { content: "○"; }
+.nav a[href="/fixes"] .nav-icon::before { content: "✦"; }
+.nav a[href="/rooms"] .nav-icon::before { content: "▣"; }
+.nav a[href="/shift"] .nav-icon::before { content: "↔"; }
+.nav a[href="/review"] .nav-icon::before { content: "◎"; }
+.nav a[href="/approvals"] .nav-icon::before,
+.nav a[href="/admin/approve"] .nav-icon::before { content: "✓"; }
+.nav a[href="/posts"] .nav-icon::before { content: "✧"; }
+.nav a[href="/posts/editor"] .nav-icon::before { content: "✎"; }
+.nav a[href="/departments"] .nav-icon::before { content: "⊞"; }
+.nav a[href="/admin/appearance"] .nav-icon::before { content: "◐"; }
+.nav a[href="/admin/users"] .nav-icon::before { content: "♙"; }
+.nav a[href="/admin/health"] .nav-icon::before { content: "+"; }
+.nav a[href="/notifications"] .nav-icon::before { content: "◌"; }
+.nav a[href="/history"] .nav-icon::before { content: "◷"; }
+.nav-icon.external::before { content: "↗"; }
+.nav-icon.external { font-size: 0; }
+.nav-admin summary { min-height: 26px; padding: 4px 7px; }
+.logout { min-height: 30px !important; }
+
+/* Bring the information density closer to the locked 1440px reference without microscopic type. */
+.main { max-width: 1500px; padding: 17px 20px 38px; }
+h1 { font-size: clamp(24px, 2.1vw, 29px); }
+h2 { font-size: 14px; }
+h3 { font-size: 11.5px; }
+.card-title { font-size: 10.5px; }
+.card-line, .muted { line-height: 1.35; }
+.panel { border-radius: 9px; }
+
+/* Page summary metrics are useful real data, but should behave like the reference's compact KPI strip. */
+.main > .grid.cols-3:first-of-type {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(118px, 180px));
+  justify-content: start;
+  gap: 7px;
+  margin-bottom: 10px !important;
+}
+.main > .grid.cols-3:first-of-type > .panel {
+  min-height: 58px;
+  padding: 8px 10px;
+}
+.main > .grid.cols-3:first-of-type > .panel h2 { font-size: 18px; }
+.main > .grid.cols-3:first-of-type > .panel:nth-child(1) { background: #edf8f4; }
+.main > .grid.cols-3:first-of-type > .panel:nth-child(2) { background: #fff7df; }
+.main > .grid.cols-3:first-of-type > .panel:nth-child(3) { background: #fff0f0; }
+
+/* Home: make the owner-selected resort hero a real visual anchor, not a thin banner. */
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type {
+  min-height: 154px;
+  padding: 18px 18px 16px;
+  background-position: center 52%;
+}
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type .topbar { align-items: flex-start; }
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type .topbar h2 { font-size: 21px; }
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type .topbar p { font-size: 10.5px; }
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type .btn { box-shadow: 0 1px 2px rgba(18,50,39,.08); }
+.main:has(a[href="/tasks?create=1"]) > .grid.cols-2 > .panel { min-height: 156px; }
+
+/* Tasks: eliminate the oversized summary/search gap and mirror the reference kanban proportions. */
+.main:has([data-testid="tasks-board"]) > .grid.cols-3:first-of-type { margin-top: 2px; }
+.main:has([data-testid="tasks-board"]) > .panel:has(input[placeholder="Search team tasks"]) {
+  padding: 7px 9px;
+  margin-bottom: 8px !important;
+}
+.main:has([data-testid="tasks-board"]) > .panel:has(input[placeholder="Search team tasks"]) .input {
+  max-width: 360px;
+  min-height: 30px;
+}
+[data-testid="tasks-board"] { gap: 7px; }
+[data-testid="tasks-board"] > .panel { min-height: 270px; padding: 8px; }
+[data-testid="tasks-board"] .card { min-height: 70px; padding: 7px 8px; }
+
+/* Queue/list pages: stronger row separators and less empty card-wall character. */
+.main > .tabs + .grid > .card,
+.main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type) .card,
+.main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type) .card,
+.main:has([data-testid="create-shift"]) > .grid:not(.cols-3) .card {
+  border-left: 3px solid #dfe9e3;
+  border-radius: 7px;
+  box-shadow: none;
+}
+.main > .tabs + .grid > .card:hover,
+.main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type) .card:hover,
+.main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type) .card:hover { border-left-color: #9bc8b8; }
+
+/* Rooms: increase photography presence and match the reference's compact 4-up card rhythm. */
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 { gap: 9px; }
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card {
+  min-height: 150px;
+  padding: 90px 8px 8px;
+  border-radius: 8px;
+}
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card::before { height: 82px; }
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card:hover::before { filter: saturate(1.03) contrast(1.02); }
+
+/* Review / approvals / activity read as dense decision lists in the reference. */
+.main:has(input[placeholder="Search decisions"]) > .panel:last-of-type .card,
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type .card,
+.main:has(input[aria-label="Search operational history"]) .grid.cols-2 > .card {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+/* Owner Appearance: keep photo controls prominent and clearly editable. */
+.main:has(input[type="file"]) .panel { box-shadow: none; }
+.main:has(input[type="file"]) .grid.cols-2 { gap: 10px; }
+.main:has(input[type="file"]) .card { border-radius: 8px; }
+
+/* Mobile remains readable; the desktop reference density must not collapse touch targets. */
+@media (max-width: 980px) {
+  .app { display: block; }
+  .sidebar { width: min(86vw, 292px); }
+  .brand strong::before { font-size: 12px; }
+  .brand small::before { font-size: 8px; }
+  .main { padding: 16px 11px calc(82px + env(safe-area-inset-bottom)); }
+  .main > .grid.cols-3:first-of-type { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .main > .grid.cols-3:first-of-type > .panel { min-height: 62px; }
+  [data-testid="tasks-board"] { grid-template-columns: repeat(4, minmax(210px, 1fr)); overflow-x: auto; }
+}
+
+@media (max-width: 620px) {
+  h1 { font-size: 23px; }
+  .main > .grid.cols-3:first-of-type { grid-template-columns: 1fr 1fr; }
+  .main > .grid.cols-3:first-of-type > .panel:nth-child(3) { grid-column: 1 / -1; }
+  .main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type { min-height: 178px; padding: 15px; }
+  .main:has(a[href^="/rooms/"]) > .grid.cols-3 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card { min-height: 142px; padding-top: 84px; }
+  .main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card::before { height: 77px; }
+}
