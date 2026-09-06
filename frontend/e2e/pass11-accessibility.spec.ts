@@ -70,6 +70,10 @@ async function seedAuthenticatedShell(page: Page) {
 }
 
 async function expectNoBlockingAxeViolations(page: Page) {
+  // Next metadata can settle just after the body becomes visible during a fresh
+  // server-rendered navigation. Keep the WCAG document-title requirement strict
+  // while waiting for the document head to reach its final non-empty state.
+  await expect(page).toHaveTitle(/\S+/, { timeout: 5000 });
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

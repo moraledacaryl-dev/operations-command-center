@@ -1,12 +1,15 @@
 'use client';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
+import { getStoredUser } from '@/lib/session';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
 export default function HealthPage() {
   const [archive, setArchive] = useState<Entity | null>(null);
   const [health, setHealth] = useState<Entity | null>(null);
   const [error, setError] = useState('');
+  const owner = String(getStoredUser()?.role || '').toLowerCase() === 'owner';
   useEffect(() => {
     api.health().then(setHealth).catch((err: any) => setError(err.message || 'Could not load health.'));
   }, []);
@@ -19,7 +22,7 @@ export default function HealthPage() {
     }
   }
   return <div className="admin-health">
-    <Top eyebrow="Admin" title="Health" right={<button className="btn secondary" onClick={runArchive}>Run archive</button>} />
+    <Top eyebrow="Admin" title="Health" right={<div className="toolbar" style={{ margin: 0 }}>{owner ? <Link className="btn secondary" href="/admin/appearance">Appearance</Link> : null}<button className="btn secondary" onClick={runArchive}>Run archive</button></div>} />
     {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
     <div className="grid cols-2">
       <section className="panel">

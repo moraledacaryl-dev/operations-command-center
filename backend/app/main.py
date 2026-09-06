@@ -28,6 +28,7 @@ from .routers.marketing import router as marketing_router
 from .routers.operational_meta import router as operational_meta_router
 from .routers.observability import router as observability_router
 from .routers.privacy import router as privacy_router
+from .routers.property_media import router as property_media_router
 from .routers.review import router as review_router
 from .routers.uploads_hardened import router as uploads_hardened_router
 from .routers.workflow import router as workflow_router
@@ -51,16 +52,13 @@ async def lifespan(_: FastAPI):
             ensure_bootstrap_owner(db)
             backfill_local_user_passwords(db)
     except Exception:
-        # Dependency readiness is reported through /api/readyz. Keeping the
-        # process alive allows supervisors to distinguish a live process from
-        # an application that is safe to receive traffic.
         logger.exception("Database bootstrap unavailable during startup; readiness will remain false until dependencies recover.")
     yield
 
 
 app = FastAPI(
     title="Manager Operations Command Center",
-    version="3.22.0",
+    version="3.23.0",
     lifespan=lifespan,
     docs_url="/docs" if security.expose_api_docs else None,
     redoc_url="/redoc" if security.expose_api_docs else None,
@@ -130,10 +128,9 @@ app.include_router(marketing_router)
 app.include_router(privacy_router)
 app.include_router(operational_meta_router)
 app.include_router(observability_router)
+app.include_router(property_media_router)
 app.include_router(uploads_hardened_router)
 app.include_router(workflow_router)
-# Register concrete API routes before the generic CRUD catch-alls so public
-# endpoints such as /api/health cannot be interpreted as resource names.
 app.include_router(router)
 app.include_router(authorized_crud_router)
 app.include_router(integrations_v2_router)
