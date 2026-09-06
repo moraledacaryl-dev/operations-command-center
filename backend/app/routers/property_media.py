@@ -23,6 +23,13 @@ ALLOWED_SLOTS = {
     "property_cover": "Property cover",
     "room_placeholder": "Default room placeholder",
 }
+IMAGE_MIME_BY_SUFFIX = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
 MAX_UPLOAD_BYTES = min(int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024))), 10 * 1024 * 1024)
 COPY_CHUNK_BYTES = 1024 * 1024
 STORAGE_PREFIX = "property-media:"
@@ -112,6 +119,13 @@ def replace_property_media(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     suffix = Path(original).suffix.lower()
+    if suffix not in IMAGE_MIME_BY_SUFFIX:
+        raise HTTPException(status_code=400, detail="Property media must be a PNG, JPEG, WebP, or GIF image.")
+    supplied_mime = (file.content_type or "application/octet-stream").split(";", 1)[0].strip().lower()
+    if supplied_mime != "application/octet-stream" and not supplied_mime.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Property media must use an image MIME type.")
+    stored_mime = IMAGE_MIME_BY_SUFFIX[suffix]
+
     stored_name = f"property_{slot}_{int(time.time())}_{uuid.uuid4().hex[:12]}{suffix}"
     target = UPLOAD_DIR / stored_name
     total = 0
@@ -138,12 +152,12 @@ def replace_property_media(
         row = db.query(PropertyMedia).filter(PropertyMedia.slot == slot).one_or_none()
         old_path = _stored_path(row.file_url) if row else None
         if row is None:
-            row = PropertyMedia(slot=slot, filename=original, file_url=f"{STORAGE_PREFIX}{stored_name}", mime_type=file.content_type or None, updated_by_id=user.id)
+            row = PropertyMedia(slot=slot, filename=original, file_url=f"{STORAGE_PREFIX}{stored_name}", mime_type=stored_mime, updated_by_id=user.id)
             db.add(row)
         else:
             row.filename = original
             row.file_url = f"{STORAGE_PREFIX}{stored_name}"
-            row.mime_type = file.content_type or None
+            row.mime_type = stored_mime
             row.updated_by_id = user.id
         db.commit()
         db.refresh(row)
