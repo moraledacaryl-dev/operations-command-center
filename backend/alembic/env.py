@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from app.database import DATABASE_URL, Base
 from app import models  # noqa: F401
 from app import foundation_models  # noqa: F401
+from app.routers import property_media  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
