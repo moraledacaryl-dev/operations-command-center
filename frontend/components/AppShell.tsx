@@ -8,7 +8,7 @@ import { Capability, hasCapability } from '@/lib/capabilities';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
 type NavItem = { href: string; label: string; shortLabel?: string; icon: string; badge?: number };
-type AdminNavItem = NavItem & { capability: Capability };
+type AdminNavItem = NavItem & { capability?: Capability; ownerOnly?: boolean };
 
 const homeItems: NavItem[] = [
   { href: '/', label: 'Home', icon: 'H' },
@@ -39,6 +39,7 @@ const activityItems: NavItem[] = [
 ];
 
 const adminItems: AdminNavItem[] = [
+  { href: '/admin/appearance', label: 'Appearance', shortLabel: 'Appearance', icon: 'I', ownerOnly: true },
   { href: '/admin/users', label: 'People & Access', shortLabel: 'People', icon: 'U', capability: 'manage_accounts' },
   { href: '/admin/approve', label: 'Approval Administration', shortLabel: 'Approvals', icon: 'A', capability: 'manage_approvals' },
   { href: '/admin/health', label: 'System Health', shortLabel: 'Health', icon: 'Y', capability: 'view_system_health' },
@@ -141,7 +142,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const currentDept = deptOptions.find((d: Entity) => Number(d.id) === Number(deptId)) || deptOptions[0];
   const fixedMarketingWorkspace = path.startsWith('/posts');
   const workspaceName = fixedMarketingWorkspace ? 'Marketing' : currentDept?.name || 'Hidden Oasis';
-  const visibleAdminItems = adminItems.filter(item => hasCapability(user, item.capability));
+  const role = String(user?.role || '').toLowerCase();
+  const visibleAdminItems = adminItems.filter(item => (!item.ownerOnly || role === 'owner') && (!item.capability || hasCapability(user, item.capability)));
   const canOpenMarketing = hasCapability(user, 'view_all_operations') || deptOptions.some((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
   const contentItems: NavItem[] = canOpenMarketing ? [
     { href: '/posts', label: 'Marketing', icon: 'K' },
