@@ -14,6 +14,7 @@ from starlette.responses import JSONResponse
 SESSION_SECRET = os.getenv("SESSION_SECRET", "local-command-center-secret")
 COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "operations_session")
 PUBLIC_GET_PATHS = {"/api/health", "/api/livez", "/api/readyz"}
+PUBLIC_GET_PREFIXES = ("/api/property-media",)
 
 
 def _unb64(value: str) -> bytes:
@@ -54,7 +55,7 @@ def _valid_session(token: str | None) -> bool:
 
 
 class ApiReadBoundaryMiddleware:
-    """Require authentication for every internal API GET except explicit public routes."""
+    """Require authentication for internal API GETs except deliberate public presentation/health routes."""
 
     def __init__(self, app):
         self.app = app
@@ -66,7 +67,8 @@ class ApiReadBoundaryMiddleware:
 
         method = scope.get("method", "GET").upper()
         path = scope.get("path", "")
-        if method != "GET" or not path.startswith("/api") or path in PUBLIC_GET_PATHS:
+        public = path in PUBLIC_GET_PATHS or any(path.startswith(prefix) for prefix in PUBLIC_GET_PREFIXES)
+        if method != "GET" or not path.startswith("/api") or public:
             await self.app(scope, receive, send)
             return
 
