@@ -1,0 +1,193 @@
+/* Operations UI v3 — Pass 3: operational workspaces.
+   Route-scoped with :has() so Guest Matters, Maintenance, Rooms and Shift Handover
+   gain hierarchy without affecting unrelated workspaces or changing behavior. */
+
+/* Shared operational metrics and work-object cards */
+.main:has([data-testid="create-guest"]),
+.main:has([data-testid="create-fix"]),
+.main:has([data-testid="create-shift"]) {
+  --ops-card-min: 150px;
+}
+
+.main:has([data-testid="create-guest"]) > .grid.cols-3:first-of-type,
+.main:has([data-testid="create-fix"]) > .grid.cols-3:first-of-type,
+.main:has([data-testid="create-shift"]) > .grid.cols-3:first-of-type {
+  margin-bottom: 28px !important;
+}
+
+.main:has([data-testid="create-guest"]) > .grid.cols-3 + .pill,
+.main:has([data-testid="create-fix"]) > .grid.cols-3 + .pill,
+.main:has([data-testid="create-shift"]) > .grid.cols-3 + .pill {
+  margin-bottom: 18px !important;
+}
+
+.main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type),
+.main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type) {
+  gap: 18px;
+}
+
+.main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type) .card,
+.main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type) .card {
+  min-height: var(--ops-card-min);
+  padding: 18px;
+  gap: 12px;
+  align-content: start;
+}
+
+.main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type) .card-title,
+.main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type) .card-title {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+/* Creation forms should feel intentional rather than compressed. */
+[data-testid="create-guest-form"],
+[data-testid="create-fix-form"],
+[data-testid="create-shift-form"] {
+  margin-bottom: 26px !important;
+  padding: 26px;
+}
+
+[data-testid="create-guest-form"] .form-grid,
+[data-testid="create-fix-form"] .form-grid,
+[data-testid="create-shift-form"] .form-grid {
+  gap: 18px;
+  margin-top: 18px !important;
+}
+
+[data-testid="create-guest-form"] > .label,
+[data-testid="create-fix-form"] > .label,
+[data-testid="create-shift-form"] > .label {
+  margin-top: 18px;
+}
+
+[data-testid="create-guest-form"] .toolbar,
+[data-testid="create-fix-form"] .toolbar,
+[data-testid="create-shift-form"] .toolbar {
+  margin-top: 20px;
+}
+
+/* Guest Matters: service-recovery cards emphasize guest/location/follow-up context. */
+.main:has([data-testid="create-guest"]) .tabs {
+  margin-bottom: 24px;
+}
+
+.main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type) .card-important {
+  border-left: 4px solid #a74c3b;
+  background: linear-gradient(90deg, #fff7f4 0, #fff 35%);
+}
+
+/* Maintenance: work orders read like a repair queue and preserve Open → Working → Done → Verified. */
+.main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type) .card-important {
+  border-left: 4px solid #a96e1e;
+  background: linear-gradient(90deg, #fffaf1 0, #fff 35%);
+}
+
+/* Shift Handover: one chronological stream, not a dense card wall. */
+.main:has([data-testid="create-shift"]) > .grid:not(.cols-3) {
+  gap: 12px;
+  max-width: 1040px;
+}
+
+.main:has([data-testid="create-shift"]) > .grid:not(.cols-3) .card {
+  min-height: 132px;
+  padding: 18px 20px;
+  gap: 11px;
+  border-left: 3px solid var(--v3-line-strong);
+}
+
+.main:has([data-testid="create-shift"]) > .grid:not(.cols-3) .card-important {
+  border-left-color: #a74c3b;
+  background: linear-gradient(90deg, #fff7f4 0, #fff 28%);
+}
+
+.main:has([data-testid="create-shift"]) > .grid:not(.cols-3) .card-title {
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+/* Rooms index: property-memory cards should feel like spaces, not CRUD rows. */
+.main:has(a[href^="/rooms/"]) > .panel:first-of-type {
+  padding: 22px 24px;
+  margin-bottom: 26px !important;
+}
+
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 {
+  gap: 18px;
+}
+
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card {
+  min-height: 154px;
+  padding: 20px;
+  align-content: space-between;
+  background: linear-gradient(145deg, #ffffff 0, #f8fbf7 100%);
+}
+
+.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card .card-title {
+  font-size: 18px;
+  color: var(--v3-ink);
+}
+
+.load-more {
+  margin-top: 24px;
+  gap: 14px;
+}
+
+/* Room detail: metrics first, then two calm historical columns. */
+.main:has(a[href="/rooms"]) > .grid.cols-3 {
+  margin-bottom: 26px !important;
+}
+
+.main:has(a[href="/rooms"]) > .grid.cols-2 {
+  gap: 24px;
+}
+
+.main:has(a[href="/rooms"]) > .grid.cols-2 > .panel {
+  min-height: 360px;
+  padding: 24px;
+}
+
+.main:has(a[href="/rooms"]) > .grid.cols-2 > .panel .topbar {
+  padding-bottom: 16px;
+  margin-bottom: 18px !important;
+  border-bottom: 1px solid var(--v3-line);
+}
+
+.main:has(a[href="/rooms"]) > .grid.cols-2 > .panel .card {
+  min-height: 104px;
+  padding: 16px;
+}
+
+@media (max-width: 980px) {
+  [data-testid="create-guest-form"],
+  [data-testid="create-fix-form"],
+  [data-testid="create-shift-form"] {
+    padding: 20px;
+  }
+
+  .main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type),
+  .main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type),
+  .main:has(a[href^="/rooms/"]) > .grid.cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .main:has([data-testid="create-guest"]) > .grid.cols-3:not(:first-of-type),
+  .main:has([data-testid="create-fix"]) > .grid.cols-3:not(:first-of-type),
+  .main:has(a[href^="/rooms/"]) > .grid.cols-3,
+  .main:has(a[href="/rooms"]) > .grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+
+  [data-testid="create-guest-form"],
+  [data-testid="create-fix-form"],
+  [data-testid="create-shift-form"] {
+    padding: 17px;
+  }
+
+  .main:has([data-testid="create-shift"]) > .grid:not(.cols-3) .card {
+    min-height: 0;
+    padding: 16px;
+  }
+}
