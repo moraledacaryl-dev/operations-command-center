@@ -1,0 +1,295 @@
+/* Operations UI v3 — Pass 2: core command surfaces.
+   Styles the real Home, My Work, Tasks, Projects and Requests contracts without
+   introducing new domain data, transitions, tabs or backend assumptions. */
+
+/* Shared command-surface rhythm */
+.main > .muted:first-of-type {
+  max-width: 760px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.main > .grid.cols-3:first-of-type {
+  gap: 18px;
+  margin-bottom: 26px !important;
+}
+
+.main > .grid.cols-3:first-of-type > .panel {
+  min-height: 122px;
+  display: grid;
+  align-content: center;
+  padding: 22px 24px;
+}
+
+.main > .grid.cols-3:first-of-type > .panel .eyebrow {
+  margin-bottom: 7px;
+}
+
+.main > .grid.cols-3:first-of-type > .panel h2 {
+  font-size: 34px;
+  line-height: 1;
+  margin: 0;
+}
+
+/* Home / command view */
+.main > .panel:first-of-type {
+  padding: 26px 28px;
+}
+
+.main > .panel:first-of-type .topbar {
+  margin-bottom: 0 !important;
+}
+
+.main > .panel:first-of-type .topbar h2 {
+  max-width: 720px;
+  font-size: clamp(23px, 2.3vw, 31px);
+  line-height: 1.15;
+  margin-top: 6px;
+}
+
+.main > .panel:first-of-type .topbar p {
+  max-width: 720px;
+  margin: 10px 0 0;
+  line-height: 1.6;
+}
+
+.main > .panel:first-of-type .toolbar {
+  max-width: 520px;
+  justify-content: flex-end;
+}
+
+.main > .grid.cols-2 {
+  gap: 24px;
+}
+
+.main > .grid.cols-2 > .panel {
+  min-height: 250px;
+  padding: 24px;
+}
+
+.main > .grid.cols-2 > .panel > .topbar {
+  margin-bottom: 18px !important;
+}
+
+.main > .grid.cols-2 > .panel > .grid {
+  gap: 10px;
+}
+
+.main > .grid.cols-2 > .panel .card {
+  min-height: 78px;
+  padding: 15px 16px;
+}
+
+/* My Work: make section hierarchy obvious, but keep all five backend buckets. */
+.main > .grid > .panel > .topbar:has(+ .grid.cols-3),
+.main > .grid > .panel > .topbar:has(+ .empty) {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--v3-line);
+}
+
+.main > .grid > .panel > .topbar:has(+ .grid.cols-3) h2,
+.main > .grid > .panel > .topbar:has(+ .empty) h2 {
+  font-size: 28px;
+}
+
+.main > .grid > .panel > .grid.cols-3 {
+  gap: 14px;
+}
+
+.main > .grid > .panel > .grid.cols-3 .card {
+  min-height: 126px;
+  align-content: start;
+}
+
+/* Tasks: metrics stay compact; board gets the visual priority. */
+[data-testid="tasks-board"] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(230px, 1fr));
+  gap: 16px;
+  align-items: start;
+  overflow-x: auto;
+  padding: 2px 2px 12px;
+  scroll-snap-type: x proximity;
+}
+
+[data-testid="tasks-board"] > .panel {
+  min-width: 230px;
+  min-height: 420px;
+  padding: 18px;
+  background: rgba(248, 250, 246, .86);
+  box-shadow: none;
+  scroll-snap-align: start;
+}
+
+[data-testid="tasks-board"] > .panel > .card-line:first-child {
+  min-height: 36px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--v3-line);
+}
+
+[data-testid="tasks-board"] > .panel > .grid {
+  gap: 10px !important;
+  margin-top: 14px !important;
+}
+
+[data-testid="tasks-board"] .card {
+  min-height: 116px;
+  padding: 15px;
+  background: white;
+}
+
+[data-testid="tasks-board"] .empty {
+  min-height: 120px;
+  background: rgba(255,255,255,.58);
+}
+
+/* Projects and Requests: tabs read as filters, cards as work objects. */
+.tabs {
+  margin: 6px 0 22px;
+  padding: 5px;
+  border: 1px solid var(--v3-line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tabs button {
+  min-height: 38px;
+  padding: 8px 13px;
+  border-radius: 10px;
+}
+
+.tabs button.active,
+.tabs button[aria-selected="true"] {
+  background: var(--v3-accent-soft);
+  color: var(--v3-accent-strong);
+}
+
+.main > .tabs + .grid.cols-3,
+.main > .tabs + .grid {
+  gap: 16px;
+}
+
+.main > .tabs + .grid.cols-3 > .card,
+.main > .tabs + .grid > .card {
+  min-height: 158px;
+  padding: 19px;
+  align-content: start;
+}
+
+.main > .tabs + .grid .card-title {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.main > .tabs + .grid .card-line {
+  margin-top: 3px;
+}
+
+.main > .tabs + .grid .muted {
+  line-height: 1.55;
+}
+
+/* Creation panels are intentionally quieter than the primary workspaces. */
+.main > .panel:has(.form-grid) {
+  max-width: 1120px;
+  padding: 24px 26px;
+  background: #fcfdfb;
+  box-shadow: none;
+}
+
+.main > .panel:has(.form-grid) .form-grid {
+  gap: 16px;
+}
+
+.main > .panel:has(.form-grid) .toolbar {
+  margin-top: 18px;
+}
+
+@media (max-width: 1100px) {
+  .main > .panel:first-of-type .topbar {
+    display: grid;
+  }
+
+  .main > .panel:first-of-type .toolbar {
+    max-width: none;
+    justify-content: flex-start;
+  }
+
+  [data-testid="tasks-board"] {
+    grid-template-columns: repeat(4, minmax(260px, 78vw));
+  }
+}
+
+@media (max-width: 700px) {
+  .main > .grid.cols-3:first-of-type {
+    grid-template-columns: repeat(3, minmax(138px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .main > .grid.cols-3:first-of-type > .panel {
+    min-width: 138px;
+    min-height: 104px;
+    padding: 17px;
+  }
+
+  .main > .grid.cols-3:first-of-type > .panel h2 {
+    font-size: 29px;
+  }
+
+  .main > .panel:first-of-type {
+    padding: 20px;
+  }
+
+  .main > .panel:first-of-type .toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .main > .panel:first-of-type .toolbar .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .main > .grid.cols-2 {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .main > .grid.cols-2 > .panel {
+    min-height: auto;
+  }
+
+  .main > .grid > .panel > .grid.cols-3 {
+    grid-template-columns: 1fr;
+  }
+
+  [data-testid="tasks-board"] {
+    margin-left: -2px;
+    margin-right: -2px;
+    grid-template-columns: repeat(4, minmax(270px, 84vw));
+  }
+
+  [data-testid="tasks-board"] > .panel {
+    min-height: 360px;
+  }
+
+  .tabs {
+    width: 100%;
+  }
+
+  .main > .tabs + .grid.cols-3,
+  .main > .tabs + .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .main > .tabs + .grid.cols-3 > .card,
+  .main > .tabs + .grid > .card {
+    min-height: 132px;
+  }
+}
