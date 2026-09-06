@@ -46,23 +46,30 @@ h3, .card-title { font-weight: 650; }
 [data-testid="tasks-board"] > .panel { min-height: 0; padding: 7px; }
 [data-testid="tasks-board"] .card { min-height: 64px; }
 
-/* Rooms: photo is its own visual zone; metadata never competes with the image. */
-.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card {
-  min-height: 172px;
-  padding: 103px 9px 9px;
-  background: #fff !important;
+/* Rooms: explicit media + information zones prevent any text/image collision. */
+.room-card-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 8px !important; }
+.room-card {
+  display: block !important;
+  min-height: 0 !important;
+  padding: 0 !important;
   overflow: hidden;
+  background: #fff !important;
+  border-radius: 8px !important;
 }
-.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card::before {
-  height: 94px;
-  border-radius: 7px 7px 0 0;
-  filter: saturate(.96) contrast(1.01);
+.room-card::before { content: none !important; }
+.room-card-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  background-image: linear-gradient(rgba(255,255,255,.06),rgba(255,255,255,.06)), var(--property-room-placeholder, none);
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid var(--v3-line);
 }
-.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card .card-title,
-.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card .card-line,
-.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card .pill,
-.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card a { position: relative; z-index: 1; text-shadow: none; }
-.main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card .card-title { color: #17352d; }
+.room-card-info { display: grid; gap: 5px; padding: 8px 9px 9px; }
+.room-card-info .card-title { color: #17352d; font-size: 11px; line-height: 1.2; }
+.room-card-info .card-line { margin: 0; }
+.room-card-link { font-size: 8.5px; }
 
 /* Dense administrative surfaces should not overpower operational pages. */
 .main:has(a[href="/admin/users"]) .panel,
@@ -70,17 +77,27 @@ h3, .card-title { font-weight: 650; }
 
 /* Mobile: reduce the bottom-nav visual mass and avoid a three-card KPI stack. */
 @media (max-width: 980px) {
-  .mobile-bottom-nav { min-height: 52px; padding: 4px; border-radius: 12px; }
-  .mobile-bottom-nav a, .mobile-bottom-nav button { min-height: 42px; font-size: 9px; }
-  .main { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+  .mobile-bottom-nav { min-height: 50px; padding: 3px 4px; border-radius: 11px; }
+  .mobile-bottom-nav a, .mobile-bottom-nav button { min-height: 40px; font-size: 8.5px; }
+  .main { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
 }
 
 @media (max-width: 620px) {
-  .main > .grid.cols-3:first-of-type { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px; }
+  .main > .grid.cols-3:first-of-type {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    gap: 5px !important;
+  }
   .main > .grid.cols-3:first-of-type > .panel,
-  .main > .grid.cols-3:first-of-type > .panel:nth-child(3) { grid-column: auto; min-height: 54px; padding: 6px; }
+  .main > .grid.cols-3:first-of-type > .panel:nth-child(3) {
+    grid-column: auto !important;
+    min-width: 0 !important;
+    min-height: 54px !important;
+    padding: 6px !important;
+  }
   .main > .grid.cols-3:first-of-type > .panel h2 { font-size: 15px; }
   .main > .grid.cols-3:first-of-type > .panel p { font-size: 7.5px; line-height: 1.2; }
-  .main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card { min-height: 160px; padding-top: 95px; }
-  .main:has(a[href^="/rooms/"]) > .grid.cols-3 > .card::before { height: 87px; }
+  .room-card-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  .room-card-media { aspect-ratio: 16 / 8; }
+  .room-card-info { padding: 7px; gap: 4px; }
 }
