@@ -8,7 +8,6 @@ type MediaRow = {
   slot: string;
   label: string;
   configured: boolean;
-  filename?: string | null;
   content_url?: string | null;
   updated_at?: string | null;
 };
@@ -70,7 +69,7 @@ export default function AppearancePage() {
     <Top eyebrow="Administration" title="Appearance & property media" />
     <section className="panel property-media-intro">
       <h2>Owner-managed website imagery</h2>
-      <p className="muted">Replace global Hidden Oasis imagery without editing source code. Upload JPG, PNG, WebP, or other image types accepted by the existing secure upload validator. Maximum size is 10 MB. Room-specific photos remain managed with room records.</p>
+      <p className="muted">Replace global Hidden Oasis imagery without editing source code. Upload JPG, PNG, WebP, or GIF images. Maximum size is 10 MB. Room-specific photos remain managed with room records.</p>
     </section>
 
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 14 }}>{error}</div> : null}
@@ -84,12 +83,12 @@ export default function AppearancePage() {
         <div>
           <span className="eyebrow">Global image</span>
           <h2>{row.label}</h2>
-          <p className="muted">{row.configured ? row.filename : 'No custom image uploaded.'}</p>
+          <p className="muted">{row.configured ? 'Custom image configured.' : 'No custom image uploaded.'}</p>
         </div>
         <div className="toolbar" style={{ marginBottom: 0 }}>
           <label className="btn small">
             {busy === row.slot ? 'Uploading…' : row.configured ? 'Replace image' : 'Upload image'}
-            <input type="file" accept="image/*" hidden disabled={!!busy} onChange={event => void upload(row.slot, event.target.files?.[0])} />
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden disabled={!!busy} onChange={event => void upload(row.slot, event.target.files?.[0])} />
           </label>
           {row.configured ? <button className="btn small secondary" disabled={!!busy} onClick={() => void reset(row.slot)}>Use fallback</button> : null}
         </div>
