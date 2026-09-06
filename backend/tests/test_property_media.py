@@ -2,7 +2,7 @@ import base64
 import io
 
 import pytest
-from fastapi import HTTPException, UploadFile
+from fastapi import HTTPException, Response, UploadFile
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from starlette.datastructures import Headers
@@ -40,11 +40,20 @@ def image_upload(name="hero.png"):
     return UploadFile(filename=name, file=io.BytesIO(PNG_1X1), headers=Headers({"content-type": "image/png"}))
 
 
-def test_property_media_slots_are_fixed_and_public_metadata_has_no_storage_path(db):
-    rows = property_media.list_property_media(db)
+def public_rows(db):
+    response = Response()
+    rows = property_media.list_property_media(response, db)
+    assert response.headers["cache-control"] == "no-store"
+    return rows
+
+
+def test_property_media_slots_are_fixed_and_public_metadata_is_minimal(db):
+    rows = public_rows(db)
     assert [row["slot"] for row in rows] == list(property_media.ALLOWED_SLOTS)
     assert all(row["configured"] is False for row in rows)
     assert all("file_url" not in row for row in rows)
+    assert all("filename" not in row for row in rows)
+    assert all("mime_type" not in row for row in rows)
     with pytest.raises(HTTPException) as exc:
         property_media._slot("../../arbitrary")
     assert exc.value.status_code == 404
@@ -72,8 +81,20 @@ def test_owner_upload_replace_and_reset_are_bounded(db, tmp_path, monkeypatch):
     assert second["filename"] == "second.png"
     assert len(list(tmp_path.iterdir())) == 1
 
+    rows = public_rows(db)
+    configured = next(row for row in rows if row["slot"] == "dashboard_hero")
+    assert configured["configured"] is True
+    assert "filename" not in configured
+    assert "mime_type" not in configured
+
+    content = property_media.property_media_content("dashboard_hero", db)
+    assert content.headers["cache-control"] == "no-cache"
+    disposition = content.headers.get("content-disposition", "")
+    assert "second.png" not in disposition
+    assert "hidden-oasis-dashboard-hero.png" in disposition
+
     property_media.reset_property_media("dashboard_hero", owner, db)
-    assert property_media.list_property_media(db)[1]["configured"] is False
+    assert public_rows(db)[1]["configured"] is False
     assert list(tmp_path.iterdir()) == []
 
 
