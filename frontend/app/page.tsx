@@ -136,7 +136,7 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="grid cols-3" style={{ marginBottom: 16 }}>
+      <div className="grid cols-3 home-metrics" style={{ marginBottom: 16 }}>
         <Metric label="My overdue" value={overdueCount} detail="Assigned tasks past due" href="/my-work" urgent />
         <Metric label="Waiting for review" value={count(counts.approve)} detail="Decisions requiring attention" href="/review" urgent={isExecutive} />
         <Metric label="Open maintenance" value={count(counts.fixes)} detail="Unresolved property issues" href="/fixes" />

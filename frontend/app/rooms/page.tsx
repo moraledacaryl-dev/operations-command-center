@@ -47,11 +47,14 @@ export default function RoomsPage() {
       </div>
       <p className="muted" style={{ marginBottom: 0 }}>{visible.length} of {rooms.length} spaces shown. Open a space for its guest matters and maintenance history.</p>
     </section>
-    <div className="grid cols-3">
-      {visible.map(room => <Link className="card card-button" key={room.id} href={`/rooms/${room.id}`} aria-label={`Open ${room.name} operational memory`}>
-        <div className="card-title">{room.name}</div>
-        <div className="card-line"><Pill value={room.kind || 'Room'} /><Pill value={room.status || 'Active'} /></div>
-        <span className="muted">Open operational history</span>
+    <div className="grid cols-3 room-card-grid">
+      {visible.map(room => <Link className="card card-button room-card" key={room.id} href={`/rooms/${room.id}`} aria-label={`Open ${room.name} operational memory`}>
+        <span className="room-card-media" aria-hidden="true" />
+        <span className="room-card-info">
+          <span className="card-title">{room.name}</span>
+          <span className="card-line"><Pill value={room.kind || 'Room'} /><Pill value={room.status || 'Active'} /></span>
+          <span className="muted room-card-link">Open operational history</span>
+        </span>
       </Link>)}
       {!visible.length ? <div className="empty">No matching rooms or areas.</div> : null}
     </div>
