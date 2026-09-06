@@ -9,6 +9,7 @@ import './ui-v3.css';
 import './ui-v3-accessibility.css';
 import './ui-v3-core.css';
 import './ui-v3-operations.css';
+import './ui-v3-decisions-content.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { RolePresentationSync } from '@/components/RolePresentationSync';

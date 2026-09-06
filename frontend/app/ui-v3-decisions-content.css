@@ -1,0 +1,221 @@
+/* Operations UI v3 — Pass 4: decisions, content and activity.
+   Route-scoped to existing review/approval/marketing/notification/history contracts. */
+
+/* Review: a calm consequence-first queue rather than a dense admin list. */
+.main:has(input[placeholder="Search decisions"]) > .panel:first-of-type,
+.main:has(input[placeholder="Search approvals"]) > .panel:first-of-type {
+  padding: 24px 26px;
+  margin-bottom: 26px !important;
+}
+
+.main:has(input[placeholder="Search decisions"]) > .panel:first-of-type .toolbar,
+.main:has(input[placeholder="Search approvals"]) > .panel:first-of-type .toolbar {
+  max-width: 620px;
+  margin-top: 18px !important;
+}
+
+.main:has(input[placeholder="Search decisions"]) > .panel:first-of-type .tabs,
+.main:has(input[placeholder="Search approvals"]) > .panel:first-of-type .tabs {
+  margin-top: 18px;
+  margin-bottom: 0;
+}
+
+.main:has(input[placeholder="Search decisions"]) > .panel:last-of-type,
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type {
+  padding: 26px;
+}
+
+.main:has(input[placeholder="Search decisions"]) > .panel:last-of-type > .topbar,
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type > .topbar {
+  padding-bottom: 16px;
+  margin-bottom: 18px !important;
+  border-bottom: 1px solid var(--v3-line);
+}
+
+.main:has(input[placeholder="Search decisions"]) > .panel:last-of-type > .grid,
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type > .grid {
+  gap: 14px;
+}
+
+.main:has(input[placeholder="Search decisions"]) > .panel:last-of-type .card {
+  min-height: 108px;
+  padding: 17px 18px;
+  gap: 10px;
+}
+
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type .grid.cols-3 {
+  gap: 18px;
+}
+
+.main:has(input[placeholder="Search approvals"]) > .panel:last-of-type .card {
+  min-height: 148px;
+  padding: 18px;
+  align-content: start;
+  gap: 12px;
+}
+
+/* Marketing: keep campaigns/workspace primary and legacy records visually secondary. */
+.main:has(select[aria-label="Filter by platform"]) .legacy-section-head {
+  margin: 32px 0 20px;
+  padding-top: 26px;
+  border-top: 1px solid var(--v3-line);
+}
+
+.main:has(select[aria-label="Filter by platform"]) > .grid.cols-3:first-of-type {
+  margin-bottom: 28px !important;
+}
+
+.main:has(select[aria-label="Filter by platform"]) > .toolbar {
+  gap: 16px;
+  margin: 4px 0 24px;
+  padding: 8px 0;
+}
+
+.main:has(select[aria-label="Filter by platform"]) > .toolbar .tabs {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.main:has(select[aria-label="Filter by platform"]) > .toolbar > .select {
+  width: min(230px, 100%);
+  flex: 0 1 230px;
+}
+
+.main:has(select[aria-label="Filter by platform"]) > .grid > .panel {
+  padding: 24px;
+  margin-bottom: 8px;
+}
+
+.main:has(select[aria-label="Filter by platform"]) > .grid > .panel > .card-line:first-child {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--v3-line);
+}
+
+.main:has(select[aria-label="Filter by platform"]) > .grid > .panel > .grid.cols-3 {
+  gap: 18px;
+  margin-top: 18px !important;
+}
+
+.main:has(select[aria-label="Filter by platform"]) > .grid > .panel .card {
+  min-height: 150px;
+  padding: 18px;
+  gap: 12px;
+  align-content: start;
+}
+
+.main:has(select[aria-label="Filter by platform"]) > .grid > .panel .card-important {
+  border-left: 4px solid #a96e1e;
+  background: linear-gradient(90deg, #fff9ef 0, #fff 38%);
+}
+
+.main:has(section[aria-label="Create marketing content"]) > section[aria-label="Create marketing content"] {
+  padding: 26px;
+  margin-bottom: 28px !important;
+  scroll-margin-top: 28px !important;
+}
+
+.main:has(section[aria-label="Create marketing content"]) > section[aria-label="Create marketing content"] .form {
+  margin-top: 18px !important;
+  gap: 18px;
+}
+
+.main:has(section[aria-label="Create marketing content"]) > section[aria-label="Create marketing content"] .form-grid {
+  gap: 18px;
+}
+
+/* Notifications: personal inbox should scan like a timeline, not a dashboard grid. */
+.main:has(.load-more button:nth-last-child(1)) > .panel:first-of-type:has(.card-line .muted) {
+  padding: 20px 22px;
+}
+
+.main:has(.card .btn[href]) > .grid,
+.main:has(.card button.btn.small) > .grid {
+  gap: 12px;
+}
+
+.main:has(.card .btn[href]) > .grid > .card,
+.main:has(.card button.btn.small) > .grid > .card {
+  padding: 18px 20px;
+  min-height: 132px;
+  gap: 10px;
+}
+
+.main:has(.card .btn[href]) > .grid > .card-important {
+  border-left: 4px solid var(--v3-green);
+  background: linear-gradient(90deg, rgba(232, 244, 235, .75) 0, #fff 34%);
+}
+
+/* History: make filters a compact archive toolbar and month panels easy to scan. */
+.main:has(input[aria-label="Search operational history"]) > .panel:first-of-type {
+  padding: 22px 24px;
+  margin-bottom: 26px !important;
+}
+
+.main:has(input[aria-label="Search operational history"]) > .panel:first-of-type .toolbar {
+  gap: 12px;
+}
+
+.main:has(input[aria-label="Search operational history"]) > .panel:first-of-type .input {
+  min-width: min(420px, 100%);
+  flex: 1 1 420px;
+}
+
+.main:has(input[aria-label="Search operational history"]) > .panel:first-of-type .select {
+  flex: 0 1 220px;
+}
+
+.main:has(input[aria-label="Search operational history"]) > section.panel:not(:first-of-type) {
+  padding: 24px;
+  margin-bottom: 22px !important;
+}
+
+.main:has(input[aria-label="Search operational history"]) > section.panel:not(:first-of-type) > .topbar {
+  padding-bottom: 14px;
+  margin-bottom: 18px !important;
+  border-bottom: 1px solid var(--v3-line);
+}
+
+.main:has(input[aria-label="Search operational history"]) .grid.cols-2 {
+  gap: 16px;
+  margin-top: 0 !important;
+}
+
+.main:has(input[aria-label="Search operational history"]) .grid.cols-2 > .card {
+  min-height: 152px;
+  padding: 18px;
+  align-content: start;
+  gap: 11px;
+}
+
+@media (max-width: 720px) {
+  .main:has(input[placeholder="Search decisions"]) > .panel:first-of-type,
+  .main:has(input[placeholder="Search approvals"]) > .panel:first-of-type,
+  .main:has(select[aria-label="Filter by platform"]) > .grid > .panel,
+  .main:has(input[aria-label="Search operational history"]) > .panel:first-of-type,
+  .main:has(input[aria-label="Search operational history"]) > section.panel:not(:first-of-type) {
+    padding: 18px;
+  }
+
+  .main:has(select[aria-label="Filter by platform"]) > .toolbar {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  .main:has(select[aria-label="Filter by platform"]) > .toolbar > .select {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .main:has(input[aria-label="Search operational history"]) > .panel:first-of-type .input,
+  .main:has(input[aria-label="Search operational history"]) > .panel:first-of-type .select {
+    min-width: 0;
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .main:has(input[placeholder="Search approvals"]) > .panel:last-of-type .grid.cols-3,
+  .main:has(select[aria-label="Filter by platform"]) > .grid > .panel > .grid.cols-3,
+  .main:has(input[aria-label="Search operational history"]) .grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
