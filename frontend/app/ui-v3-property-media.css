@@ -1,10 +1,10 @@
-/* Operations UI v3 — Pass 6: owner-managed property media. */
+/* Operations UI v3 — owner-managed property media. */
 
 .login-screen {
   position: relative;
   isolation: isolate;
   background-image:
-    linear-gradient(135deg, rgba(18, 50, 39, .88), rgba(18, 50, 39, .58)),
+    linear-gradient(135deg, rgba(18, 50, 39, .84), rgba(18, 50, 39, .42)),
     var(--property-login-background, none);
   background-size: cover;
   background-position: center;
@@ -18,34 +18,51 @@
   background: radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 40%);
 }
 
-/* Dashboard hero uses owner-managed imagery only as a restrained backdrop. */
+/* The reference design uses the resort itself as the visual anchor of Home.
+   Keep command text readable on the left while allowing the owner-selected
+   dashboard image to remain clearly visible on the right. */
 .main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type {
   position: relative;
   overflow: hidden;
+  min-height: 190px;
+  display: flex;
+  align-items: center;
   background-image:
-    linear-gradient(90deg, rgba(255,255,255,.96), rgba(255,255,255,.84)),
+    linear-gradient(90deg, rgba(255,255,255,.98) 0%, rgba(255,255,255,.94) 42%, rgba(255,255,255,.64) 67%, rgba(255,255,255,.18) 100%),
     var(--property-dashboard-hero, none);
   background-size: cover;
   background-position: center;
 }
 
-/* Property cover gives the shell a subtle branded anchor without reducing nav contrast. */
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type > .topbar {
+  width: 100%;
+}
+
+.main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type .topbar > div:first-child {
+  max-width: 660px;
+}
+
+/* Property cover remains a restrained shell accent; navigation contrast wins. */
 .sidebar .brand {
   position: relative;
   overflow: hidden;
   background-image:
-    linear-gradient(90deg, rgba(255,255,255,.94), rgba(255,255,255,.86)),
+    linear-gradient(90deg, rgba(255,255,255,.90), rgba(255,255,255,.74)),
     var(--property-cover, none);
   background-size: cover;
   background-position: center;
+  border-radius: 14px;
+  padding: 8px;
+  margin-left: -3px;
+  margin-right: -3px;
 }
 
-/* Room placeholder is intentionally low-opacity: operational text remains primary. */
+/* Room placeholder is intentionally subtle: operational text remains primary. */
 .main:has(input[placeholder="Search room or area"]) > .grid.cols-3 > .card {
   position: relative;
   overflow: hidden;
   background-image:
-    linear-gradient(rgba(255,255,255,.94), rgba(255,255,255,.94)),
+    linear-gradient(rgba(255,255,255,.84), rgba(255,255,255,.84)),
     var(--property-room-placeholder, none);
   background-size: cover;
   background-position: center;
@@ -86,7 +103,22 @@
   font-weight: 700;
 }
 
+@media (max-width: 1100px) {
+  .main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type {
+    background-image:
+      linear-gradient(90deg, rgba(255,255,255,.96), rgba(255,255,255,.72)),
+      var(--property-dashboard-hero, none);
+  }
+}
+
 @media (max-width: 760px) {
+  .main:has(a[href="/tasks?create=1"]) > section.panel:first-of-type {
+    min-height: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.88), rgba(255,255,255,.88)),
+      var(--property-dashboard-hero, none);
+  }
+
   .property-media-grid.grid.cols-2 { grid-template-columns: 1fr; }
   .property-media-card { padding: 16px; }
   .property-media-preview { aspect-ratio: 16 / 9; }

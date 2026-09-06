@@ -66,6 +66,6 @@ for (const viewport of [
     await expect(page.getByText('Default room placeholder', { exact: true })).toBeVisible();
     await expect(page.getByText('Replace image', { exact: true })).toBeVisible();
 
-    await page.screenshot({ path: `test-results/ui-audit/site-owner-${viewport.name}-admin--appearance.png`, fullPage: true });
+    await page.screenshot({ path: `test-results/ui-audit/property-media-owner-${viewport.name}.png`, fullPage: true });
   });
 }
