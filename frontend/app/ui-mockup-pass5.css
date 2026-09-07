@@ -90,16 +90,16 @@
 /* Projects / Requests: reference is a dense row list, not a horizontal card wall. */
 .main:has([data-testid="create-project"]) > .grid.cols-3:first-of-type,
 .main:has([data-testid="create-request"]) > .grid.cols-3:first-of-type { margin-bottom: 5px !important; }
-.main:has([data-testid="create-project"]) > .tabs,
-.main:has([data-testid="create-request"]) > .tabs { margin-top: 0 !important; margin-bottom: 5px !important; }
-.main:has([data-testid="create-project"]) > .tabs + .grid.cols-3,
-.main:has([data-testid="create-request"]) > .tabs + .grid.cols-3 {
+.main:has([data-testid="create-project"]) > .tabs-shell,
+.main:has([data-testid="create-request"]) > .tabs-shell { margin-top: 0 !important; margin-bottom: 5px !important; }
+.main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3,
+.main:has([data-testid="create-request"]) > .tabs-shell + .grid.cols-3 {
   grid-template-columns: 1fr !important;
   gap: 4px !important;
   max-width: 860px;
 }
-.main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card,
-.main:has([data-testid="create-request"]) > .tabs + .grid.cols-3 .card {
+.main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card,
+.main:has([data-testid="create-request"]) > .tabs-shell + .grid.cols-3 .card {
   min-height: 44px !important;
   padding: 6px 8px !important;
   border-radius: 6px !important;
@@ -109,20 +109,20 @@
   row-gap: 3px;
   text-align: left;
 }
-.main:has([data-testid="create-request"]) > .tabs + .grid.cols-3 .card {
+.main:has([data-testid="create-request"]) > .tabs-shell + .grid.cols-3 .card {
   grid-template-columns: minmax(180px, 1.2fr) auto minmax(220px, 1.5fr);
 }
-.main:has([data-testid="create-request"]) > .tabs + .grid.cols-3 .card .card-title { grid-column: 1; }
-.main:has([data-testid="create-request"]) > .tabs + .grid.cols-3 .card .card-line { grid-column: 2; white-space: nowrap; }
-.main:has([data-testid="create-request"]) > .tabs + .grid.cols-3 .card .muted { grid-column: 3; margin: 0; }
-.main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card {
+.main:has([data-testid="create-request"]) > .tabs-shell + .grid.cols-3 .card .card-title { grid-column: 1; }
+.main:has([data-testid="create-request"]) > .tabs-shell + .grid.cols-3 .card .card-line { grid-column: 2; white-space: nowrap; }
+.main:has([data-testid="create-request"]) > .tabs-shell + .grid.cols-3 .card .muted { grid-column: 3; margin: 0; }
+.main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card {
   grid-template-columns: minmax(190px, 1.2fr) auto minmax(130px, .8fr) minmax(130px, .8fr);
 }
-.main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card .card-title { grid-column: 1; grid-row: 1; }
-.main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card .card-line { grid-column: 2; grid-row: 1; white-space: nowrap; }
-.main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card .muted:nth-of-type(1) { grid-column: 3; grid-row: 1; }
-.main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card .muted:nth-of-type(2) { grid-column: 4; grid-row: 1; }
-.main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card > span[aria-label] { grid-column: 1 / -1; grid-row: 2; height: 4px !important; }
+.main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card .card-title { grid-column: 1; grid-row: 1; }
+.main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card .card-line { grid-column: 2; grid-row: 1; white-space: nowrap; }
+.main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card .muted:nth-of-type(1) { grid-column: 3; grid-row: 1; }
+.main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card .muted:nth-of-type(2) { grid-column: 4; grid-row: 1; }
+.main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card > span[aria-label] { grid-column: 1 / -1; grid-row: 2; height: 4px !important; }
 
 /* Guest matters / Maintenance / Shift: summary metrics become a micro strip. */
 .main:has([data-testid="create-guest"]) > .grid.cols-3:first-of-type,
@@ -131,9 +131,9 @@
   grid-template-columns: repeat(3, 112px) !important;
   margin-bottom: 5px !important;
 }
-.main:has([data-testid="create-guest"]) > .tabs,
-.main:has([data-testid="create-fix"]) > .tabs,
-.main:has([data-testid="create-shift"]) > .tabs { margin-bottom: 5px !important; }
+.main:has([data-testid="create-guest"]) > .tabs-shell,
+.main:has([data-testid="create-fix"]) > .tabs-shell,
+.main:has([data-testid="create-shift"]) > .tabs-shell { margin-bottom: 5px !important; }
 
 /* Review / approvals: search and status filters stay compact. */
 .main:has(input[placeholder="Search decisions"]) > .panel:first-of-type,
@@ -157,11 +157,11 @@
 @media (max-width: 980px) {
   .main > .topbar:first-child { min-height: 36px; margin-bottom: 6px; }
   .main > .topbar:first-child h1 { font-size: 21px; }
-  .main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card,
-  .main:has([data-testid="create-request"]) > .tabs + .grid.cols-3 .card { grid-template-columns: 1fr auto; }
-  .main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card .muted,
-  .main:has([data-testid="create-request"]) > .tabs + .grid.cols-3 .card .muted { grid-column: 1 / -1 !important; grid-row: auto !important; }
-  .main:has([data-testid="create-project"]) > .tabs + .grid.cols-3 .card > span[aria-label] { grid-column: 1 / -1; }
+  .main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card,
+  .main:has([data-testid="create-request"]) > .tabs-shell + .grid.cols-3 .card { grid-template-columns: 1fr auto; }
+  .main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card .muted,
+  .main:has([data-testid="create-request"]) > .tabs-shell + .grid.cols-3 .card .muted { grid-column: 1 / -1 !important; grid-row: auto !important; }
+  .main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3 .card > span[aria-label] { grid-column: 1 / -1; }
 }
 
 @media (max-width: 620px) {
@@ -177,6 +177,6 @@
     padding: 5px !important;
   }
   .main:has([data-testid="tasks-board"]) > .toolbar { width: 100%; }
-  .main:has([data-testid="create-project"]) > .tabs + .grid.cols-3,
-  .main:has([data-testid="create-request"]) > .tabs + .grid.cols-3 { max-width: none; }
+  .main:has([data-testid="create-project"]) > .tabs-shell + .grid.cols-3,
+  .main:has([data-testid="create-request"]) > .tabs-shell + .grid.cols-3 { max-width: none; }
 }
