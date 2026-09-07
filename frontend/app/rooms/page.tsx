@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API_BASE, api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
@@ -15,7 +15,7 @@ export default function RoomsPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function loadMedia(rows: Entity[]) {
+  const loadMedia = useCallback(async (rows: Entity[]) => {
     const results = await Promise.all(rows.map(async room => {
       try {
         const response = await fetch(`${API_BASE}/property-media/rooms/${room.id}`, { credentials: 'same-origin', cache: 'no-store' });
@@ -26,9 +26,9 @@ export default function RoomsPage() {
       }
     }));
     setMedia(existing => ({ ...existing, ...Object.fromEntries(results) }));
-  }
+  }, []);
 
-  async function load(cursor?: string | null) {
+  const load = useCallback(async (cursor?: string | null) => {
     setLoading(true);
     setError('');
     try {
@@ -41,9 +41,9 @@ export default function RoomsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [loadMedia]);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const kinds = useMemo(() => ['All', ...Array.from(new Set(rooms.map(room => String(room.kind || 'Room'))))], [rooms]);
   const visible = useMemo(() => rooms.filter(room => {
