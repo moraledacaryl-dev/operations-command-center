@@ -37,7 +37,7 @@ def user(db, role: str):
 
 
 def room(db, name="Room 101"):
-    row = models.RoomArea(name=name, kind="Room", status="Active")
+    row = models.RoomArea(name=name, kind="room", status="active")
     db.add(row)
     db.commit()
     db.refresh(row)
