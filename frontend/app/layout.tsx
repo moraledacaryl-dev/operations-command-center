@@ -17,6 +17,7 @@ import './ui-mockup-pass3.css';
 import './ui-mockup-pass4.css';
 import './ui-mockup-pass5.css';
 import './ui-mockup-pass6.css';
+import './ui-mockup-pass7.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { PropertyMediaSync } from '@/components/PropertyMediaSync';
