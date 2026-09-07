@@ -36,6 +36,14 @@ def user(db, role: str):
     return row
 
 
+def room(db, name="Room 101"):
+    row = models.RoomArea(name=name, kind="room", status="active")
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
 def image_upload(name="hero.png"):
     return UploadFile(filename=name, file=io.BytesIO(PNG_1X1), headers=Headers({"content-type": "image/png"}))
 
@@ -106,3 +114,53 @@ def test_non_image_payload_is_rejected_and_cleaned_up(db, tmp_path, monkeypatch)
         property_media.replace_property_media("login_background", upload, owner, db)
     assert exc.value.status_code == 400
     assert list(tmp_path.iterdir()) == []
+
+
+def test_room_media_is_owner_managed_and_public_metadata_stays_minimal(db, tmp_path, monkeypatch):
+    monkeypatch.setattr(property_media, "UPLOAD_DIR", tmp_path)
+    owner = user(db, "owner")
+    admin = user(db, "admin")
+    space = room(db)
+
+    response = Response()
+    empty = property_media.room_media_metadata(space.id, response, db)
+    assert empty == {"room_area_id": space.id, "configured": False, "content_url": None, "updated_at": None}
+    assert response.headers["cache-control"] == "no-store"
+
+    with pytest.raises(HTTPException) as exc:
+        property_media.replace_room_media(space.id, image_upload("admin-room.png"), admin, db)
+    assert exc.value.status_code == 403
+
+    uploaded = property_media.replace_room_media(space.id, image_upload("private-original-name.png"), owner, db)
+    assert uploaded["configured"] is True
+    assert uploaded["filename"] == "private-original-name.png"
+    assert uploaded["content_url"] == f"/api/property-media/rooms/{space.id}/content"
+    assert len(list(tmp_path.iterdir())) == 1
+
+    public = property_media.room_media_metadata(space.id, Response(), db)
+    assert public["configured"] is True
+    assert "filename" not in public
+    assert "mime_type" not in public
+
+    content = property_media.room_media_content(space.id, db)
+    assert content.headers["cache-control"] == "no-cache"
+    disposition = content.headers.get("content-disposition", "")
+    assert "private-original-name.png" not in disposition
+    assert f"hidden-oasis-room-{space.id}.png" in disposition
+
+    replaced = property_media.replace_room_media(space.id, image_upload("replacement.png"), owner, db)
+    assert replaced["filename"] == "replacement.png"
+    assert len(list(tmp_path.iterdir())) == 1
+
+    property_media.reset_room_media(space.id, owner, db)
+    assert property_media.room_media_metadata(space.id, Response(), db)["configured"] is False
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_room_media_rejects_unknown_room(db, tmp_path, monkeypatch):
+    monkeypatch.setattr(property_media, "UPLOAD_DIR", tmp_path)
+    owner = user(db, "owner")
+    with pytest.raises(HTTPException) as exc:
+        property_media.replace_room_media(9999, image_upload("room.png"), owner, db)
+    assert exc.value.status_code == 404
+    assert not list(tmp_path.iterdir())
