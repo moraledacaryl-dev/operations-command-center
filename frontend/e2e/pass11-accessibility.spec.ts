@@ -1,79 +1,79 @@
+import { test, expect, Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-
-const departments = [
-  { id: 1, name: 'Front Office', is_primary: true },
-  { id: 2, name: 'Housekeeping', is_primary: false },
-];
-
-const owner = {
-  id: 1,
-  name: 'Owner',
-  email: 'owner@example.test',
-  role: 'owner',
-  primary_department_id: 1,
-  departments,
-  capabilities: {
-    view_all_operations: true,
-    manage_department: true,
-    make_decisions: true,
-    manage_accounts: true,
-    manage_system: true,
-    view_system_health: true,
-    manage_approvals: true,
-    view_sensitive_user_metadata: true,
-    view_integration_summary: true,
-  },
-};
 
 const routes = [
-  '/', '/account', '/admin/approve', '/admin/health', '/admin/users', '/approvals', '/approve',
-  '/departments', '/fixes', '/guests', '/history', '/my-work', '/posts', '/posts/editor', '/projects', '/requests',
-  '/review', '/rooms', '/rooms/1', '/shift', '/tasks', '/notifications', '/does-not-exist',
+  '/',
+  '/account',
+  '/admin/approve',
+  '/admin/health',
+  '/admin/users',
+  '/approvals',
+  '/approve',
+  '/departments',
+  '/fixes',
+  '/guests',
+  '/history',
+  '/my-work',
+  '/posts',
+  '/posts/editor',
+  '/projects',
+  '/requests',
+  '/review',
+  '/rooms',
+  '/rooms/1',
+  '/shift',
+  '/tasks',
+  '/notifications',
+  '/does-not-exist',
 ];
 
 const viewports = [
-  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'desktop', width: 1440, height: 1000 },
   { name: 'mobile-390', width: 390, height: 844 },
   { name: 'mobile-320', width: 320, height: 720 },
 ];
 
 async function seedAuthenticatedShell(page: Page) {
-  await page.addInitScript(({ session, dept }) => {
-    localStorage.setItem('cc_user', JSON.stringify(session));
-    localStorage.setItem('cc_department_id', String(dept));
-  }, { session: owner, dept: 1 });
-
+  await page.addInitScript(() => {
+    window.localStorage.setItem('cc_user', JSON.stringify({ id: 1, name: 'Owner', email: 'owner@example.com', role: 'owner' }));
+  });
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
-    const path = url.pathname;
-    let body: unknown = [];
-
-    if (path.endsWith('/api/auth/me')) body = owner;
-    else if (path.endsWith('/api/dashboard')) body = { counts: {}, approvals: [], previous_shift: [] };
-    else if (path.endsWith('/api/my-work')) body = { groups: { overdue: [], today: [], waiting: [], upcoming: [] } };
-    else if (path.endsWith('/api/integrations/overview')) body = {};
-    else if (path.includes('/api/departments/1/workspace')) body = {
-      department: departments[0],
-      tasks: [], talk: [], shift: [], requests: [], projects: [], routines: [], docs: [], people: [], history: [],
-    };
-    else if (path.match(/\/api\/rooms\/\d+$/)) body = { id: 1, name: 'Room 1', kind: 'Room', status: 'Active' };
-    else if (path.endsWith('/api/meta')) body = { departments };
-    else if (path.endsWith('/api/users')) body = [owner];
-    else if (path.endsWith('/api/users/page')) body = { items: [owner], next_cursor: null, has_more: false };
-    else if (path.endsWith('/api/history/search/all')) body = { items: [], next_cursor: null, has_more: false };
-    else if (path.endsWith('/api/notifications')) body = { items: [], next_cursor: null, has_more: false, unread_count: 0 };
-    else if (path.endsWith('/api/rooms') && url.searchParams.get('paginated') === 'true') body = { items: [], next_cursor: null, has_more: false };
-
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+    if (url.pathname === '/api/auth/me') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 1, name: 'Owner', email: 'owner@example.com', role: 'owner', can_view_all: true, departments: [] }) });
+    }
+    if (url.pathname === '/api/meta') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ departments: [], capabilities: [] }) });
+    }
+    if (url.pathname === '/api/property-media') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+    }
+    if (url.pathname.startsWith('/api/property-media/rooms/')) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ configured: false, content_url: null }) });
+    }
+    if (url.pathname === '/api/rooms/1/memory') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ room: { id: 1, name: 'Room 101', kind: 'room', status: 'active' }, guests: [], fixes: [] }) });
+    }
+    if (url.pathname === '/api/notifications') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], next_cursor: null, has_more: false, unread_count: 0 }) });
+    }
+    if (url.pathname.includes('/page?')) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], next_cursor: null, has_more: false }) });
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
   });
 }
 
 async function expectNoBlockingAxeViolations(page: Page) {
-  // Next metadata can settle just after the body becomes visible during a fresh
-  // server-rendered navigation. Keep the WCAG document-title requirement strict
-  // while waiting for the document head to reach its final non-empty state.
-  await expect(page).toHaveTitle(/\S+/, { timeout: 5000 });
+  // Next metadata can briefly transition while a fresh server-rendered route is
+  // hydrating. Keep document-title fully enforced, but require the title to be
+  // non-empty and stable across two observations before axe reads the DOM.
+  await expect.poll(async () => {
+    const first = await page.title();
+    await page.waitForTimeout(150);
+    const second = await page.title();
+    return first.trim() !== '' && first === second;
+  }, { timeout: 5000 }).toBe(true);
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
