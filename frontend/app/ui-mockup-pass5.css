@@ -1,0 +1,162 @@
+/* Mockup fidelity Pass 5 — composition parity.
+   Screenshot-driven: reduce top-heavy workspace chrome so operational surfaces
+   begin where the locked reference begins. Presentation only. */
+
+/* Shared workspace headers: smaller title block, tighter action alignment. */
+.main > .topbar:first-child {
+  min-height: 42px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.main > .topbar:first-child h1 {
+  font-size: clamp(24px, 2vw, 28px);
+  line-height: 1.05;
+  margin-top: 1px;
+}
+.main > .topbar:first-child .eyebrow {
+  font-size: 7.5px;
+  letter-spacing: .105em;
+}
+.main > .topbar:first-child > .btn,
+.main > .topbar:first-child > button.btn {
+  min-height: 29px;
+  padding: 5px 10px;
+}
+
+/* Metric strips should read as compact context, not dashboard cards. */
+.main:not(:has(a[href="/tasks?create=1"])) > .grid.cols-3:first-of-type {
+  grid-template-columns: repeat(3, 108px) !important;
+  gap: 6px !important;
+  margin-bottom: 8px !important;
+}
+.main:not(:has(a[href="/tasks?create=1"])) > .grid.cols-3:first-of-type > .panel {
+  min-height: 48px !important;
+  padding: 6px 8px !important;
+  border-radius: 7px !important;
+}
+.main:not(:has(a[href="/tasks?create=1"])) > .grid.cols-3:first-of-type > .panel .eyebrow {
+  font-size: 7px;
+  margin-bottom: 1px;
+}
+.main:not(:has(a[href="/tasks?create=1"])) > .grid.cols-3:first-of-type > .panel h2 {
+  font-size: 17px !important;
+  line-height: 1;
+  margin: 2px 0 0;
+}
+
+/* Tasks: title → micro metrics → search → board, with almost no dead chrome. */
+.main:has([data-testid="tasks-board"]) > .topbar:first-child { margin-bottom: 7px; }
+.main:has([data-testid="tasks-board"]) > .grid.cols-3:first-of-type {
+  grid-template-columns: repeat(3, 102px) !important;
+  margin-bottom: 7px !important;
+}
+.main:has([data-testid="tasks-board"]) > .toolbar {
+  width: min(320px, 100%);
+  margin: 0 0 7px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.main:has([data-testid="tasks-board"]) > .toolbar .input {
+  min-height: 28px;
+  max-width: 320px;
+  padding: 5px 8px;
+}
+[data-testid="tasks-board"] {
+  gap: 7px !important;
+  align-items: start;
+}
+[data-testid="tasks-board"] > .panel {
+  padding: 6px !important;
+  border-radius: 8px !important;
+}
+[data-testid="tasks-board"] > .panel > .card-line:first-child {
+  min-height: 22px;
+  padding-bottom: 4px;
+}
+[data-testid="tasks-board"] > .panel > .card-line:first-child h2 {
+  font-size: 12px;
+}
+[data-testid="tasks-board"] > .panel > .grid {
+  margin-top: 5px !important;
+  gap: 5px !important;
+}
+[data-testid="tasks-board"] .card {
+  min-height: 58px !important;
+  padding: 7px !important;
+}
+[data-testid="tasks-board"] .card strong { font-size: 10.5px; line-height: 1.22; }
+[data-testid="tasks-board"] .card .muted { font-size: 8.5px; }
+
+/* Projects / Requests: keep real metrics but let tabs + rows dominate. */
+.main:has([data-testid="create-project"]) > .grid.cols-3:first-of-type,
+.main:has([data-testid="create-request"]) > .grid.cols-3:first-of-type {
+  margin-bottom: 6px !important;
+}
+.main:has([data-testid="create-project"]) > .tabs,
+.main:has([data-testid="create-request"]) > .tabs {
+  margin-top: 0 !important;
+  margin-bottom: 7px !important;
+}
+.main:has([data-testid="create-project"]) > .tabs + .grid .card,
+.main:has([data-testid="create-request"]) > .tabs + .grid .card {
+  min-height: 48px !important;
+  padding: 6px 8px !important;
+}
+
+/* Guest matters / Maintenance / Shift: summary metrics become a micro strip. */
+.main:has([data-testid="create-guest"]) > .grid.cols-3:first-of-type,
+.main:has([data-testid="create-fix"]) > .grid.cols-3:first-of-type,
+.main:has([data-testid="create-shift"]) > .grid.cols-3:first-of-type {
+  grid-template-columns: repeat(3, 104px) !important;
+  margin-bottom: 6px !important;
+}
+.main:has([data-testid="create-guest"]) > .tabs,
+.main:has([data-testid="create-fix"]) > .tabs,
+.main:has([data-testid="create-shift"]) > .tabs {
+  margin-bottom: 6px !important;
+}
+
+/* Review / approvals: search and status filters stay compact. */
+.main:has(input[placeholder="Search decisions"]) > .panel:first-of-type,
+.main:has(input[placeholder="Search approvals"]) > .panel:first-of-type {
+  padding: 7px 8px !important;
+  margin-bottom: 7px !important;
+}
+.main:has(input[placeholder="Search decisions"]) > .panel:first-of-type .toolbar,
+.main:has(input[placeholder="Search approvals"]) > .panel:first-of-type .toolbar {
+  margin: 0 !important;
+}
+.main:has(input[placeholder="Search decisions"]) > .panel:first-of-type .input,
+.main:has(input[placeholder="Search approvals"]) > .panel:first-of-type .input {
+  min-height: 28px;
+}
+
+/* Sidebar property image stays owner-controlled but should not fight the brand. */
+.sidebar .brand {
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,.97), rgba(255,255,255,.91)),
+    var(--property-cover, none) !important;
+  border-radius: 10px;
+}
+
+@media (max-width: 980px) {
+  .main > .topbar:first-child { min-height: 38px; margin-bottom: 7px; }
+  .main > .topbar:first-child h1 { font-size: 22px; }
+}
+
+@media (max-width: 620px) {
+  .main:not(:has(a[href="/tasks?create=1"])) > .grid.cols-3:first-of-type {
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    width: 100%;
+  }
+  .main:not(:has(a[href="/tasks?create=1"])) > .grid.cols-3:first-of-type > .panel {
+    min-height: 49px !important;
+  }
+  .main:has([data-testid="tasks-board"]) > .grid.cols-3:first-of-type {
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    width: 100%;
+  }
+  .main:has([data-testid="tasks-board"]) > .toolbar { width: 100%; }
+}
