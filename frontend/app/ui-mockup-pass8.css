@@ -1,0 +1,84 @@
+/* Mockup fidelity Pass 8 — final visual polish.
+   Presentation-only refinements based on the locked reference and exact CI screenshots.
+   No workflow, API, authorization, schema, or data-contract changes. */
+
+/* Give sparse Kanban states a deliberate board surface without inflating task cards. */
+@media (min-width: 981px) {
+  .main:has([data-testid="tasks-board"]) [data-testid="tasks-board"] > .panel {
+    min-height: 178px;
+    padding: 10px;
+  }
+
+  .main:has([data-testid="tasks-board"]) [data-testid="tasks-board"] > .panel > .grid {
+    align-content: start;
+  }
+
+  .main:has([data-testid="tasks-board"]) [data-testid="tasks-board"] .empty {
+    min-height: 74px;
+    background: rgba(255,255,255,.42);
+    border: 1px dashed var(--v3-line-strong);
+  }
+}
+
+/* Marketing remains content-first: compress the secondary month planner so it reads
+   as a supporting planning surface rather than the dominant page block. */
+@media (min-width: 981px) {
+  .main:has(.marketing-workspace) > .marketing-workspace {
+    margin-top: 11px;
+    padding-top: 9px;
+  }
+
+  .main:has(.marketing-workspace) .calendar-toolbar {
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+
+  .main:has(.marketing-workspace) .social-calendar.month {
+    gap: 5px;
+  }
+
+  .main:has(.marketing-workspace) .social-calendar.month .calendar-day {
+    min-height: 72px;
+    padding: 6px 7px;
+  }
+
+  .main:has(.marketing-workspace) .social-calendar.month .calendar-day > span {
+    font-size: 8.5px;
+    line-height: 1.2;
+  }
+
+  .main:has(.marketing-workspace) .social-calendar.month .calendar-day > button {
+    padding: 5px 6px;
+    margin-top: 4px;
+  }
+
+  .main:has(.marketing-workspace) .social-calendar.month .calendar-day > button b {
+    font-size: 8.5px;
+  }
+
+  .main:has(.marketing-workspace) .social-calendar.month .calendar-day > button small {
+    font-size: 7.5px;
+  }
+}
+
+/* Slightly strengthen hierarchy on dense operational pages without changing geometry. */
+.main > .topbar:first-child h1 {
+  line-height: 1.05;
+}
+
+.main .panel > .eyebrow + h2,
+.main .panel > div > .eyebrow + h2 {
+  margin-top: 2px;
+}
+
+/* Keep compact controls optically aligned with the slightly larger sidebar typography. */
+.sidebar .account-link,
+.sidebar .nav-badge {
+  font-weight: 700;
+}
+
+@media (max-width: 620px) {
+  .main:has(.marketing-workspace) > .marketing-workspace {
+    padding-top: 8px;
+  }
+}
