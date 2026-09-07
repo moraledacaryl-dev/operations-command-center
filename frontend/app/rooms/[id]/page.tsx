@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { API_BASE, api, Entity } from '@/lib/api';
 import { getStoredUser } from '@/lib/session';
@@ -25,7 +25,7 @@ export default function RoomMemoryPage() {
   const isOwner = String(user?.role || '').toLowerCase() === 'owner';
   const roomId = Number(params.id);
 
-  async function loadMedia() {
+  const loadMedia = useCallback(async () => {
     if (!roomId) return;
     try {
       const response = await fetch(`${API_BASE}/property-media/rooms/${roomId}`, { credentials: 'same-origin', cache: 'no-store' });
@@ -34,13 +34,13 @@ export default function RoomMemoryPage() {
     } catch {
       setMedia({ configured: false });
     }
-  }
+  }, [roomId]);
 
   useEffect(() => {
     if (!roomId) return;
     api.roomMemory(roomId).then(setMemory).catch((err: any) => setError(err.message || 'Room memory could not be loaded.'));
     void loadMedia();
-  }, [roomId]);
+  }, [loadMedia, roomId]);
 
   async function uploadRoomPhoto() {
     if (!file || !roomId || busyMedia) return;
