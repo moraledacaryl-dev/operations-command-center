@@ -41,7 +41,7 @@ test('scheduled multi-platform concept appears in calendar and opens its concept
   await facebook.click();
   const drawer = page.getByRole('dialog');
   await expect(drawer.getByRole('heading', { name: 'Poolside weekend' })).toBeVisible();
-  await expect(drawer.getByText('One concept for multiple channels')).toBeVisible();
+  await expect(drawer.getByRole('paragraph').filter({ hasText: 'One concept for multiple channels' })).toBeVisible();
 });
 
 test('new concept uses campaign dropdown and supports multiple platforms', async ({ page }) => {
