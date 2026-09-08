@@ -40,6 +40,13 @@ const samplePost = {
   allowed_actions: ['submit-review'],
 };
 
+const sampleCampaign = {
+  id: 41,
+  department_id: 3,
+  name: 'September Escape',
+  objective: 'Drive direct bookings',
+};
+
 const sampleVersion = {
   id: 501,
   post_id: 101,
@@ -84,9 +91,9 @@ async function seedAuthenticatedMarketing(page: Page) {
     else if (path === '/api/posts/101/versions') body = [sampleVersion];
     else if (path === '/api/posts/101') body = { ...samplePost, comments: [] };
     else if (path === '/api/posts') body = cursorPage([samplePost]);
-    else if (path === '/api/marketing/campaigns') body = cursorPage([]);
-    else if (path === '/api/marketing/concepts') body = cursorPage([]);
-    else if (path === '/api/marketing/calendar') body = cursorPage([]);
+    else if (path === '/api/marketing/campaigns') body = [sampleCampaign];
+    else if (path === '/api/marketing/concepts') body = [];
+    else if (path === '/api/marketing/calendar') body = [];
     else if (url.searchParams.get('paginated') === 'true') body = cursorPage([]);
 
     await route.fulfill({
@@ -103,11 +110,11 @@ async function captureMarketing(page: Page, name: string) {
   const newContent = page.getByRole('button', { name: 'New content' });
   await expect(newContent).toBeVisible();
   await newContent.click();
-  const createSurface = page.getByRole('region', { name: 'Create marketing content' });
-  await expect(createSurface).toBeVisible();
-  await expect(createSurface.getByRole('heading', { name: 'Create content item' })).toBeVisible();
-  const closeForm = page.getByRole('button', { name: 'Close form' });
-  await expect(closeForm).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('heading', { name: 'Create multi-platform concept' })).toBeVisible();
+  const campaignSelect = page.getByRole('combobox', { name: 'Campaign' });
+  await expect(campaignSelect).toHaveValue('41');
+  await expect(page.getByRole('checkbox', { name: 'Facebook' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Instagram' })).toBeChecked();
   await page.screenshot({ path: `test-results/ui-audit/marketing-${name}.png`, fullPage: true });
 }
 
