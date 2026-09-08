@@ -72,6 +72,7 @@ export default function MarketingPage() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [canonicalCreateIntent, setCanonicalCreateIntent] = useState(0);
   const createSurfaceRef = useRef<HTMLElement | null>(null);
   const { hydrated } = useActiveDepartment();
   const [user] = useState(() => getStoredUser());
@@ -82,11 +83,8 @@ export default function MarketingPage() {
   const beginRequest = useLatestRequest();
   const openCreate = useCallback(() => {
     if (!canManage || !departmentId) return;
-    setShowAdd(true);
-    window.setTimeout(() => {
-      createSurfaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      createSurfaceRef.current?.querySelector<HTMLInputElement>('input')?.focus();
-    }, 0);
+    setShowAdd(false);
+    setCanonicalCreateIntent(value => value + 1);
   }, [canManage, departmentId]);
   useCreateIntent(openCreate);
 
@@ -249,8 +247,8 @@ export default function MarketingPage() {
   const allowedActions: string[] = selected?.allowed_actions || [];
 
   return <>
-    <Top eyebrow="Publishing calendar" title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Annotation studio</Link>{canManage && departmentId ? <button className="btn" aria-expanded={showAdd} onClick={() => showAdd ? setShowAdd(false) : openCreate()}>{showAdd ? 'Close form' : 'New content'}</button> : null}</div>} />
-    {departmentId ? <MarketingWorkspace departmentId={departmentId} canManage={canManage} /> : null}
+    <Top eyebrow="Publishing calendar" title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Annotation studio</Link>{canManage && departmentId ? <button className="btn" onClick={openCreate}>New content</button> : null}</div>} />
+    {departmentId ? <MarketingWorkspace departmentId={departmentId} canManage={canManage} createIntentKey={canonicalCreateIntent} /> : null}
     <div className="legacy-section-head"><div><p className="eyebrow">Compatibility workspace</p><h2>Legacy content records</h2></div><p className="muted">Existing posts remain available while campaigns and platform deliverables become the primary planning model.</p></div>
     <div className="grid cols-3" style={{ marginBottom: 16 }}>
       <div className="panel"><div className="eyebrow">Awaiting review</div><h2>{awaitingReview}</h2></div>
@@ -259,7 +257,7 @@ export default function MarketingPage() {
     </div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {canManage && showAdd ? <section ref={createSurfaceRef} className="panel" style={{ marginBottom: 16, scrollMarginTop: 24 }} aria-label="Create marketing content">
-      <div className="card-line" style={{ justifyContent: 'space-between' }}><div><div className="eyebrow">New marketing content</div><h2>Create content item</h2></div><button className="btn small secondary" onClick={() => setShowAdd(false)}>Close</button></div>
+      <div className="card-line" style={{ justifyContent: 'space-between' }}><div><div className="eyebrow">Legacy marketing content</div><h2>Create content item</h2></div><button className="btn small secondary" onClick={() => setShowAdd(false)}>Close</button></div>
       <div className="form" style={{ marginTop: 14 }}>
         <div className="form-grid">
           <label className="label">Title<input className="input" value={data.title} onChange={event => setData({ ...data, title: event.target.value })} /></label>

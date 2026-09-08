@@ -1,0 +1,34 @@
+/* Marketing calendar interaction closure: dates are planning affordances, content remains independently clickable. */
+.calendar-date-button {
+  width: fit-content;
+  min-height: 24px;
+  margin: 0 0 5px;
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-date-button:hover:not(:disabled),
+.calendar-date-button:focus-visible {
+  background: rgba(37, 74, 56, .08);
+  outline: 2px solid rgba(37, 74, 56, .25);
+  outline-offset: 1px;
+}
+
+.calendar-date-button:disabled {
+  cursor: default;
+  opacity: .72;
+}
+
+@media (max-width: 620px) {
+  .calendar-date-button {
+    min-height: 28px;
+    padding: 3px 6px;
+  }
+}
