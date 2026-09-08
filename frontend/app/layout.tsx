@@ -20,6 +20,7 @@ import './ui-mockup-pass6.css';
 import './ui-mockup-pass7.css';
 import './ui-room-media.css';
 import './ui-mockup-pass8.css';
+import './ui-readability.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { PropertyMediaSync } from '@/components/PropertyMediaSync';
