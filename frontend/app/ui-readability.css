@@ -1,0 +1,69 @@
+/* Readability closure: preserve compact mockup density while removing sub-10px operational text. */
+
+:root {
+  --readable-muted: #52665c;
+}
+
+/* Sidebar: retain the 220px shell, but make daily navigation and identity metadata effortless to scan. */
+.nav a {
+  font-size: 12.5px;
+  line-height: 1.3;
+}
+.nav-label,
+.nav-admin summary {
+  font-size: 9.75px;
+  line-height: 1.3;
+  letter-spacing: .075em;
+}
+.user-summary strong { font-size: 12.25px; }
+.user-summary small { font-size: 10.5px; line-height: 1.3; }
+.dept-switch label > span { font-size: 9.5px; line-height: 1.25; }
+.dept-switch .select { font-size: 11.5px; }
+
+/* Eyebrows are structural labels, not decorative microcopy. */
+.eyebrow {
+  font-size: max(9.75px, .61rem);
+  line-height: 1.3;
+  letter-spacing: .075em;
+}
+
+/* Informational secondary text gets a slightly stronger contrast floor. */
+.muted {
+  color: var(--readable-muted);
+}
+.card .muted,
+.panel .muted,
+.list-row .muted,
+.table .muted {
+  font-size: max(11.5px, .72rem);
+  line-height: 1.4;
+}
+
+/* Keep controls compact but avoid tiny input text. */
+.input,
+.select,
+.textarea,
+.btn {
+  font-size: max(12px, .75rem);
+}
+.pill {
+  font-size: max(10px, .625rem);
+  line-height: 1.25;
+}
+
+@media (max-width: 980px) {
+  .nav a { font-size: 12.75px; }
+  .nav-label,
+  .nav-admin summary { font-size: 10px; }
+  .user-summary small { font-size: 10.75px; }
+  .dept-switch label > span { font-size: 9.75px; }
+}
+
+@media (max-width: 620px) {
+  /* Mobile already gains space from the drawer layout; prioritize legibility over desktop density. */
+  .nav a { font-size: 13px; }
+  .card .muted,
+  .panel .muted,
+  .list-row .muted,
+  .table .muted { font-size: 12px; }
+}
