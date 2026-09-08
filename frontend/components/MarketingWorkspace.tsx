@@ -49,7 +49,7 @@ function range(anchor: Date, view: string) {
   return { from, to };
 }
 
-export function MarketingWorkspace({ departmentId, canManage }: { departmentId: number; canManage: boolean }) {
+export function MarketingWorkspace({ departmentId, canManage, createIntentKey = 0 }: { departmentId: number; canManage: boolean; createIntentKey?: number }) {
   const [view, setView] = useState('Month');
   const [anchor, setAnchor] = useState(() => new Date());
   const [campaigns, setCampaigns] = useState<Entity[]>([]);
@@ -67,6 +67,7 @@ export function MarketingWorkspace({ departmentId, canManage }: { departmentId: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const conceptFormRef = useRef<HTMLDivElement | null>(null);
+  const lastCreateIntentRef = useRef(0);
 
   const load = useCallback(async () => {
     const dates = range(anchor, view);
@@ -122,6 +123,18 @@ export function MarketingWorkspace({ departmentId, canManage }: { departmentId: 
       conceptFormRef.current?.querySelector<HTMLInputElement>('input[name="concept-title"]')?.focus();
     }, 0);
   }
+
+  useEffect(() => {
+    if (!createIntentKey || createIntentKey <= lastCreateIntentRef.current || !canManage || !campaigns.length) return;
+    lastCreateIntentRef.current = createIntentKey;
+    setShowCampaign(false);
+    setConcept(value => ({ ...value, campaign_id: value.campaign_id || String(campaigns[0].id) }));
+    setShowConcept(true);
+    window.setTimeout(() => {
+      conceptFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      conceptFormRef.current?.querySelector<HTMLInputElement>('input[name="concept-title"]')?.focus();
+    }, 0);
+  }, [createIntentKey, canManage, campaigns]);
 
   async function createCampaign() {
     if (!campaign.name.trim() || busy) return;
