@@ -50,8 +50,23 @@ test('new concept uses campaign dropdown and supports multiple platforms', async
   await page.getByRole('button', { name: 'New concept' }).click();
   const campaignSelect = page.getByRole('combobox', { name: 'Campaign' });
   await expect(campaignSelect).toBeVisible();
+  await expect(campaignSelect).toHaveValue('41');
   await expect(campaignSelect.getByRole('option', { name: 'September Escape' })).toBeAttached();
   await expect(page.getByRole('checkbox', { name: 'Facebook' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Instagram' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'TikTok' })).not.toBeChecked();
+});
+
+test('calendar date is clickable and prefills canonical concept publishing date', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await seed(page);
+  await page.clock.setFixedTime(new Date('2026-09-08T06:00:00Z'));
+  await page.goto('/posts');
+  const dateButton = page.getByRole('button', { name: 'Plan content on September 12, 2026' });
+  await expect(dateButton).toBeEnabled();
+  await dateButton.click();
+  await expect(page.getByRole('heading', { name: 'Create multi-platform concept' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Campaign' })).toHaveValue('41');
+  await expect(page.getByRole('textbox', { name: 'Concept title' })).toBeFocused();
+  await expect(page.getByLabel('Publishing date')).toHaveValue('2026-09-12');
 });
