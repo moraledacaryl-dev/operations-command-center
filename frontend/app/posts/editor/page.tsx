@@ -14,7 +14,7 @@ type ImageObject = BaseObject & { type: 'image'; x: number; y: number; width: nu
 type ShapeObject = BaseObject & { type: 'rect' | 'ellipse' | 'arrow'; x: number; y: number; width: number; height: number; strokeWidth: number };
 type StrokeObject = BaseObject & { type: 'pen' | 'highlighter'; points: Point[]; strokeWidth: number };
 type AnnotationObject = TextObject | ImageObject | ShapeObject | StrokeObject;
-type Interaction = { id: string; mode: 'move' | 'resize'; startClientX: number; startClientY: number; original: AnnotationObject } | null;
+type Interaction = { id: string; mode: 'move' | 'resize'; startClientX: number; startClientY: number; original: AnnotationObject };
 
 const swatches = ['#ef4444', '#f59e0b', '#22c55e', '#2563eb', '#111827'];
 const toolLabels: Record<Tool, string> = { select: '↖ Select', pen: '✎ Pen', highlighter: '▰ Highlight', eraser: '⌫ Eraser', text: 'T Text', arrow: '→ Arrow', rect: '□ Box', ellipse: '○ Circle', pan: '✥ Pan' };
@@ -50,6 +50,7 @@ export default function MarketingAnnotationStudio() {
   const requestedVersionRef = useRef('');
   const openVersionRef = useRef<(version: Entity, isCanonical: boolean, currentAssetId: string, currentPostId: string) => Promise<void>>(async () => {});
   const fitCanvasRef = useRef<() => void>(() => {});
+  const interactionRef = useRef<Interaction | null>(null);
   const [posts, setPosts] = useState<Entity[]>([]);
   const [postId, setPostId] = useState('');
   const [conceptId, setConceptId] = useState('');
@@ -70,7 +71,6 @@ export default function MarketingAnnotationStudio() {
   const [selectedId, setSelectedId] = useState('');
   const [drawingId, setDrawingId] = useState('');
   const [shapeStart, setShapeStart] = useState<Point | null>(null);
-  const [interaction, setInteraction] = useState<Interaction>(null);
   const [panning, setPanning] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -104,7 +104,7 @@ export default function MarketingAnnotationStudio() {
   }, []);
 
   useEffect(() => {
-    setLoaded(false); setObjects([]); setHistory([]); setFuture([]); setSelectedId(''); setSaved(''); setTextOpen(false); setPan({ x: 0, y: 0 });
+    setLoaded(false); setObjects([]); setHistory([]); setFuture([]); setSelectedId(''); setSaved(''); setTextOpen(false); setPan({ x: 0, y: 0 }); interactionRef.current = null;
     if (canonicalMode) {
       marketingAssetsApi.versions(Number(assetId)).then(rows => {
         setVersions(rows);
@@ -147,7 +147,7 @@ export default function MarketingAnnotationStudio() {
       const width = Math.max(1, Math.round(image.naturalWidth * scale)); const height = Math.max(1, Math.round(image.naturalHeight * scale));
       base.width = annotation.width = width; base.height = annotation.height = height;
       const ctx = base.getContext('2d'); if (!ctx) return; ctx.clearRect(0, 0, width, height); ctx.drawImage(image, 0, 0, width, height);
-      URL.revokeObjectURL(url); setLoaded(true); setSourceName(filename); setObjects([]); setHistory([]); setFuture([]); setSelectedId(''); setSaved(''); setError(''); setTextOpen(false); setPan({ x: 0, y: 0 });
+      URL.revokeObjectURL(url); setLoaded(true); setSourceName(filename); setObjects([]); setHistory([]); setFuture([]); setSelectedId(''); setSaved(''); setError(''); setTextOpen(false); setPan({ x: 0, y: 0 }); interactionRef.current = null;
       requestAnimationFrame(() => fitCanvasRef.current());
     };
     image.onerror = () => { URL.revokeObjectURL(url); setError('This image could not be opened.'); }; image.src = url;
@@ -226,11 +226,12 @@ export default function MarketingAnnotationStudio() {
   function beginEditText(item: TextObject) { setSelectedId(item.id); setTextEditingId(item.id); setTextValue(item.text); setTextPoint({ x: item.x, y: item.y }); setTextSize(item.fontSize); setColor(item.color); setTextOpen(true); }
 
   function beginObjectInteraction(event: ReactPointerEvent<SVGElement>, item: AnnotationObject, mode: 'move' | 'resize') {
-    if (tool !== 'select') return; event.preventDefault(); event.stopPropagation(); checkpoint(); setSelectedId(item.id); setInteraction({ id: item.id, mode, startClientX: event.clientX, startClientY: event.clientY, original: cloneObjects([item])[0] });
+    if (tool !== 'select') return; event.preventDefault(); event.stopPropagation(); checkpoint(); setSelectedId(item.id);
+    interactionRef.current = { id: item.id, mode, startClientX: event.clientX, startClientY: event.clientY, original: cloneObjects([item])[0] };
   }
   useEffect(() => {
-    if (!interaction) return;
     function move(event: PointerEvent) {
+      const interaction = interactionRef.current; if (!interaction) return;
       const canvas = annotationCanvasRef.current; if (!canvas) return; const rect = canvas.getBoundingClientRect(); const sx = canvas.width / Math.max(1, rect.width); const sy = canvas.height / Math.max(1, rect.height);
       const dx = (event.clientX - interaction.startClientX) * sx; const dy = (event.clientY - interaction.startClientY) * sy;
       setObjects(items => items.map(item => {
@@ -245,9 +246,9 @@ export default function MarketingAnnotationStudio() {
         return item;
       }));
     }
-    function up() { setInteraction(null); }
+    function up() { interactionRef.current = null; }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-  }, [interaction]);
+  }, []);
 
   function updateSelected(patch: Partial<AnnotationObject>) { if (!selectedId) return; checkpoint(); setObjects(items => items.map(item => item.id === selectedId ? ({ ...item, ...patch } as AnnotationObject) : item)); }
   function deleteSelected() { if (!selectedId) return; checkpoint(); setObjects(items => items.filter(item => item.id !== selectedId)); setSelectedId(''); }
