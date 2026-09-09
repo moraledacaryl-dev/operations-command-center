@@ -25,6 +25,7 @@ from .routers.integrations_v2 import router as integrations_v2_router
 from .routers.my_work import router as my_work_router
 from .routers.notifications import router as notifications_router
 from .routers.marketing import router as marketing_router
+from .routers.marketing_assets import router as marketing_assets_router
 from .routers.operational_meta import router as operational_meta_router
 from .routers.observability import router as observability_router
 from .routers.privacy import router as privacy_router
@@ -125,6 +126,7 @@ app.include_router(review_router)
 app.include_router(my_work_router)
 app.include_router(notifications_router)
 app.include_router(marketing_router)
+app.include_router(marketing_assets_router)
 app.include_router(privacy_router)
 app.include_router(operational_meta_router)
 app.include_router(observability_router)
