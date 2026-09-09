@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -21,6 +24,15 @@ router = APIRouter(prefix="/api/marketing", tags=["marketing-assets"])
 RELATIONSHIP_TYPE = "creative-asset"
 CONCEPT_TYPE = "content-concepts"
 ASSET_TYPE = "assets"
+STUDIO_ANNOTATION_TYPE = "StudioState"
+STUDIO_STATE_MAX_BYTES = 12 * 1024 * 1024
+
+
+class AnnotationStudioState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    base_version_id: int = Field(gt=0)
+    objects: list[dict] = Field(default_factory=list, max_length=500)
 
 
 def _concept_or_404(db: Session, concept_id: int) -> foundation.ContentConcept:
@@ -53,6 +65,17 @@ def _asset_concept(db: Session, asset_id: int) -> foundation.ContentConcept:
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=404, detail="Marketing creative asset not found") from exc
     return _concept_or_404(db, concept_id)
+
+
+def _asset_version_or_404(db: Session, asset_id: int, version_id: int) -> foundation.AssetVersion:
+    version = (
+        db.query(foundation.AssetVersion)
+        .filter(foundation.AssetVersion.id == version_id, foundation.AssetVersion.asset_id == asset_id)
+        .one_or_none()
+    )
+    if version is None:
+        raise HTTPException(status_code=404, detail="Creative version not found")
+    return version
 
 
 def _version_payload(version: foundation.AssetVersion) -> dict:
@@ -211,6 +234,89 @@ def list_asset_versions(
     return [_version_payload(row) for row in rows]
 
 
+@router.get("/assets/{asset_id}/versions/{version_id}/annotation-state")
+def get_annotation_studio_state(
+    asset_id: int,
+    version_id: int,
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    asset = db.get(foundation.Asset, asset_id)
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Marketing creative asset not found")
+    concept = _asset_concept(db, asset_id)
+    _authorize_concept(db, user, concept, Action.VIEW)
+    version = _asset_version_or_404(db, asset_id, version_id)
+    annotation = (
+        db.query(foundation.Annotation)
+        .filter(
+            foundation.Annotation.asset_version_id == version.id,
+            foundation.Annotation.annotation_type == STUDIO_ANNOTATION_TYPE,
+        )
+        .order_by(foundation.Annotation.id.desc())
+        .first()
+    )
+    if annotation is None:
+        return AnnotationStudioState(base_version_id=version.id, objects=[]).model_dump()
+    try:
+        return AnnotationStudioState.model_validate_json(annotation.drawing_json or "{}").model_dump()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Stored Annotation Studio state is invalid.") from exc
+
+
+@router.put("/assets/{asset_id}/versions/{version_id}/annotation-state")
+def save_annotation_studio_state(
+    asset_id: int,
+    version_id: int,
+    payload: AnnotationStudioState,
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    asset = db.get(foundation.Asset, asset_id)
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Marketing creative asset not found")
+    concept = _asset_concept(db, asset_id)
+    _authorize_concept(db, user, concept, Action.ATTACH)
+    version = _asset_version_or_404(db, asset_id, version_id)
+    _asset_version_or_404(db, asset_id, payload.base_version_id)
+    serialized = json.dumps(payload.model_dump(), ensure_ascii=False, separators=(",", ":"))
+    if len(serialized.encode("utf-8")) > STUDIO_STATE_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="Editable annotation state is too large to save.")
+    annotation = (
+        db.query(foundation.Annotation)
+        .filter(
+            foundation.Annotation.asset_version_id == version.id,
+            foundation.Annotation.annotation_type == STUDIO_ANNOTATION_TYPE,
+        )
+        .order_by(foundation.Annotation.id.desc())
+        .first()
+    )
+    if annotation is None:
+        annotation = foundation.Annotation(
+            asset_version_id=version.id,
+            author_id=user.id,
+            annotation_type=STUDIO_ANNOTATION_TYPE,
+            drawing_json=serialized,
+            body="Annotation Studio editable state",
+            status="Open",
+        )
+        db.add(annotation)
+    else:
+        annotation.author_id = user.id
+        annotation.drawing_json = serialized
+    log_activity(
+        db,
+        "asset-versions",
+        version.id,
+        "annotation-state-saved",
+        "Saved editable Annotation Studio state",
+        actor_id=user.id,
+        metadata={"asset_id": asset_id, "object_count": len(payload.objects), "base_version_id": payload.base_version_id},
+    )
+    db.commit()
+    return payload.model_dump()
+
+
 @router.get("/assets/{asset_id}/versions/{version_id}/download")
 def download_asset_version(
     asset_id: int,
@@ -223,7 +329,5 @@ def download_asset_version(
         raise HTTPException(status_code=404, detail="Marketing creative asset not found")
     concept = _asset_concept(db, asset_id)
     _authorize_concept(db, user, concept, Action.VIEW)
-    version = db.query(foundation.AssetVersion).filter(foundation.AssetVersion.id == version_id, foundation.AssetVersion.asset_id == asset_id).one_or_none()
-    if version is None:
-        raise HTTPException(status_code=404, detail="Creative version not found")
+    version = _asset_version_or_404(db, asset_id, version_id)
     return _download_response(version.storage_key, version.filename, version.mime_type)
