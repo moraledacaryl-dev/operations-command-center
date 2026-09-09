@@ -237,7 +237,7 @@ export default function MarketingAnnotationStudio() {
         if (item.id !== interaction.id) return item; const original = interaction.original;
         if (interaction.mode === 'move') {
           if (original.type === 'pen' || original.type === 'highlighter') return { ...item, points: original.points.map(point => ({ x: point.x + dx, y: point.y + dy })) } as AnnotationObject;
-          return { ...item, x: original.x + dx, y: original.y + dy } as AnnotationObject;
+          const positioned = original as TextObject | ImageObject | ShapeObject; return { ...item, x: positioned.x + dx, y: positioned.y + dy } as AnnotationObject;
         }
         if (original.type === 'text') { const box = textBox(original); const scale = Math.max(.25, (box.width + dx) / Math.max(1, box.width)); return { ...item, fontSize: Math.max(12, Math.min(240, original.fontSize * scale)) } as AnnotationObject; }
         if (original.type === 'image') { const ratio = original.width / Math.max(1, original.height); const width = Math.max(24, original.width + dx); return { ...item, width, height: width / ratio } as AnnotationObject; }
@@ -296,7 +296,7 @@ export default function MarketingAnnotationStudio() {
       if ((event.metaKey || event.ctrlKey) && key === 'd' && selectedId) { event.preventDefault(); duplicateSelected(); return; }
       if ((event.key === 'Delete' || event.key === 'Backspace') && selectedId) { event.preventDefault(); deleteSelected(); return; }
       if (key === 'v') setTool('select'); if (key === 'p') setTool('pen'); if (key === 'h') setTool('highlighter'); if (key === 'e') setTool('eraser'); if (key === 't') setTool('text'); if (key === 'a') setTool('arrow'); if (key === 'r') setTool('rect'); if (key === 'o') setTool('ellipse');
-      if (selectedId && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) { event.preventDefault(); const amount = event.shiftKey ? 10 : 1; checkpoint(); setObjects(items => items.map(item => { if (item.id !== selectedId) return item; const dx = key === 'arrowleft' ? -amount : key === 'arrowright' ? amount : 0; const dy = key === 'arrowup' ? -amount : key === 'arrowdown' ? amount : 0; if (item.type === 'pen' || item.type === 'highlighter') return { ...item, points: item.points.map(point => ({ x: point.x + dx, y: point.y + dy })) }; return { ...item, x: item.x + dx, y: item.y + dy }; })); }
+      if (selectedId && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) { event.preventDefault(); const amount = event.shiftKey ? 10 : 1; checkpoint(); setObjects(items => items.map(item => { if (item.id !== selectedId) return item; const dx = key === 'arrowleft' ? -amount : key === 'arrowright' ? amount : 0; const dy = key === 'arrowup' ? -amount : key === 'arrowdown' ? amount : 0; if (item.type === 'pen' || item.type === 'highlighter') return { ...item, points: item.points.map(point => ({ x: point.x + dx, y: point.y + dy })) }; const positioned = item as TextObject | ImageObject | ShapeObject; return { ...positioned, x: positioned.x + dx, y: positioned.y + dy }; })); }
     }
     window.addEventListener('keydown', onKeyDown); return () => window.removeEventListener('keydown', onKeyDown);
   });
