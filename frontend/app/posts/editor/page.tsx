@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE, api, Entity } from '@/lib/api';
 import { marketingAssetsApi } from '@/lib/marketing-assets-api';
 import styles from './editor.module.css';
@@ -184,13 +184,15 @@ export default function MarketingAnnotationStudio() {
     image.src = url;
   }
 
-  function point(event: ReactPointerEvent<HTMLCanvasElement>) { const rect = event.currentTarget.getBoundingClientRect(); return { x: (event.clientX - rect.left) * (event.currentTarget.width / rect.width), y: (event.clientY - rect.top) * (event.currentTarget.height / rect.height) }; }
+  function point(event: ReactPointerEvent<HTMLCanvasElement> | ReactMouseEvent<HTMLCanvasElement>) { const rect = event.currentTarget.getBoundingClientRect(); return { x: (event.clientX - rect.left) * (event.currentTarget.width / rect.width), y: (event.clientY - rect.top) * (event.currentTarget.height / rect.height) }; }
   function pointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
-    if (!loaded) return;
-    const p = point(event);
-    if (tool === 'text') { setTextPoint(p); setTextValue(''); setTextOpen(true); return; }
-    setTextOpen(false); checkpoint(); setDrawing(true); event.currentTarget.setPointerCapture(event.pointerId);
+    if (!loaded || tool === 'text') return;
+    setTextOpen(false); const p = point(event); checkpoint(); setDrawing(true); event.currentTarget.setPointerCapture(event.pointerId);
     const ctx = event.currentTarget.getContext('2d'); if (ctx) { ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+  }
+  function placeText(event: ReactMouseEvent<HTMLCanvasElement>) {
+    if (!loaded || tool !== 'text') return;
+    setTextPoint(point(event)); setTextValue(''); setTextOpen(true);
   }
   function pointerMove(event: ReactPointerEvent<HTMLCanvasElement>) {
     if (!drawing || !loaded) return;
@@ -234,7 +236,7 @@ export default function MarketingAnnotationStudio() {
       </aside>
       <section className={styles.workspace}>
         <div className={styles.topbar}><div className={styles.status}><span className={styles.dot} />{loaded ? sourceName || 'Creative loaded' : 'No creative loaded'}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.max(.1, value - .15))}>−</button><button className={styles.secondary} disabled={!loaded} onClick={() => fitCanvasRef.current()}>Fit · {Math.round(zoom * 100)}%</button><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.min(4, value + .15))}>+</button></div></div>
-        <div ref={stageWrapRef} className={styles.stageWrap} tabIndex={0} role="region" aria-label="Creative annotation canvas"><div className={styles.canvasFrame} style={{ transform: `scale(${zoom})`, visibility: loaded ? 'visible' : 'hidden', position: loaded ? 'relative' : 'absolute' }}><canvas ref={baseCanvasRef} className={styles.baseCanvas} /><canvas ref={annotationCanvasRef} className={styles.canvas} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} />{textOpen ? <input autoFocus aria-label="Text annotation" className={styles.inlineText} value={textValue} onChange={e => setTextValue(e.target.value)} onPointerDown={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addText(); } if (e.key === 'Escape') { e.preventDefault(); setTextOpen(false); setTextValue(''); } }} onBlur={() => { if (textValue.trim()) addText(); else setTextOpen(false); }} style={{ left: textPoint.x, top: textPoint.y, fontSize: textSize, color }} placeholder="Type…" /> : null}</div>{!loaded ? <div className={styles.empty}><strong>Open a creative to start annotating</strong><span>Select an existing image version first. The studio will automatically fit it to the available workspace.</span></div> : null}</div>
+        <div ref={stageWrapRef} className={styles.stageWrap} tabIndex={0} role="region" aria-label="Creative annotation canvas"><div className={styles.canvasFrame} style={{ transform: `scale(${zoom})`, visibility: loaded ? 'visible' : 'hidden', position: loaded ? 'relative' : 'absolute' }}><canvas ref={baseCanvasRef} className={styles.baseCanvas} /><canvas ref={annotationCanvasRef} className={styles.canvas} onClick={placeText} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} />{textOpen ? <input autoFocus aria-label="Text annotation" className={styles.inlineText} value={textValue} onChange={e => setTextValue(e.target.value)} onPointerDown={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addText(); } if (e.key === 'Escape') { e.preventDefault(); setTextOpen(false); setTextValue(''); } }} onBlur={() => { if (textValue.trim()) addText(); else setTextOpen(false); }} style={{ left: textPoint.x, top: textPoint.y, fontSize: textSize, color }} placeholder="Type…" /> : null}</div>{!loaded ? <div className={styles.empty}><strong>Open a creative to start annotating</strong><span>Select an existing image version first. The studio will automatically fit it to the available workspace.</span></div> : null}</div>
         <div className={styles.footer}><div><div className={styles.footerHint}>The selected creative stays locked underneath. Pen, highlight, text, eraser, and image overlays affect the annotation layer only.</div>{saved ? <div className={styles.saveState}>{saved}</div> : null}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={exportImage}>Export PNG</button><button className={styles.primary} disabled={!loaded || (!canonicalMode && !postId) || busy} onClick={saveVersion}>{busy ? 'Saving…' : 'Save annotated version'}</button></div></div>
       </section>
     </div>
