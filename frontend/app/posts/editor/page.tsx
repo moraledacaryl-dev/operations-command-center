@@ -58,6 +58,7 @@ export default function MarketingAnnotationStudio() {
   const [canonicalConcept, setCanonicalConcept] = useState<Entity | null>(null);
   const [versions, setVersions] = useState<Entity[]>([]);
   const [versionId, setVersionId] = useState('');
+  const [loadedBaseVersionId, setLoadedBaseVersionId] = useState(0);
   const [sourceName, setSourceName] = useState('');
   const [tool, setTool] = useState<Tool>('select');
   const [color, setColor] = useState(swatches[0]);
@@ -104,7 +105,7 @@ export default function MarketingAnnotationStudio() {
   }, []);
 
   useEffect(() => {
-    setLoaded(false); setObjects([]); setHistory([]); setFuture([]); setSelectedId(''); setSaved(''); setTextOpen(false); setPan({ x: 0, y: 0 }); interactionRef.current = null;
+    setLoaded(false); setObjects([]); setHistory([]); setFuture([]); setSelectedId(''); setSaved(''); setTextOpen(false); setPan({ x: 0, y: 0 }); setLoadedBaseVersionId(0); interactionRef.current = null;
     if (canonicalMode) {
       marketingAssetsApi.versions(Number(assetId)).then(rows => {
         setVersions(rows);
@@ -138,7 +139,7 @@ export default function MarketingAnnotationStudio() {
   }, []);
 
   function checkpoint() { setHistory(items => [...items.slice(-24), cloneObjects(objects)]); setFuture([]); setSaved(''); }
-  function loadBlob(blob: Blob, filename: string) {
+  function loadBlob(blob: Blob, filename: string, restoredObjects: AnnotationObject[] = []) {
     const mimeType = imageMime(filename, blob.type); if (!mimeType) { setError('Use a PNG, JPEG, or WebP image.'); return; }
     const sourceBlob = blob.type.toLowerCase() === mimeType ? blob : new Blob([blob], { type: mimeType }); const url = URL.createObjectURL(sourceBlob); const image = new Image();
     image.onload = () => {
@@ -147,7 +148,7 @@ export default function MarketingAnnotationStudio() {
       const width = Math.max(1, Math.round(image.naturalWidth * scale)); const height = Math.max(1, Math.round(image.naturalHeight * scale));
       base.width = annotation.width = width; base.height = annotation.height = height;
       const ctx = base.getContext('2d'); if (!ctx) return; ctx.clearRect(0, 0, width, height); ctx.drawImage(image, 0, 0, width, height);
-      URL.revokeObjectURL(url); setLoaded(true); setSourceName(filename); setObjects([]); setHistory([]); setFuture([]); setSelectedId(''); setSaved(''); setError(''); setTextOpen(false); setPan({ x: 0, y: 0 }); interactionRef.current = null;
+      URL.revokeObjectURL(url); setLoaded(true); setSourceName(filename); setObjects(cloneObjects(restoredObjects)); setHistory([]); setFuture([]); setSelectedId(''); setSaved(restoredObjects.length ? `Restored ${restoredObjects.length} editable annotation${restoredObjects.length === 1 ? '' : 's'} from this version.` : ''); setError(''); setTextOpen(false); setPan({ x: 0, y: 0 }); interactionRef.current = null;
       requestAnimationFrame(() => fitCanvasRef.current());
     };
     image.onerror = () => { URL.revokeObjectURL(url); setError('This image could not be opened.'); }; image.src = url;
@@ -155,9 +156,16 @@ export default function MarketingAnnotationStudio() {
   async function openVersion(version: Entity, isCanonical: boolean, currentAssetId: string, currentPostId: string) {
     if (busy) return; setBusy(true); setError('');
     try {
-      const path = isCanonical ? marketingAssetsApi.downloadUrl(Number(currentAssetId), Number(version.id)) : `${API_BASE}/posts/${currentPostId}/versions/${version.id}/download`;
+      let baseVersionId = Number(version.id); let restoredObjects: AnnotationObject[] = [];
+      if (isCanonical) {
+        const state = await marketingAssetsApi.annotationState(Number(currentAssetId), Number(version.id));
+        baseVersionId = Number(state.base_version_id || version.id);
+        restoredObjects = Array.isArray(state.objects) ? state.objects as unknown as AnnotationObject[] : [];
+      }
+      const path = isCanonical ? marketingAssetsApi.downloadUrl(Number(currentAssetId), baseVersionId) : `${API_BASE}/posts/${currentPostId}/versions/${version.id}/download`;
       const res = await fetch(path, { credentials: 'same-origin', cache: 'no-store' }); if (!res.ok) throw new Error('Creative file could not be downloaded.');
-      loadBlob(await res.blob(), String(version.filename || sourceTitle));
+      setLoadedBaseVersionId(isCanonical ? baseVersionId : 0);
+      loadBlob(await res.blob(), String(version.filename || sourceTitle), restoredObjects);
     } catch (err: any) { setError(err.message || 'Creative file could not be loaded.'); } finally { setBusy(false); }
   }
   openVersionRef.current = openVersion;
@@ -292,9 +300,17 @@ export default function MarketingAnnotationStudio() {
     try {
       const canvas = await compositeCanvas(); if (!canvas) return; const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Canvas export failed.')), 'image/png'));
       const filename = safeFilename(sourceName || sourceTitle); const file = new File([blob], filename, { type: 'image/png' }); let created: Entity;
-      if (canonicalMode) { created = await marketingAssetsApi.addVersion(Number(assetId), file, 'Annotated in Marketing creative studio'); setVersions(await marketingAssetsApi.versions(Number(assetId))); }
+      if (canonicalMode) {
+        created = await marketingAssetsApi.addVersion(Number(assetId), file, 'Annotated in Marketing creative studio');
+        await marketingAssetsApi.saveAnnotationState(Number(assetId), Number(created.id), {
+          schema_version: 1,
+          base_version_id: loadedBaseVersionId || Number(versionId),
+          objects: cloneObjects(objects) as unknown as Record<string, unknown>[],
+        });
+        setVersions(await marketingAssetsApi.versions(Number(assetId)));
+      }
       else { const form = new FormData(); form.append('filename', filename); form.append('file_url', ''); form.append('note', 'Annotated in Marketing creative studio'); form.append('caption_snapshot', String(selectedPost?.caption || '')); form.append('file', file); created = await api.addVersion(Number(postId), form); setVersions(await api.versions(Number(postId))); }
-      setVersionId(String(created.id)); setSaved('Saved as a new creative version. Original preserved.');
+      setVersionId(String(created.id)); setSaved(canonicalMode ? 'Saved as a new creative version with editable review objects. Original preserved.' : 'Saved as a new creative version. Original preserved.');
     } catch (err: any) { setError(err.message || 'Annotated version could not be saved.'); } finally { setBusy(false); }
   }
 
@@ -330,7 +346,7 @@ export default function MarketingAnnotationStudio() {
     {error ? <div className="pill urgent" role="alert">{error}</div> : null}
     <div className={styles.shell}>
       <aside className={styles.rail} aria-label="Annotation controls">
-        <section className={styles.section}><div className={styles.sectionTitle}>Creative source</div>{canonicalMode ? <div className={styles.saveState}>{canonicalConcept?.title || `Content concept #${conceptId}`}</div> : <select aria-label="Marketing post" className={styles.select} value={postId} onChange={e => setPostId(e.target.value)}><option value="">Choose marketing post</option>{posts.map(post => <option key={post.id} value={post.id}>{post.title}</option>)}</select>}<select aria-label="Creative image version" className={styles.select} value={versionId} onChange={e => setVersionId(e.target.value)} disabled={(!canonicalMode && !postId) || !imageVersions.length}><option value="">{!imageVersions.length ? 'No image versions yet' : 'Choose image version'}</option>{imageVersions.map(version => <option key={version.id} value={version.id}>v{version.version_no || version.id} · {version.filename || 'Image asset'}</option>)}</select><button className={styles.secondary} onClick={loadSelectedVersion} disabled={!versionId || busy}>{busy ? 'Opening…' : 'Open version'}</button><label className={`${styles.upload} ${!loaded ? styles.uploadDisabled : ''}`}>Add image overlay<input aria-label="Overlay image" type="file" accept="image/png,image/jpeg,image/webp" onChange={overlayUpload} disabled={!loaded} /></label><span className={styles.saveState}>Uploaded overlays stay editable in the current review session and never replace the base creative.</span></section>
+        <section className={styles.section}><div className={styles.sectionTitle}>Creative source</div>{canonicalMode ? <div className={styles.saveState}>{canonicalConcept?.title || `Content concept #${conceptId}`}</div> : <select aria-label="Marketing post" className={styles.select} value={postId} onChange={e => setPostId(e.target.value)}><option value="">Choose marketing post</option>{posts.map(post => <option key={post.id} value={post.id}>{post.title}</option>)}</select>}<select aria-label="Creative image version" className={styles.select} value={versionId} onChange={e => setVersionId(e.target.value)} disabled={(!canonicalMode && !postId) || !imageVersions.length}><option value="">{!imageVersions.length ? 'No image versions yet' : 'Choose image version'}</option>{imageVersions.map(version => <option key={version.id} value={version.id}>v{version.version_no || version.id} · {version.filename || 'Image asset'}</option>)}</select><button className={styles.secondary} onClick={loadSelectedVersion} disabled={!versionId || busy}>{busy ? 'Opening…' : 'Open version'}</button><label className={`${styles.upload} ${!loaded ? styles.uploadDisabled : ''}`}>Add image overlay<input aria-label="Overlay image" type="file" accept="image/png,image/jpeg,image/webp" onChange={overlayUpload} disabled={!loaded} /></label><span className={styles.saveState}>{canonicalMode ? 'Canonical saves preserve editable overlays and review objects so they can be reopened later.' : 'Uploaded overlays stay editable in the current review session and never replace the base creative.'}</span></section>
         <section className={styles.section}><div className={styles.sectionTitle}>Tools</div><div className={styles.toolGrid}>{(['select','pen','highlighter','eraser','text','arrow','rect','ellipse','pan'] as Tool[]).map(value => <button key={value} className={`${styles.tool} ${tool === value ? styles.toolActive : ''}`} onClick={() => { setTool(value); if (value !== 'text') setTextOpen(false); }} aria-pressed={tool === value}>{toolLabels[value]}</button>)}</div><span className={styles.saveState}>V Select · P Pen · H Highlight · E Eraser · T Text · A Arrow · R Box · O Circle</span></section>
         <section className={styles.section}><div className={styles.sectionTitle}>Color</div><div className={styles.swatches}>{swatches.map(value => <button key={value} title={value} aria-label={`Use ${value}`} className={`${styles.swatch} ${color === value ? styles.swatchActive : ''}`} style={{ background: value }} onClick={() => { setColor(value); if (selectedObject && selectedObject.type !== 'image') updateSelected({ color: value }); }} />)}</div><input aria-label="Custom annotation color" type="color" className={styles.colorInput} value={color} onChange={e => { setColor(e.target.value); if (selectedObject && selectedObject.type !== 'image') updateSelected({ color: e.target.value }); }} /></section>
         <section className={styles.section}><div className={styles.sectionTitle}>Stroke · {size}px</div><input aria-label="Annotation stroke size" className={styles.range} type="range" min="2" max="24" value={size} onChange={e => setSize(Number(e.target.value))} /></section>
@@ -341,7 +357,7 @@ export default function MarketingAnnotationStudio() {
       <section className={styles.workspace}>
         <div className={styles.topbar}><div className={styles.status}><span className={styles.dot} />{loaded ? sourceName || 'Creative loaded' : 'No creative loaded'}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.max(.1, value - .15))}>−</button><button className={styles.secondary} disabled={!loaded} onClick={() => fitCanvasRef.current()}>Fit · {Math.round(zoom * 100)}%</button><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.min(4, value + .15))}>+</button></div></div>
         <div ref={stageWrapRef} className={styles.stageWrap} tabIndex={0} role="region" aria-label="Creative annotation canvas"><div className={styles.canvasFrame} style={{ left: `calc(50% + ${pan.x}px)`, top: `calc(50% + ${pan.y}px)`, transform: `scale(${zoom})`, visibility: loaded ? 'visible' : 'hidden' }}><canvas ref={baseCanvasRef} className={styles.baseCanvas} /><canvas ref={annotationCanvasRef} className={`${styles.canvas} ${tool === 'pan' ? styles.panCursor : tool === 'select' ? styles.selectCursor : ''}`} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} onDoubleClick={canvasDoubleClick} /><svg className={styles.objectLayer} viewBox={`0 0 ${baseCanvasRef.current?.width || 1} ${baseCanvasRef.current?.height || 1}`} aria-label="Editable annotation objects"><defs><marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="context-stroke" /></marker></defs>{objects.map(renderObject)}</svg>{textOpen ? <input autoFocus aria-label="Text annotation" className={styles.inlineText} value={textValue} onChange={e => setTextValue(e.target.value)} onPointerDown={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addText(); } if (e.key === 'Escape') { e.preventDefault(); setTextOpen(false); setTextEditingId(''); setTextValue(''); } }} style={{ left: textPoint.x, top: textPoint.y, fontSize: textSize, color }} placeholder="Type…" /> : null}</div>{!loaded ? <div className={styles.empty}><strong>Open a creative to start annotating</strong><span>Select an existing image version first. The studio will automatically fit it to the available workspace.</span></div> : null}</div>
-        <div className={styles.footer}><div><div className={styles.footerHint}>The base creative stays locked. New review marks remain editable until you export or save the flattened result as a new creative version.</div>{saved ? <div className={styles.saveState}>{saved}</div> : null}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={() => void exportImage()}>Export PNG</button><button className={styles.primary} disabled={!loaded || (!canonicalMode && !postId) || busy} onClick={saveVersion}>{busy ? 'Saving…' : 'Save annotated version'}</button></div></div>
+        <div className={styles.footer}><div><div className={styles.footerHint}>{canonicalMode ? 'The base creative stays locked. Saving creates a flattened preview plus editable Annotation Studio state, so review objects can be restored on reopen.' : 'The base creative stays locked. New review marks remain editable until you export or save the flattened result as a new creative version.'}</div>{saved ? <div className={styles.saveState}>{saved}</div> : null}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={() => void exportImage()}>Export PNG</button><button className={styles.primary} disabled={!loaded || (!canonicalMode && !postId) || busy} onClick={saveVersion}>{busy ? 'Saving…' : 'Save annotated version'}</button></div></div>
       </section>
     </div>
   </main>;
