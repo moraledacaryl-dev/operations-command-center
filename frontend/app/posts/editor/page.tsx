@@ -25,6 +25,7 @@ export default function MarketingAnnotationStudio() {
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const annotationCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const requestedVersionRef = useRef('');
+  const openVersionRef = useRef<(version: Entity, isCanonical: boolean, currentAssetId: string, currentPostId: string) => Promise<void>>(async () => {});
   const [posts, setPosts] = useState<Entity[]>([]);
   const [postId, setPostId] = useState('');
   const [conceptId, setConceptId] = useState('');
@@ -78,7 +79,7 @@ export default function MarketingAnnotationStudio() {
         const image = requested || rows.find(row => row.annotatable || /\.(png|jpe?g|webp)$/i.test(String(row.filename || '')));
         setVersionId(image ? String(image.id) : '');
         requestedVersionRef.current = '';
-        if (requested && image) void openVersion(image, true, assetId, '');
+        if (requested && image) void openVersionRef.current(image, true, assetId, '');
       }).catch(err => setError(err.message || 'Creative versions could not be loaded.'));
       return;
     }
@@ -89,7 +90,7 @@ export default function MarketingAnnotationStudio() {
       const image = requested || rows.find(row => /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
       setVersionId(image ? String(image.id) : '');
       requestedVersionRef.current = '';
-      if (requested && image) void openVersion(image, false, '', postId);
+      if (requested && image) void openVersionRef.current(image, false, '', postId);
     }).catch(err => setError(err.message || 'Creative versions could not be loaded.'));
   }, [assetId, canonicalMode, postId]);
 
@@ -118,6 +119,7 @@ export default function MarketingAnnotationStudio() {
       setBusy(false);
     }
   }
+  openVersionRef.current = openVersion;
   async function loadSelectedVersion() {
     if (!selectedVersion || busy || (!canonicalMode && !postId)) return;
     await openVersion(selectedVersion, canonicalMode, assetId, postId);
