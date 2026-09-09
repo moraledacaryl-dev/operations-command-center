@@ -100,7 +100,8 @@ test('calendar date is clickable and prefills canonical concept publishing date'
   await expect(page.getByLabel('Publishing date')).toHaveValue('2026-09-12');
 });
 
-test('Annotation Studio auto-opens a canonical concept asset deep link', async ({ page }) => {
+test('Annotation Studio auto-fits and supports direct text and image overlays', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await seed(page);
   await page.goto('/posts/editor?conceptId=51&assetId=81&versionId=91');
   await expect(page.getByRole('heading', { name: 'Annotation studio' })).toBeVisible();
@@ -108,5 +109,21 @@ test('Annotation Studio auto-opens a canonical concept asset deep link', async (
   await expect(page.getByRole('combobox', { name: 'Creative image version' })).toHaveValue('91');
   await expect(page.getByText('pool-hero.png', { exact: true })).toBeVisible();
   await expect(page.getByText('No creative loaded')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Fit · \d+%/ })).toBeEnabled();
+  await expect(page.getByLabel('Overlay image')).toBeEnabled();
+  await expect(page.getByLabel('Text font size')).toHaveValue('48');
+  await page.getByLabel('Overlay image').setInputFiles({ name: 'logo-overlay.png', mimeType: 'image/png', buffer: tinyPng });
+  await expect(page.getByText('pool-hero.png', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'T Text' }).click();
+  const annotationCanvas = page.locator('canvas').nth(1);
+  await annotationCanvas.click({ position: { x: 1, y: 1 } });
+  const inlineText = page.getByRole('textbox', { name: 'Text annotation' });
+  await expect(inlineText).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByLabel('Text font size').fill('72');
+  await expect(page.getByLabel('Text font size')).toHaveValue('72');
+  await inlineText.fill('Pool note');
+  await inlineText.press('Enter');
+  await expect(inlineText).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Save annotated version' })).toBeEnabled();
 });
