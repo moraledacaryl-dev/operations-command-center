@@ -9,21 +9,34 @@ const deliverables = [
 ];
 const concept = { id: 51, campaign_id: 41, title: 'Poolside weekend', content_pillar: 'Stay', brief: 'One concept for multiple channels', campaign, deliverables };
 const creative = { id: 81, title: 'Pool hero.png', versions: [{ id: 91, asset_id: 81, version_no: 1, filename: 'pool-hero.png', mime_type: 'image/png', annotatable: true, file_url: '/api/marketing/assets/81/versions/91/download' }] };
+const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
 async function seed(page: Page) {
+  const assets = [creative];
   await page.addInitScript(({ session }) => {
     localStorage.setItem('cc_user', JSON.stringify(session));
     localStorage.setItem('cc_department_id', '3');
   }, { session: owner });
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
+    const method = route.request().method();
+    if (url.pathname === '/api/marketing/assets/81/versions/91/download') {
+      await route.fulfill({ status: 200, contentType: 'image/png', body: tinyPng });
+      return;
+    }
+    if (url.pathname === '/api/marketing/concepts/51/assets' && method === 'POST') {
+      const uploaded = { id: 82, title: 'new-creative.png', versions: [{ id: 92, asset_id: 82, version_no: 1, filename: 'new-creative.png', mime_type: 'image/png', annotatable: true, file_url: '/api/marketing/assets/82/versions/92/download' }] };
+      assets.unshift(uploaded);
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(uploaded) });
+      return;
+    }
     let body: unknown = [];
     if (url.pathname === '/api/auth/me') body = owner;
     else if (url.pathname === '/api/meta') body = { departments };
     else if (url.pathname === '/api/marketing/campaigns') body = [campaign];
     else if (url.pathname === '/api/marketing/concepts') body = [concept];
     else if (url.pathname === '/api/marketing/calendar') body = deliverables;
-    else if (url.pathname === '/api/marketing/concepts/51/assets') body = [creative];
+    else if (url.pathname === '/api/marketing/concepts/51/assets') body = assets;
     else if (url.pathname === '/api/marketing/assets/81/versions') body = creative.versions;
     else if (url.pathname === '/api/posts') body = { items: [], next_cursor: null, has_more: false };
     else if (url.searchParams.get('paginated') === 'true') body = { items: [], next_cursor: null, has_more: false };
@@ -47,6 +60,16 @@ test('scheduled multi-platform concept appears in calendar and opens its concept
   await expect(drawer.getByRole('paragraph').filter({ hasText: 'One concept for multiple channels' })).toBeVisible();
   await expect(drawer.getByText('v1 · pool-hero.png')).toBeVisible();
   await expect(drawer.getByRole('link', { name: 'Annotate' })).toHaveAttribute('href', '/posts/editor?conceptId=51&assetId=81&versionId=91');
+});
+
+test('creative upload confirms success and refreshes the version list', async ({ page }) => {
+  await seed(page);
+  await page.goto('/posts');
+  await page.getByRole('button', { name: /Poolside weekend Facebook · Planned/ }).click();
+  const drawer = page.getByRole('dialog');
+  await drawer.getByLabel('Upload creative').setInputFiles({ name: 'new-creative.png', mimeType: 'image/png', buffer: tinyPng });
+  await expect(drawer.getByRole('status')).toHaveText('Uploaded new-creative.png successfully.');
+  await expect(drawer.getByText('v1 · new-creative.png')).toBeVisible();
 });
 
 test('new concept uses campaign dropdown, multiple platforms, and creative upload', async ({ page }) => {
@@ -77,11 +100,13 @@ test('calendar date is clickable and prefills canonical concept publishing date'
   await expect(page.getByLabel('Publishing date')).toHaveValue('2026-09-12');
 });
 
-test('Annotation Studio accepts a canonical concept asset deep link', async ({ page }) => {
+test('Annotation Studio auto-opens a canonical concept asset deep link', async ({ page }) => {
   await seed(page);
   await page.goto('/posts/editor?conceptId=51&assetId=81&versionId=91');
   await expect(page.getByRole('heading', { name: 'Annotation studio' })).toBeVisible();
   await expect(page.getByText('Poolside weekend')).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Creative image version' })).toHaveValue('91');
-  await expect(page.getByRole('button', { name: 'Open version' })).toBeEnabled();
+  await expect(page.getByText('pool-hero.png', { exact: true })).toBeVisible();
+  await expect(page.getByText('No creative loaded')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Save annotated version' })).toBeEnabled();
 });
