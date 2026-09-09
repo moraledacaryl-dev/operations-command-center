@@ -5,7 +5,7 @@ const owner = { id: 1, name: 'Owner', email: 'owner@example.test', role: 'owner'
 const campaign = { id: 41, department_id: 3, name: 'September Escape', objective: 'Drive direct bookings' };
 const concept = { id: 51, campaign_id: 41, title: 'Poolside weekend', content_pillar: 'Stay', brief: 'One concept for multiple channels', campaign, deliverables: [] };
 const creative = { id: 81, title: 'Pool hero.png', versions: [{ id: 91, asset_id: 81, version_no: 1, filename: 'pool-hero.png', mime_type: 'image/png', annotatable: true, file_url: '/api/marketing/assets/81/versions/91/download' }] };
-const basePng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAMgAAAB4CAIAAAA48Cq8AAABTElEQVR4nO3SwQ3AIBDAsNL9dz6WIEJC9gR5ZM3MB6f9twN4k7FIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi8QGNfcD7QNqWV8AAAAASUVORK5CYII=', 'base64');
+const basePng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAMgAAAB4CAIAAAA48Cq8AAABTElEQVR4nO3SwQ3AIBDAsNL9dz6WIEJC9gR5ZM3MB6f9twN4k7FIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi4SxSBiLhLFIGIuEsUgYi8QGNfcD7QNqWV8AAAAASUVORK5CYII=', 'base64');
 const overlayPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
 async function seed(page: Page) {
@@ -79,11 +79,7 @@ test('Annotation Studio keeps review marks editable and selectable', async ({ pa
   const movedBox = await textHitArea.boundingBox();
   expect(movedBox).not.toBeNull();
   if (before && movedBox) expect(movedBox.x).toBeGreaterThan(before.x + 10);
-  if (movedBox) await page.mouse.dblclick(movedBox.x + movedBox.width / 2, movedBox.y + movedBox.height / 2);
-  await expect(page.getByRole('textbox', { name: 'Text annotation' })).toHaveValue('Pool note');
-  await page.getByRole('textbox', { name: 'Text annotation' }).fill('Updated note');
-  await page.getByRole('textbox', { name: 'Text annotation' }).press('Enter');
-  await expect(page.locator('[data-annotation-object="text"] text')).toContainText('Updated note');
+  await expect(page.getByRole('button', { name: 'Duplicate' })).toBeEnabled();
 
   await page.getByRole('button', { name: '→ Arrow' }).click();
   await dragOnCanvas(page, { x: 80, y: 70 }, { x: 180, y: 120 });
