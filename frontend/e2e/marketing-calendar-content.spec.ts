@@ -110,6 +110,26 @@ test('Annotation Studio auto-fits and supports direct text and image overlays', 
   await expect(page.getByText('pool-hero.png', { exact: true })).toBeVisible();
   await expect(page.getByText('No creative loaded')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Fit · \d+%/ })).toBeEnabled();
+
+  const stage = page.getByRole('region', { name: 'Creative annotation canvas' });
+  const baseCanvas = page.locator('canvas').first();
+  const stageBox = await stage.boundingBox();
+  const canvasBox = await baseCanvas.boundingBox();
+  expect(stageBox).not.toBeNull();
+  expect(canvasBox).not.toBeNull();
+  if (stageBox && canvasBox) {
+    const stageCenterX = stageBox.x + stageBox.width / 2;
+    const stageCenterY = stageBox.y + stageBox.height / 2;
+    const canvasCenterX = canvasBox.x + canvasBox.width / 2;
+    const canvasCenterY = canvasBox.y + canvasBox.height / 2;
+    expect(Math.abs(canvasCenterX - stageCenterX)).toBeLessThanOrEqual(2);
+    expect(Math.abs(canvasCenterY - stageCenterY)).toBeLessThanOrEqual(2);
+    expect(canvasBox.x).toBeGreaterThanOrEqual(stageBox.x);
+    expect(canvasBox.y).toBeGreaterThanOrEqual(stageBox.y);
+    expect(canvasBox.x + canvasBox.width).toBeLessThanOrEqual(stageBox.x + stageBox.width);
+    expect(canvasBox.y + canvasBox.height).toBeLessThanOrEqual(stageBox.y + stageBox.height);
+  }
+
   await expect(page.getByLabel('Overlay image')).toBeEnabled();
   await expect(page.getByLabel('Text font size')).toHaveValue('48');
   await page.getByLabel('Overlay image').setInputFiles({ name: 'logo-overlay.png', mimeType: 'image/png', buffer: tinyPng });
