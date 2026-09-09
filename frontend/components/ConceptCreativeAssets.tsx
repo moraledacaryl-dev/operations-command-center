@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { Entity } from '@/lib/api';
 import { marketingAssetsApi } from '@/lib/marketing-assets-api';
 
@@ -12,15 +12,15 @@ export function ConceptCreativeAssets({ conceptId, canManage }: { conceptId: num
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       setAssets(await marketingAssetsApi.list(conceptId));
     } catch (err: any) {
       setError(err.message || 'Creative assets could not be loaded.');
     }
-  }
+  }, [conceptId]);
 
-  useEffect(() => { void load(); }, [conceptId]);
+  useEffect(() => { void load(); }, [load]);
 
   async function upload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
