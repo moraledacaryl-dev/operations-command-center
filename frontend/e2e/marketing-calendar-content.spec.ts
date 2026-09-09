@@ -8,6 +8,7 @@ const deliverables = [
   { id: 72, concept_id: 51, concept_title: 'Poolside weekend', content_pillar: 'Stay', campaign_id: 41, campaign_name: 'September Escape', department_id: 3, platform: 'Instagram', format: 'Reel', scheduled_at: '2026-09-12T01:00:00Z', status: 'Planned', allowed_actions: [] },
 ];
 const concept = { id: 51, campaign_id: 41, title: 'Poolside weekend', content_pillar: 'Stay', brief: 'One concept for multiple channels', campaign, deliverables };
+const creative = { id: 81, title: 'Pool hero.png', versions: [{ id: 91, asset_id: 81, version_no: 1, filename: 'pool-hero.png', mime_type: 'image/png', annotatable: true, file_url: '/api/marketing/assets/81/versions/91/download' }] };
 
 async function seed(page: Page) {
   await page.addInitScript(({ session }) => {
@@ -22,6 +23,8 @@ async function seed(page: Page) {
     else if (url.pathname === '/api/marketing/campaigns') body = [campaign];
     else if (url.pathname === '/api/marketing/concepts') body = [concept];
     else if (url.pathname === '/api/marketing/calendar') body = deliverables;
+    else if (url.pathname === '/api/marketing/concepts/51/assets') body = [creative];
+    else if (url.pathname === '/api/marketing/assets/81/versions') body = creative.versions;
     else if (url.pathname === '/api/posts') body = { items: [], next_cursor: null, has_more: false };
     else if (url.searchParams.get('paginated') === 'true') body = { items: [], next_cursor: null, has_more: false };
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
@@ -42,9 +45,11 @@ test('scheduled multi-platform concept appears in calendar and opens its concept
   const drawer = page.getByRole('dialog');
   await expect(drawer.getByRole('heading', { name: 'Poolside weekend' })).toBeVisible();
   await expect(drawer.getByRole('paragraph').filter({ hasText: 'One concept for multiple channels' })).toBeVisible();
+  await expect(drawer.getByText('v1 · pool-hero.png')).toBeVisible();
+  await expect(drawer.getByRole('link', { name: 'Annotate' })).toHaveAttribute('href', '/posts/editor?conceptId=51&assetId=81&versionId=91');
 });
 
-test('new concept uses campaign dropdown and supports multiple platforms', async ({ page }) => {
+test('new concept uses campaign dropdown, multiple platforms, and creative upload', async ({ page }) => {
   await seed(page);
   await page.goto('/posts');
   await page.getByRole('button', { name: 'New concept' }).click();
@@ -55,6 +60,7 @@ test('new concept uses campaign dropdown and supports multiple platforms', async
   await expect(page.getByRole('checkbox', { name: 'Facebook' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Instagram' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'TikTok' })).not.toBeChecked();
+  await expect(page.getByLabel('Creative asset')).toHaveAttribute('accept', /image\/png/);
 });
 
 test('calendar date is clickable and prefills canonical concept publishing date', async ({ page }) => {
@@ -69,4 +75,13 @@ test('calendar date is clickable and prefills canonical concept publishing date'
   await expect(page.getByRole('combobox', { name: 'Campaign' })).toHaveValue('41');
   await expect(page.getByRole('textbox', { name: 'Concept title' })).toBeFocused();
   await expect(page.getByLabel('Publishing date')).toHaveValue('2026-09-12');
+});
+
+test('Annotation Studio accepts a canonical concept asset deep link', async ({ page }) => {
+  await seed(page);
+  await page.goto('/posts/editor?conceptId=51&assetId=81&versionId=91');
+  await expect(page.getByRole('heading', { name: 'Annotation studio' })).toBeVisible();
+  await expect(page.getByText('Poolside weekend')).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Creative image version' })).toHaveValue('91');
+  await expect(page.getByRole('button', { name: 'Open version' })).toBeEnabled();
 });
