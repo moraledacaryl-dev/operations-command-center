@@ -76,7 +76,9 @@ export default function MarketingAnnotationStudio() {
         setVersions(rows);
         const requested = rows.find(row => String(row.id) === requestedVersionRef.current && (row.annotatable || /\.(png|jpe?g|webp)$/i.test(String(row.filename || ''))));
         const image = requested || rows.find(row => row.annotatable || /\.(png|jpe?g|webp)$/i.test(String(row.filename || '')));
-        setVersionId(image ? String(image.id) : ''); requestedVersionRef.current = '';
+        setVersionId(image ? String(image.id) : '');
+        requestedVersionRef.current = '';
+        if (requested && image) void openVersion(image, true, assetId, '');
       }).catch(err => setError(err.message || 'Creative versions could not be loaded.'));
       return;
     }
@@ -85,7 +87,9 @@ export default function MarketingAnnotationStudio() {
       setVersions(rows);
       const requested = rows.find(row => String(row.id) === requestedVersionRef.current && /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
       const image = requested || rows.find(row => /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
-      setVersionId(image ? String(image.id) : ''); requestedVersionRef.current = '';
+      setVersionId(image ? String(image.id) : '');
+      requestedVersionRef.current = '';
+      if (requested && image) void openVersion(image, false, '', postId);
     }).catch(err => setError(err.message || 'Creative versions could not be loaded.'));
   }, [assetId, canonicalMode, postId]);
 
@@ -98,9 +102,25 @@ export default function MarketingAnnotationStudio() {
     image.onload = () => { const base = baseCanvasRef.current; const annotation = annotationCanvasRef.current; if (!base || !annotation) return; const max = 2400; const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight)); const width = Math.max(1, Math.round(image.naturalWidth * scale)); const height = Math.max(1, Math.round(image.naturalHeight * scale)); base.width = annotation.width = width; base.height = annotation.height = height; const baseCtx = base.getContext('2d'); const annotationCtx = annotation.getContext('2d'); if (!baseCtx || !annotationCtx) return; baseCtx.clearRect(0, 0, width, height); baseCtx.drawImage(image, 0, 0, width, height); annotationCtx.clearRect(0, 0, width, height); URL.revokeObjectURL(url); setLoaded(true); setSourceName(filename); setZoom(1); setHistory([]); setFuture([]); setSaved(''); setError(''); };
     image.onerror = () => { URL.revokeObjectURL(url); setError('This image could not be opened.'); }; image.src = url;
   }
+  async function openVersion(version: Entity, isCanonical: boolean, currentAssetId: string, currentPostId: string) {
+    if (busy) return;
+    setBusy(true); setError('');
+    try {
+      const path = isCanonical
+        ? marketingAssetsApi.downloadUrl(Number(currentAssetId), Number(version.id))
+        : `${API_BASE}/posts/${currentPostId}/versions/${version.id}/download`;
+      const res = await fetch(path, { credentials: 'same-origin', cache: 'no-store' });
+      if (!res.ok) throw new Error('Creative file could not be downloaded.');
+      loadBlob(await res.blob(), String(version.filename || sourceTitle));
+    } catch (err: any) {
+      setError(err.message || 'Creative file could not be loaded.');
+    } finally {
+      setBusy(false);
+    }
+  }
   async function loadSelectedVersion() {
-    if (!versionId || busy || (!canonicalMode && !postId)) return; setBusy(true); setError('');
-    try { const path = canonicalMode ? marketingAssetsApi.downloadUrl(Number(assetId), Number(versionId)) : `${API_BASE}/posts/${postId}/versions/${versionId}/download`; const res = await fetch(path, { credentials: 'same-origin', cache: 'no-store' }); if (!res.ok) throw new Error('Creative file could not be downloaded.'); loadBlob(await res.blob(), String(selectedVersion?.filename || sourceTitle)); } catch (err: any) { setError(err.message || 'Creative file could not be loaded.'); } finally { setBusy(false); }
+    if (!selectedVersion || busy || (!canonicalMode && !postId)) return;
+    await openVersion(selectedVersion, canonicalMode, assetId, postId);
   }
   function localUpload(event: ChangeEvent<HTMLInputElement>) { const file = event.target.files?.[0]; if (file) loadBlob(file, file.name); event.target.value = ''; }
   function point(event: ReactPointerEvent<HTMLCanvasElement>) { const rect = event.currentTarget.getBoundingClientRect(); return { x: (event.clientX - rect.left) * (event.currentTarget.width / rect.width), y: (event.clientY - rect.top) * (event.currentTarget.height / rect.height) }; }
