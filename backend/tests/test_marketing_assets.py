@@ -8,7 +8,15 @@ from starlette.datastructures import Headers
 
 from app import foundation_models as foundation
 from app import models
-from app.routers.marketing_assets import add_asset_version, create_concept_asset, list_asset_versions, list_concept_assets
+from app.routers.marketing_assets import (
+    AnnotationStudioState,
+    add_asset_version,
+    create_concept_asset,
+    get_annotation_studio_state,
+    list_asset_versions,
+    list_concept_assets,
+    save_annotation_studio_state,
+)
 
 
 @pytest.fixture()
@@ -74,6 +82,56 @@ def test_concept_creative_upload_is_versioned_and_shared_across_deliverables(db,
     assert len(stored) == 2
 
 
+def test_annotation_studio_state_round_trips_on_saved_version(db, tmp_path, monkeypatch):
+    import app.routers.uploads_hardened as hardened
+    monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
+    _owner, lead, _outsider, concept = seed(db)
+    asset = create_concept_asset(concept.id, title="Hero", note="", file=png_upload(), user=lead, db=db)
+    base_version_id = asset["versions"][0]["id"]
+    created = add_asset_version(asset["id"], note="Annotated", file=png_upload("annotated.png"), user=lead, db=db)
+
+    empty = get_annotation_studio_state(asset["id"], created["id"], user=lead, db=db)
+    assert empty == {"schema_version": 1, "base_version_id": created["id"], "objects": []}
+
+    payload = AnnotationStudioState(
+        base_version_id=base_version_id,
+        objects=[
+            {"id": "text-1", "type": "text", "x": 120, "y": 80, "text": "Move me", "fontSize": 48, "color": "#ef4444", "opacity": 1},
+            {"id": "box-1", "type": "rect", "x": 20, "y": 30, "width": 100, "height": 60, "strokeWidth": 6, "color": "#2563eb", "opacity": 1},
+        ],
+    )
+    saved = save_annotation_studio_state(asset["id"], created["id"], payload, user=lead, db=db)
+    assert saved == payload.model_dump()
+    restored = get_annotation_studio_state(asset["id"], created["id"], user=lead, db=db)
+    assert restored == payload.model_dump()
+    assert db.query(foundation.Annotation).filter(foundation.Annotation.asset_version_id == created["id"]).count() == 1
+
+    replacement = AnnotationStudioState(base_version_id=base_version_id, objects=[{"id": "text-2", "type": "text"}])
+    save_annotation_studio_state(asset["id"], created["id"], replacement, user=lead, db=db)
+    assert get_annotation_studio_state(asset["id"], created["id"], user=lead, db=db) == replacement.model_dump()
+    assert db.query(foundation.Annotation).filter(foundation.Annotation.asset_version_id == created["id"]).count() == 1
+
+
+def test_annotation_state_base_version_must_belong_to_same_asset(db, tmp_path, monkeypatch):
+    import app.routers.uploads_hardened as hardened
+    monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
+    owner, lead, _outsider, concept = seed(db)
+    first = create_concept_asset(concept.id, title="First", note="", file=png_upload("first.png"), user=lead, db=db)
+    second = create_concept_asset(concept.id, title="Second", note="", file=png_upload("second.png"), user=owner, db=db)
+    target_version = first["versions"][0]["id"]
+    foreign_base = second["versions"][0]["id"]
+
+    with pytest.raises(HTTPException) as exc:
+        save_annotation_studio_state(
+            first["id"],
+            target_version,
+            AnnotationStudioState(base_version_id=foreign_base, objects=[]),
+            user=lead,
+            db=db,
+        )
+    assert exc.value.status_code == 404
+
+
 def test_cross_department_user_cannot_read_or_version_concept_creative(db, tmp_path, monkeypatch):
     import app.routers.uploads_hardened as hardened
     monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
@@ -86,5 +144,19 @@ def test_cross_department_user_cannot_read_or_version_concept_creative(db, tmp_p
 
     with pytest.raises(HTTPException) as exc:
         add_asset_version(asset["id"], note="blocked", file=png_upload("blocked.png"), user=outsider, db=db)
+    assert exc.value.status_code == 403
+
+    version_id = asset["versions"][0]["id"]
+    with pytest.raises(HTTPException) as exc:
+        get_annotation_studio_state(asset["id"], version_id, user=outsider, db=db)
+    assert exc.value.status_code == 403
+    with pytest.raises(HTTPException) as exc:
+        save_annotation_studio_state(
+            asset["id"],
+            version_id,
+            AnnotationStudioState(base_version_id=version_id, objects=[]),
+            user=outsider,
+            db=db,
+        )
     assert exc.value.status_code == 403
     assert len(list(tmp_path.iterdir())) == 1

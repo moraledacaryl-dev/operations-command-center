@@ -1,5 +1,11 @@
 import { API_BASE, Entity } from './api';
 
+type AnnotationStudioState = {
+  schema_version: 1;
+  base_version_id: number;
+  objects: Record<string, unknown>[];
+};
+
 async function checked<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -33,5 +39,11 @@ export const marketingAssetsApi = {
     if (note) form.append('note', note);
     return checked<Entity>(`/marketing/assets/${assetId}/versions`, { method: 'POST', body: form });
   },
+  annotationState: (assetId: number, versionId: number) => checked<AnnotationStudioState>(`/marketing/assets/${assetId}/versions/${versionId}/annotation-state`),
+  saveAnnotationState: (assetId: number, versionId: number, state: AnnotationStudioState) => checked<AnnotationStudioState>(`/marketing/assets/${assetId}/versions/${versionId}/annotation-state`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(state),
+  }),
   downloadUrl: (assetId: number, versionId: number) => `${API_BASE}/marketing/assets/${assetId}/versions/${versionId}/download`,
 };
