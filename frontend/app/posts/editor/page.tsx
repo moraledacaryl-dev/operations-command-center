@@ -186,10 +186,39 @@ export default function MarketingAnnotationStudio() {
     for (let index = objects.length - 1; index >= 0; index -= 1) { const box = bounds(objects[index]); const pad = Math.max(10, size); if (p.x >= box.x - pad && p.x <= box.x + box.width + pad && p.y >= box.y - pad && p.y <= box.y + box.height + pad) return objects[index]; }
     return null;
   }
+  function hitsResizeHandle(p: Point, item: AnnotationObject) {
+    const box = bounds(item); const radius = Math.max(12, 12 / Math.max(.1, zoom));
+    return Math.hypot(p.x - (box.x + box.width + 8), p.y - (box.y + box.height + 8)) <= radius;
+  }
+  function applyInteraction(clientX: number, clientY: number) {
+    const interaction = interactionRef.current; if (!interaction) return false;
+    const canvas = annotationCanvasRef.current; if (!canvas) return false; const rect = canvas.getBoundingClientRect(); const sx = canvas.width / Math.max(1, rect.width); const sy = canvas.height / Math.max(1, rect.height);
+    const dx = (clientX - interaction.startClientX) * sx; const dy = (clientY - interaction.startClientY) * sy;
+    setObjects(items => items.map(item => {
+      if (item.id !== interaction.id) return item; const original = interaction.original;
+      if (interaction.mode === 'move') {
+        if (original.type === 'pen' || original.type === 'highlighter') return { ...item, points: original.points.map(point => ({ x: point.x + dx, y: point.y + dy })) } as AnnotationObject;
+        const positioned = original as TextObject | ImageObject | ShapeObject; return { ...item, x: positioned.x + dx, y: positioned.y + dy } as AnnotationObject;
+      }
+      if (original.type === 'text') { const box = textBox(original); const scale = Math.max(.25, (box.width + dx) / Math.max(1, box.width)); return { ...item, fontSize: Math.max(12, Math.min(240, original.fontSize * scale)) } as AnnotationObject; }
+      if (original.type === 'image') { const ratio = original.width / Math.max(1, original.height); const width = Math.max(24, original.width + dx); return { ...item, width, height: width / ratio } as AnnotationObject; }
+      if (original.type === 'rect' || original.type === 'ellipse' || original.type === 'arrow') return { ...item, width: Math.max(12, original.width + dx), height: Math.max(12, original.height + dy) } as AnnotationObject;
+      return item;
+    }));
+    return true;
+  }
 
   function pointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
     if (!loaded) return; const p = point(event);
-    if (tool === 'select') { setSelectedId(''); setTextOpen(false); return; }
+    if (tool === 'select') {
+      const resizeTarget = selectedObject && hitsResizeHandle(p, selectedObject) ? selectedObject : null;
+      const target = resizeTarget || hitObject(p);
+      setTextOpen(false);
+      if (!target) { setSelectedId(''); interactionRef.current = null; return; }
+      checkpoint(); setSelectedId(target.id);
+      interactionRef.current = { id: target.id, mode: resizeTarget ? 'resize' : 'move', startClientX: event.clientX, startClientY: event.clientY, original: cloneObjects([target])[0] };
+      event.currentTarget.setPointerCapture(event.pointerId); return;
+    }
     if (tool === 'pan') { setPanning({ x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y }); event.currentTarget.setPointerCapture(event.pointerId); return; }
     if (tool === 'eraser') { const target = hitObject(p); if (target) { checkpoint(); setObjects(items => items.filter(item => item.id !== target.id)); if (selectedId === target.id) setSelectedId(''); } return; }
     if (tool === 'text') { setTextEditingId(''); setTextPoint(p); setTextValue(''); setTextOpen(true); return; }
@@ -203,6 +232,7 @@ export default function MarketingAnnotationStudio() {
   }
   function pointerMove(event: ReactPointerEvent<HTMLCanvasElement>) {
     if (!loaded) return;
+    if (applyInteraction(event.clientX, event.clientY)) return;
     if (panning) { setPan({ x: panning.panX + event.clientX - panning.x, y: panning.panY + event.clientY - panning.y }); return; }
     if (!drawingId) return; const p = point(event);
     setObjects(items => items.map(item => {
@@ -213,7 +243,10 @@ export default function MarketingAnnotationStudio() {
     }));
   }
   function pointerUp(event: ReactPointerEvent<HTMLCanvasElement>) {
-    setDrawingId(''); setShapeStart(null); setPanning(null); try { event.currentTarget.releasePointerCapture(event.pointerId); } catch {}
+    interactionRef.current = null; setDrawingId(''); setShapeStart(null); setPanning(null); try { event.currentTarget.releasePointerCapture(event.pointerId); } catch {}
+  }
+  function canvasDoubleClick(event: ReactMouseEvent<HTMLCanvasElement>) {
+    if (tool !== 'select') return; const target = hitObject(point(event)); if (target?.type === 'text') beginEditText(target);
   }
 
   function addText() {
@@ -225,35 +258,11 @@ export default function MarketingAnnotationStudio() {
   }
   function beginEditText(item: TextObject) { setSelectedId(item.id); setTextEditingId(item.id); setTextValue(item.text); setTextPoint({ x: item.x, y: item.y }); setTextSize(item.fontSize); setColor(item.color); setTextOpen(true); }
 
-  function beginObjectInteraction(event: ReactPointerEvent<SVGElement>, item: AnnotationObject, mode: 'move' | 'resize') {
-    if (tool !== 'select') return; event.preventDefault(); event.stopPropagation(); checkpoint(); setSelectedId(item.id);
-    interactionRef.current = { id: item.id, mode, startClientX: event.clientX, startClientY: event.clientY, original: cloneObjects([item])[0] };
-  }
-  useEffect(() => {
-    function move(event: PointerEvent) {
-      const interaction = interactionRef.current; if (!interaction) return;
-      const canvas = annotationCanvasRef.current; if (!canvas) return; const rect = canvas.getBoundingClientRect(); const sx = canvas.width / Math.max(1, rect.width); const sy = canvas.height / Math.max(1, rect.height);
-      const dx = (event.clientX - interaction.startClientX) * sx; const dy = (event.clientY - interaction.startClientY) * sy;
-      setObjects(items => items.map(item => {
-        if (item.id !== interaction.id) return item; const original = interaction.original;
-        if (interaction.mode === 'move') {
-          if (original.type === 'pen' || original.type === 'highlighter') return { ...item, points: original.points.map(point => ({ x: point.x + dx, y: point.y + dy })) } as AnnotationObject;
-          const positioned = original as TextObject | ImageObject | ShapeObject; return { ...item, x: positioned.x + dx, y: positioned.y + dy } as AnnotationObject;
-        }
-        if (original.type === 'text') { const box = textBox(original); const scale = Math.max(.25, (box.width + dx) / Math.max(1, box.width)); return { ...item, fontSize: Math.max(12, Math.min(240, original.fontSize * scale)) } as AnnotationObject; }
-        if (original.type === 'image') { const ratio = original.width / Math.max(1, original.height); const width = Math.max(24, original.width + dx); return { ...item, width, height: width / ratio } as AnnotationObject; }
-        if (original.type === 'rect' || original.type === 'ellipse' || original.type === 'arrow') return { ...item, width: Math.max(12, original.width + dx), height: Math.max(12, original.height + dy) } as AnnotationObject;
-        return item;
-      }));
-    }
-    function up() { interactionRef.current = null; }
-    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-  }, []);
-
   function updateSelected(patch: Partial<AnnotationObject>) { if (!selectedId) return; checkpoint(); setObjects(items => items.map(item => item.id === selectedId ? ({ ...item, ...patch } as AnnotationObject) : item)); }
   function deleteSelected() { if (!selectedId) return; checkpoint(); setObjects(items => items.filter(item => item.id !== selectedId)); setSelectedId(''); }
   function duplicateSelected() {
-    if (!selectedObject) return; checkpoint(); const copy = cloneObjects([selectedObject])[0]; const id = objectId(); let shifted: AnnotationObject;
+    if (!selectedObject) return; checkpoint(); const copy = cloneObjects([selectedObject])[0]; const id = objectId();
+    let shifted: AnnotationObject;
     if (copy.type === 'pen' || copy.type === 'highlighter') shifted = { ...copy, id, points: copy.points.map(point => ({ x: point.x + 20, y: point.y + 20 })) };
     else { const positioned = copy as TextObject | ImageObject | ShapeObject; shifted = { ...positioned, id, x: positioned.x + 20, y: positioned.y + 20 }; }
     setObjects(items => [...items, shifted]); setSelectedId(id);
@@ -303,16 +312,16 @@ export default function MarketingAnnotationStudio() {
   });
 
   function renderObject(item: AnnotationObject) {
-    const selected = item.id === selectedId; const box = bounds(item); const common = { onPointerDown: (event: ReactPointerEvent<SVGElement>) => beginObjectInteraction(event, item, 'move'), onDoubleClick: () => item.type === 'text' && beginEditText(item) };
+    const selected = item.id === selectedId; const box = bounds(item);
     return <g key={item.id} data-annotation-object={item.type} aria-label={`${item.type} annotation`} opacity={item.opacity}>
       {item.type === 'pen' || item.type === 'highlighter' ? <polyline points={item.points.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={item.color} strokeWidth={item.strokeWidth} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" /> : null}
       {item.type === 'text' ? <text x={item.x} y={item.y} fill={item.color} fontSize={item.fontSize} fontWeight="700" dominantBaseline="hanging" pointerEvents="none">{item.text}</text> : null}
       {item.type === 'image' ? <image href={item.src} x={item.x} y={item.y} width={item.width} height={item.height} pointerEvents="none" /> : null}
       {item.type === 'rect' ? <rect x={item.x} y={item.y} width={item.width} height={item.height} fill="none" stroke={item.color} strokeWidth={item.strokeWidth} pointerEvents="none" /> : null}
       {item.type === 'ellipse' ? <ellipse cx={item.x + item.width / 2} cy={item.y + item.height / 2} rx={item.width / 2} ry={item.height / 2} fill="none" stroke={item.color} strokeWidth={item.strokeWidth} pointerEvents="none" /> : null}
-      {item.type === 'arrow' ? <line x1={item.x} y1={item.y} x2={item.x + item.width} y2={item.y + item.height} stroke={item.color} strokeWidth={item.strokeWidth} markerEnd="url(#arrowhead)" pointerEvents="none" /> : null}
-      <rect {...common} x={box.x - 8} y={box.y - 8} width={box.width + 16} height={box.height + 16} fill="transparent" stroke={selected ? 'var(--accent)' : 'transparent'} strokeWidth={selected ? 3 / zoom : 0} strokeDasharray={selected ? `${8 / zoom} ${6 / zoom}` : undefined} style={{ cursor: tool === 'select' ? 'move' : 'default', pointerEvents: tool === 'select' ? 'all' : 'none' }} />
-      {selected ? <circle aria-label="Resize selected annotation" cx={box.x + box.width + 8} cy={box.y + box.height + 8} r={8 / zoom} fill="white" stroke="var(--accent)" strokeWidth={2 / zoom} onPointerDown={event => beginObjectInteraction(event, item, 'resize')} style={{ cursor: 'nwse-resize', pointerEvents: 'all' }} /> : null}
+      {item.type === 'arrow' ? <><line x1={item.x} y1={item.y} x2={item.x + item.width} y2={item.y + item.height} stroke={item.color} strokeWidth={item.strokeWidth} markerEnd="url(#arrowhead)" pointerEvents="none" /></> : null}
+      <rect x={box.x - 8} y={box.y - 8} width={box.width + 16} height={box.height + 16} fill="transparent" stroke={selected ? 'var(--accent)' : 'transparent'} strokeWidth={selected ? 3 / zoom : 0} strokeDasharray={selected ? `${8 / zoom} ${6 / zoom}` : undefined} pointerEvents="none" />
+      {selected ? <circle aria-label="Resize selected annotation" cx={box.x + box.width + 8} cy={box.y + box.height + 8} r={8 / zoom} fill="white" stroke="var(--accent)" strokeWidth={2 / zoom} pointerEvents="none" /> : null}
     </g>;
   }
 
@@ -331,7 +340,7 @@ export default function MarketingAnnotationStudio() {
       </aside>
       <section className={styles.workspace}>
         <div className={styles.topbar}><div className={styles.status}><span className={styles.dot} />{loaded ? sourceName || 'Creative loaded' : 'No creative loaded'}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.max(.1, value - .15))}>−</button><button className={styles.secondary} disabled={!loaded} onClick={() => fitCanvasRef.current()}>Fit · {Math.round(zoom * 100)}%</button><button className={styles.secondary} disabled={!loaded} onClick={() => setZoom(value => Math.min(4, value + .15))}>+</button></div></div>
-        <div ref={stageWrapRef} className={styles.stageWrap} tabIndex={0} role="region" aria-label="Creative annotation canvas"><div className={styles.canvasFrame} style={{ left: `calc(50% + ${pan.x}px)`, top: `calc(50% + ${pan.y}px)`, transform: `scale(${zoom})`, visibility: loaded ? 'visible' : 'hidden' }}><canvas ref={baseCanvasRef} className={styles.baseCanvas} /><canvas ref={annotationCanvasRef} className={`${styles.canvas} ${tool === 'pan' ? styles.panCursor : tool === 'select' ? styles.selectCursor : ''}`} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} /><svg className={styles.objectLayer} viewBox={`0 0 ${baseCanvasRef.current?.width || 1} ${baseCanvasRef.current?.height || 1}`} aria-label="Editable annotation objects"><defs><marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="context-stroke" /></marker></defs>{objects.map(renderObject)}</svg>{textOpen ? <input autoFocus aria-label="Text annotation" className={styles.inlineText} value={textValue} onChange={e => setTextValue(e.target.value)} onPointerDown={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addText(); } if (e.key === 'Escape') { e.preventDefault(); setTextOpen(false); setTextEditingId(''); setTextValue(''); } }} style={{ left: textPoint.x, top: textPoint.y, fontSize: textSize, color }} placeholder="Type…" /> : null}</div>{!loaded ? <div className={styles.empty}><strong>Open a creative to start annotating</strong><span>Select an existing image version first. The studio will automatically fit it to the available workspace.</span></div> : null}</div>
+        <div ref={stageWrapRef} className={styles.stageWrap} tabIndex={0} role="region" aria-label="Creative annotation canvas"><div className={styles.canvasFrame} style={{ left: `calc(50% + ${pan.x}px)`, top: `calc(50% + ${pan.y}px)`, transform: `scale(${zoom})`, visibility: loaded ? 'visible' : 'hidden' }}><canvas ref={baseCanvasRef} className={styles.baseCanvas} /><canvas ref={annotationCanvasRef} className={`${styles.canvas} ${tool === 'pan' ? styles.panCursor : tool === 'select' ? styles.selectCursor : ''}`} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} onDoubleClick={canvasDoubleClick} /><svg className={styles.objectLayer} viewBox={`0 0 ${baseCanvasRef.current?.width || 1} ${baseCanvasRef.current?.height || 1}`} aria-label="Editable annotation objects"><defs><marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="context-stroke" /></marker></defs>{objects.map(renderObject)}</svg>{textOpen ? <input autoFocus aria-label="Text annotation" className={styles.inlineText} value={textValue} onChange={e => setTextValue(e.target.value)} onPointerDown={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addText(); } if (e.key === 'Escape') { e.preventDefault(); setTextOpen(false); setTextEditingId(''); setTextValue(''); } }} style={{ left: textPoint.x, top: textPoint.y, fontSize: textSize, color }} placeholder="Type…" /> : null}</div>{!loaded ? <div className={styles.empty}><strong>Open a creative to start annotating</strong><span>Select an existing image version first. The studio will automatically fit it to the available workspace.</span></div> : null}</div>
         <div className={styles.footer}><div><div className={styles.footerHint}>The base creative stays locked. New review marks remain editable until you export or save the flattened result as a new creative version.</div>{saved ? <div className={styles.saveState}>{saved}</div> : null}</div><div className={styles.topActions}><button className={styles.secondary} disabled={!loaded} onClick={() => void exportImage()}>Export PNG</button><button className={styles.primary} disabled={!loaded || (!canonicalMode && !postId) || busy} onClick={saveVersion}>{busy ? 'Saving…' : 'Save annotated version'}</button></div></div>
       </section>
     </div>
