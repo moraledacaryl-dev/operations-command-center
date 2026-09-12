@@ -39,6 +39,7 @@ body {
 
 .app { grid-template-columns: 292px minmax(0, 1fr); }
 .sidebar {
+  z-index: 40;
   margin: 14px 0 14px 14px;
   height: calc(100vh - 28px);
   padding: 22px 18px;
