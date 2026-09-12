@@ -39,7 +39,6 @@ body {
 
 .app { grid-template-columns: 292px minmax(0, 1fr); }
 .sidebar {
-  z-index: 40;
   margin: 14px 0 14px 14px;
   height: calc(100vh - 28px);
   padding: 22px 18px;
@@ -118,6 +117,10 @@ h3 { font-size: 17px; }
 .home-metrics > .panel::after { content: ''; position: absolute; width: 110px; height: 110px; border-radius: 50%; right: -38px; bottom: -46px; background: rgba(40,116,92,.07); }
 .home-metrics > .panel strong { font-family: Georgia, 'Times New Roman', serif; font-size: 46px !important; font-weight: 600; line-height: 1; margin: 5px 0; }
 
+@media (min-width: 921px) {
+  .sidebar { z-index: 40; }
+}
+
 @media (max-width: 1100px) {
   .app { grid-template-columns: 270px minmax(0,1fr); }
   .sidebar { margin-left: 10px; }
@@ -155,5 +158,6 @@ h3 { font-size: 17px; }
     width: min(352px, 92vw);
     height: calc(100dvh - var(--mobile-header-height));
     margin: 0;
+    z-index: 30;
   }
 }
