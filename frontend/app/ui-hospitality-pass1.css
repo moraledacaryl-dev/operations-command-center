@@ -161,3 +161,23 @@ h3 { font-size: 17px; }
     z-index: 30;
   }
 }
+
+/* Grid items default to min-width:auto, which allowed My Work's nested content to
+   enlarge a section (and its topbar) beyond the 390px mobile viewport. Keep mobile
+   work surfaces shrinkable without hiding or removing any actions. */
+@media (max-width: 620px) {
+  .main,
+  .main > .grid,
+  .main > .grid > .panel,
+  .main .topbar,
+  .main .topbar > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .main > .grid,
+  .main > .grid > .panel,
+  .main .topbar {
+    width: 100%;
+  }
+}
