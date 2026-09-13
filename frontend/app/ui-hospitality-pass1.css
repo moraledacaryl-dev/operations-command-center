@@ -9,7 +9,7 @@
   --text: #18241d;
   --text-soft: #34443a;
   --muted: #68756c;
-  --muted-2: #849087;
+  --muted-2: #647168;
   --line: rgba(31, 62, 46, .12);
   --line-strong: rgba(31, 62, 46, .20);
   --soft: #e8eee8;
@@ -81,7 +81,7 @@ body {
 h1 { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(40px, 4vw, 58px); line-height: 1.02; letter-spacing: -.045em; font-weight: 600; margin: 7px 0 8px; }
 h2 { font-size: 23px; line-height: 1.22; letter-spacing: -.025em; }
 h3 { font-size: 17px; }
-.muted { color: #718078; }
+.muted { color: var(--muted); }
 .grid { gap: 20px; }
 
 .panel { border-color: var(--line); border-radius: 24px; padding: 24px; box-shadow: var(--shadow-sm); background: rgba(255,253,248,.94); }
