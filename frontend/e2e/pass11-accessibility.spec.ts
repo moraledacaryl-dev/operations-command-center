@@ -65,15 +65,13 @@ async function seedAuthenticatedShell(page: Page) {
 }
 
 async function expectNoBlockingAxeViolations(page: Page) {
-  // Next metadata can briefly transition while a fresh server-rendered route is
-  // hydrating. Keep document-title fully enforced, but require the title to be
-  // non-empty and stable across two observations before axe reads the DOM.
-  await expect.poll(async () => {
-    const first = await page.title();
-    await page.waitForTimeout(150);
-    const second = await page.title();
-    return first.trim() !== '' && first === second;
-  }, { timeout: 5000 }).toBe(true);
+  // Next can briefly clear document.title while metadata is being applied after
+  // hydration. Wait for a non-empty title, then give the metadata microtask queue
+  // one short settle window before axe reads the DOM. This keeps the title check
+  // enforced without requiring two samples to be byte-identical during that race.
+  await expect.poll(async () => (await page.title()).trim(), { timeout: 5000 }).not.toBe('');
+  await page.waitForTimeout(250);
+  expect((await page.title()).trim()).not.toBe('');
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
