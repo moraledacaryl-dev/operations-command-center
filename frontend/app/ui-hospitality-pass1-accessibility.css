@@ -15,10 +15,14 @@
 .sidebar .brand::after,
 .sidebar .brand strong::before,
 .sidebar .brand strong::after,
+.sidebar .brand small::before,
+.sidebar .brand small::after,
 .mobile-brand::before,
 .mobile-brand::after,
 .mobile-brand strong::before,
-.mobile-brand strong::after {
+.mobile-brand strong::after,
+.mobile-brand small::before,
+.mobile-brand small::after {
   content: none !important;
   display: none !important;
 }
