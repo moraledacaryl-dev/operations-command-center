@@ -80,6 +80,41 @@
     min-height: 220px !important;
   }
 
+  /* Projects need explicit normal-flow stacking because legacy project-card rules positioned metadata over the title. */
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card {
+    min-height: 220px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-rows: max-content !important;
+    align-content: start !important;
+    gap: 12px !important;
+    padding: 26px 28px !important;
+  }
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card > * {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    float: none !important;
+    margin: 0 !important;
+    grid-column: 1 / -1 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card .card-title {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 2px !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.2 !important;
+  }
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card .card-line {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
   /* Service recovery and maintenance cases need even more vertical scanning room. */
   .main:has([data-testid='create-guest']) > .tabs-shell + .grid.cols-3 > .card,
   .main:has([data-testid='create-fix']) > .tabs-shell + .grid.cols-3 > .card {
@@ -110,6 +145,7 @@
     padding: 18px !important;
   }
   .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card,
   .main:has([data-testid='create-guest']) > .tabs-shell + .grid.cols-3 > button.card,
   .main:has([data-testid='create-fix']) > .tabs-shell + .grid.cols-3 > button.card {
     display: grid !important;
@@ -125,6 +161,13 @@
     width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
+  }
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card > * {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    float: none !important;
+    margin: 0 !important;
   }
   .main > .tabs-shell + .grid.cols-3 .card-title {
     display: block !important;
