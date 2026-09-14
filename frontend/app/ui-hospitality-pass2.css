@@ -1,0 +1,203 @@
+/* Pass 2: propagate the hospitality command-center language across the full app.
+   Presentation only. Existing routes, permissions, workflow actions, forms and data remain intact. */
+
+/* Page rhythm and titles */
+.main { max-width: none; }
+.topbar { min-height: 72px; }
+.topbar > div:first-child { min-width: 0; }
+.topbar h1 { text-wrap: balance; }
+.topbar .btn, .topbar .button { box-shadow: 0 10px 24px rgba(27,67,51,.10); }
+
+/* Generic KPI strips used across projects, requests, approvals, review, admin and system views. */
+.topbar + .grid.cols-3,
+.topbar + .grid.cols-4 {
+  gap: 14px;
+  margin-bottom: 22px !important;
+}
+.topbar + .grid.cols-3 > .panel,
+.topbar + .grid.cols-4 > .panel {
+  min-height: 112px;
+  padding: 17px 19px;
+  display: grid;
+  align-content: space-between;
+  border-top: 4px solid rgba(40,116,92,.28);
+  background: linear-gradient(150deg, rgba(255,253,248,.99), rgba(243,247,241,.96));
+  box-shadow: 0 12px 30px rgba(28,44,35,.065);
+}
+.topbar + .grid.cols-3 > .panel h2,
+.topbar + .grid.cols-4 > .panel h2 {
+  margin-top: 10px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 33px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Filters should feel like a control rail, not loose tiny buttons. */
+.tabs-shell { margin-bottom: 18px; }
+.tabs-shell .tabs {
+  width: fit-content;
+  max-width: 100%;
+  padding: 7px;
+  border: 1px solid rgba(40,116,92,.12);
+  background: rgba(255,253,248,.82);
+  box-shadow: 0 8px 24px rgba(28,44,35,.045);
+}
+
+/* List-heavy workspaces: Requests, Projects, Review, Approvals, My Work, Shift and Notifications. */
+.main > .grid:not(.cols-2):not(.cols-3):not(.cols-4) > .row-card,
+.main > .grid:not(.cols-2):not(.cols-3):not(.cols-4) > button.card,
+.main > .grid:not(.cols-2):not(.cols-3):not(.cols-4) > a.card {
+  min-height: 104px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,254,250,.98), rgba(248,246,239,.98));
+  border-color: rgba(31,62,46,.13);
+  box-shadow: 0 9px 24px rgba(28,44,35,.055);
+}
+.row-card {
+  min-height: 96px;
+  padding: 18px 20px;
+  border-radius: 17px;
+  gap: 14px;
+  background: rgba(255,254,250,.96);
+}
+.row-card strong, .card-title { font-size: 17px; line-height: 1.25; }
+.row-card .muted, .card .muted { line-height: 1.45; }
+
+/* Generic populated card grids: avoid tiny database-tile appearance. */
+.main > .grid.cols-2 > .card,
+.main > .grid.cols-3 > .card,
+.main > .grid.cols-4 > .card {
+  min-height: 148px;
+  padding: 21px;
+  align-content: start;
+  background: linear-gradient(145deg, rgba(255,253,248,.98), rgba(246,244,237,.98));
+  box-shadow: 0 10px 28px rgba(28,44,35,.06);
+}
+
+/* Decision/review surfaces. */
+.panel > .grid > .card,
+.panel > .grid > .row-card {
+  border-color: rgba(31,62,46,.12);
+}
+.panel > .grid > .card:hover,
+.panel > .grid > .row-card:hover {
+  border-color: rgba(40,116,92,.30);
+}
+
+/* Tables and admin/system data should remain dense but polished and readable. */
+.table-wrap, .table-shell {
+  overflow: auto;
+  border: 1px solid rgba(31,62,46,.12);
+  border-radius: 20px;
+  background: rgba(255,253,248,.94);
+  box-shadow: 0 12px 32px rgba(28,44,35,.06);
+}
+table { border-collapse: separate; border-spacing: 0; width: 100%; }
+th {
+  padding: 15px 16px;
+  font-size: 11px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: #56665c;
+  background: #f3f2eb;
+  border-bottom: 1px solid rgba(31,62,46,.13);
+}
+td {
+  padding: 15px 16px;
+  border-bottom: 1px solid rgba(31,62,46,.09);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: rgba(227,239,230,.42); }
+
+/* Forms: stronger section identity without inflating every control. */
+.panel:has(.form), .panel:has(.form-grid) {
+  border-color: rgba(40,116,92,.15);
+  background: linear-gradient(145deg, rgba(255,253,248,.98), rgba(248,245,237,.98));
+}
+.panel:has(.form) > h2:first-child,
+.panel:has(.form-grid) > h2:first-child {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 25px;
+  font-weight: 600;
+}
+.form-grid { column-gap: 18px; row-gap: 17px; }
+.label { color: #394a40; font-weight: 650; }
+.input:focus, .select:focus, .textarea:focus {
+  border-color: rgba(40,116,92,.72);
+  box-shadow: 0 0 0 3px rgba(40,116,92,.12);
+}
+
+/* Empty/loading states read as intentional workspace states. */
+.empty, .loading-panel {
+  min-height: 138px;
+  border: 1px dashed rgba(40,116,92,.20);
+  background: linear-gradient(145deg, rgba(255,253,248,.86), rgba(239,244,238,.72));
+}
+
+/* Drawer consistency across all detail/edit workflows. */
+.drawer .panel { box-shadow: 0 10px 28px rgba(28,44,35,.055); }
+.drawer .panel + .panel { margin-top: 14px; }
+.drawer .toolbar { margin-top: 18px; }
+
+/* Property/room cards: reinforce physical-place identity. */
+.room-card, .property-card, [class*='room-card'] {
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 14px 36px rgba(28,44,35,.08);
+}
+
+/* Marketing/content creation: calmer editorial workspace. */
+.marketing-workspace, .marketing-panel, [class*='marketing-'] .panel {
+  border-color: rgba(40,116,92,.13);
+}
+.calendar-grid, [class*='calendar-grid'] { gap: 9px; }
+
+/* Admin and system panels: differentiate operational controls from content cards. */
+.main:has(a[href*='/admin']) .panel,
+.main:has([data-testid*='admin']) .panel {
+  border-color: rgba(31,62,46,.14);
+}
+
+/* Buttons remain role-aware; this only improves visual hierarchy. */
+.btn:not(.secondary):not(.danger) {
+  background: linear-gradient(180deg, #147d61, #0e6d53);
+  border-color: #0e6d53;
+  box-shadow: 0 8px 18px rgba(14,109,83,.14);
+}
+.btn:not(.secondary):not(.danger):hover:not(:disabled) {
+  background: linear-gradient(180deg, #126e56, #0b6049);
+}
+.btn.secondary { background: rgba(255,253,248,.90); }
+
+@media (max-width: 1100px) {
+  .main > .grid.cols-4 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .main > .grid.cols-3 > .card { min-height: 132px; }
+}
+
+@media (max-width: 760px) {
+  .topbar { min-height: 0; margin-bottom: 22px; }
+  .topbar + .grid.cols-3,
+  .topbar + .grid.cols-4 {
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 8px;
+  }
+  .topbar + .grid.cols-3 > .panel,
+  .topbar + .grid.cols-4 > .panel {
+    min-height: 92px;
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .topbar + .grid.cols-3 > .panel h2,
+  .topbar + .grid.cols-4 > .panel h2 { font-size: 27px; }
+  .main > .grid.cols-2,
+  .main > .grid.cols-3,
+  .main > .grid.cols-4 { grid-template-columns: 1fr; }
+  .main > .grid.cols-2 > .card,
+  .main > .grid.cols-3 > .card,
+  .main > .grid.cols-4 > .card { min-height: 0; padding: 18px; }
+  .row-card { min-height: 88px; padding: 16px; }
+  th, td { padding: 13px 12px; }
+}
