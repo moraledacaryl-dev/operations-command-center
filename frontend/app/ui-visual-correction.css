@@ -1,0 +1,209 @@
+/* Visual correction: make operational workspaces feel composed, not like sparse admin pages.
+   Presentation only; workflows, permissions, routes and actions remain unchanged. */
+
+/* Rebalance shell: let the workspace lead while keeping navigation substantial. */
+@media (min-width: 1101px) {
+  .app { grid-template-columns: 270px minmax(0, 1fr); }
+  .main { padding: 42px clamp(34px, 3.2vw, 62px) 76px; }
+}
+
+/* Stronger page masthead. */
+.topbar {
+  position: relative;
+  min-height: 116px;
+  margin-bottom: 24px;
+  padding: 24px 28px;
+  border: 1px solid rgba(31,62,46,.10);
+  border-radius: 26px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 10%, rgba(207,224,210,.66), transparent 18rem),
+    linear-gradient(135deg, rgba(255,253,248,.98), rgba(244,240,229,.94));
+  box-shadow: 0 16px 44px rgba(28,44,35,.07);
+}
+.topbar::after {
+  content: '';
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  right: -92px;
+  bottom: -142px;
+  border: 1px solid rgba(40,116,92,.11);
+  border-radius: 50%;
+  box-shadow: 0 0 0 30px rgba(40,116,92,.028);
+  pointer-events: none;
+}
+.topbar > * { position: relative; z-index: 1; }
+.topbar h1 { font-size: clamp(42px, 4vw, 62px); margin-bottom: 2px; }
+.topbar .eyebrow { color: #557064; font-weight: 750; }
+.topbar > .btn, .topbar > .button { min-width: 128px; }
+
+/* KPI row becomes one coherent operational summary band. */
+.topbar + .grid.cols-3,
+.topbar + .grid.cols-4 {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(31,62,46,.11);
+  border-radius: 23px;
+  background: rgba(255,253,248,.88);
+  box-shadow: 0 12px 34px rgba(28,44,35,.055);
+}
+.topbar + .grid.cols-3 > .panel,
+.topbar + .grid.cols-4 > .panel {
+  min-height: 116px;
+  padding: 20px 24px;
+  border: 0;
+  border-radius: 0;
+  border-right: 1px solid rgba(31,62,46,.10);
+  background: transparent;
+  box-shadow: none;
+}
+.topbar + .grid.cols-3 > .panel:last-child,
+.topbar + .grid.cols-4 > .panel:last-child { border-right: 0; }
+.topbar + .grid.cols-3 > .panel h2,
+.topbar + .grid.cols-4 > .panel h2 {
+  margin-top: 13px;
+  font-size: clamp(36px, 3.1vw, 48px);
+  color: #173126;
+}
+
+/* Status navigation should span the workspace instead of becoming a tiny pill island. */
+.tabs-shell {
+  width: 100%;
+  margin: 24px 0 18px;
+  overflow-x: auto;
+}
+.tabs-shell .tabs {
+  width: 100%;
+  min-width: max-content;
+  justify-content: flex-start;
+  padding: 7px;
+  border-radius: 18px;
+}
+.tabs-shell .tab { min-height: 43px; padding-inline: 17px; }
+
+/* Sparse three-column entity pages: larger editorial cards and useful canvas occupation. */
+.tabs-shell + .grid.cols-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 16px;
+}
+.tabs-shell + .grid.cols-3 > .card {
+  position: relative;
+  min-height: 176px;
+  padding: 24px 25px 22px;
+  border-radius: 22px;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255,254,250,.99), rgba(246,244,236,.97));
+  box-shadow: 0 12px 32px rgba(28,44,35,.065);
+}
+.tabs-shell + .grid.cols-3 > .card::after {
+  content: '';
+  position: absolute;
+  right: -35px;
+  bottom: -46px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(40,116,92,.045);
+  pointer-events: none;
+}
+.tabs-shell + .grid.cols-3 > .card .card-title,
+.tabs-shell + .grid.cols-3 > .card > strong:first-child {
+  max-width: 88%;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -.025em;
+}
+.tabs-shell + .grid.cols-3 > .card .muted { max-width: 92%; font-size: 14px; }
+.tabs-shell + .grid.cols-3 > .empty {
+  grid-column: 1 / -1;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+}
+
+/* Task board: reduce empty warehouse feeling and make lanes visually intentional. */
+.main:has([data-testid='tasks-board']) > .toolbar {
+  margin: 22px 0 16px;
+  padding: 0;
+}
+.main:has([data-testid='tasks-board']) > .toolbar .input {
+  width: min(520px, 100%);
+  min-height: 50px;
+  box-shadow: 0 8px 22px rgba(28,44,35,.04);
+}
+[data-testid='tasks-board'] {
+  gap: 12px;
+  padding: 12px;
+  border-radius: 24px;
+  background: rgba(225,223,214,.62);
+}
+[data-testid='tasks-board'] > .panel {
+  min-height: 300px;
+  padding: 17px;
+  border-radius: 18px;
+}
+[data-testid='tasks-board'] > .panel > .card-line:first-child {
+  min-height: 38px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid rgba(31,62,46,.09);
+}
+[data-testid='tasks-board'] .card {
+  min-height: 128px;
+  padding: 18px;
+  border-radius: 17px;
+}
+[data-testid='tasks-board'] .card > strong:first-child { font-size: 16px; line-height: 1.35; }
+[data-testid='tasks-board'] .empty {
+  min-height: 150px;
+  border-radius: 15px;
+  color: #7b877f;
+}
+
+/* Generic operational rows should read like actionable records, not database rows. */
+.row-card {
+  border-left: 4px solid rgba(40,116,92,.18);
+}
+.row-card:hover { border-left-color: rgba(40,116,92,.55); }
+
+/* Improve hierarchy in drawers without changing their content. */
+.drawer { width: min(800px, 96vw); }
+.drawer > .panel:first-of-type,
+.drawer .drawer-body > .panel:first-of-type {
+  background: linear-gradient(145deg, #fffdf8, #f0f5ef);
+}
+.drawer h2 { font-size: 27px; }
+
+@media (max-width: 1100px) {
+  .topbar { min-height: 104px; padding: 22px; }
+  .tabs-shell + .grid.cols-3 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    min-height: 0;
+    padding: 20px;
+    border-radius: 21px;
+  }
+  .topbar h1 { font-size: 39px; }
+  .topbar + .grid.cols-3,
+  .topbar + .grid.cols-4 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    border-radius: 18px;
+  }
+  .topbar + .grid.cols-3 > .panel,
+  .topbar + .grid.cols-4 > .panel {
+    min-height: 88px;
+    padding: 12px;
+  }
+  .topbar + .grid.cols-3 > .panel h2,
+  .topbar + .grid.cols-4 > .panel h2 { font-size: 28px; }
+  .tabs-shell + .grid.cols-3 > .card { min-height: 0; padding: 20px; }
+  [data-testid='tasks-board'] { padding: 8px; }
+  [data-testid='tasks-board'] > .panel { min-height: 0; }
+}
