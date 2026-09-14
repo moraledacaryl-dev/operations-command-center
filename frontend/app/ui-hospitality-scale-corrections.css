@@ -1,0 +1,72 @@
+/* Final scale corrections: override older workspace rules that re-compress list/card surfaces. */
+
+@media (min-width: 1101px) {
+  .main .topbar h1 { font-size: clamp(46px, 4.1vw, 62px) !important; line-height: .98 !important; }
+
+  /* Any status-tabbed three-column workspace is a real card workspace, not a faux table. */
+  .main > .tabs-shell + .grid.cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 22px !important;
+    align-items: stretch !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card,
+  .main > .tabs-shell + .grid.cols-3 > button.card,
+  .main > .tabs-shell + .grid.cols-3 > a.card {
+    min-height: 205px !important;
+    padding: 26px 28px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-content: start !important;
+    gap: 15px !important;
+    border-radius: 22px !important;
+    text-align: left !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card .card-title,
+  .main > .tabs-shell + .grid.cols-3 > button.card .card-title {
+    font-size: 21px !important;
+    line-height: 1.18 !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card .muted,
+  .main > .tabs-shell + .grid.cols-3 > button.card .muted {
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+  }
+
+  /* Requests always use proposal cards after their status rail. */
+  .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3 > button.card {
+    min-height: 220px !important;
+  }
+
+  /* Service recovery and maintenance cases need even more vertical scanning room. */
+  .main:has([data-testid='create-guest']) > .tabs-shell + .grid.cols-3 > .card,
+  .main:has([data-testid='create-fix']) > .tabs-shell + .grid.cols-3 > .card {
+    min-height: 230px !important;
+  }
+
+  /* Sparse generic workspaces should still use the canvas instead of collapsing into thin rows. */
+  .main > .grid.cols-3 > .row-card,
+  .main > .grid.cols-3 > button.row-card,
+  .main > .grid.cols-3 > a.row-card {
+    min-height: 150px !important;
+    padding: 24px 26px !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  .main > .tabs-shell + .grid.cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .main > .tabs-shell + .grid.cols-3 { grid-template-columns: 1fr !important; }
+  .main > .tabs-shell + .grid.cols-3 > .card,
+  .main > .tabs-shell + .grid.cols-3 > button.card,
+  .main > .tabs-shell + .grid.cols-3 > a.card {
+    min-height: 0 !important;
+    padding: 18px !important;
+  }
+}
