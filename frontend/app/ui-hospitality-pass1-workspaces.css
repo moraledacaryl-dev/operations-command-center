@@ -1,0 +1,195 @@
+/* Pass 1 representative workspace acceptance layer.
+   Loaded last so the redesigned operational scale wins over legacy page rules.
+   Presentation only: no workflow, role, form, or data behavior is changed. */
+
+/* Shared operational summary strip */
+body:has([data-testid='tasks-board']) .main > .grid.cols-3:first-of-type,
+body:has([data-testid='create-guest']) .main > .grid.cols-3:first-of-type,
+body:has([data-testid='create-fix']) .main > .grid.cols-3:first-of-type {
+  gap: 14px !important;
+  margin-bottom: 22px !important;
+  max-width: 780px;
+}
+body:has([data-testid='tasks-board']) .main > .grid.cols-3:first-of-type > .panel,
+body:has([data-testid='create-guest']) .main > .grid.cols-3:first-of-type > .panel,
+body:has([data-testid='create-fix']) .main > .grid.cols-3:first-of-type > .panel {
+  min-height: 116px !important;
+  padding: 17px 19px !important;
+  display: grid !important;
+  align-content: space-between !important;
+  border-top: 4px solid rgba(40,116,92,.32) !important;
+  background: linear-gradient(150deg, #fffdf8 0%, #f3f7f1 100%) !important;
+  box-shadow: 0 12px 30px rgba(28,44,35,.07) !important;
+}
+body:has([data-testid='tasks-board']) .main > .grid.cols-3:first-of-type > .panel h2,
+body:has([data-testid='create-guest']) .main > .grid.cols-3:first-of-type > .panel h2,
+body:has([data-testid='create-fix']) .main > .grid.cols-3:first-of-type > .panel h2 {
+  margin-top: 12px !important;
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 34px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
+}
+
+/* Tasks: a real command board rather than a compressed admin strip. */
+body:has([data-testid='tasks-board']) .main > .toolbar {
+  margin-bottom: 18px;
+}
+body:has([data-testid='tasks-board']) .main > .toolbar .input {
+  width: min(460px, 100%);
+}
+[data-testid='tasks-board'] {
+  gap: 16px !important;
+  padding: 18px !important;
+  min-height: 490px !important;
+  align-items: stretch !important;
+  border-radius: 28px !important;
+  background: linear-gradient(145deg, rgba(232,236,228,.78), rgba(239,233,220,.72)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 18px 42px rgba(28,44,35,.06) !important;
+}
+[data-testid='tasks-board'] > .panel {
+  min-height: 450px !important;
+  height: auto !important;
+  padding: 20px !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 24px rgba(28,44,35,.055) !important;
+}
+[data-testid='tasks-board'] > .panel:nth-child(1) { background: linear-gradient(180deg, #f6faf7, #eef5f1) !important; }
+[data-testid='tasks-board'] > .panel:nth-child(2) { background: linear-gradient(180deg, #f3f8fa, #edf4f7) !important; }
+[data-testid='tasks-board'] > .panel:nth-child(3) { background: linear-gradient(180deg, #faf7fc, #f3eef7) !important; }
+[data-testid='tasks-board'] > .panel:nth-child(4) { background: linear-gradient(180deg, #f4faf5, #edf6ef) !important; }
+[data-testid='tasks-board'] > .panel > .card-line h2 {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+}
+[data-testid='tasks-board'] .card {
+  min-height: 132px !important;
+  height: auto !important;
+  padding: 18px !important;
+  gap: 10px !important;
+  border-radius: 17px !important;
+  background: rgba(255,254,251,.96) !important;
+}
+[data-testid='tasks-board'] .card > strong {
+  font-size: 16px;
+  line-height: 1.3;
+}
+[data-testid='tasks-board'] .empty {
+  min-height: 132px !important;
+}
+
+/* Guest service recovery: larger two-column matter cards with warmer hospitality surfaces. */
+body:has([data-testid='create-guest']) .tabs {
+  margin: 0 0 20px !important;
+  padding: 7px !important;
+  border: 1px solid rgba(40,116,92,.13) !important;
+  background: rgba(255,253,248,.82) !important;
+  box-shadow: 0 8px 24px rgba(28,44,35,.045);
+}
+body:has([data-testid='create-guest']) .tabs + .grid.cols-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 20px !important;
+}
+body:has([data-testid='create-guest']) .tabs + .grid.cols-3 > .card {
+  min-height: 210px !important;
+  height: auto !important;
+  padding: 24px !important;
+  gap: 13px !important;
+  align-content: start !important;
+  border-top: 4px solid rgba(40,116,92,.46) !important;
+  background: linear-gradient(145deg, #fffdf8 0%, #f7f1e6 100%) !important;
+  box-shadow: 0 14px 34px rgba(28,44,35,.07) !important;
+}
+body:has([data-testid='create-guest']) .tabs + .grid.cols-3 > .card.card-important {
+  border-top-color: #a84742 !important;
+  background: linear-gradient(145deg, #fffaf6 0%, #fbefea 100%) !important;
+}
+body:has([data-testid='create-guest']) .tabs + .grid.cols-3 .card-title {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 22px !important;
+  line-height: 1.15 !important;
+}
+
+/* Maintenance: substantial work orders that read like property operations, not database rows. */
+body:has([data-testid='create-fix']) .tabs {
+  margin: 0 0 20px !important;
+  padding: 7px !important;
+  border: 1px solid rgba(40,116,92,.13) !important;
+  background: rgba(255,253,248,.82) !important;
+  box-shadow: 0 8px 24px rgba(28,44,35,.045);
+}
+body:has([data-testid='create-fix']) .tabs + .grid.cols-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 20px !important;
+}
+body:has([data-testid='create-fix']) .tabs + .grid.cols-3 > .card {
+  min-height: 196px !important;
+  height: auto !important;
+  padding: 24px !important;
+  gap: 13px !important;
+  align-content: start !important;
+  border-top: 4px solid rgba(70,105,84,.5) !important;
+  background: linear-gradient(145deg, #fffdf8 0%, #edf4ee 100%) !important;
+  box-shadow: 0 14px 34px rgba(28,44,35,.07) !important;
+}
+body:has([data-testid='create-fix']) .tabs + .grid.cols-3 > .card.card-important {
+  border-top-color: #a84742 !important;
+  background: linear-gradient(145deg, #fffaf6 0%, #f7ece6 100%) !important;
+}
+body:has([data-testid='create-fix']) .tabs + .grid.cols-3 .card-title {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 21px !important;
+  line-height: 1.18 !important;
+}
+
+@media (max-width: 1100px) {
+  [data-testid='tasks-board'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  body:has([data-testid='create-guest']) .tabs + .grid.cols-3,
+  body:has([data-testid='create-fix']) .tabs + .grid.cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body:has([data-testid='tasks-board']) .main > .grid.cols-3:first-of-type,
+  body:has([data-testid='create-guest']) .main > .grid.cols-3:first-of-type,
+  body:has([data-testid='create-fix']) .main > .grid.cols-3:first-of-type {
+    max-width: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  body:has([data-testid='tasks-board']) .main > .grid.cols-3:first-of-type > .panel,
+  body:has([data-testid='create-guest']) .main > .grid.cols-3:first-of-type > .panel,
+  body:has([data-testid='create-fix']) .main > .grid.cols-3:first-of-type > .panel {
+    min-height: 96px !important;
+    padding: 13px !important;
+    border-radius: 16px !important;
+  }
+  body:has([data-testid='tasks-board']) .main > .grid.cols-3:first-of-type > .panel h2,
+  body:has([data-testid='create-guest']) .main > .grid.cols-3:first-of-type > .panel h2,
+  body:has([data-testid='create-fix']) .main > .grid.cols-3:first-of-type > .panel h2 {
+    font-size: 28px !important;
+  }
+  [data-testid='tasks-board'] {
+    grid-template-columns: 1fr !important;
+    min-height: 0 !important;
+    padding: 10px !important;
+    gap: 12px !important;
+  }
+  [data-testid='tasks-board'] > .panel {
+    min-height: 0 !important;
+    padding: 16px !important;
+  }
+  [data-testid='tasks-board'] .card,
+  [data-testid='tasks-board'] .empty {
+    min-height: 112px !important;
+  }
+  body:has([data-testid='create-guest']) .tabs + .grid.cols-3 > .card,
+  body:has([data-testid='create-fix']) .tabs + .grid.cols-3 > .card {
+    min-height: 0 !important;
+    padding: 19px !important;
+  }
+}

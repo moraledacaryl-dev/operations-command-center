@@ -1,5 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const routes = [
   '/',
@@ -64,20 +66,41 @@ async function seedAuthenticatedShell(page: Page) {
   });
 }
 
-async function expectNoBlockingAxeViolations(page: Page) {
-  // Next metadata can briefly transition while a fresh server-rendered route is
-  // hydrating. Keep document-title fully enforced, but require the title to be
-  // non-empty and stable across two observations before axe reads the DOM.
-  await expect.poll(async () => {
-    const first = await page.title();
-    await page.waitForTimeout(150);
-    const second = await page.title();
-    return first.trim() !== '' && first === second;
-  }, { timeout: 5000 }).toBe(true);
+function persistAxeFailure(label: string, blocking: Awaited<ReturnType<AxeBuilder['analyze']>>['violations']) {
+  if (!blocking.length) return;
+  const outputDir = join(process.cwd(), 'test-results', 'ui-audit');
+  mkdirSync(outputDir, { recursive: true });
+  const safeLabel = label.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'page';
+  writeFileSync(
+    join(outputDir, `axe-${safeLabel}.json`),
+    JSON.stringify(blocking.map(violation => ({
+      id: violation.id,
+      impact: violation.impact,
+      help: violation.help,
+      description: violation.description,
+      helpUrl: violation.helpUrl,
+      nodes: violation.nodes.map(node => ({
+        target: node.target,
+        html: node.html,
+        failureSummary: node.failureSummary,
+      })),
+    })), null, 2),
+  );
+}
+
+async function expectNoBlockingAxeViolations(page: Page, label: string) {
+  // Next can briefly clear document.title while metadata is being applied after
+  // hydration. Wait for a non-empty title, then give the metadata microtask queue
+  // one short settle window before axe reads the DOM. This keeps the title check
+  // enforced without requiring two samples to be byte-identical during that race.
+  await expect.poll(async () => (await page.title()).trim(), { timeout: 5000 }).not.toBe('');
+  await page.waitForTimeout(250);
+  expect((await page.title()).trim()).not.toBe('');
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
   const blocking = result.violations.filter(violation => violation.impact === 'critical' || violation.impact === 'serious');
+  persistAxeFailure(label, blocking);
   expect(
     blocking,
     blocking.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(', ')}`).join('\n'),
@@ -88,7 +111,7 @@ test('login is free of critical/serious WCAG violations', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: 'Operations' })).toBeVisible();
-  await expectNoBlockingAxeViolations(page);
+  await expectNoBlockingAxeViolations(page, 'login-mobile-320');
 });
 
 for (const viewport of viewports) {
@@ -99,7 +122,7 @@ for (const viewport of viewports) {
       await page.goto(path);
       await expect(page.locator('body')).toBeVisible();
       await expect(page.locator('#__next_error__')).toHaveCount(0);
-      await expectNoBlockingAxeViolations(page);
+      await expectNoBlockingAxeViolations(page, `${path}-${viewport.name}`);
     });
   }
 }
