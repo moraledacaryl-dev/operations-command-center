@@ -1,0 +1,5 @@
+/* Final Pass 1 accessibility token adjustment.
+   Keeps muted copy compliant on warm/pale status surfaces without changing layout. */
+:root {
+  --muted: #626e65;
+}
