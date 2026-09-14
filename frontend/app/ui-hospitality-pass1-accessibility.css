@@ -1,5 +1,39 @@
-/* Final Pass 1 accessibility token adjustment.
-   Keeps muted copy compliant on warm/pale status surfaces without changing layout. */
+/* Final Pass 1 accessibility and shell-polish overrides.
+   Keeps muted copy compliant on warm/pale status surfaces and prevents legacy
+   brand decoration from obscuring the canonical AppShell identity. */
 :root {
   --muted: #626e65;
+}
+
+.sidebar .brand {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+.sidebar .brand::before,
+.sidebar .brand::after,
+.sidebar .brand strong::before,
+.sidebar .brand strong::after,
+.mobile-brand::before,
+.mobile-brand::after,
+.mobile-brand strong::before,
+.mobile-brand strong::after {
+  content: none !important;
+  display: none !important;
+}
+.sidebar .brand > div:last-child,
+.mobile-brand > span:last-child {
+  min-width: 0;
+}
+.sidebar .brand strong,
+.sidebar .brand small,
+.mobile-brand strong,
+.mobile-brand small {
+  position: static !important;
+  opacity: 1 !important;
+  text-indent: 0 !important;
+}
+.mobile-brand {
+  gap: 10px;
 }
