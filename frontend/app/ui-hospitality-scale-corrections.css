@@ -109,10 +109,34 @@
     min-height: 0 !important;
     padding: 18px !important;
   }
+  .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-guest']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-fix']) > .tabs-shell + .grid.cols-3 > button.card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    align-content: start !important;
+    gap: 12px !important;
+  }
   .main > .tabs-shell + .grid.cols-3 > .card > *,
   .main > .tabs-shell + .grid.cols-3 > button.card > *,
   .main > .tabs-shell + .grid.cols-3 > a.card > * {
+    grid-column: 1 / -1 !important;
+    width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 .card-title {
+    display: block !important;
+    width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 .card-line {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
   }
 }
