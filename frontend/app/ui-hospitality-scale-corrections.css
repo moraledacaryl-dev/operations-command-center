@@ -183,3 +183,37 @@
     gap: 8px !important;
   }
 }
+
+/* Final defensive reset: operational button cards must remain normal-flow stacks even when an older page-specific stylesheet used positioned metadata. This intentionally targets only direct button cards in three-column operational grids; KPI panels and drawers are unaffected. */
+.main > .grid.cols-3 > button.card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  text-align: left !important;
+}
+.main > .grid.cols-3 > button.card > * {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  float: none !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+.main > .grid.cols-3 > button.card > .card-title {
+  display: block !important;
+  width: 100% !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+}
+.main > .grid.cols-3 > button.card > .card-line {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
