@@ -24,6 +24,7 @@ import './ui-readability.css';
 import './ui-marketing-calendar.css';
 import './ui-hospitality-pass1.css';
 import './ui-hospitality-pass1-accessibility.css';
+import './ui-hospitality-pass1-workspaces.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { PropertyMediaSync } from '@/components/PropertyMediaSync';
