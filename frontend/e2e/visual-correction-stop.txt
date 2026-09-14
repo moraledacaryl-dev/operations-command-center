@@ -1,0 +1,1 @@
+Stop after concrete visual defects are resolved and gates pass.
