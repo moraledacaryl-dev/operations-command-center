@@ -1,0 +1,121 @@
+/* Structural selector correction for Pass 1 representative workspaces.
+   Tabs renders a .tabs-shell wrapper and Top renders .topbar before summary grids. */
+
+body:has([data-testid='tasks-board']) .topbar + .grid.cols-3,
+body:has([data-testid='create-guest']) .topbar + .grid.cols-3,
+body:has([data-testid='create-fix']) .topbar + .grid.cols-3 {
+  gap: 14px !important;
+  margin-bottom: 22px !important;
+  max-width: 780px;
+}
+body:has([data-testid='tasks-board']) .topbar + .grid.cols-3 > .panel,
+body:has([data-testid='create-guest']) .topbar + .grid.cols-3 > .panel,
+body:has([data-testid='create-fix']) .topbar + .grid.cols-3 > .panel {
+  min-height: 116px !important;
+  padding: 17px 19px !important;
+  display: grid !important;
+  align-content: space-between !important;
+  border-top: 4px solid rgba(40,116,92,.32) !important;
+  background: linear-gradient(150deg, #fffdf8 0%, #f3f7f1 100%) !important;
+  box-shadow: 0 12px 30px rgba(28,44,35,.07) !important;
+}
+body:has([data-testid='tasks-board']) .topbar + .grid.cols-3 > .panel h2,
+body:has([data-testid='create-guest']) .topbar + .grid.cols-3 > .panel h2,
+body:has([data-testid='create-fix']) .topbar + .grid.cols-3 > .panel h2 {
+  margin-top: 12px !important;
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 34px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
+}
+
+body:has([data-testid='create-guest']) .tabs-shell,
+body:has([data-testid='create-fix']) .tabs-shell {
+  margin: 0 0 20px !important;
+}
+body:has([data-testid='create-guest']) .tabs-shell .tabs,
+body:has([data-testid='create-fix']) .tabs-shell .tabs {
+  padding: 7px !important;
+  border: 1px solid rgba(40,116,92,.13) !important;
+  background: rgba(255,253,248,.82) !important;
+  box-shadow: 0 8px 24px rgba(28,44,35,.045);
+}
+
+body:has([data-testid='create-guest']) .tabs-shell + .grid.cols-3,
+body:has([data-testid='create-fix']) .tabs-shell + .grid.cols-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 20px !important;
+}
+body:has([data-testid='create-guest']) .tabs-shell + .grid.cols-3 > .card {
+  min-height: 210px !important;
+  height: auto !important;
+  padding: 24px !important;
+  gap: 13px !important;
+  align-content: start !important;
+  border-top: 4px solid rgba(40,116,92,.46) !important;
+  background: linear-gradient(145deg, #fffdf8 0%, #f7f1e6 100%) !important;
+  box-shadow: 0 14px 34px rgba(28,44,35,.07) !important;
+}
+body:has([data-testid='create-guest']) .tabs-shell + .grid.cols-3 > .card.card-important {
+  border-top-color: #a84742 !important;
+  background: linear-gradient(145deg, #fffaf6 0%, #fbefea 100%) !important;
+}
+body:has([data-testid='create-guest']) .tabs-shell + .grid.cols-3 .card-title {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 22px !important;
+  line-height: 1.15 !important;
+}
+
+body:has([data-testid='create-fix']) .tabs-shell + .grid.cols-3 > .card {
+  min-height: 196px !important;
+  height: auto !important;
+  padding: 24px !important;
+  gap: 13px !important;
+  align-content: start !important;
+  border-top: 4px solid rgba(70,105,84,.5) !important;
+  background: linear-gradient(145deg, #fffdf8 0%, #edf4ee 100%) !important;
+  box-shadow: 0 14px 34px rgba(28,44,35,.07) !important;
+}
+body:has([data-testid='create-fix']) .tabs-shell + .grid.cols-3 > .card.card-important {
+  border-top-color: #a84742 !important;
+  background: linear-gradient(145deg, #fffaf6 0%, #f7ece6 100%) !important;
+}
+body:has([data-testid='create-fix']) .tabs-shell + .grid.cols-3 .card-title {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 21px !important;
+  line-height: 1.18 !important;
+}
+
+@media (max-width: 1100px) {
+  body:has([data-testid='create-guest']) .tabs-shell + .grid.cols-3,
+  body:has([data-testid='create-fix']) .tabs-shell + .grid.cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body:has([data-testid='tasks-board']) .topbar + .grid.cols-3,
+  body:has([data-testid='create-guest']) .topbar + .grid.cols-3,
+  body:has([data-testid='create-fix']) .topbar + .grid.cols-3 {
+    max-width: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  body:has([data-testid='tasks-board']) .topbar + .grid.cols-3 > .panel,
+  body:has([data-testid='create-guest']) .topbar + .grid.cols-3 > .panel,
+  body:has([data-testid='create-fix']) .topbar + .grid.cols-3 > .panel {
+    min-height: 96px !important;
+    padding: 13px !important;
+    border-radius: 16px !important;
+  }
+  body:has([data-testid='tasks-board']) .topbar + .grid.cols-3 > .panel h2,
+  body:has([data-testid='create-guest']) .topbar + .grid.cols-3 > .panel h2,
+  body:has([data-testid='create-fix']) .topbar + .grid.cols-3 > .panel h2 {
+    font-size: 28px !important;
+  }
+  body:has([data-testid='create-guest']) .tabs-shell + .grid.cols-3 > .card,
+  body:has([data-testid='create-fix']) .tabs-shell + .grid.cols-3 > .card {
+    min-height: 0 !important;
+    padding: 19px !important;
+  }
+}
