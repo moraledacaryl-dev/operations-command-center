@@ -3,6 +3,24 @@
 @media (min-width: 1101px) {
   .main .topbar h1 { font-size: clamp(46px, 4.1vw, 62px) !important; line-height: .98 !important; }
 
+  /* KPI bands must win against older compact workspace overrides. */
+  .main > .topbar + .grid.cols-3,
+  .main > .topbar + .grid.cols-4 {
+    gap: 18px !important;
+    margin-bottom: 28px !important;
+  }
+  .main > .topbar + .grid.cols-3 > .panel,
+  .main > .topbar + .grid.cols-4 > .panel {
+    min-height: 132px !important;
+    padding: 22px 24px !important;
+  }
+  .main > .topbar + .grid.cols-3 > .panel h2,
+  .main > .topbar + .grid.cols-4 > .panel h2 {
+    margin-top: 14px !important;
+    font-size: 42px !important;
+    line-height: 1 !important;
+  }
+
   /* Any status-tabbed three-column workspace is a real card workspace, not a faux table. */
   .main > .tabs-shell + .grid.cols-3 {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -15,19 +33,41 @@
     min-height: 205px !important;
     padding: 26px 28px !important;
     display: grid !important;
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
     align-content: start !important;
     gap: 15px !important;
     border-radius: 22px !important;
     text-align: left !important;
   }
+  .main > .tabs-shell + .grid.cols-3 > .card > *,
+  .main > .tabs-shell + .grid.cols-3 > button.card > *,
+  .main > .tabs-shell + .grid.cols-3 > a.card > * {
+    grid-column: 1 / -1 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
   .main > .tabs-shell + .grid.cols-3 > .card .card-title,
   .main > .tabs-shell + .grid.cols-3 > button.card .card-title {
+    display: block !important;
+    width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
     font-size: 21px !important;
     line-height: 1.18 !important;
   }
+  .main > .tabs-shell + .grid.cols-3 > .card .card-line,
+  .main > .tabs-shell + .grid.cols-3 > button.card .card-line {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
   .main > .tabs-shell + .grid.cols-3 > .card .muted,
   .main > .tabs-shell + .grid.cols-3 > button.card .muted {
+    display: block !important;
     font-size: 15px !important;
     line-height: 1.55 !important;
   }
@@ -68,5 +108,11 @@
   .main > .tabs-shell + .grid.cols-3 > a.card {
     min-height: 0 !important;
     padding: 18px !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card > *,
+  .main > .tabs-shell + .grid.cols-3 > button.card > *,
+  .main > .tabs-shell + .grid.cols-3 > a.card > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
 }
