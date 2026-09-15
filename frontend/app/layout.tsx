@@ -29,6 +29,7 @@ import './ui-hospitality-pass1-workspaces-final.css';
 import './ui-hospitality-pass2.css';
 import './ui-hospitality-scale-pass.css';
 import './ui-hospitality-scale-corrections.css';
+import './ui-hospitality-project-card-final.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/AppShell';
 import { PropertyMediaSync } from '@/components/PropertyMediaSync';
