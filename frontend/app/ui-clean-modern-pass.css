@@ -22,7 +22,6 @@ body { color: var(--clean-text); }
   background-image: none !important;
 }
 
-/* Solid, quiet surfaces replace the accumulated cream/green gradients. */
 .panel,
 .card,
 .row-card,
@@ -45,7 +44,6 @@ body { color: var(--clean-text); }
   box-shadow: var(--clean-shadow);
 }
 
-/* Typography: preserve serif character for page titles only; operational text stays crisp. */
 body { font-size: 16px; }
 .muted { color: var(--clean-muted); font-size: 14px; }
 .card-line,
@@ -57,7 +55,6 @@ body { font-size: 16px; }
 th { font-size: 12px; letter-spacing: .055em; }
 td { font-size: 15px; }
 
-/* KPI cards: clear numbers without ornamental strips or gradients. */
 .topbar + .grid.cols-3 > .panel,
 .topbar + .grid.cols-4 > .panel {
   border-top: 1px solid var(--clean-border) !important;
@@ -70,7 +67,6 @@ td { font-size: 15px; }
   color: var(--clean-text);
 }
 
-/* Home hero: calm command surface instead of decorative gradient artwork. */
 .main:has(.home-metrics) > section.panel:first-of-type {
   position: relative;
   overflow: hidden;
@@ -89,16 +85,26 @@ td { font-size: 15px; }
   max-width: 820px;
 }
 
-/* Navigation keeps brand identity, while reducing visual heaviness. */
+/* Keep navigation dark, but explicitly preserve readable light foregrounds.
+   Earlier generic text rules must never bleed into the sidebar. */
 .sidebar {
   background: #173c30 !important;
   background-image: none !important;
+  color: #f5f7f2 !important;
   box-shadow: 0 14px 40px rgba(17, 48, 38, .13);
 }
 .sidebar a,
+.sidebar button,
+.sidebar summary,
+.sidebar strong { color: #f5f7f2 !important; }
+.sidebar a,
 .sidebar button { font-size: 14px; }
+.sidebar .muted,
+.sidebar label > span,
+.sidebar .dept-switch span { color: #d7e2dc !important; }
+.sidebar summary { font-size: 13px; }
+.sidebar .dept-switch label > span { font-size: 12px; }
 
-/* Controls: solid brand color, minimal shadow, no button gradients. */
 .btn:not(.secondary):not(.danger) {
   background: var(--clean-green) !important;
   background-image: none !important;
@@ -117,11 +123,9 @@ td { font-size: 15px; }
 .tabs-shell .tabs { box-shadow: none; }
 .tab.active { box-shadow: none; }
 
-/* Tables remain readable and neutral. */
 th { background: var(--clean-surface-soft); color: #53645a; }
 tbody tr:hover td { background: #f5f7f3; }
 
-/* Empty states are quiet, not washed with gradients. */
 .empty,
 .loading-panel {
   background: #fafbf8 !important;
@@ -143,6 +147,9 @@ tbody tr:hover td { background: #f5f7f3; }
 @media (max-width: 760px) {
   html, body, .main { background: var(--clean-canvas); }
   .muted, .card-line, .row-card .muted, .card .muted { font-size: 13.5px; }
+  .sidebar .muted,
+  .sidebar label > span,
+  .sidebar .dept-switch span { color: #d7e2dc !important; }
   .tab { font-size: 13.5px; }
   .topbar + .grid.cols-3 > .panel,
   .topbar + .grid.cols-4 > .panel { min-height: 96px; }
