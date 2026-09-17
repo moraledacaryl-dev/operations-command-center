@@ -1,0 +1,127 @@
+/* Visual scale correction: make the command center fill the working canvas and read as an operational product, not a compact admin template. Presentation only. */
+
+@media (min-width: 1101px) {
+  .app { grid-template-columns: 268px minmax(0, 1fr); }
+  .sidebar { margin: 12px 0 12px 12px; height: calc(100vh - 24px); padding: 20px 16px; }
+  .main { padding: 44px 54px 82px 48px; width: 100%; max-width: none; margin: 0; }
+
+  .topbar { min-height: 88px; margin-bottom: 32px; align-items: flex-start; }
+  .topbar h1, h1 { font-size: clamp(46px, 4.2vw, 64px); line-height: .98; }
+  .topbar .muted { max-width: 860px; font-size: 16px; }
+  h2 { font-size: 25px; }
+  h3 { font-size: 18px; }
+  body { font-size: 16px; }
+
+  .panel { padding: 28px; border-radius: 26px; }
+  .card { padding: 22px; border-radius: 20px; }
+  .card-title, .row-card strong { font-size: 18px; }
+  .card-line { font-size: 13px; gap: 10px; }
+  .muted { line-height: 1.55; }
+  .pill { min-height: 30px; padding: 5px 11px; font-size: 12px; }
+  .btn { min-height: 48px; padding: 12px 18px; font-size: 14px; border-radius: 13px; }
+  .btn.small { min-height: 40px; }
+  .input, .select, .textarea { min-height: 50px; font-size: 15px; }
+  .tabs-shell { margin-bottom: 24px; }
+  .tabs-shell .tabs { padding: 8px; gap: 8px; }
+  .tab { min-height: 44px; padding: 10px 15px; }
+
+  /* KPI bands should be visually consequential. */
+  .topbar + .grid.cols-3,
+  .topbar + .grid.cols-4 { gap: 18px; margin-bottom: 28px !important; }
+  .topbar + .grid.cols-3 > .panel,
+  .topbar + .grid.cols-4 > .panel { min-height: 150px; padding: 24px 26px; }
+  .topbar + .grid.cols-3 > .panel h2,
+  .topbar + .grid.cols-4 > .panel h2 { font-size: 44px; margin-top: 18px; }
+
+  /* Generic operational cards use the available width and carry enough visual weight. */
+  .main > .grid.cols-2,
+  .main > .grid.cols-3,
+  .main > .grid.cols-4 { gap: 22px; }
+  .main > .grid.cols-2 > .card,
+  .main > .grid.cols-3 > .card,
+  .main > .grid.cols-4 > .card { min-height: 190px; padding: 26px; }
+  .row-card { min-height: 120px; padding: 22px 24px; }
+
+  /* Requests: deliberately larger proposal cards instead of tiny database rows. */
+  .main:has([data-testid='create-request']) > .grid.cols-3:last-of-type {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+  }
+  .main:has([data-testid='create-request']) > .grid.cols-3:last-of-type > .card {
+    min-height: 210px;
+    padding: 28px;
+    align-content: start;
+    gap: 16px;
+  }
+  .main:has([data-testid='create-request']) > .grid.cols-3:last-of-type .card-title { font-size: 21px; }
+  .main:has([data-testid='create-request']) > .grid.cols-3:last-of-type .muted { font-size: 15px; max-width: 62ch; }
+
+  /* Four-lane task board becomes a true working surface. */
+  [data-testid='tasks-board'] { min-height: 590px; gap: 18px; padding: 18px; }
+  [data-testid='tasks-board'] > .panel { min-height: 550px; padding: 22px; }
+  [data-testid='tasks-board'] .card { min-height: 150px; padding: 20px; }
+  [data-testid='tasks-board'] > .panel > .card-line h2 { font-size: 21px; }
+
+  /* Guest and maintenance records should scan like active service cases. */
+  .main:has([data-testid='create-guest']) .tabs-shell + .grid.cols-3,
+  .main:has([data-testid='create-fix']) .tabs-shell + .grid.cols-3,
+  .main:has([data-testid='create-guest']) .tabs + .grid.cols-3,
+  .main:has([data-testid='create-fix']) .tabs + .grid.cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+  }
+  .main:has([data-testid='create-guest']) .grid.cols-3 > .card,
+  .main:has([data-testid='create-fix']) .grid.cols-3 > .card { min-height: 220px; padding: 28px; }
+
+  /* Home: make the command view occupy the viewport with stronger hierarchy. */
+  .main:has(.home-metrics) > section.panel:first-of-type { min-height: 250px; padding: 40px 42px; margin-bottom: 26px; }
+  .main:has(.home-metrics) > section.panel:first-of-type h2 { font-size: clamp(36px, 3vw, 50px); max-width: 900px; }
+  .home-metrics { gap: 20px; }
+  .home-metrics > .panel { min-height: 185px; padding: 28px; }
+  .home-metrics > .panel strong { font-size: 54px !important; }
+  .main:has(.home-metrics) .grid.cols-2 > .panel { min-height: 300px; }
+
+  /* Rooms/property surfaces need a stronger physical-property presence. */
+  .room-card, .property-card, [class*='room-card'] { min-height: 225px; }
+
+  /* Decision and review queues read as full operational surfaces. */
+  .main > .panel + .panel,
+  .main > .tabs-shell + .panel { margin-top: 20px; }
+  .table-wrap, .table-shell { border-radius: 22px; }
+  th { padding: 17px 18px; font-size: 12px; }
+  td { padding: 18px; font-size: 15px; }
+
+  /* Drawers should feel like proper detail workspaces. */
+  .drawer { width: min(860px, 94vw); padding: 34px; }
+  .drawer-head { margin: -34px -34px 28px; padding: 28px 34px 24px; }
+}
+
+@media (min-width: 1500px) {
+  .main { padding-left: 62px; padding-right: 68px; }
+  .main:has([data-testid='create-request']) > .grid.cols-3:last-of-type { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  [data-testid='tasks-board'] { min-height: 650px; }
+  [data-testid='tasks-board'] > .panel { min-height: 610px; }
+}
+
+@media (max-width: 1100px) and (min-width: 761px) {
+  .main { padding: 36px 34px 68px; }
+  .topbar h1, h1 { font-size: 46px; }
+  .topbar + .grid.cols-3 > .panel,
+  .topbar + .grid.cols-4 > .panel { min-height: 132px; }
+  .row-card { min-height: 108px; }
+}
+
+@media (max-width: 760px) {
+  body { font-size: 15px; }
+  .main { padding-top: 24px; padding-bottom: 104px; }
+  .topbar h1, h1 { font-size: clamp(36px, 11vw, 48px); }
+  .topbar { margin-bottom: 24px; }
+  .panel { border-radius: 20px; padding: 20px; }
+  .card { padding: 18px; }
+  .card-title, .row-card strong { font-size: 17px; }
+  .main:has([data-testid='create-request']) > .grid.cols-3:last-of-type,
+  .main:has([data-testid='create-guest']) .grid.cols-3,
+  .main:has([data-testid='create-fix']) .grid.cols-3 { grid-template-columns: 1fr; }
+  [data-testid='tasks-board'] { padding: 10px; gap: 14px; }
+  [data-testid='tasks-board'] > .panel { min-height: 240px; }
+}

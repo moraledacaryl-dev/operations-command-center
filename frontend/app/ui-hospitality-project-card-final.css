@@ -1,0 +1,75 @@
+/* Final project-card acceptance correction.
+   Projects inherited a legacy desktop row composition with high-specificity positioning.
+   This page-scoped layer is loaded last and restores each project record to an explicit vertical card stack without changing workflow behavior. */
+
+body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  min-height: 220px !important;
+  padding: 26px 28px !important;
+  gap: 12px !important;
+  text-align: left !important;
+}
+
+body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card > strong.card-title,
+body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card > span.card-line,
+body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card > span.muted,
+body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card > span[aria-label] {
+  position: static !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  float: none !important;
+  grid-area: auto !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  flex: 0 0 auto !important;
+  order: initial !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card > strong.card-title {
+  display: block !important;
+  width: 100% !important;
+  font-size: 21px !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+}
+
+body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card > span.card-line {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card > span.muted {
+  display: block !important;
+  width: 100% !important;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card > span[aria-label] {
+  display: block !important;
+  width: 100% !important;
+  margin-top: 2px !important;
+}
+
+@media (max-width: 760px) {
+  body:has([data-testid='create-project']) .app .main > .tabs-shell + .grid.cols-3 > button.card {
+    min-height: 0 !important;
+    padding: 18px !important;
+  }
+}

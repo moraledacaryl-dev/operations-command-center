@@ -1,0 +1,219 @@
+/* Final scale corrections: override older workspace rules that re-compress list/card surfaces. */
+
+@media (min-width: 1101px) {
+  .main .topbar h1 { font-size: clamp(46px, 4.1vw, 62px) !important; line-height: .98 !important; }
+
+  /* KPI bands must win against older compact workspace overrides. */
+  .main > .topbar + .grid.cols-3,
+  .main > .topbar + .grid.cols-4 {
+    gap: 18px !important;
+    margin-bottom: 28px !important;
+  }
+  .main > .topbar + .grid.cols-3 > .panel,
+  .main > .topbar + .grid.cols-4 > .panel {
+    min-height: 132px !important;
+    padding: 22px 24px !important;
+  }
+  .main > .topbar + .grid.cols-3 > .panel h2,
+  .main > .topbar + .grid.cols-4 > .panel h2 {
+    margin-top: 14px !important;
+    font-size: 42px !important;
+    line-height: 1 !important;
+  }
+
+  /* Any status-tabbed three-column workspace is a real card workspace, not a faux table. */
+  .main > .tabs-shell + .grid.cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 22px !important;
+    align-items: stretch !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card,
+  .main > .tabs-shell + .grid.cols-3 > button.card,
+  .main > .tabs-shell + .grid.cols-3 > a.card {
+    min-height: 205px !important;
+    padding: 26px 28px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    align-content: start !important;
+    gap: 15px !important;
+    border-radius: 22px !important;
+    text-align: left !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card > *,
+  .main > .tabs-shell + .grid.cols-3 > button.card > *,
+  .main > .tabs-shell + .grid.cols-3 > a.card > * {
+    grid-column: 1 / -1 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card .card-title,
+  .main > .tabs-shell + .grid.cols-3 > button.card .card-title {
+    display: block !important;
+    width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+    font-size: 21px !important;
+    line-height: 1.18 !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card .card-line,
+  .main > .tabs-shell + .grid.cols-3 > button.card .card-line {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card .muted,
+  .main > .tabs-shell + .grid.cols-3 > button.card .muted {
+    display: block !important;
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+  }
+
+  /* Requests always use proposal cards after their status rail. */
+  .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3 > button.card {
+    min-height: 220px !important;
+  }
+
+  /* Projects need explicit normal-flow stacking because legacy project-card rules positioned metadata over the title. */
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card {
+    min-height: 220px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-rows: max-content !important;
+    align-content: start !important;
+    gap: 12px !important;
+    padding: 26px 28px !important;
+  }
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card > * {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    float: none !important;
+    margin: 0 !important;
+    grid-column: 1 / -1 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card .card-title {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 2px !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.2 !important;
+  }
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card .card-line {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  /* Service recovery and maintenance cases need even more vertical scanning room. */
+  .main:has([data-testid='create-guest']) > .tabs-shell + .grid.cols-3 > .card,
+  .main:has([data-testid='create-fix']) > .tabs-shell + .grid.cols-3 > .card {
+    min-height: 230px !important;
+  }
+
+  /* Sparse generic workspaces should still use the canvas instead of collapsing into thin rows. */
+  .main > .grid.cols-3 > .row-card,
+  .main > .grid.cols-3 > button.row-card,
+  .main > .grid.cols-3 > a.row-card {
+    min-height: 150px !important;
+    padding: 24px 26px !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  .main > .tabs-shell + .grid.cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .main > .tabs-shell + .grid.cols-3 { grid-template-columns: 1fr !important; }
+  .main > .tabs-shell + .grid.cols-3 > .card,
+  .main > .tabs-shell + .grid.cols-3 > button.card,
+  .main > .tabs-shell + .grid.cols-3 > a.card {
+    min-height: 0 !important;
+    padding: 18px !important;
+  }
+  .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-guest']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-fix']) > .tabs-shell + .grid.cols-3 > button.card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    align-content: start !important;
+    gap: 12px !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 > .card > *,
+  .main > .tabs-shell + .grid.cols-3 > button.card > *,
+  .main > .tabs-shell + .grid.cols-3 > a.card > * {
+    grid-column: 1 / -1 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card > * {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    float: none !important;
+    margin: 0 !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 .card-title {
+    display: block !important;
+    width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+  .main > .tabs-shell + .grid.cols-3 .card-line {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+}
+
+/* Final defensive reset: operational button cards must remain normal-flow stacks even when an older page-specific stylesheet used positioned metadata. This intentionally targets only direct button cards in three-column operational grids; KPI panels and drawers are unaffected. */
+.main > .grid.cols-3 > button.card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  text-align: left !important;
+}
+.main > .grid.cols-3 > button.card > * {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  float: none !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+.main > .grid.cols-3 > button.card > .card-title {
+  display: block !important;
+  width: 100% !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+}
+.main > .grid.cols-3 > button.card > .card-line {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
