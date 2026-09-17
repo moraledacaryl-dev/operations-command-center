@@ -1,0 +1,149 @@
+/* Clean modern hospitality pass.
+   Final presentation layer: reduce decorative gradients, lighten the canvas,
+   improve small-text readability, and unify surfaces without changing workflows. */
+
+:root {
+  --clean-canvas: #f7f7f3;
+  --clean-surface: #fffefa;
+  --clean-surface-soft: #f3f5f0;
+  --clean-border: rgba(28, 54, 42, .12);
+  --clean-border-strong: rgba(28, 54, 42, .18);
+  --clean-text: #183027;
+  --clean-muted: #607067;
+  --clean-green: #176b54;
+  --clean-green-dark: #123f32;
+  --clean-shadow: 0 8px 28px rgba(28, 44, 35, .055);
+}
+
+html, body { background: var(--clean-canvas); }
+body { color: var(--clean-text); }
+.main {
+  background: var(--clean-canvas);
+  background-image: none !important;
+}
+
+/* Solid, quiet surfaces replace the accumulated cream/green gradients. */
+.panel,
+.card,
+.row-card,
+.table-wrap,
+.table-shell,
+.tabs-shell .tabs,
+.panel:has(.form),
+.panel:has(.form-grid),
+.main > .grid:not(.cols-2):not(.cols-3):not(.cols-4) > .row-card,
+.main > .grid:not(.cols-2):not(.cols-3):not(.cols-4) > button.card,
+.main > .grid:not(.cols-2):not(.cols-3):not(.cols-4) > a.card,
+.main > .grid.cols-2 > .card,
+.main > .grid.cols-3 > .card,
+.main > .grid.cols-4 > .card,
+.topbar + .grid.cols-3 > .panel,
+.topbar + .grid.cols-4 > .panel {
+  background: var(--clean-surface) !important;
+  background-image: none !important;
+  border-color: var(--clean-border) !important;
+  box-shadow: var(--clean-shadow);
+}
+
+/* Typography: preserve serif character for page titles only; operational text stays crisp. */
+body { font-size: 16px; }
+.muted { color: var(--clean-muted); font-size: 14px; }
+.card-line,
+.row-card .muted,
+.card .muted { font-size: 14px; }
+.label { font-size: 14px; color: #405248; }
+.pill { font-size: 12.5px; font-weight: 650; }
+.tab { font-size: 14px; font-weight: 650; }
+th { font-size: 12px; letter-spacing: .055em; }
+td { font-size: 15px; }
+
+/* KPI cards: clear numbers without ornamental strips or gradients. */
+.topbar + .grid.cols-3 > .panel,
+.topbar + .grid.cols-4 > .panel {
+  border-top: 1px solid var(--clean-border) !important;
+  min-height: 132px;
+}
+.topbar + .grid.cols-3 > .panel h2,
+.topbar + .grid.cols-4 > .panel h2 {
+  font-family: inherit;
+  font-weight: 700;
+  color: var(--clean-text);
+}
+
+/* Home hero: calm command surface instead of decorative gradient artwork. */
+.main:has(.home-metrics) > section.panel:first-of-type {
+  position: relative;
+  overflow: hidden;
+  background: #fbfcf8 !important;
+  background-image: none !important;
+  border: 1px solid var(--clean-border) !important;
+  box-shadow: var(--clean-shadow) !important;
+}
+.main:has(.home-metrics) > section.panel:first-of-type::before,
+.main:has(.home-metrics) > section.panel:first-of-type::after {
+  opacity: 0 !important;
+  display: none !important;
+}
+.main:has(.home-metrics) > section.panel:first-of-type h2 {
+  color: var(--clean-text);
+  max-width: 820px;
+}
+
+/* Navigation keeps brand identity, while reducing visual heaviness. */
+.sidebar {
+  background: #173c30 !important;
+  background-image: none !important;
+  box-shadow: 0 14px 40px rgba(17, 48, 38, .13);
+}
+.sidebar a,
+.sidebar button { font-size: 14px; }
+
+/* Controls: solid brand color, minimal shadow, no button gradients. */
+.btn:not(.secondary):not(.danger) {
+  background: var(--clean-green) !important;
+  background-image: none !important;
+  border-color: var(--clean-green) !important;
+  box-shadow: 0 5px 14px rgba(23, 107, 84, .12);
+}
+.btn:not(.secondary):not(.danger):hover:not(:disabled) {
+  background: #145f4b !important;
+}
+.btn.secondary {
+  background: var(--clean-surface) !important;
+  border-color: var(--clean-border-strong) !important;
+  box-shadow: none;
+}
+
+.tabs-shell .tabs { box-shadow: none; }
+.tab.active { box-shadow: none; }
+
+/* Tables remain readable and neutral. */
+th { background: var(--clean-surface-soft); color: #53645a; }
+tbody tr:hover td { background: #f5f7f3; }
+
+/* Empty states are quiet, not washed with gradients. */
+.empty,
+.loading-panel {
+  background: #fafbf8 !important;
+  background-image: none !important;
+  border-color: rgba(28, 54, 42, .16);
+}
+
+@media (min-width: 1101px) {
+  .main { padding-top: 42px; }
+  .topbar { margin-bottom: 30px; }
+  .topbar h1, h1 { font-size: clamp(44px, 3.7vw, 58px); line-height: 1; }
+  .topbar .muted { font-size: 16px; }
+  .panel { border-radius: 22px; }
+  .card { border-radius: 18px; }
+  .home-metrics > .panel { min-height: 165px; }
+  .home-metrics > .panel strong { font-size: 48px !important; }
+}
+
+@media (max-width: 760px) {
+  html, body, .main { background: var(--clean-canvas); }
+  .muted, .card-line, .row-card .muted, .card .muted { font-size: 13.5px; }
+  .tab { font-size: 13.5px; }
+  .topbar + .grid.cols-3 > .panel,
+  .topbar + .grid.cols-4 > .panel { min-height: 96px; }
+}
