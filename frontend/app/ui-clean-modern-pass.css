@@ -104,6 +104,17 @@ td { font-size: 15px; }
 .sidebar .dept-switch span { color: #d7e2dc !important; }
 .sidebar summary { font-size: 13px; }
 .sidebar .dept-switch label > span { font-size: 12px; }
+/* Secondary/logout controls inside the dark sidebar need a dark surface; the generic
+   light secondary-button surface below is for main content only. */
+.sidebar .btn.secondary,
+.sidebar .logout {
+  background: rgba(255, 255, 255, .08) !important;
+  background-image: none !important;
+  color: #f5f7f2 !important;
+  border-color: rgba(255, 255, 255, .18) !important;
+}
+.sidebar .btn.secondary:hover,
+.sidebar .logout:hover { background: rgba(255, 255, 255, .14) !important; }
 
 .btn:not(.secondary):not(.danger) {
   background: var(--clean-green) !important;
