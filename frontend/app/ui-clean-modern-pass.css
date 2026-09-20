@@ -66,6 +66,14 @@ td { font-size: 15px; }
   font-weight: 700;
   color: var(--clean-text);
 }
+/* KPI captions were still visually undersized in the screenshot audit. */
+.topbar + .grid.cols-3 > .panel .muted,
+.topbar + .grid.cols-4 > .panel .muted,
+.topbar + .grid.cols-3 > .panel .label,
+.topbar + .grid.cols-4 > .panel .label {
+  font-size: 12px !important;
+  line-height: 1.2;
+}
 
 .main:has(.home-metrics) > section.panel:first-of-type {
   position: relative;
@@ -164,4 +172,8 @@ tbody tr:hover td { background: #f5f7f3; }
   .tab { font-size: 13.5px; }
   .topbar + .grid.cols-3 > .panel,
   .topbar + .grid.cols-4 > .panel { min-height: 96px; }
+  .topbar + .grid.cols-3 > .panel .muted,
+  .topbar + .grid.cols-4 > .panel .muted,
+  .topbar + .grid.cols-3 > .panel .label,
+  .topbar + .grid.cols-4 > .panel .label { font-size: 11px !important; }
 }
