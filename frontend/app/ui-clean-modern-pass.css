@@ -336,3 +336,76 @@ tbody tr:hover td { background: #f5f7f3; }
   .table-shell { border-radius: 16px; }
   .pill { font-size: 13px; padding: 5px 8px; }
 }
+
+
+/* Screenshot-driven pass-1 corrections: older scale rules forced sparse records
+   into oversized 220–230px cards. Operational density should follow content. */
+@media (min-width: 1101px) {
+  .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card {
+    min-height: 156px !important;
+    padding: 22px 24px !important;
+    gap: 10px !important;
+  }
+  .main:has([data-testid='create-guest']) > .tabs-shell + .grid.cols-3 > .card,
+  .main:has([data-testid='create-fix']) > .tabs-shell + .grid.cols-3 > .card {
+    min-height: 164px !important;
+    padding: 22px 24px !important;
+  }
+
+  /* Keep two-column service cases when sparse, but let proposals/projects use
+     three columns on normal large desktop widths so the canvas feels intentional. */
+  @media (min-width: 1360px) {
+    .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3,
+    .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+  }
+
+  [data-testid='tasks-board'] {
+    min-height: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  [data-testid='tasks-board'] > .panel {
+    min-height: 420px !important;
+    padding: 18px !important;
+    border-radius: 18px !important;
+    background: #f2f4f0 !important;
+    box-shadow: none !important;
+  }
+  [data-testid='tasks-board'] .card {
+    min-height: 118px !important;
+    padding: 17px 18px !important;
+    border-radius: 14px !important;
+  }
+
+  /* Review/approval queues are decision surfaces, not giant blank panels. */
+  .main:has(.approval-queue) .panel,
+  .main:has([data-testid*='approval']) .panel {
+    min-height: 0 !important;
+  }
+}
+
+/* Reduce the visual noise of repeated metadata without sacrificing status. */
+.card-line .pill,
+.row-card .pill { font-size: 12.5px; }
+.card-line { row-gap: 6px; }
+
+/* On mobile, remove legacy minimum heights so cards size to their actual content. */
+@media (max-width: 760px) {
+  .main:has([data-testid='create-request']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-project']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-guest']) > .tabs-shell + .grid.cols-3 > button.card,
+  .main:has([data-testid='create-fix']) > .tabs-shell + .grid.cols-3 > button.card {
+    min-height: 0 !important;
+  }
+  [data-testid='tasks-board'] { padding: 0 !important; }
+  [data-testid='tasks-board'] > .panel {
+    min-height: 0 !important;
+    padding: 13px !important;
+  }
+  [data-testid='tasks-board'] .card { min-height: 0 !important; }
+}
