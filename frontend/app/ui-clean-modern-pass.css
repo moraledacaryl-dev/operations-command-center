@@ -50,6 +50,7 @@ body { font-size: 16px; }
 .row-card .muted,
 .card .muted { font-size: 15px; line-height: 1.45; }
 .label { font-size: 15px; color: #405248; }
+.eyebrow { font-size: 12.5px !important; line-height: 1.25; letter-spacing: .11em; }
 .pill { font-size: 13.5px; font-weight: 650; }
 .tab { font-size: 15px; font-weight: 650; }
 th { font-size: 13px; letter-spacing: .045em; }
@@ -176,6 +177,7 @@ tbody tr:hover td { background: #f5f7f3; }
   .sidebar label > span,
   .sidebar .dept-switch span { color: #d7e2dc !important; }
   .tab { font-size: 14.5px; }
+  .eyebrow { font-size: 12px !important; }
   .topbar + .grid.cols-3 > .panel,
   .topbar + .grid.cols-4 > .panel { min-height: 96px; }
   .topbar + .grid.cols-3 > .panel .muted,
