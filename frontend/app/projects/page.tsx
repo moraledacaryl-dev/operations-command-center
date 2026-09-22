@@ -182,7 +182,7 @@ export default function ProjectsPage() {
 
   return <>
     <Top eyebrow="Delivery portfolio" title="Projects" right={canManage ? <button data-testid="create-project" className="btn" onClick={() => setShowAdd(value => !value)}>New project</button> : undefined} />
-    <div className="grid cols-3" style={{ marginBottom: 16 }}>
+    <div className="grid cols-3 project-kpis" style={{ marginBottom: 16 }}>
       <div className="panel"><div className="eyebrow">Active</div><h2>{enriched.filter(project => project.status === 'Active').length}</h2></div>
       <div className="panel"><div className="eyebrow">At risk</div><h2>{enriched.filter(project => project.overdue_tasks > 0 || project.status === 'Paused').length}</h2></div>
       <div className="panel"><div className="eyebrow">Completed</div><h2>{enriched.filter(project => project.status === 'Done').length}</h2></div>
@@ -199,13 +199,13 @@ export default function ProjectsPage() {
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim()} onClick={createProject}>{busy ? 'Saving…' : 'Create project'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
     <Tabs values={['All', 'Planned', 'Active', 'Paused', 'Done']} active={filter} onChange={setFilter} label="Project status" />
-    <div className="grid cols-3">
-      {visible.map(project => <button type="button" className={`card ${project.overdue_tasks ? 'card-important' : ''}`} key={project.id} onClick={() => openProject(project)} style={{ textAlign: 'left' }}>
-        <strong className="card-title">{project.title}</strong>
+    <div className="grid cols-3 project-gallery">
+      {visible.map(project => <button type="button" className={`card project-portfolio-card ${project.overdue_tasks ? 'card-important' : ''}`} key={project.id} onClick={() => openProject(project)} style={{ textAlign: 'left' }}>
+        <span className="project-card-kicker">{project.overdue_tasks ? 'Needs attention' : project.status}</span><strong className="card-title">{project.title}</strong>
         <span className="card-line"><Pill value={project.status} /><Pill value={project.priority || 'Normal'} />{project.overdue_tasks ? <Pill value={`${project.overdue_tasks} overdue`} /> : null}</span>
         <span className="muted">Due {formatDate(project.due_date)}</span>
         <span className="muted">{project.linked_tasks.length} linked tasks · {project.progress}% complete</span>
-        <span aria-label={`${project.progress}% complete`} style={{ display: 'block', height: 8, borderRadius: 99, background: 'var(--line)', overflow: 'hidden' }}><span style={{ display: 'block', width: `${project.progress}%`, height: '100%', background: 'var(--accent)' }} /></span>
+        <span className="project-progress" aria-label={`${project.progress}% complete`}><span style={{ width: `${project.progress}%` }} /></span>
       </button>)}
       {!visible.length ? <div className="empty">No projects in this view.</div> : null}
     </div>
