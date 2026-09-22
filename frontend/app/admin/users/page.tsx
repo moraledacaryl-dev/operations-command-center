@@ -136,7 +136,7 @@ export default function UsersPage() {
     {!mode && error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {saved ? <div className="pill ok" role="status" style={{ marginBottom: 12 }}>{saved}</div> : null}
 
-    <section className="panel" style={{ marginBottom: 16 }}>
+    <section className="panel people-controls" style={{ marginBottom: 16 }}>
       <div className="toolbar" style={{ marginBottom: 0 }}>
         <input className="input" placeholder="Search name, email, or role" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void searchDirectory(query); }} />
         <button className="btn secondary" onClick={() => void searchDirectory(query)}>Search</button>
@@ -146,7 +146,7 @@ export default function UsersPage() {
     </section>
 
     {initialLoading ? <LoadingPanel label="Loading accounts and access…" /> : <div className="grid cols-2">
-      {directory.map(user => <article className="card" key={user.id}>
+      {directory.map(user => <article className="card person-card" key={user.id}>
         <div className="card-title">{user.name}</div>
         <div className="card-line"><Pill value={user.role} />{!user.is_active ? <Pill value="Inactive" /> : <Pill value="Active" />}{user.departments?.map((department: Entity) => <Pill key={department.id} value={`${department.name}${department.is_primary ? ' · primary' : ''}`} />)}</div>
         <span className="muted">{user.email}</span>

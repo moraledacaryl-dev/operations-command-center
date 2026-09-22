@@ -98,7 +98,7 @@ export default function RequestsPage() {
 
   return <>
     <Top eyebrow="Proposal pipeline" title="Requests" right={<button data-testid="create-request" className="btn" onClick={() => setShowAdd(value => !value)}>Add</button>} />
-    <div className="grid cols-3" style={{ marginBottom: 16 }}>
+    <div className="grid cols-3 operational-kpis" style={{ marginBottom: 16 }}>
       <div className="panel"><div className="eyebrow">Awaiting decision</div><h2>{pending}</h2></div>
       <div className="panel"><div className="eyebrow">Approved / planned</div><h2>{approved}</h2></div>
       <div className="panel"><div className="eyebrow">Urgent open</div><h2>{urgent}</h2></div>
@@ -116,7 +116,7 @@ export default function RequestsPage() {
     </section> : null}
     <Tabs values={['Open','Draft','Review','Approved','Planned','Done','Rejected','All']} active={filter} onChange={setFilter} label="Request status" />
     <div className="grid cols-3">
-      {visible.map(item => <button type="button" key={item.id} className={`card ${item.urgency === 'Urgent' ? 'card-important' : ''}`} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
+      {visible.map(item => <button type="button" key={item.id} className={`card request-item ${item.urgency === 'Urgent' ? 'card-important' : ''}`} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
         <strong className="card-title">{item.title}</strong><span className="card-line"><Pill value={item.status} /><Pill value={item.urgency || 'Normal'} /><Pill value={item.request_type || 'General'} /></span><span className="muted">{String(item.reason || '').slice(0, 150)}</span>
       </button>)}
       {!visible.length ? <div className="empty">No requests in this view.</div> : null}

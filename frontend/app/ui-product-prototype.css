@@ -135,3 +135,111 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
  .approval-controls{padding:13px!important}.approval-workspace{padding:15px!important}
  .approval-queue-item{align-items:flex-start!important;min-height:0!important}.approval-open-cue{width:30px;height:30px;flex-basis:30px}
 }
+
+
+/* Full-page harmony pass — shared compositions derived from the accepted prototype.
+   These selectors reshape existing workflow markup without changing permissions, API actions or test hooks. */
+.main>p.muted{max-width:760px;margin-top:-14px!important;margin-bottom:22px!important;font-size:13px!important}
+.main>.grid:not([data-testid='tasks-board'])>.panel>.topbar{min-height:0!important;margin-bottom:14px!important;align-items:flex-start!important}
+.main>.grid:not([data-testid='tasks-board'])>.panel>.topbar h2{font-size:20px!important;margin-top:4px!important}
+.main>.grid:not([data-testid='tasks-board'])>.panel>.grid>.card,
+.main>.panel>.grid>.card{box-shadow:none!important;transition:border-color .16s ease,transform .16s ease!important}
+.main>.grid:not([data-testid='tasks-board'])>.panel>.grid>.card:hover,
+.main>.panel>.grid>.card:hover{border-color:#bdcec4!important;transform:translateY(-1px)}
+.main>.panel>.toolbar:first-of-type .input,
+.main>.panel>.toolbar:first-of-type .select{max-width:460px}
+.main>.panel>.tabs-shell{margin-top:12px!important}
+.main>.panel>.topbar+.grid{margin-top:2px!important}
+
+/* My Work: personal agenda rather than five generic containers. */
+.main>.grid>section.panel:has(>.topbar .eyebrow:is(:where(*))){
+  position:relative;
+}
+.main>.grid>section.panel>.topbar .eyebrow{letter-spacing:.1em!important}
+.main>.grid>section.panel>.topbar h2{font-size:26px!important}
+.main>.grid>section.panel>.topbar+.grid{gap:7px!important}
+.main>.grid>section.panel>.topbar+.grid>.card{min-height:68px!important;padding:13px 14px!important}
+
+/* Queue-oriented operational pages: Requests, Guest Matters, Maintenance, Review, Shift, Notifications. */
+.main>.panel>.grid.cols-3>.card,
+.main>.panel>.grid.cols-2>.card{min-height:94px!important}
+.main>.panel>.grid.cols-3>.card .card-title,
+.main>.panel>.grid.cols-2>.card .card-title{font-size:15px!important}
+.main>.panel>.grid.cols-3>.card .card-line,
+.main>.panel>.grid.cols-2>.card .card-line{margin-top:7px!important}
+
+/* Rooms: hospitality catalogue treatment. */
+.room-card,.room-tile,[class*='roomCard']{overflow:hidden!important;border-radius:16px!important}
+.main a.card:has(img),.main button.card:has(img){padding:0!important;overflow:hidden!important;border-radius:16px!important}
+.main a.card:has(img)>:not(img),.main button.card:has(img)>:not(img){margin-left:16px!important;margin-right:16px!important}
+.main a.card:has(img)>img,.main button.card:has(img)>img{width:100%!important;aspect-ratio:16/9!important;object-fit:cover!important}
+
+/* History and admin tables: quiet, high-density control surfaces. */
+.main .table-shell,.main .table-wrap{overflow:hidden!important}
+.main table th{background:#f3f6f4!important;padding-top:11px!important;padding-bottom:11px!important}
+.main table td{padding-top:13px!important;padding-bottom:13px!important;border-color:#edf1ee!important}
+.admin-health>.grid>.panel{min-height:170px!important;padding:20px!important}
+.admin-health>.grid>.panel h2{font-size:18px!important;margin-bottom:10px!important}
+
+/* Admin/settings forms should read as intentional settings workspaces, not floating legacy cards. */
+.main>.panel[style*='max-width']{max-width:820px!important;padding:22px!important}
+.main>.panel[style*='max-width'] h2{font-size:20px!important}
+.form-grid{gap:12px!important}
+.form{gap:11px!important}
+
+/* Empty states stay compact across queues. */
+.main .grid>.empty:only-child,.main .panel>.empty{min-height:92px!important;display:grid!important;place-items:center!important;text-align:center!important}
+
+/* Responsive harmony: convert dense desktop grids into deliberate mobile agendas. */
+@media(max-width:760px){
+ .main>p.muted{margin-top:-10px!important;margin-bottom:18px!important}
+ .main>.grid>section.panel>.topbar h2{font-size:22px!important}
+ .main>.grid>section.panel{padding:14px!important}
+ .main>.grid>section.panel>.topbar+.grid>.card{min-height:0!important}
+ .main>.panel>.toolbar:first-of-type .input,.main>.panel>.toolbar:first-of-type .select{max-width:none;width:100%!important}
+ .admin-health>.grid>.panel{min-height:0!important}
+}
+
+.operational-kpis>.panel{min-height:102px!important;padding:16px 18px!important}.operational-kpis>.panel h2{font-size:30px!important;margin-top:5px!important}
+.request-queue,.maintenance-queue{display:grid;gap:9px;margin-top:14px}
+.request-item,.maintenance-item{display:grid!important;grid-template-columns:minmax(210px,.85fr) minmax(0,1.4fr);column-gap:22px;row-gap:7px;min-height:96px!important;padding:16px 18px!important;box-shadow:none!important;text-align:left!important}
+.request-item .card-title,.maintenance-item .card-title{font-size:16px!important;align-self:center}.request-item .card-line,.maintenance-item .card-line{grid-column:1;margin:0!important}.request-item>.muted,.maintenance-item>.muted{grid-column:2;align-self:center;font-size:13px!important}
+.maintenance-item.card-important{border-left:4px solid #a73b36!important;background:#fffafa!important}
+.my-work-agenda{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,.75fr);gap:14px;align-items:start}.my-work-section{min-height:0!important}.my-work-overdue,.my-work-today{grid-column:1}.my-work-upcoming,.my-work-waiting,.my-work-recently_completed{grid-column:2}.my-work-upcoming{grid-row:1}.my-work-waiting{grid-row:2}.my-work-recently_completed{grid-row:3}
+.my-work-items{display:grid;gap:8px}.my-work-item{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:7px 14px;align-items:center;text-align:left!important;box-shadow:none!important;min-height:74px!important}.my-work-item .card-title{font-size:15px!important}.my-work-item .card-line{justify-self:end;margin:0!important}.my-work-item>.muted{grid-column:1/-1}
+.people-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}.people-controls .toolbar{grid-column:2;grid-row:1}.people-controls p{grid-column:1;grid-row:1;margin:0!important}
+.people-directory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.person-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 14px;padding:17px!important;box-shadow:none!important}.person-card>.card-title{font-size:17px!important}.person-card>.card-line{grid-column:1/-1}.person-card>.muted{grid-column:1}.person-card>.toolbar{grid-column:1/-1}
+@media(max-width:980px){.my-work-agenda{grid-template-columns:1fr}.my-work-overdue,.my-work-today,.my-work-upcoming,.my-work-waiting,.my-work-recently_completed{grid-column:1;grid-row:auto}.people-directory{grid-template-columns:1fr}}
+@media(max-width:760px){.request-item,.maintenance-item{grid-template-columns:1fr!important;gap:7px!important;padding:14px!important}.request-item .card-line,.request-item>.muted,.maintenance-item .card-line,.maintenance-item>.muted{grid-column:1!important}.my-work-item{grid-template-columns:1fr}.my-work-item .card-line{justify-self:start}.my-work-item>.muted{grid-column:1}.people-controls{display:block}.people-controls .toolbar{margin-bottom:10px!important}.person-card{grid-template-columns:1fr}.person-card>*{grid-column:1!important}}
+
+
+/* Harmony pass 2: service recovery, decisions, handover, history and health. */
+.guest-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.guest-kpis>.panel{min-height:102px!important;padding:16px 18px!important}
+.guest-kpis>.panel h2{font-size:30px!important;margin-top:5px!important}
+.guest-queue,.review-queue,.shift-queue{display:grid;gap:9px}
+.guest-queue>.card,.review-queue>.card,.shift-queue>.card{
+ display:grid!important;grid-template-columns:minmax(190px,.8fr) minmax(0,1.4fr);
+ gap:7px 20px;align-items:center;min-height:92px!important;padding:15px 17px!important;
+ box-shadow:none!important;text-align:left!important
+}
+.guest-queue>.card .card-title,.review-queue>.card .card-title,.shift-queue>.card .card-title{font-size:15px!important}
+.guest-queue>.card .card-line,.review-queue>.card .card-line,.shift-queue>.card .card-line{grid-column:1;margin:0!important}
+.guest-queue>.card>.muted,.review-queue>.card>.muted,.shift-queue>.card>.muted{grid-column:2;font-size:13px!important}
+.guest-queue>.card.card-important{border-left:4px solid #a73b36!important;background:#fffafa!important}
+.review-workspace,.shift-workspace,.history-workspace{padding:20px!important}
+.review-workspace>.topbar,.shift-workspace>.topbar,.history-workspace>.topbar{min-height:0!important;align-items:flex-start!important}
+.review-controls,.history-controls{padding:14px 16px!important;margin-bottom:14px!important}
+.history-list{display:grid;gap:0!important;border:1px solid var(--product-line);border-radius:14px;overflow:hidden;background:#fff}
+.history-list>.card{border:0!important;border-bottom:1px solid #edf1ee!important;border-radius:0!important;box-shadow:none!important;padding:14px 16px!important}
+.history-list>.card:last-child{border-bottom:0!important}
+.admin-health .health-overview{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.admin-health .health-overview>.panel{min-height:150px!important;box-shadow:none!important}
+.admin-health .health-overview>.panel .card-line{margin-top:10px!important}
+@media(max-width:760px){
+ .guest-kpis{grid-template-columns:1fr!important}
+ .guest-queue>.card,.review-queue>.card,.shift-queue>.card{grid-template-columns:1fr!important;gap:7px!important;padding:14px!important}
+ .guest-queue>.card .card-line,.guest-queue>.card>.muted,.review-queue>.card .card-line,.review-queue>.card>.muted,.shift-queue>.card .card-line,.shift-queue>.card>.muted{grid-column:1!important}
+ .review-workspace,.shift-workspace,.history-workspace{padding:15px!important}
+ .admin-health .health-overview{grid-template-columns:1fr!important}
+}
