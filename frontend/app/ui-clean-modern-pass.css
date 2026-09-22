@@ -688,3 +688,35 @@ tbody tr:hover td { background: #f5f7f3; }
     line-height: 1.3 !important;
   }
 }
+
+
+/* Screenshot verification showed 14px was still visually too small in the compact
+   KPI/status bands at real desktop scale. Raise the reusable operational caption
+   treatment and give those controls enough physical height to read naturally. */
+@media (min-width: 761px) {
+  .main .topbar + .grid.cols-3 > .panel,
+  .main .topbar + .grid.cols-4 > .panel,
+  .main .status-rail > * {
+    min-height: 46px !important;
+  }
+
+  .main .eyebrow,
+  .main .label,
+  .main .status-rail,
+  .main .status-rail .label,
+  .main .topbar + .grid.cols-3 > .panel :is(.muted,.label),
+  .main .topbar + .grid.cols-4 > .panel :is(.muted,.label),
+  .main .topbar + .grid.cols-3 > .panel > :first-child,
+  .main .topbar + .grid.cols-4 > .panel > :first-child,
+  .main .status-rail > * > :first-child {
+    font-size: 15.5px !important;
+    line-height: 1.35 !important;
+    letter-spacing: .035em !important;
+  }
+
+  .main .status-rail strong,
+  .main .status-rail > * > :last-child {
+    font-size: 17px !important;
+    line-height: 1.2 !important;
+  }
+}
