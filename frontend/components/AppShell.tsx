@@ -240,7 +240,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         {[homeItems[0], homeItems[1], workItems[0], decisionItems[0]].map(item => {
           const active = isActivePath(path, item.href);
-          return <Link key={item.href} href={item.href} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}><span aria-hidden="true">{item.icon}</span><small>{item.shortLabel || item.label}</small></Link>;
+          return <Link key={item.href} href={item.href} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} aria-label={item.label}><span aria-hidden="true">{item.icon}</span><small>{item.shortLabel || item.label}</small></Link>;
         })}
         <button type="button" aria-label="Open all navigation" onClick={() => setMobileOpen(true)}><span aria-hidden="true">•••</span><small>More</small></button>
       </nav>
