@@ -243,3 +243,20 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
  .review-workspace,.shift-workspace,.history-workspace{padding:15px!important}
  .admin-health .health-overview{grid-template-columns:1fr!important}
 }
+
+
+/* Prototype fidelity rebuild: structural layouts, not legacy skinning. */
+.home-command-hero{padding:24px!important;background:linear-gradient(135deg,#fff 0%,#f1f7f3 100%)!important}
+.home-command-hero h2{font-size:26px!important;max-width:720px}
+.home-command-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);gap:14px;align-items:start}
+.home-command-grid>.panel:first-child{grid-row:span 2}
+.home-command-grid>.panel{min-height:0!important}
+.home-command-grid>.panel .grid{gap:8px!important}
+.home-command-grid>.panel .card{box-shadow:none!important;padding:14px 15px!important}
+.my-work-agenda{display:grid!important;grid-template-columns:minmax(0,1.45fr) minmax(300px,.75fr)!important;gap:14px!important;align-items:start}
+.my-work-agenda .my-work-section{min-height:0!important}
+.my-work-agenda .my-work-overdue,.my-work-agenda .my-work-today{grid-column:1!important}
+.my-work-agenda .my-work-upcoming,.my-work-agenda .my-work-waiting,.my-work-agenda .my-work-recently_completed{grid-column:2!important}
+.my-work-agenda .my-work-upcoming{grid-row:1!important}.my-work-agenda .my-work-waiting{grid-row:2!important}.my-work-agenda .my-work-recently_completed{grid-row:3!important}
+@media(max-width:980px){.home-command-grid,.my-work-agenda{grid-template-columns:1fr!important}.home-command-grid>.panel:first-child{grid-row:auto}.my-work-agenda .my-work-section{grid-column:1!important;grid-row:auto!important}}
+@media(max-width:760px){.home-command-hero{padding:17px!important}.home-command-hero h2{font-size:22px!important}}
