@@ -104,3 +104,34 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
  [data-testid='tasks-board']>.panel{min-height:0!important}
  .tabs{overflow-x:auto!important}.panel{padding:15px!important}
 }
+
+/* Prototype composition: portfolio projects + focused decision queue */
+.project-kpis>.panel{min-height:104px;padding:17px!important}
+.project-kpis>.panel h2{font-size:30px!important;margin-top:6px!important}
+.project-gallery{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.project-portfolio-card{min-height:210px!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;padding:18px!important;overflow:hidden!important;position:relative!important}
+.project-portfolio-card:before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--product-green);opacity:.75}
+.project-portfolio-card.card-important:before{background:#a73b36}
+.project-card-kicker{font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:var(--product-green);margin-top:3px}
+.project-portfolio-card .card-title{font-size:18px!important;line-height:1.25!important;letter-spacing:-.02em!important}
+.project-portfolio-card .card-line{margin-top:1px}
+.project-portfolio-card>.muted:last-of-type{margin-top:auto}
+.project-progress{display:block;height:7px;border-radius:99px;background:#e7ede9;overflow:hidden;margin-top:2px}
+.project-progress>span{display:block;height:100%;background:var(--product-green);border-radius:inherit}
+.approval-controls{padding:14px 16px!important}
+.approval-controls .toolbar{margin-bottom:10px!important}
+.approval-workspace{padding:20px!important}
+.approval-workspace>.topbar{align-items:flex-start!important;margin-bottom:16px!important;min-height:0!important}
+.approval-workspace>.topbar p{margin:5px 0 0!important}
+.approval-queue{display:grid;gap:8px}
+.approval-queue-item{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;min-height:88px!important;padding:15px 16px!important;box-shadow:none!important;transition:border-color .16s ease,transform .16s ease!important}
+.approval-queue-item:hover{border-color:#b9cbc1!important;transform:translateY(-1px)}
+.approval-item-main{display:grid;gap:7px;min-width:0}
+.approval-item-main .card-title{font-size:15px!important}
+.approval-open-cue{display:grid;width:34px;height:34px;flex:0 0 34px;place-items:center;border-radius:10px;background:var(--product-soft);color:var(--product-green);font-size:17px;font-weight:800}
+@media(max-width:1000px){.project-gallery{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:760px){
+ .project-gallery{grid-template-columns:1fr!important}.project-portfolio-card{min-height:180px!important}
+ .approval-controls{padding:13px!important}.approval-workspace{padding:15px!important}
+ .approval-queue-item{align-items:flex-start!important;min-height:0!important}.approval-open-cue{width:30px;height:30px;flex-basis:30px}
+}
