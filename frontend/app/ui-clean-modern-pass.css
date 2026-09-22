@@ -409,3 +409,123 @@ tbody tr:hover td { background: #f5f7f3; }
   }
   [data-testid='tasks-board'] .card { min-height: 0 !important; }
 }
+
+
+/* Final visual QA pass — cross-workflow consistency and finish. */
+@media (min-width: 1101px) {
+  /* Keep readable line lengths even on the now-wider operational canvas. */
+  .topbar .muted,
+  .panel > .muted,
+  .card > .muted { max-width: 72ch; }
+
+  /* Make page actions read as one deliberate control cluster. */
+  .topbar > .toolbar,
+  .topbar > div:last-child:has(.btn) {
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Tabs/status filters are navigation, not another large card. */
+  .tabs-shell .tabs {
+    padding: 5px !important;
+    gap: 4px !important;
+    border-radius: 12px;
+  }
+  .tab {
+    min-height: 40px !important;
+    padding: 8px 13px !important;
+  }
+
+  /* Sparse cards should never stretch simply because their grid sibling is taller. */
+  .main > .tabs-shell + .grid.cols-3 { align-items: start !important; }
+  .main > .tabs-shell + .grid.cols-3 > .card,
+  .main > .tabs-shell + .grid.cols-3 > button.card {
+    align-self: start;
+  }
+
+  /* Decision/review surfaces benefit from a quieter container hierarchy. */
+  .workflow-panel,
+  .command-band {
+    border-radius: 14px;
+    box-shadow: none;
+  }
+  .status-rail { padding: 5px; gap: 4px; }
+
+  /* People/access and other pill-heavy tables: status remains visible without
+     overpowering the person or resource being managed. */
+  td .pill,
+  .table-wrap .pill,
+  .table-shell .pill {
+    min-height: 24px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  /* Detail drawers should preserve the same typographic rhythm as the page. */
+  .drawer { background: #fffefa; }
+  .drawer-head h2 { font-size: 28px; }
+  .detail-row { padding: 14px 0; }
+  .detail-row span:first-child { font-size: 11.5px; }
+
+  /* Empty states should occupy enough space to explain themselves, not become
+     giant decorative blocks. */
+  .empty { min-height: 110px; display: grid; place-content: center; }
+}
+
+/* Consistent interactive finish. */
+.card,
+.row-card,
+.panel,
+.btn,
+.tab,
+.input,
+.select,
+.textarea {
+  transition-duration: .14s;
+}
+.card:focus-visible,
+.row-card:focus-visible {
+  outline: 3px solid rgba(23,107,84,.18);
+  outline-offset: 2px;
+}
+
+/* Preserve semantic status color while reducing decorative saturation. */
+.pill.ok { background: #edf6f0; }
+.pill.warn { background: #fbf5e7; }
+.pill.urgent { background: #fbefee; }
+.pill.blue { background: #eff3f8; }
+
+@media (max-width: 760px) {
+  /* Mobile controls get a stable tap target and consistent wrapping. */
+  .toolbar { gap: 8px; }
+  .toolbar .btn { min-height: 42px; }
+  .tabs-shell { width: 100%; }
+  .tabs-shell .tabs {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 4px !important;
+  }
+  .tab {
+    flex: 0 0 auto;
+    min-height: 38px !important;
+    padding: 7px 11px !important;
+  }
+  .form-grid { grid-template-columns: 1fr !important; }
+  .drawer {
+    width: 100vw;
+    padding: 20px 18px 96px;
+  }
+  .drawer-head {
+    margin: -20px -18px 20px;
+    padding: 18px;
+  }
+  .detail-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 12px 0;
+  }
+  .empty { min-height: 96px; padding: 24px 18px; }
+}
