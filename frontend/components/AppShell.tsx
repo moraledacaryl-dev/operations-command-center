@@ -72,7 +72,7 @@ function isActivePath(path: string, href: string) {
 function NavLink({ item, path, onNavigate }: { item: NavItem; path: string; onNavigate?: () => void }) {
   const active = isActivePath(path, item.href);
   return (
-    <Link className={active ? 'active' : ''} href={item.href} onClick={onNavigate} aria-current={active ? 'page' : undefined}>
+    <Link className={active ? 'active' : ''} href={item.href} onClick={onNavigate} aria-current={active ? 'page' : undefined} aria-label={item.label}>
       <span className="nav-icon" aria-hidden="true">{item.icon}</span>
       <span className="nav-copy">{item.label}</span>
       {item.badge ? <span className="nav-badge" aria-label={`${item.badge} unread`}>{item.badge > 99 ? '99+' : item.badge}</span> : null}
