@@ -79,10 +79,10 @@ export default function TeamTasksPage() {
 
   return <>
     <Top eyebrow="Team execution" title="Tasks" right={<button data-testid="create-task" className="btn" onClick={() => setShowAdd(value => !value)}>New task</button>} />
-    <div className="grid cols-3" style={{ marginBottom: 16 }}>
-      <div className="panel"><div className="eyebrow">Active</div><h2>{visible.filter(item => item.status !== 'Done').length}</h2></div>
-      <div className="panel"><div className="eyebrow">In review</div><h2>{visible.filter(item => item.status === 'Review').length}</h2></div>
-      <div className="panel"><div className="eyebrow">Overdue</div><h2>{overdue}</h2></div>
+    <div className="grid cols-3 task-kpis" style={{ marginBottom: 16 }}>
+      <div className="panel task-kpi"><div className="task-kpi-label">Active</div><h2>{visible.filter(item => item.status !== 'Done').length}</h2></div>
+      <div className="panel task-kpi"><div className="task-kpi-label">In review</div><h2>{visible.filter(item => item.status === 'Review').length}</h2></div>
+      <div className="panel task-kpi"><div className="task-kpi-label">Overdue</div><h2>{overdue}</h2></div>
     </div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
