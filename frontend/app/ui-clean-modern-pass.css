@@ -529,3 +529,51 @@ tbody tr:hover td { background: #f5f7f3; }
   }
   .empty { min-height: 96px; padding: 24px 18px; }
 }
+
+
+/* User-screen QA correction: empty states must not dominate the viewport.
+   Keep the page useful when queues are empty and remove residual pastel board wash. */
+@media (min-width: 1101px) {
+  /* My Work: empty time buckets should read as compact status sections. */
+  .main:has(.my-work),
+  .main:has([data-testid*='my-work']) {}
+  .main > .panel .empty:only-child,
+  .panel > .empty:last-child {
+    min-height: 92px !important;
+    padding: 20px !important;
+  }
+
+  /* Tasks: neutral professional lanes; content determines vertical height. */
+  [data-testid='tasks-board'] {
+    background: transparent !important;
+    min-height: 0 !important;
+  }
+  [data-testid='tasks-board'] > .panel {
+    min-height: 300px !important;
+    background: #f5f6f2 !important;
+    background-image: none !important;
+    border-color: var(--clean-border) !important;
+  }
+  [data-testid='tasks-board'] > .panel:nth-child(n) {
+    background: #f5f6f2 !important;
+    background-image: none !important;
+  }
+  [data-testid='tasks-board'] .empty {
+    min-height: 108px !important;
+    background: rgba(255,255,255,.62) !important;
+  }
+
+  /* Generic empty cards: avoid huge blank panels on zero-data screens. */
+  .panel:has(> .empty) {
+    min-height: 0 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  [data-testid='tasks-board'] > .panel {
+    min-height: 0 !important;
+    background: #f5f6f2 !important;
+    background-image: none !important;
+  }
+  [data-testid='tasks-board'] .empty { min-height: 88px !important; }
+}
