@@ -11,38 +11,38 @@ type NavItem = { href: string; label: string; shortLabel?: string; icon: string;
 type AdminNavItem = NavItem & { capability?: Capability; ownerOnly?: boolean };
 
 const homeItems: NavItem[] = [
-  { href: '/', label: 'Home', icon: 'H' },
-  { href: '/my-work', label: 'My Work', shortLabel: 'My Work', icon: 'M' },
+  { href: '/', label: 'Overview', icon: '⌂' },
+  { href: '/my-work', label: 'My Work', shortLabel: 'My Work', icon: '✓' },
 ];
 
 const workItems: NavItem[] = [
-  { href: '/tasks', label: 'Tasks', icon: 'T' },
-  { href: '/projects', label: 'Projects', icon: 'P' },
-  { href: '/requests', label: 'Requests', icon: 'Q' },
+  { href: '/tasks', label: 'Tasks', icon: '▣' },
+  { href: '/projects', label: 'Projects', icon: '◇' },
+  { href: '/requests', label: 'Requests', icon: '↗' },
 ];
 
 const operationsItems: NavItem[] = [
-  { href: '/guests', label: 'Guest Matters', shortLabel: 'Guests', icon: 'G' },
-  { href: '/fixes', label: 'Maintenance', icon: 'F' },
-  { href: '/rooms', label: 'Rooms', icon: 'R' },
-  { href: '/shift', label: 'Shift Handover', shortLabel: 'Handover', icon: 'S' },
+  { href: '/guests', label: 'Guest Matters', shortLabel: 'Guests', icon: '◎' },
+  { href: '/fixes', label: 'Maintenance', icon: '◆' },
+  { href: '/rooms', label: 'Rooms', icon: '▦' },
+  { href: '/shift', label: 'Shift Handover', shortLabel: 'Handover', icon: '⇄' },
 ];
 
 const decisionItems: NavItem[] = [
-  { href: '/review', label: 'Review', icon: 'V' },
-  { href: '/approvals', label: 'Approvals', icon: 'A' },
+  { href: '/review', label: 'Review', icon: '◫' },
+  { href: '/approvals', label: 'Approvals', icon: '✓' },
 ];
 
 const activityItems: NavItem[] = [
-  { href: '/notifications', label: 'Notifications', icon: 'N' },
-  { href: '/history', label: 'History', icon: 'Y' },
+  { href: '/notifications', label: 'Notifications', icon: '♢' },
+  { href: '/history', label: 'History', icon: '◷' },
 ];
 
 const adminItems: AdminNavItem[] = [
-  { href: '/admin/appearance', label: 'Appearance', shortLabel: 'Appearance', icon: 'I', ownerOnly: true },
-  { href: '/admin/users', label: 'People & Access', shortLabel: 'People', icon: 'U', capability: 'manage_accounts' },
-  { href: '/admin/approve', label: 'Approval Administration', shortLabel: 'Approvals', icon: 'A', capability: 'manage_approvals' },
-  { href: '/admin/health', label: 'System Health', shortLabel: 'Health', icon: 'Y', capability: 'view_system_health' },
+  { href: '/admin/appearance', label: 'Appearance', shortLabel: 'Appearance', icon: '◈', ownerOnly: true },
+  { href: '/admin/users', label: 'People & Access', shortLabel: 'People', icon: '♙', capability: 'manage_accounts' },
+  { href: '/admin/approve', label: 'Approval Administration', shortLabel: 'Approvals', icon: '✓', capability: 'manage_approvals' },
+  { href: '/admin/health', label: 'System Health', shortLabel: 'Health', icon: '●', capability: 'view_system_health' },
 ];
 
 const connectedApps = [
@@ -146,10 +146,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const visibleAdminItems = adminItems.filter(item => (!item.ownerOnly || role === 'owner') && (!item.capability || hasCapability(user, item.capability)));
   const canOpenMarketing = hasCapability(user, 'view_all_operations') || deptOptions.some((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
   const contentItems: NavItem[] = canOpenMarketing ? [
-    { href: '/posts', label: 'Marketing', icon: 'K' },
-    { href: '/posts/editor', label: 'Annotation Studio', shortLabel: 'Studio', icon: 'I' },
+    { href: '/posts', label: 'Marketing', icon: '◉' },
+    { href: '/posts/editor', label: 'Annotation Studio', shortLabel: 'Studio', icon: '✎' },
   ] : [];
-  const peopleItems: NavItem[] = [{ href: '/departments', label: 'Departments', icon: 'D' }];
+  const peopleItems: NavItem[] = [{ href: '/departments', label: 'Departments', icon: '▥' }];
   const closeMobile = () => setMobileOpen(false);
 
   function changeDept(value: string) {
@@ -192,7 +192,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside id="mobile-sidebar" className={`sidebar ${mobileOpen ? 'open' : ''}`} aria-hidden={!mobileOpen ? undefined : false}>
         <div className="brand">
           <div className="logo">HO</div>
-          <div><strong>Operations</strong><small>Hidden Oasis command center</small></div>
+          <div><strong>Hidden Oasis</strong><small>Operations</small></div>
         </div>
 
         <div className="user-summary">
@@ -209,11 +209,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav className="nav grouped" aria-label="Main navigation">
           <NavSection items={homeItems} path={path} onNavigate={closeMobile} />
-          <NavSection label="Work" items={workItems} path={path} onNavigate={closeMobile} />
-          <NavSection label="Operations" items={operationsItems} path={path} onNavigate={closeMobile} />
-          <NavSection label="Decisions" items={decisionItems} path={path} onNavigate={closeMobile} />
+          <NavSection label="Execution" items={workItems} path={path} onNavigate={closeMobile} />
+          <NavSection label="Property" items={operationsItems} path={path} onNavigate={closeMobile} />
+          <NavSection label="Control" items={decisionItems} path={path} onNavigate={closeMobile} />
           {contentItems.length ? <NavSection label="Content" items={contentItems} path={path} onNavigate={closeMobile} /> : null}
-          <NavSection label="People & System" items={peopleItems} path={path} onNavigate={closeMobile} />
+          <NavSection label="Organization" items={peopleItems} path={path} onNavigate={closeMobile} />
 
           {visibleAdminItems.length > 0 ? (
             <details className="nav-admin" open={path.startsWith('/admin')}>
