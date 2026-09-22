@@ -720,3 +720,32 @@ tbody tr:hover td { background: #f5f7f3; }
     line-height: 1.2 !important;
   }
 }
+
+
+/* Production screenshot correction: KPI captions are .eyebrow elements inside
+   compact top-level metric grids. Target the actual DOM with sufficient
+   specificity so legacy !important scale rules cannot keep them microscopic. */
+@media (min-width: 761px) {
+  .main > .grid.cols-3 > .panel > .eyebrow,
+  .main > .grid.cols-4 > .panel > .eyebrow {
+    font-size: 16px !important;
+    line-height: 1.25 !important;
+    letter-spacing: .055em !important;
+    font-weight: 750 !important;
+  }
+  .main > .grid.cols-3 > .panel > .eyebrow + h2,
+  .main > .grid.cols-4 > .panel > .eyebrow + h2 {
+    font-size: 24px !important;
+    line-height: 1.15 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .main > .grid.cols-3 > .panel > .eyebrow,
+  .main > .grid.cols-4 > .panel > .eyebrow {
+    font-size: 14.5px !important;
+    line-height: 1.25 !important;
+    letter-spacing: .045em !important;
+    font-weight: 750 !important;
+  }
+}
