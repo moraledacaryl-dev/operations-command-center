@@ -3,7 +3,7 @@
    without removing workflow markup, permissions, forms, drawers, or routes. */
 :root{
   --product-bg:#f6f8f6;--product-surface:#fff;--product-soft:#f0f4f1;
-  --product-ink:#172b25;--product-muted:#687871;--product-line:#dfe7e2;
+  --product-ink:#172b25;--product-muted:#5f7069;--product-line:#dfe7e2;
   --product-green:#0d6b52;--product-green-dark:#0b352c;
   --product-shadow:0 10px 30px rgba(22,47,38,.055);
 }
