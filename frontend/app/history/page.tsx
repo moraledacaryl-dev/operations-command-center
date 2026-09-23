@@ -69,7 +69,7 @@ export default function HistoryPage() {
     </section>
     {loading ? <div className="panel"><div className="empty">Loading history…</div></div> : Object.entries(grouped).map(([month, rows]) => <section className="panel" key={month} style={{ marginBottom: 16 }}>
       <div className="topbar"><h2>{month}</h2><Pill value={String(rows.length)} /></div>
-      <div className="grid cols-2" style={{ marginTop: 12 }}>
+      <div className="history-list" style={{ marginTop: 12 }}>
         {rows.map(item => <article className="card" key={`${item.kind}-${item.id}`}>
           <div className="card-title">{item.title || item.name || 'Archived record'}</div>
           <div className="card-line"><Pill value={item.kind} /><Pill value={item.status || item.review_status || 'Completed'} />{item.archive_reason ? <Pill value={item.archive_reason} /> : null}</div>
