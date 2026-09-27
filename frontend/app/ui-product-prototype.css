@@ -279,3 +279,21 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .history-list>.card:last-child{border-bottom:0!important}
 @media(max-width:900px){.request-queue>.card,.maintenance-queue>.card,.shift-queue>.card{grid-template-columns:1fr!important}.request-queue>.card>*,.maintenance-queue>.card>*,.shift-queue>.card>*{grid-column:1!important;grid-row:auto!important}}
 @media(max-width:760px){.request-workspace,.maintenance-workspace,.shift-workspace{padding:15px!important}}
+
+/* Screenshot QA correction: prototype queue geometry and balanced My Work. */
+.my-work-agenda{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+.my-work-agenda .my-work-overdue{grid-column:1!important;grid-row:1!important}
+.my-work-agenda .my-work-today{grid-column:1!important;grid-row:2!important}
+.my-work-agenda .my-work-upcoming{grid-column:2!important;grid-row:1!important}
+.my-work-agenda .my-work-waiting{grid-column:2!important;grid-row:2!important}
+.my-work-agenda .my-work-recently_completed{grid-column:1 / -1!important;grid-row:3!important}
+.request-workspace{padding:18px!important}
+.request-workspace>.topbar{min-height:0!important;margin-bottom:10px!important}
+.request-workspace .tabs{margin-bottom:12px!important}
+.request-queue{display:grid!important;gap:0!important;border:1px solid var(--product-line);border-radius:14px;overflow:hidden;background:#fff}
+.request-queue>.card{display:grid!important;grid-template-columns:minmax(240px,.8fr) auto minmax(0,1.2fr);gap:10px 18px!important;align-items:center;border:0!important;border-bottom:1px solid #edf1ee!important;border-radius:0!important;box-shadow:none!important;min-height:82px!important;padding:14px 16px!important}
+.request-queue>.card:last-child{border-bottom:0!important}
+.request-queue>.card .card-title{grid-column:1}
+.request-queue>.card .card-line{grid-column:2}
+.request-queue>.card>.muted{grid-column:3}
+@media(max-width:900px){.request-queue>.card{grid-template-columns:1fr!important}.request-queue>.card>*{grid-column:1!important}.my-work-agenda{grid-template-columns:1fr!important}.my-work-agenda .my-work-section{grid-column:1!important;grid-row:auto!important}}
