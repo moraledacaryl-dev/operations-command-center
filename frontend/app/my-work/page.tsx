@@ -38,7 +38,7 @@ export default function MyWorkPage() {
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {!payload && !error ? <div className="empty">Loading your work…</div> : null}
 
-    <div className="grid">
+    <div className="my-work-agenda">
       {sections.map(([key, label]) => {
         const items: Entity[] = groups[key] || [];
         return (
