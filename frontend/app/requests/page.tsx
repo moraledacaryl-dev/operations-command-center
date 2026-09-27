@@ -114,13 +114,14 @@ export default function RequestsPage() {
       <label className="label">Business reason<textarea className="textarea" value={reason} onChange={e => setReason(e.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim() || !reason.trim()} onClick={createRequest}>{busy ? 'Saving…' : 'Create draft'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
+    <section className="panel request-workspace"><div className="topbar"><div><div className="eyebrow">Decision pipeline</div><h2>Request queue</h2></div><Pill value={`${visible.length} visible`} /></div>
     <Tabs values={['Open','Draft','Review','Approved','Planned','Done','Rejected','All']} active={filter} onChange={setFilter} label="Request status" />
-    <div className="grid cols-3">
+    <div className="request-queue">
       {visible.map(item => <button type="button" key={item.id} className={`card request-item ${item.urgency === 'Urgent' ? 'card-important' : ''}`} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
         <strong className="card-title">{item.title}</strong><span className="card-line"><Pill value={item.status} /><Pill value={item.urgency || 'Normal'} /><Pill value={item.request_type || 'General'} /></span><span className="muted">{String(item.reason || '').slice(0, 150)}</span>
       </button>)}
       {!visible.length ? <div className="empty">No requests in this view.</div> : null}
-    </div>
+    </div></section>
     <Drawer item={selected} title="Request" onClose={() => !busy && setSelected(null)}>
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}><div className="eyebrow">Decision context</div><h2>{selected.title}</h2><p>{selected.reason || 'No business reason recorded.'}</p><div className="card-line"><Pill value={selected.status} /><Pill value={selected.urgency || 'Normal'} /><Pill value={selected.request_type || 'General'} /></div></section>

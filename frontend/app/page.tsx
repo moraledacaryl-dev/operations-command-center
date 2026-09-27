@@ -120,7 +120,7 @@ export default function Home() {
 
       {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
 
-      <section className="panel" style={{ marginBottom: 16 }}>
+      <section className="panel home-command-hero" style={{ marginBottom: 16 }}>
         <div className="topbar" style={{ alignItems: 'flex-start' }}>
           <div>
             <div className="eyebrow">{allClear ? 'Operations clear' : 'Start here'}</div>
