@@ -297,3 +297,26 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .request-queue>.card .card-line{grid-column:2}
 .request-queue>.card>.muted{grid-column:3}
 @media(max-width:900px){.request-queue>.card{grid-template-columns:1fr!important}.request-queue>.card>*{grid-column:1!important}.my-work-agenda{grid-template-columns:1fr!important}.my-work-agenda .my-work-section{grid-column:1!important;grid-row:auto!important}}
+
+/* Systemic screenshot QA: metrics are context, tabs are controls, pills are exceptions. */
+.operational-summary{display:flex;align-items:center;gap:0;min-height:52px;padding:0 4px;border-top:1px solid var(--product-line);border-bottom:1px solid var(--product-line);color:var(--product-muted)}
+.operational-summary>span{display:flex;align-items:baseline;gap:6px;padding:0 18px;border-right:1px solid var(--product-line);font-size:12.5px}
+.operational-summary>span:first-child{padding-left:0}.operational-summary>span:last-child{border-right:0}
+.operational-summary strong{font-size:20px;line-height:1;color:var(--product-ink);letter-spacing:-.03em}
+.operational-summary .summary-alert,.operational-summary .summary-alert strong{color:#a73b36}
+.tabs-shell{margin:0 0 14px!important}
+.tabs{background:transparent!important;border-radius:0!important;padding:0!important;gap:18px!important;border-bottom:1px solid var(--product-line)!important;width:100%!important}
+.tab{min-height:38px!important;padding:6px 1px 9px!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--product-muted)!important}
+.tab.active,.tab[aria-selected=true]{background:transparent!important;color:var(--product-green)!important;box-shadow:inset 0 -2px 0 var(--product-green)!important}
+.task-search{margin-bottom:14px!important}.task-search .input{max-width:420px}
+[data-testid='tasks-board']>.panel{background:#f3f6f4!important;border:1px solid #e5ebe7!important}
+[data-testid='tasks-board']>.panel>.card-line>.pill{background:transparent!important;padding:0!important;min-height:0!important;color:var(--product-muted)!important}
+.project-portfolio-card .project-card-kicker{letter-spacing:.08em!important}
+.maintenance-workspace,.request-workspace,.approval-workspace{box-shadow:none!important}
+@media(max-width:760px){
+ .operational-summary{overflow-x:auto;min-height:46px}
+ .operational-summary>span{white-space:nowrap;padding:0 12px;font-size:12px}
+ .operational-summary strong{font-size:18px}
+ .tabs{gap:16px!important;overflow-x:auto!important;scrollbar-width:none}
+ .tab{white-space:nowrap!important;flex:0 0 auto!important}
+}
