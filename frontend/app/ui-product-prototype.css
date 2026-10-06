@@ -330,3 +330,17 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 @media(max-width:360px){
  .operational-summary>span{white-space:normal!important;flex:1 1 auto!important}
 }
+
+/* Final prototype-fidelity composition: use the canvas and make mobile task flow deliberate. */
+.project-gallery{grid-template-columns:repeat(2,minmax(0,1fr))!important;max-width:none!important}
+.project-portfolio-card{min-height:230px!important}
+@media(min-width:1200px){.project-portfolio-card{padding:22px!important}.project-portfolio-card .card-title{font-size:20px!important}}
+@media(max-width:760px){
+ [data-testid='tasks-board']{display:block!important}
+ [data-testid='tasks-board']>.panel{margin:0 0 10px!important;padding:12px!important;background:#fff!important;border-color:var(--product-line)!important}
+ [data-testid='tasks-board']>.panel h2{font-size:13px!important;margin:0!important}
+ [data-testid='tasks-board']>.panel>.card-line{margin-bottom:8px!important}
+ [data-testid='tasks-board'] .card{padding:13px!important;border-left:3px solid #dfe7e2!important}
+ .project-gallery{grid-template-columns:1fr!important}
+ .project-portfolio-card{min-height:170px!important}
+}
