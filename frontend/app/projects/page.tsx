@@ -182,10 +182,10 @@ export default function ProjectsPage() {
 
   return <>
     <Top eyebrow="Delivery portfolio" title="Projects" right={canManage ? <button data-testid="create-project" className="btn" onClick={() => setShowAdd(value => !value)}>New project</button> : undefined} />
-    <div className="grid cols-3 project-kpis" style={{ marginBottom: 16 }}>
-      <div className="panel"><div className="eyebrow">Active</div><h2>{enriched.filter(project => project.status === 'Active').length}</h2></div>
-      <div className="panel"><div className="eyebrow">At risk</div><h2>{enriched.filter(project => project.overdue_tasks > 0 || project.status === 'Paused').length}</h2></div>
-      <div className="panel"><div className="eyebrow">Completed</div><h2>{enriched.filter(project => project.status === 'Done').length}</h2></div>
+    <div className="operational-summary" style={{ marginBottom: 16 }}>
+      <span><strong>{enriched.filter(project => project.status === 'Active').length}</strong> in delivery</span>
+      <span><strong>{enriched.filter(project => project.overdue_tasks > 0 || project.status === 'Paused').length}</strong> need attention</span>
+      <span><strong>{enriched.filter(project => project.status === 'Done').length}</strong> completed</span>
     </div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {canManage && showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-project-form">
