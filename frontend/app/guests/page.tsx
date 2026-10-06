@@ -106,7 +106,7 @@ export default function GuestMattersPage() {
 
   return <>
     <Top eyebrow="Service recovery" title="Guest matters" right={<button data-testid="create-guest" className="btn" onClick={() => setShowAdd(value => !value)}>New guest matter</button>} />
-    <div className="grid cols-3" style={{ marginBottom: 16 }}><div className="panel"><div className="eyebrow">Active</div><h2>{active}</h2></div><div className="panel"><div className="eyebrow">Urgent</div><h2>{urgent}</h2></div><div className="panel"><div className="eyebrow">Follow-up</div><h2>{follow}</h2></div></div>
+    <div className="operational-summary" style={{ marginBottom: 16 }}><span><strong>{active}</strong> unresolved matters</span><span><strong>{urgent}</strong> urgent</span><span><strong>{follow}</strong> need follow-up</span></div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-guest-form">
       <h2>Log guest matter</h2>
