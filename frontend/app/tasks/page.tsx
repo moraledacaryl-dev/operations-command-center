@@ -79,10 +79,10 @@ export default function TeamTasksPage() {
 
   return <>
     <Top eyebrow="Team execution" title="Tasks" right={<button data-testid="create-task" className="btn" onClick={() => setShowAdd(value => !value)}>New task</button>} />
-    <div className="grid cols-3 task-kpis" style={{ marginBottom: 16 }}>
-      <div className="panel task-kpi"><div className="task-kpi-label">Active</div><h2>{visible.filter(item => item.status !== 'Done').length}</h2></div>
-      <div className="panel task-kpi"><div className="task-kpi-label">In review</div><h2>{visible.filter(item => item.status === 'Review').length}</h2></div>
-      <div className="panel task-kpi"><div className="task-kpi-label">Overdue</div><h2>{overdue}</h2></div>
+    <div className="operational-summary" style={{ marginBottom: 16 }}>
+      <span><strong>{visible.filter(item => item.status !== 'Done').length}</strong> open tasks</span>
+      <span><strong>{visible.filter(item => item.status === 'Review').length}</strong> awaiting review</span>
+      <span className={overdue ? 'summary-alert' : ''}><strong>{overdue}</strong> overdue</span>
     </div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
@@ -94,7 +94,7 @@ export default function TeamTasksPage() {
       </div>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim()} onClick={createTask}>{busy ? 'Saving…' : 'Create task'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
-    <div className="toolbar"><input className="input" placeholder="Search team tasks" value={query} onChange={e => setQuery(e.target.value)} /></div>
+    <div className="toolbar task-search"><input className="input" placeholder="Search team tasks" value={query} onChange={e => setQuery(e.target.value)} /></div>
     <div className="grid cols-4" data-testid="tasks-board">
       {columns.map(status => <section className="panel" key={status}>
         <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>{status}</h2><Pill value={String(visible.filter(item => item.status === status).length)} /></div>

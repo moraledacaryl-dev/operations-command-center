@@ -182,10 +182,10 @@ export default function ProjectsPage() {
 
   return <>
     <Top eyebrow="Delivery portfolio" title="Projects" right={canManage ? <button data-testid="create-project" className="btn" onClick={() => setShowAdd(value => !value)}>New project</button> : undefined} />
-    <div className="grid cols-3 project-kpis" style={{ marginBottom: 16 }}>
-      <div className="panel"><div className="eyebrow">Active</div><h2>{enriched.filter(project => project.status === 'Active').length}</h2></div>
-      <div className="panel"><div className="eyebrow">At risk</div><h2>{enriched.filter(project => project.overdue_tasks > 0 || project.status === 'Paused').length}</h2></div>
-      <div className="panel"><div className="eyebrow">Completed</div><h2>{enriched.filter(project => project.status === 'Done').length}</h2></div>
+    <div className="operational-summary" style={{ marginBottom: 16 }}>
+      <span><strong>{enriched.filter(project => project.status === 'Active').length}</strong> in delivery</span>
+      <span><strong>{enriched.filter(project => project.overdue_tasks > 0 || project.status === 'Paused').length}</strong> need attention</span>
+      <span><strong>{enriched.filter(project => project.status === 'Done').length}</strong> completed</span>
     </div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {canManage && showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-project-form">
@@ -201,8 +201,8 @@ export default function ProjectsPage() {
     <Tabs values={['All', 'Planned', 'Active', 'Paused', 'Done']} active={filter} onChange={setFilter} label="Project status" />
     <div className="grid cols-3 project-gallery">
       {visible.map(project => <button type="button" className={`card project-portfolio-card ${project.overdue_tasks ? 'card-important' : ''}`} key={project.id} onClick={() => openProject(project)} style={{ textAlign: 'left' }}>
-        <span className="project-card-kicker">{project.overdue_tasks ? 'Needs attention' : project.status}</span><strong className="card-title">{project.title}</strong>
-        <span className="card-line"><Pill value={project.status} /><Pill value={project.priority || 'Normal'} />{project.overdue_tasks ? <Pill value={`${project.overdue_tasks} overdue`} /> : null}</span>
+        <span className="project-card-kicker">{project.overdue_tasks ? 'Needs attention' : project.progress + '% complete'}</span><strong className="card-title">{project.title}</strong>
+        <span className="card-line"><Pill value={project.priority || 'Normal'} />{project.overdue_tasks ? <Pill value={`${project.overdue_tasks} overdue`} /> : null}</span>
         <span className="muted">Due {formatDate(project.due_date)}</span>
         <span className="muted">{project.linked_tasks.length} linked tasks · {project.progress}% complete</span>
         <span className="project-progress" aria-label={`${project.progress}% complete`}><span style={{ width: `${project.progress}%` }} /></span>
