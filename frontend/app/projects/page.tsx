@@ -201,8 +201,8 @@ export default function ProjectsPage() {
     <Tabs values={['All', 'Planned', 'Active', 'Paused', 'Done']} active={filter} onChange={setFilter} label="Project status" />
     <div className="grid cols-3 project-gallery">
       {visible.map(project => <button type="button" className={`card project-portfolio-card ${project.overdue_tasks ? 'card-important' : ''}`} key={project.id} onClick={() => openProject(project)} style={{ textAlign: 'left' }}>
-        <span className="project-card-kicker">{project.overdue_tasks ? 'Needs attention' : project.status}</span><strong className="card-title">{project.title}</strong>
-        <span className="card-line"><Pill value={project.status} /><Pill value={project.priority || 'Normal'} />{project.overdue_tasks ? <Pill value={`${project.overdue_tasks} overdue`} /> : null}</span>
+        <span className="project-card-kicker">{project.overdue_tasks ? 'Needs attention' : project.progress + '% complete'}</span><strong className="card-title">{project.title}</strong>
+        <span className="card-line"><Pill value={project.priority || 'Normal'} />{project.overdue_tasks ? <Pill value={`${project.overdue_tasks} overdue`} /> : null}</span>
         <span className="muted">Due {formatDate(project.due_date)}</span>
         <span className="muted">{project.linked_tasks.length} linked tasks · {project.progress}% complete</span>
         <span className="project-progress" aria-label={`${project.progress}% complete`}><span style={{ width: `${project.progress}%` }} /></span>
