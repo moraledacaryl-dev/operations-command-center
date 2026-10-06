@@ -320,3 +320,13 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
  .tabs{gap:16px!important;overflow-x:auto!important;scrollbar-width:none}
  .tab{white-space:nowrap!important;flex:0 0 auto!important}
 }
+
+/* Accessibility: compact summaries wrap rather than creating non-focusable scroll regions. */
+@media(max-width:760px){
+ .operational-summary{overflow:visible!important;flex-wrap:wrap!important;height:auto!important;padding:7px 0!important}
+ .operational-summary>span{padding:6px 12px!important}
+ .operational-summary>span:first-child{padding-left:0!important}
+}
+@media(max-width:360px){
+ .operational-summary>span{white-space:normal!important;flex:1 1 auto!important}
+}
