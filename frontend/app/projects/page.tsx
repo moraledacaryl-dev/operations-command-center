@@ -198,7 +198,7 @@ export default function ProjectsPage() {
       <label className="label">Notes<textarea className="textarea" value={note} onChange={event => setNote(event.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim()} onClick={createProject}>{busy ? 'Saving…' : 'Create project'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
-    <div className="portfolio-toolbar"><div><div className="eyebrow">Portfolio</div><h2>All projects</h2></div><Tabs values={['All', 'Planned', 'Active', 'Paused', 'Done']} active={filter} onChange={setFilter} label="Project status" /></div>
+    <div className="portfolio-toolbar"><div><div className="eyebrow">Portfolio</div><h2>Project portfolio</h2></div><Tabs values={['All', 'Planned', 'Active', 'Paused', 'Done']} active={filter} onChange={setFilter} label="Project status" /></div>
     <div className="grid cols-3 project-gallery">
       {visible.map(project => <button type="button" className={`card project-portfolio-card ${project.overdue_tasks ? 'card-important' : ''}`} key={project.id} onClick={() => openProject(project)} style={{ textAlign: 'left' }}>
         <span className="project-card-kicker">{project.overdue_tasks ? 'Needs attention' : project.progress + '% complete'}</span><strong className="card-title">{project.title}</strong>
