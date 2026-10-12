@@ -43,14 +43,12 @@ export default function MyWorkPage() {
         const items: Entity[] = groups[key] || [];
         return (
           <section className={`panel my-work-section my-work-${key}`} key={key}>
-            <div className="topbar">
-              <div><div className="eyebrow">{label}</div><h2>{items.length}</h2></div>
-            </div>
+            <div className="my-work-section-head"><h2>{label}</h2><span className="my-work-count">{items.length}</span></div>
             {items.length ? <div className="my-work-items">
               {items.map(item => (
                 <button className="card my-work-item" type="button" key={item.id} onClick={() => setSelected(item)}>
                   <span className="card-title">{item.title}</span>
-                  <span className="card-line"><Pill value={item.status} /><Pill value={item.priority} /></span>
+                  <span className="card-line"><Pill value={item.priority} /></span>
                   <span className="muted">{item.department_name || 'No department'} · {dueLabel(item.due_date)}</span>
                 </button>
               ))}
