@@ -144,9 +144,8 @@ export default function ReviewPage() {
     <Top eyebrow="Decision queue" title="Review" right={<button className="btn secondary" onClick={() => void load()} disabled={loading || submitting}>{loading ? 'Refreshing…' : 'Refresh'}</button>} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
 
-    <section className="panel" style={{ marginBottom: 16 }}>
-      <p className="muted review-context">{items.length} decisions in this view · Prioritized by urgency, then oldest first.</p>
-      <div className="toolbar" style={{ marginTop: 12 }}>
+    <section className="review-controls" style={{ marginBottom: 16 }}>
+      <div className="toolbar">
         <input className="input" placeholder="Search decisions" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
       <Tabs values={['All', ...sources.map(([, label]) => label)]} active={filter} onChange={setFilter} label="Decision source" />
