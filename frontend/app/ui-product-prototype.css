@@ -344,3 +344,13 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
  .project-gallery{grid-template-columns:1fr!important}
  .project-portfolio-card{min-height:170px!important}
 }
+
+/* Guest service recovery is an operational queue, not a card gallery. */
+.guest-queue{display:grid!important;gap:8px!important}
+.guest-queue-item{display:grid!important;grid-template-columns:minmax(220px,.8fr) minmax(180px,.65fr) minmax(220px,1fr);align-items:center!important;gap:8px 20px!important;min-height:82px!important;padding:14px 16px!important;box-shadow:none!important}
+.guest-queue-item>.card-title{font-size:15px!important}
+.guest-queue-item>.card-line{grid-column:2!important;margin:0!important}
+.guest-queue-item>.muted{grid-column:3!important;margin:0!important}
+.guest-queue-item.card-important{border-left:4px solid #a73b36!important}
+@media(max-width:900px){.guest-queue-item{grid-template-columns:minmax(0,1fr) auto!important}.guest-queue-item>.card-line{grid-column:2!important}.guest-queue-item>.muted{grid-column:1/-1!important}}
+@media(max-width:760px){.guest-queue-item{grid-template-columns:1fr!important;gap:6px!important}.guest-queue-item>.card-line,.guest-queue-item>.muted{grid-column:1!important}}
