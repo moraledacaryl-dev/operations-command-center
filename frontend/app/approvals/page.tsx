@@ -88,7 +88,7 @@ export default function ApprovalsPage() {
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
 
     <section className="panel approval-controls" style={{ marginBottom: 16 }}>
-      <div className="card-line"><Pill value={`${visible.length} visible`} /><span className="muted">Approvals are system-owned records. Decisions use the canonical workflow only.</span></div>
+      <p className="muted approval-context">{visible.length} items in this view · Decisions use the canonical workflow only.</p>
       <div className="toolbar" style={{ marginTop: 12 }}>
         <input className="input" placeholder="Search approvals" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
@@ -100,7 +100,7 @@ export default function ApprovalsPage() {
       {loading ? <div className="empty">Loading approvals…</div> : visible.length ? <div className="approval-queue">
         {visible.map(item => <button type="button" className="card approval-queue-item" key={item.id} onClick={() => void open(item)} style={{ textAlign: 'left', width: '100%' }}>
           <div className="approval-item-main"><div className="card-title">{item.title || 'Approval'}</div>
-          <div className="card-line"><Pill value={item.status || 'Pending'} /><Pill value={item.priority || 'Normal'} />{item.source_type ? <Pill value={item.source_type} /> : null}</div>
+          <div className="card-line"><Pill value={item.priority || 'Normal'} />{item.source_type ? <span className="muted">{item.source_type}</span> : null}</div>
           {item.note ? <div className="muted">{String(item.note).slice(0, 160)}</div> : null}</div><span className="approval-open-cue" aria-hidden="true">→</span>
         </button>)}
       </div> : <div className="empty">No approvals match this view.</div>}
