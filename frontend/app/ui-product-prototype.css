@@ -354,3 +354,10 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .guest-queue-item.card-important{border-left:4px solid #a73b36!important}
 @media(max-width:900px){.guest-queue-item{grid-template-columns:minmax(0,1fr) auto!important}.guest-queue-item>.card-line{grid-column:2!important}.guest-queue-item>.muted{grid-column:1/-1!important}}
 @media(max-width:760px){.guest-queue-item{grid-template-columns:1fr!important;gap:6px!important}.guest-queue-item>.card-line,.guest-queue-item>.muted{grid-column:1!important}}
+
+/* My Work is an agenda: section names and counts are navigation context, not KPI cards. */
+.my-work-section-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin-bottom:12px!important;padding-bottom:10px!important;border-bottom:1px solid var(--product-line)!important}
+.my-work-section-head h2{margin:0!important;font-size:16px!important}
+.my-work-count{display:inline-grid!important;place-items:center!important;min-width:28px!important;height:28px!important;padding:0 8px!important;border-radius:999px!important;background:var(--product-soft)!important;color:var(--product-muted)!important;font-size:12px!important;font-weight:800!important}
+.my-work-empty{padding:10px 2px!important;color:var(--product-muted)!important;font-size:12.5px!important}
+.my-work-item .card-line{min-width:0!important}
