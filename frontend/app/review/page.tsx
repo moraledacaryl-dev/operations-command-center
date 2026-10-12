@@ -145,7 +145,7 @@ export default function ReviewPage() {
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
 
     <section className="panel" style={{ marginBottom: 16 }}>
-      <div className="card-line"><Pill value={`${items.length} visible`} /><span className="muted">Prioritized by urgency, then oldest first.</span></div>
+      <p className="muted review-context">{items.length} decisions in this view · Prioritized by urgency, then oldest first.</p>
       <div className="toolbar" style={{ marginTop: 12 }}>
         <input className="input" placeholder="Search decisions" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
@@ -158,10 +158,9 @@ export default function ReviewPage() {
         {items.map(item => <button type="button" className="card" key={`${item.review_kind}-${item.id}`} onClick={() => void open(item)} style={{ textAlign: 'left', width: '100%' }}>
           <div className="card-title">{item.title || item.name || 'Review item'}</div>
           <div className="card-line">
-            <Pill value={item.review_kind} />
-            <Pill value={item.status || item.review_status} />
+            <span className="muted">{item.review_kind}</span>
             <Pill value={item.priority || item.urgency || 'Normal'} />
-            {age(item) ? <Pill value={age(item)} /> : null}
+            {age(item) ? <span className="muted">{age(item)}</span> : null}
           </div>
           {summary(item) ? <div className="muted">{summary(item).slice(0, 180)}</div> : null}
         </button>)}
