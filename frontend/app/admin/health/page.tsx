@@ -24,7 +24,7 @@ export default function HealthPage() {
   return <div className="admin-health">
     <Top eyebrow="Admin" title="Health" right={<div className="toolbar" style={{ margin: 0 }}>{owner ? <Link className="btn secondary" href="/admin/appearance">Appearance</Link> : null}<button className="btn secondary" onClick={runArchive}>Run archive</button></div>} />
     {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
-    <div className="grid cols-2">
+    <div className="grid cols-2 health-overview">
       <section className="panel">
         <h2>Auth readiness</h2>
         <div className="card-line">
