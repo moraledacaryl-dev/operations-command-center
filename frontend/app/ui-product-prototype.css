@@ -378,3 +378,9 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
  .task-list-item{grid-template-columns:1fr auto!important;gap:5px 10px!important}
  .task-list-state{grid-column:1!important}.task-list-item>strong{grid-column:1/-1!important}.task-list-item>.muted{grid-column:1!important}
 }
+
+/* Project portfolio uses the full collection by default and keeps filters secondary. */
+.portfolio-toolbar{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:20px!important;margin:4px 0 14px!important}
+.portfolio-toolbar h2{margin:2px 0 0!important;font-size:20px!important}
+.portfolio-toolbar .tabs{margin:0!important}
+@media(max-width:760px){.portfolio-toolbar{display:block!important}.portfolio-toolbar .tabs{margin-top:8px!important}}
