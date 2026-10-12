@@ -87,9 +87,8 @@ export default function ApprovalsPage() {
     <Top eyebrow="Decision queue" title="Approvals" right={<button className="btn secondary" onClick={() => void load()} disabled={loading || busy}>{loading ? 'Refreshing…' : 'Refresh'}</button>} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
 
-    <section className="panel approval-controls" style={{ marginBottom: 16 }}>
-      <p className="muted approval-context">{visible.length} items in this view · Decisions use the canonical workflow only.</p>
-      <div className="toolbar" style={{ marginTop: 12 }}>
+    <section className="approval-controls" style={{ marginBottom: 16 }}>
+      <div className="toolbar">
         <input className="input" placeholder="Search approvals" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
       <Tabs values={['Pending', 'Approved', 'Rejected', 'All']} active={filter} onChange={setFilter} label="Approval status" />
