@@ -361,3 +361,20 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .my-work-count{display:inline-grid!important;place-items:center!important;min-width:28px!important;height:28px!important;padding:0 8px!important;border-radius:999px!important;background:var(--product-soft)!important;color:var(--product-muted)!important;font-size:12px!important;font-weight:800!important}
 .my-work-empty{padding:10px 2px!important;color:var(--product-muted)!important;font-size:12.5px!important}
 .my-work-item .card-line{min-width:0!important}
+
+/* Tasks: explicit view choice rather than forcing Kanban for every workflow. */
+.task-controls{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;margin-bottom:14px!important}
+.task-controls .task-search{margin:0!important;flex:1 1 420px!important}
+.task-view-switch{display:flex!important;gap:3px!important;padding:3px!important;border:1px solid var(--product-line)!important;border-radius:10px!important;background:#edf2ef!important}
+.task-view-switch button{border:0!important;background:transparent!important;color:var(--product-muted)!important;border-radius:7px!important;padding:7px 12px!important;font:inherit!important;font-size:12px!important;font-weight:750!important;cursor:pointer!important}
+.task-view-switch button.active{background:#fff!important;color:var(--product-ink)!important;box-shadow:0 1px 5px rgba(32,59,48,.08)!important}
+.task-list{display:grid!important;gap:7px!important}
+.task-list-item{display:grid!important;grid-template-columns:100px minmax(0,1fr) 150px auto!important;align-items:center!important;gap:12px!important;text-align:left!important;box-shadow:none!important;min-height:58px!important}
+.task-list-state{font-size:11px!important;font-weight:800!important;color:var(--product-green)!important}
+@media(max-width:760px){
+ .task-controls{align-items:stretch!important;flex-direction:column!important}
+ .task-controls .task-search{flex:auto!important}
+ .task-view-switch{align-self:flex-start!important}
+ .task-list-item{grid-template-columns:1fr auto!important;gap:5px 10px!important}
+ .task-list-state{grid-column:1!important}.task-list-item>strong{grid-column:1/-1!important}.task-list-item>.muted{grid-column:1!important}
+}
