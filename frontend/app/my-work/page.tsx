@@ -39,10 +39,10 @@ export default function MyWorkPage() {
     {!payload && !error ? <div className="empty">Loading your work…</div> : null}
 
     <div className="my-work-agenda">
-      {sections.map(([key, label]) => {
+      {sections.map(([key, label], index) => {
         const items: Entity[] = groups[key] || [];
         return (
-          <section className={`panel my-work-section my-work-${key}`} key={key}>
+          <section className={`my-work-section my-work-${key} ${index < 2 ? 'my-work-primary' : ''}`} key={key}>
             <div className="my-work-section-head"><h2>{label}</h2><span className="my-work-count">{items.length}</span></div>
             {items.length ? <div className="my-work-items">
               {items.map(item => (
@@ -52,7 +52,7 @@ export default function MyWorkPage() {
                   <span className="muted">{item.department_name || 'No department'} · {dueLabel(item.due_date)}</span>
                 </button>
               ))}
-            </div> : <div className="empty">Nothing here</div>}
+            </div> : <div className="my-work-empty">Nothing scheduled</div>}
           </section>
         );
       })}
