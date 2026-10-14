@@ -23,7 +23,7 @@ export default function TeamTasksPage() {
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState('Normal');
   const [query, setQuery] = useState('');
-  const [view, setView] = useState<'Board' | 'List'>('Board');
+  const [view, setView] = useState<'Board' | 'List'>('List');
   const [actionNote, setActionNote] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
