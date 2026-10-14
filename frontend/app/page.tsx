@@ -109,6 +109,12 @@ export default function Home() {
       })
     : [];
   const allClear = attention.length === 0;
+  const signalValues = [
+    { label: 'Overdue', value: overdueCount, href: '/my-work' },
+    { label: 'Review', value: count(counts.approve), href: '/review' },
+    { label: 'Maintenance', value: count(counts.fixes), href: '/fixes' },
+  ];
+  const signalTotal = signalValues.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <>
@@ -121,33 +127,33 @@ export default function Home() {
       {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
 
       <section className="panel home-command-hero" style={{ marginBottom: 16 }}>
-        <div className="topbar" style={{ alignItems: 'flex-start' }}>
+        <div className="home-command-primary">
           <div>
-            <div className="eyebrow">{allClear ? 'Operations clear' : 'Start here'}</div>
-            <h2>{allClear ? 'Nothing urgent is blocking your day' : `${attention.length} area${attention.length === 1 ? '' : 's'} need attention`}</h2>
+            <div className="eyebrow">{allClear ? 'Operations clear' : 'Operational focus'}</div>
+            <h2>{allClear ? 'Nothing urgent is blocking your day' : `${signalTotal} active signal${signalTotal === 1 ? '' : 's'} need attention`}</h2>
             <p className="muted">{copy.summary}</p>
           </div>
-          <div className="toolbar" style={{ margin: 0 }}>
+          <div className="toolbar home-quick-actions">
             <Link className="btn" href="/tasks?create=1">New task</Link>
             <Link className="btn secondary" href="/requests?create=1">New request</Link>
             <Link className="btn secondary" href="/fixes?create=1">Report issue</Link>
             <Link className="btn secondary" href="/shift?create=1">Shift note</Link>
           </div>
         </div>
+        <div className="home-signal-strip" aria-label="Current operational signals">
+          {signalValues.map(item => <Link href={item.href} className={item.value ? 'home-signal active' : 'home-signal'} key={item.label}>
+            <span className="home-signal-value">{item.value}</span><span>{item.label}</span>
+            <span className="home-signal-track"><span style={{ width: `${signalTotal ? Math.max(8, Math.round(item.value / signalTotal * 100)) : 0}%` }} /></span>
+          </Link>)}
+        </div>
       </section>
-
-      <div className="grid cols-3 home-metrics" style={{ marginBottom: 16 }}>
-        <Metric label="My overdue" value={overdueCount} detail="Assigned tasks past due" href="/my-work" urgent />
-        <Metric label="Waiting for review" value={count(counts.approve)} detail="Decisions requiring attention" href="/review" urgent={isExecutive} />
-        <Metric label="Open maintenance" value={count(counts.fixes)} detail="Unresolved property issues" href="/fixes" />
-      </div>
 
       <div className="grid cols-2">
         <WorkList title="My work" eyebrow="Assigned to you" items={personalRows} href="/my-work" empty="No assigned work needs attention." />
         {attention.length ? <WorkList title="Needs attention" eyebrow="Exceptions" items={attention} href={isExecutive ? '/review' : '/my-work'} empty="No urgent exceptions." /> : null}
         {isExecutive ? <WorkList title="Waiting for review" eyebrow="Decisions" items={approvals} href="/review" empty="No decisions are waiting." /> : null}
         {isLead || role === 'staff' ? <WorkList title="Shift handover" eyebrow="Current department" items={handover} href="/shift" empty="No unresolved handover notes." /> : null}
-        {isExecutive ? <WorkList title="Connected apps" eyebrow="Latest signals" items={integrationAlerts} href="/review" empty="Connected applications are clear." /> : null}
+        {isExecutive && integrationAlerts.some(item => !String(item.summary || '').startsWith('0 ')) ? <WorkList title="Connected apps" eyebrow="External exceptions" items={integrationAlerts.filter(item => !String(item.summary || '').startsWith('0 '))} href="/review" empty="Connected applications are clear." /> : null}
       </div>
 
       {allClear ? (
