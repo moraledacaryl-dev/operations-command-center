@@ -94,13 +94,12 @@ export default function ApprovalsPage() {
       <Tabs values={['Pending', 'Approved', 'Rejected', 'All']} active={filter} onChange={setFilter} label="Approval status" />
     </section>
 
-    <section className="panel approval-workspace">
-      <div className="topbar"><div><div className="eyebrow">Canonical decisions</div><h2>Approval queue</h2><p className="muted">Review the request context first, then open an item to record the decision.</p></div></div>
+    <section className="approval-workspace">
+      <div className="queue-heading"><div><div className="eyebrow">Decision authority</div><h2>Approval queue</h2><p className="muted">Review the operational context before recording a decision.</p></div></div>
       {loading ? <div className="empty">Loading approvals…</div> : visible.length ? <div className="approval-queue">
         {visible.map(item => <button type="button" className="card approval-queue-item" key={item.id} onClick={() => void open(item)} style={{ textAlign: 'left', width: '100%' }}>
-          <div className="approval-item-main"><div className="card-title">{item.title || 'Approval'}</div>
-          <div className="card-line"><Pill value={item.priority || 'Normal'} />{item.source_type ? <span className="muted">{item.source_type}</span> : null}</div>
-          {item.note ? <div className="muted">{String(item.note).slice(0, 160)}</div> : null}</div><span className="approval-open-cue" aria-hidden="true">→</span>
+          <span className="queue-signal">{item.priority || 'Normal'}</span><div className="approval-item-main"><div className="card-title">{item.title || 'Approval'}</div>
+          <div className="muted">{item.source_type || 'Operational request'}{item.note ? ` · ${String(item.note).slice(0, 160)}` : ''}</div></div>
         </button>)}
       </div> : <div className="empty">No approvals match this view.</div>}
     </section>
