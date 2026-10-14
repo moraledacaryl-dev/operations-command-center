@@ -384,3 +384,35 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .portfolio-toolbar h2{margin:2px 0 0!important;font-size:20px!important}
 .portfolio-toolbar .tabs{margin:0!important}
 @media(max-width:760px){.portfolio-toolbar{display:block!important}.portfolio-toolbar .tabs{margin-top:8px!important}}
+
+
+/* Benchmark redesign: property operations + dense task execution. */
+.room-card-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}
+.room-card{min-height:0!important;display:grid!important;grid-template-columns:116px minmax(0,1fr)!important;padding:0!important;border-radius:14px!important;box-shadow:none!important;text-align:left!important}
+.room-card-media{min-height:118px!important;width:116px!important;background-color:#e9efeb!important;background-image:var(--property-room-placeholder,none);background-size:cover!important;background-position:center!important}
+.room-card-info{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:8px!important;padding:14px 15px!important;min-width:0!important}
+.room-card-info .card-title{font-size:17px!important}.room-card-info .card-line{margin:0!important}.room-card-link{font-size:11.5px!important}
+.room-detail-media-panel{grid-template-columns:minmax(240px,.72fr) minmax(0,1.28fr)!important;gap:18px!important;padding:16px!important;margin-bottom:14px!important}
+.room-detail-photo{min-height:190px!important;border-radius:12px!important}
+.room-detail-media-copy{padding:3px 4px!important}
+.room-detail-status{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important;margin-bottom:14px!important;border-top:1px solid var(--product-line)!important;border-bottom:1px solid var(--product-line)!important}
+.room-detail-status>.panel{min-height:0!important;padding:14px 18px!important;border:0!important;border-right:1px solid var(--product-line)!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
+.room-detail-status>.panel:last-child{border-right:0!important}.room-detail-status h2{font-size:25px!important;margin:4px 0 0!important}
+.room-memory-columns>.panel{box-shadow:none!important}.room-memory-columns>.panel>.topbar{min-height:0!important;margin-bottom:10px!important}
+.room-memory-list{display:grid!important;gap:0!important;border-top:1px solid var(--product-line)!important}
+.room-memory-item{display:grid!important;gap:5px!important;padding:13px 2px!important;border:0!important;border-bottom:1px solid #edf1ee!important;border-radius:0!important;box-shadow:none!important}
+.room-memory-item .card-line{margin:0!important}
+
+[data-testid='tasks-board']{grid-template-columns:repeat(4,minmax(0,1fr))!important;align-items:start!important;gap:10px!important}
+[data-testid='tasks-board']>.panel{min-height:0!important;padding:12px!important;background:#f2f5f3!important;border:1px solid #e2e9e4!important;box-shadow:none!important}
+[data-testid='tasks-board']>.panel h2{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;font-size:13px!important;font-weight:800!important;letter-spacing:0!important}
+[data-testid='tasks-board']>.panel>.grid{gap:7px!important;margin-top:9px!important}
+[data-testid='tasks-board'] .card{min-height:0!important;padding:12px!important;border-radius:10px!important;box-shadow:none!important;background:#fff!important}
+[data-testid='tasks-board'] .card strong{font-size:13.5px!important;line-height:1.35!important}
+[data-testid='tasks-board'] .empty{min-height:58px!important;padding:12px!important;background:transparent!important;border-color:#d9e2dc!important}
+@media(max-width:1050px){.room-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:760px){
+ .room-card-grid{grid-template-columns:1fr!important}.room-card{grid-template-columns:82px minmax(0,1fr)!important}.room-card-media{width:82px!important;min-height:92px!important}.room-card-info{padding:11px 12px!important;gap:5px!important}
+ .room-detail-media-panel{grid-template-columns:1fr!important;padding:12px!important}.room-detail-photo{min-height:150px!important}.room-detail-status{grid-template-columns:repeat(3,minmax(0,1fr))!important}.room-detail-status>.panel{padding:11px 9px!important}.room-detail-status h2{font-size:20px!important}
+ [data-testid='tasks-board']{display:none!important}.task-view-switch button:first-child{display:none!important}
+}
