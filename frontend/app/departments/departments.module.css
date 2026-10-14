@@ -377,3 +377,19 @@
     display: grid;
   }
 }
+
+
+/* Command-center pass: reduce the department-within-an-app feeling. */
+.hero{padding:18px 0;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;background:transparent}
+.hero h2{font-size:25px}.hero p{max-width:650px}.heroLabel{color:var(--muted)}
+.metrics{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:14px}
+.metric{min-height:0;flex:1;padding:14px 16px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none;align-content:start}
+.metric:last-child{border-right:0}.metric.urgent,.metric.ok{background:transparent;border-color:var(--line)}.metric.urgent strong{color:#a73b36}.metric.ok strong{color:var(--ok)}
+.metric strong{font-size:20px}.metric small{font-size:10.5px;line-height:1.35}
+.tabs{gap:2px;border-bottom:1px solid var(--line);padding-bottom:0}.tab{min-height:36px;padding:8px 10px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent}.activeTab{background:transparent;border-color:var(--accent);color:var(--ink)}
+.activeTab span{color:var(--muted)}
+.workspaceGrid{gap:0 26px}.surface{padding:18px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}
+.stack{gap:0}.workspaceCard{padding:11px 2px;border:0;border-bottom:1px solid #e7ece9;border-radius:0;background:transparent;gap:6px}.workspaceCard:hover{background:#f5f8f6;border-color:#e7ece9;transform:none}
+.cardMeta :global(.pill){font-size:9.5px}.clearState{min-height:76px;border:0;border-radius:0;background:transparent;text-align:left;place-content:start;padding:12px 2px}.clearState strong{font-size:13px}
+.browserToolbar{padding:0 0 14px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent}.recordGrid{gap:0 22px}.recordGrid .workspaceCard{padding:14px 2px}
+@media(max-width:760px){.hero{padding:14px 0}.metrics{display:grid;grid-template-columns:1fr 1fr}.metric{border-bottom:1px solid var(--line)}.workspaceGrid{gap:0}.tabs{margin-left:-4px;margin-right:-4px}.surface{padding:15px 0}}
