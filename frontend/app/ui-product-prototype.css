@@ -436,3 +436,14 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
  [data-testid='tasks-board']>.panel{flex:0 0 calc(100vw - 58px)!important;scroll-snap-align:start!important;margin:0!important;min-height:0!important}
  .room-card-grid{gap:8px!important}.room-card{border-radius:12px!important}.room-card-media{min-height:84px!important}.room-card-link{font-size:11px!important}
 }
+
+
+/* Batch 2: agenda + portfolio hierarchy. */
+.my-work-agenda{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:0 28px!important;border-top:1px solid var(--product-line)!important}
+.my-work-section{padding:18px 0!important;border:0!important;border-bottom:1px solid var(--product-line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;min-height:0!important}
+.my-work-primary{grid-column:1/-1!important}.my-work-primary .my-work-items{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.my-work-items{display:grid!important;gap:6px!important}.my-work-item{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:4px 12px!important;min-height:0!important;padding:12px 14px!important;border-radius:10px!important;box-shadow:none!important;text-align:left!important}.my-work-item>.muted{grid-column:1/-1!important}.my-work-item>.card-line{margin:0!important}
+.project-portfolio-card{min-height:0!important;padding:20px!important;display:grid!important;align-content:start!important;gap:12px!important}
+.project-card-meta{display:flex!important;gap:18px!important;padding:10px 0!important;border-top:1px solid #e6ece8!important;border-bottom:1px solid #e6ece8!important;color:var(--product-muted)!important;font-size:12px!important}.project-card-meta b{font-size:17px!important;color:var(--product-ink)!important;margin-right:3px!important}.project-card-meta .project-risk b{color:#a73b36!important}
+.project-next-action{font-size:12px!important;font-weight:700!important;color:var(--product-green)!important;padding-top:3px!important}
+@media(max-width:760px){.my-work-agenda{grid-template-columns:1fr!important}.my-work-primary{grid-column:auto!important}.my-work-primary .my-work-items{grid-template-columns:1fr!important}.my-work-section{padding:15px 0!important}.project-card-meta{gap:12px!important;flex-wrap:wrap!important}}
