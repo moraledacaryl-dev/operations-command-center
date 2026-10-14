@@ -151,17 +151,13 @@ export default function ReviewPage() {
       <Tabs values={['All', ...sources.map(([, label]) => label)]} active={filter} onChange={setFilter} label="Decision source" />
     </section>
 
-    <section className="panel">
-      <div className="topbar"><div><div className="eyebrow">Highest consequence first</div><h2>Pending decisions</h2></div></div>
+    <section className="review-workspace">
+      <div className="queue-heading"><div><div className="eyebrow">Highest consequence first</div><h2>Pending decisions</h2></div></div>
       {loading ? <div className="empty">Loading review queue…</div> : items.length ? <div className="grid">
-        {items.map(item => <button type="button" className="card" key={`${item.review_kind}-${item.id}`} onClick={() => void open(item)} style={{ textAlign: 'left', width: '100%' }}>
-          <div className="card-title">{item.title || item.name || 'Review item'}</div>
-          <div className="card-line">
-            <span className="muted">{item.review_kind}</span>
-            <Pill value={item.priority || item.urgency || 'Normal'} />
-            {age(item) ? <span className="muted">{age(item)}</span> : null}
-          </div>
-          {summary(item) ? <div className="muted">{summary(item).slice(0, 180)}</div> : null}
+        {items.map(item => <button type="button" className="review-queue-item" key={`${item.review_kind}-${item.id}`} onClick={() => void open(item)} style={{ textAlign: 'left', width: '100%' }}>
+          <span className="queue-signal">{String(item.priority || item.urgency || 'Normal')}</span><div className="card-title">{item.title || item.name || 'Review item'}</div>
+          <span className="review-source">{item.review_kind}{age(item) ? ` · ${age(item)}` : ''}</span>
+          {summary(item) ? <div className="muted review-summary">{summary(item).slice(0, 180)}</div> : null}
         </button>)}
       </div> : <div className="empty">No decisions match this view.</div>}
     </section>
