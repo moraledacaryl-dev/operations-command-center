@@ -414,7 +414,7 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 @media(max-width:760px){
  .room-card-grid{grid-template-columns:1fr!important}.room-card{grid-template-columns:82px minmax(0,1fr)!important}.room-card-media{width:82px!important;min-height:92px!important}.room-card-info{padding:11px 12px!important;gap:5px!important}
  .room-detail-media-panel{grid-template-columns:1fr!important;padding:12px!important}.room-detail-photo{min-height:150px!important}.room-detail-status{grid-template-columns:repeat(3,minmax(0,1fr))!important}.room-detail-status>.panel{padding:11px 9px!important}.room-detail-status h2{font-size:20px!important}
- [data-testid='tasks-board']{display:none!important}.task-view-switch button:first-child{display:none!important}
+ [data-testid='tasks-board']{display:block!important}.task-view-switch button:first-child{display:inline-block!important}
 }
 
 
