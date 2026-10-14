@@ -153,7 +153,7 @@ export default function Home() {
         {attention.length ? <WorkList title="Needs attention" eyebrow="Exceptions" items={attention} href={isExecutive ? '/review' : '/my-work'} empty="No urgent exceptions." /> : null}
         {isExecutive ? <WorkList title="Waiting for review" eyebrow="Decisions" items={approvals} href="/review" empty="No decisions are waiting." /> : null}
         {isLead || role === 'staff' ? <WorkList title="Shift handover" eyebrow="Current department" items={handover} href="/shift" empty="No unresolved handover notes." /> : null}
-        {isExecutive && integrationAlerts.some(item => !String(item.summary || '').startsWith('0 ')) ? <WorkList title="Connected apps" eyebrow="External exceptions" items={integrationAlerts.filter(item => !String(item.summary || '').startsWith('0 '))} href="/review" empty="Connected applications are clear." /> : null}
+
       </div>
 
       {allClear ? (
