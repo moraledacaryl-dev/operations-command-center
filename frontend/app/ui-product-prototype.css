@@ -428,3 +428,11 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .home-signal>span:nth-child(2){font-size:12px!important;font-weight:750!important}.home-signal-track{display:block!important;height:3px!important;background:#e4ebe6!important;border-radius:99px!important;overflow:hidden!important}.home-signal-track>span{display:block!important;height:100%!important;background:var(--product-green)!important;border-radius:inherit!important}.home-signal.active .home-signal-track>span{background:#b65a50!important}
 @media(max-width:900px){.home-command-hero{grid-template-columns:1fr!important}.home-signal-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important;border-left:0!important;border-top:1px solid var(--product-line)!important}.home-signal{border-bottom:0!important;border-right:1px solid #e8eeea!important;padding:12px!important}.home-signal:last-child{border-right:0!important}}
 @media(max-width:760px){.home-command-hero{padding:16px!important;gap:15px!important}.home-command-primary h2{font-size:24px!important}.home-quick-actions .btn{flex:1 1 calc(50% - 8px)!important}.home-signal{grid-template-columns:1fr!important;gap:3px!important}.home-signal-value{grid-row:auto!important;font-size:22px!important}}
+
+
+/* Screenshot correction: mobile board is stage navigation, not four desktop columns stacked. */
+@media(max-width:760px){
+ [data-testid='tasks-board']{display:flex!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;gap:10px!important;padding:2px 0 10px!important;scrollbar-width:none!important}
+ [data-testid='tasks-board']>.panel{flex:0 0 calc(100vw - 58px)!important;scroll-snap-align:start!important;margin:0!important;min-height:0!important}
+ .room-card-grid{gap:8px!important}.room-card{border-radius:12px!important}.room-card-media{min-height:84px!important}.room-card-link{font-size:11px!important}
+}
