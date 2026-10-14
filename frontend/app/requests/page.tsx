@@ -110,11 +110,11 @@ export default function RequestsPage() {
       <label className="label">Business reason<textarea className="textarea" value={reason} onChange={e => setReason(e.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim() || !reason.trim()} onClick={createRequest}>{busy ? 'Saving…' : 'Create draft'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
-    <section className="panel request-workspace"><div className="topbar"><div><div className="eyebrow">Decision pipeline</div><h2>Request queue</h2></div><span className="muted">{visible.length} items</span></div>
+    <section className="request-workspace"><div className="queue-heading"><div><div className="eyebrow">Decision pipeline</div><h2>Request queue</h2></div></div>
     <Tabs values={['Open','Draft','Review','Approved','Planned','Done','Rejected','All']} active={filter} onChange={setFilter} label="Request status" />
     <div className="request-queue">
       {visible.map(item => <button type="button" key={item.id} className={`card request-item ${item.urgency === 'Urgent' ? 'card-important' : ''}`} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
-        <strong className="card-title">{item.title}</strong><span className="card-line"><Pill value={item.urgency || 'Normal'} /><span className="muted">{item.request_type || 'General'}</span></span><span className="muted">{String(item.reason || '').slice(0, 150)}</span>
+        <span className="queue-signal">{item.urgency === 'Urgent' ? 'Urgent' : item.status === 'Review' ? 'Decision' : item.status}</span><strong className="card-title">{item.title}</strong><span className="muted queue-context">{item.request_type || 'General'} · {String(item.reason || '').slice(0, 150)}</span>
       </button>)}
       {!visible.length ? <div className="empty">No requests in this view.</div> : null}
     </div></section>
