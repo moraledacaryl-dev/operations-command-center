@@ -250,11 +250,7 @@ export default function MarketingPage() {
     <Top eyebrow="Publishing calendar" title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Annotation studio</Link>{canManage && departmentId ? <button className="btn" onClick={openCreate}>New content</button> : null}</div>} />
     {departmentId ? <MarketingWorkspace departmentId={departmentId} canManage={canManage} createIntentKey={canonicalCreateIntent} /> : null}
     <div className="legacy-section-head"><div><p className="eyebrow">Compatibility workspace</p><h2>Legacy content records</h2></div><p className="muted">Existing posts remain available while campaigns and platform deliverables become the primary planning model.</p></div>
-    <div className="grid cols-3" style={{ marginBottom: 16 }}>
-      <div className="panel"><div className="eyebrow">Awaiting review</div><h2>{awaitingReview}</h2></div>
-      <div className="panel"><div className="eyebrow">Needs revision</div><h2>{needsFix}</h2></div>
-      <div className="panel"><div className="eyebrow">Scheduled</div><h2>{scheduled}</h2></div>
-    </div>
+    <div className="legacy-marketing-summary" aria-label="Legacy content status totals"><span><strong>{awaitingReview}</strong> Awaiting review</span><span><strong>{needsFix}</strong> Needs revision</span><span><strong>{scheduled}</strong> Scheduled</span></div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {canManage && showAdd ? <section ref={createSurfaceRef} className="panel" style={{ marginBottom: 16, scrollMarginTop: 24 }} aria-label="Create marketing content">
       <div className="card-line" style={{ justifyContent: 'space-between' }}><div><div className="eyebrow">Legacy marketing content</div><h2>Create content item</h2></div><button className="btn small secondary" onClick={() => setShowAdd(false)}>Close</button></div>
