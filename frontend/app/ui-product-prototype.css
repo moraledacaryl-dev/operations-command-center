@@ -491,3 +491,12 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .request-item .card-title,.maintenance-item .card-title,.guest-queue-item .card-title,.review-queue-item .card-title,.shift-timeline-item .card-title{min-width:0!important;overflow-wrap:break-word!important;word-break:normal!important;line-height:1.35!important}
 .request-item,.maintenance-item,.guest-queue-item,.review-queue-item,.shift-timeline-item{min-width:0!important;max-width:100%!important}
 @media(max-width:760px){.request-item,.maintenance-item,.guest-queue-item,.review-queue-item,.shift-timeline-item{grid-template-columns:minmax(0,1fr)!important}.guest-followup,.shift-note,.review-summary{grid-column:1!important}}
+
+/* Exact-head screenshot correction: legacy queue selectors were pinning titles to the 76px signal column. */
+.request-queue>.request-item{grid-template-columns:76px minmax(0,1fr)!important;gap:5px 16px!important;padding:13px 10px!important;min-height:72px!important}
+.request-queue>.request-item>.queue-signal{grid-column:1!important;grid-row:1 / span 2!important;align-self:start!important}
+.request-queue>.request-item>.card-title{grid-column:2!important;grid-row:1!important;min-width:0!important;white-space:normal!important}
+.request-queue>.request-item>.queue-context{grid-column:2!important;grid-row:2!important;min-width:0!important}
+.maintenance-queue>.maintenance-item>.queue-signal{grid-column:1!important;grid-row:1 / span 3!important}
+.maintenance-queue>.maintenance-item>.card-title,.maintenance-queue>.maintenance-item>.maintenance-location,.maintenance-queue>.maintenance-item>.muted{grid-column:2!important}
+@media(max-width:760px){.request-queue>.request-item{grid-template-columns:64px minmax(0,1fr)!important}.request-queue>.request-item>.queue-signal{grid-column:1!important}.request-queue>.request-item>.card-title,.request-queue>.request-item>.queue-context{grid-column:2!important}}
