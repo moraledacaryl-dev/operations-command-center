@@ -533,3 +533,15 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .property-media-card h2{font-size:15px!important;margin:3px 0!important}.property-media-card p{font-size:12px!important;margin:0!important}
 .property-media-card>.toolbar{grid-column:2!important;justify-content:flex-start!important;gap:8px!important}
 @media(max-width:760px){.property-media-grid{grid-template-columns:minmax(0,1fr)!important}.property-media-grid>.property-media-card{grid-template-columns:88px minmax(0,1fr)!important;gap:6px 12px!important;padding:12px 0!important}.property-media-card .property-media-preview{width:88px!important;height:80px!important;min-height:80px!important}}
+
+/* Mobile marketing: retain a genuine seven-day calendar rather than 21 stacked rows. */
+@media(max-width:760px){
+.marketing-workspace .social-calendar{display:grid!important;grid-template-columns:repeat(7,minmax(88px,1fr))!important;gap:5px!important;overflow-x:auto!important;overscroll-behavior-inline:contain!important;scrollbar-width:thin!important;padding:3px 2px 10px!important;scroll-snap-type:x proximity!important}
+.marketing-workspace .social-calendar .calendar-day{min-height:88px!important;padding:5px!important;gap:3px!important;border-radius:7px!important;scroll-snap-align:start!important}
+.marketing-workspace .social-calendar.week .calendar-day{min-height:150px!important}
+.marketing-workspace .calendar-date-button{font-size:11px!important;padding:3px!important}
+.marketing-workspace .calendar-day>button:not(.calendar-date-button){padding:4px!important}
+.marketing-workspace .calendar-toolbar{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
+.marketing-workspace .marketing-form{padding:14px!important}
+.marketing-workspace .marketing-form .form-grid{gap:10px!important}
+}
