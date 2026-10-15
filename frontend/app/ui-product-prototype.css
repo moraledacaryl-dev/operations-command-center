@@ -523,3 +523,13 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .auth-screen .auth-form-panel .form{display:grid!important;gap:14px!important}
 .auth-screen .auth-form-panel .auth-submit{width:100%!important}
 @media(max-width:760px){.auth-screen{padding:20px 16px!important}.auth-screen .auth-form-panel{padding:26px 22px!important;gap:20px!important}}
+
+/* Appearance media: compact management rows with visible previews and preserved controls. */
+.property-media-intro{padding:12px 0!important;border:0!important;border-bottom:1px solid var(--product-line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.property-media-intro h2{font-size:16px!important}.property-media-intro p{max-width:760px!important}
+.property-media-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:0 24px!important}
+.property-media-grid>.property-media-card{display:grid!important;grid-template-columns:116px minmax(0,1fr)!important;align-items:center!important;gap:8px 16px!important;min-height:0!important;padding:16px 0!important;border:0!important;border-bottom:1px solid var(--product-line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.property-media-card .property-media-preview{grid-row:1 / span 2!important;width:116px!important;height:94px!important;min-height:94px!important;aspect-ratio:auto!important;border-radius:10px!important;background-size:cover!important;background-position:center!important}
+.property-media-card h2{font-size:15px!important;margin:3px 0!important}.property-media-card p{font-size:12px!important;margin:0!important}
+.property-media-card>.toolbar{grid-column:2!important;justify-content:flex-start!important;gap:8px!important}
+@media(max-width:760px){.property-media-grid{grid-template-columns:minmax(0,1fr)!important}.property-media-grid>.property-media-card{grid-template-columns:88px minmax(0,1fr)!important;gap:6px 12px!important;padding:12px 0!important}.property-media-card .property-media-preview{width:88px!important;height:80px!important;min-height:80px!important}}
