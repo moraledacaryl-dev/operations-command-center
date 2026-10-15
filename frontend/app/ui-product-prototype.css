@@ -552,3 +552,12 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .legacy-marketing-summary{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:6px 20px!important;padding:8px 0 12px!important;border-bottom:1px solid var(--product-line)!important;color:var(--product-muted)!important;font-size:12px!important}
 .legacy-marketing-summary span{display:inline-flex!important;align-items:baseline!important;gap:6px!important}.legacy-marketing-summary strong{font-size:18px!important;color:var(--product-ink)!important}
 @media(max-width:760px){.legacy-section-head{display:block!important}.legacy-section-head .muted{margin:5px 0!important}.legacy-marketing-summary{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;font-size:10px!important}.legacy-marketing-summary span{display:grid!important;gap:2px!important}.legacy-marketing-summary strong{font-size:17px!important}}
+
+/* Publishing calendar density: dates remain actionable, but empty days are not oversized cards. */
+.marketing-workspace .social-calendar{gap:5px!important}
+.marketing-workspace .social-calendar .calendar-day{min-height:78px!important;padding:5px!important;gap:3px!important;border-radius:8px!important}
+.marketing-workspace .social-calendar.week .calendar-day{min-height:150px!important}
+.marketing-workspace .calendar-date-button{font-size:11px!important}
+.marketing-workspace .calendar-day>button:not(.calendar-date-button){padding:5px!important}
+.marketing-workspace .calendar-day.outside{opacity:.48!important}
+@media(max-width:760px){.marketing-workspace .social-calendar .calendar-day{min-height:76px!important}.marketing-workspace .social-calendar.week .calendar-day{min-height:140px!important}}
