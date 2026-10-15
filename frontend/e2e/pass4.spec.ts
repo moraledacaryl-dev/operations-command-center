@@ -178,7 +178,7 @@ test('People & Access uses protected directory account state', async ({ page }) 
   await assertSession(page);
   await expect(page.getByText('Active Manager')).toBeVisible();
   await expect(page.getByText('manager@example.test')).toBeVisible();
-  await expect(page.getByText('Active', { exact: true })).toBeVisible();
+  await expect(page.getByText('Inactive', { exact: true })).toHaveCount(0);
   await expect(page.getByText(/Last login:/)).not.toContainText('Never');
 });
 

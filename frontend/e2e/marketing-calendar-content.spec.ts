@@ -64,6 +64,7 @@ test('scheduled multi-platform concept appears in calendar and opens its concept
 
 test('creative upload confirms success and refreshes the version list', async ({ page }) => {
   await seed(page);
+  await page.clock.setFixedTime(new Date('2026-09-08T06:00:00Z'));
   await page.goto('/posts');
   await page.getByRole('button', { name: /Poolside weekend Facebook · Planned/ }).click();
   const drawer = page.getByRole('dialog');

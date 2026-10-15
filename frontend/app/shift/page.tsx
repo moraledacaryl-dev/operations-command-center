@@ -88,11 +88,7 @@ export default function ShiftPage() {
 
   return <>
     <Top eyebrow="Live handover" title="Shift handover" right={<button data-testid="create-shift" className="btn" onClick={() => setShowAdd(value => !value)}>Add</button>} />
-    <div className="grid cols-3" style={{ marginBottom: 16 }}>
-      <div className="panel"><div className="eyebrow">Unresolved</div><h2>{unresolved}</h2></div>
-      <div className="panel"><div className="eyebrow">Urgent</div><h2>{urgent}</h2></div>
-      <div className="panel"><div className="eyebrow">Needs follow-up</div><h2>{follow}</h2></div>
-    </div>
+    <div className="operational-summary" style={{ marginBottom: 16 }}><span><strong>{unresolved}</strong> unresolved</span><span className={urgent ? 'summary-alert' : ''}><strong>{urgent}</strong> urgent</span><span><strong>{follow}</strong> need follow-up</span></div>
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-shift-form">
       <h2>New handover note</h2>
@@ -106,12 +102,12 @@ export default function ShiftPage() {
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim() || !note.trim()} onClick={createNote}>{busy ? 'Saving…' : 'Publish handover'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
     <Tabs values={['Unresolved','Urgent','AM','PM','Night','All']} active={filter} onChange={setFilter} label="Shift note filters" />
-    <div className="grid">
-      {visible.map(item => <button type="button" className={`card ${item.urgency === 'Urgent' && item.status !== 'Done' ? 'card-important' : ''}`} key={item.id} onClick={async () => { try { setSelected(await api.get('shift-notes', item.id)); } catch (err: any) { setError(err.message || 'Handover note could not be opened.'); } }} style={{ textAlign: 'left' }}>
-        <span className="card-line"><Pill value={item.shift || 'Shift'} /><Pill value={item.category || 'Other'} /><Pill value={item.status || 'New'} />{item.urgency === 'Urgent' ? <Pill value="Urgent" /> : null}</span>
+    <div className="shift-timeline">
+      {visible.map(item => <button type="button" className={`shift-timeline-item ${item.urgency === 'Urgent' && item.status !== 'Done' ? 'card-important' : ''}`} key={item.id} onClick={async () => { try { setSelected(await api.get('shift-notes', item.id)); } catch (err: any) { setError(err.message || 'Handover note could not be opened.'); } }} style={{ textAlign: 'left' }}>
+        <span className="shift-time">{formatStamp(item.created_at || item.updated_at)}</span><span className="queue-signal">{item.urgency === 'Urgent' ? 'Urgent' : item.status === 'Follow' ? 'Follow up' : item.shift || 'Shift'}</span>
         <strong className="card-title">{item.title}</strong>
-        <span>{String(item.note || '').slice(0, 220)}</span>
-        <span className="muted">{formatStamp(item.created_at || item.updated_at)}{item.created_by_name ? ` · ${item.created_by_name}` : ''}</span>
+        <span className="shift-note">{String(item.note || '').slice(0, 220)}</span>
+        <span className="muted">{item.category || 'Other'}{item.created_by_name ? ` · ${item.created_by_name}` : ''}</span>
       </button>)}
       {!visible.length ? <div className="empty">No handover notes in this view.</div> : null}
     </div>

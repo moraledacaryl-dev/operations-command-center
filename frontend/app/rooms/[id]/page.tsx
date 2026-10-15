@@ -98,12 +98,12 @@ export default function RoomMemoryPage() {
           </div> : null}
         </div>
       </section>
-      <div className="grid cols-3" style={{ marginBottom: 16 }}>
+      <div className="room-detail-status">
         <div className="panel"><div className="eyebrow">Space</div><h2>{room?.kind || 'Room'}</h2><Pill value={room?.status || 'Active'} /></div>
         <div className="panel"><div className="eyebrow">Open guest matters</div><h2>{openGuest}</h2></div>
         <div className="panel"><div className="eyebrow">Open maintenance</div><h2>{openFixes}</h2></div>
       </div>
-      <div className="grid cols-2">
+      <div className="grid cols-2 room-memory-columns">
         <section className="panel">
           <div className="topbar"><div><div className="eyebrow">Service recovery</div><h2>Guest matters</h2></div><Link className="btn small secondary" href="/guests?create=1">New matter</Link></div>
           <div className="grid" style={{ marginTop: 12 }}>

@@ -43,9 +43,8 @@ export default function AccountPage() {
 
   return <>
     <Top eyebrow="Account" title="Security" />
-    <section className="panel" style={{ maxWidth: 720 }}>
-      <h2>Change password</h2>
-      <p className="muted">Use a long passphrase or a strong mixed password with at least 12 characters.</p>
+    <section className="account-security">
+      <div className="account-security-intro"><div className="eyebrow">Credentials</div><h2>Change password</h2><p className="muted">Updating your password signs this session out. Use at least 12 characters.</p></div>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Current password<input className="input" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} /></label>
         <label className="label">New password<input className="input" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></label>

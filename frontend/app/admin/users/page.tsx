@@ -145,10 +145,10 @@ export default function UsersPage() {
       <p className="muted" style={{ marginBottom: 0 }}>{directory.length} account{directory.length === 1 ? '' : 's'} loaded{appliedQuery ? ` for “${appliedQuery}”` : ''}. Password and access actions open in protected drawers.</p>
     </section>
 
-    {initialLoading ? <LoadingPanel label="Loading accounts and access…" /> : <div className="grid cols-2">
+    {initialLoading ? <LoadingPanel label="Loading accounts and access…" /> : <div className="people-directory">
       {directory.map(user => <article className="card person-card" key={user.id}>
         <div className="card-title">{user.name}</div>
-        <div className="card-line"><Pill value={user.role} />{!user.is_active ? <Pill value="Inactive" /> : <Pill value="Active" />}{user.departments?.map((department: Entity) => <Pill key={department.id} value={`${department.name}${department.is_primary ? ' · primary' : ''}`} />)}</div>
+        <div className="card-line"><span className="muted">{user.role}</span>{!user.is_active ? <Pill value="Inactive" /> : null}{user.departments?.map((department: Entity) => <span className="muted" key={department.id}>{department.name}{department.is_primary ? " · primary" : ""}</span>)}</div>
         <span className="muted">{user.email}</span>
         <div className="card-line" style={{ marginTop: 8 }}><span className="muted">Last login: {localDate(user.last_login_at)}</span></div>
         <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>

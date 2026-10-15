@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
-import { Pill } from '@/components/Pill';
 
 const kinds = ['', 'projects', 'tasks', 'shift-notes', 'guests', 'fixes', 'posts', 'approvals', 'memos', 'submissions'];
 
@@ -12,6 +11,10 @@ function formatDate(value?: string) {
   if (!value) return 'Date unavailable';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+}
+
+function label(value?: string) {
+  return String(value || '').replaceAll('-', ' ').replace(/\b\w/g, char => char.toUpperCase());
 }
 
 export default function HistoryPage() {
@@ -59,7 +62,7 @@ export default function HistoryPage() {
   return <>
     <Top eyebrow="Operational archive" title="History" right={<button className="btn secondary" onClick={() => load(q, kind)} disabled={loading}>{loading ? 'Searching…' : 'Search'}</button>} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    <section className="panel" style={{ marginBottom: 16 }}>
+    <section className="panel history-controls">
       <div className="toolbar" style={{ marginBottom: 0 }}>
         <input className="input" aria-label="Search operational history" placeholder="Search title, note, owner, or archive reason" value={q} onChange={event => setQ(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void load(q, kind); }} />
         <select className="select" aria-label="Record type" value={kind} onChange={event => { const nextKind = event.target.value; setKind(nextKind); void load(q, nextKind); }}>{kinds.map(value => <option value={value} key={value}>{value ? value.replaceAll('-', ' ') : 'All record types'}</option>)}</select>
@@ -67,12 +70,20 @@ export default function HistoryPage() {
       </div>
       <p className="muted" style={{ marginBottom: 0 }}>{items.length} archived or completed records. Filters are saved in the URL.</p>
     </section>
-    {loading ? <div className="panel"><div className="empty">Loading history…</div></div> : Object.entries(grouped).map(([month, rows]) => <section className="panel" key={month} style={{ marginBottom: 16 }}>
-      <div className="topbar"><h2>{month}</h2><Pill value={String(rows.length)} /></div>
-      <div className="grid cols-2" style={{ marginTop: 12 }}>
+    {loading ? <div className="panel"><div className="empty">Loading history…</div></div> : Object.entries(grouped).map(([month, rows]) => <section className="panel history-workspace" key={month} style={{ marginBottom: 16 }}>
+      <div className="topbar">
+        <div><span className="eyebrow">Archive period</span><h2>{month}</h2></div>
+        <span className="muted">{rows.length} record{rows.length === 1 ? '' : 's'}</span>
+      </div>
+      <div className="history-list">
         {rows.map(item => <article className="card" key={`${item.kind}-${item.id}`}>
           <div className="card-title">{item.title || item.name || 'Archived record'}</div>
-          <div className="card-line"><Pill value={item.kind} /><Pill value={item.status || item.review_status || 'Completed'} />{item.archive_reason ? <Pill value={item.archive_reason} /> : null}</div>
+          <div className="card-line">
+            <span className="muted">{label(item.kind)}</span>
+            <span className="muted">·</span>
+            <span className="muted">{label(item.status || item.review_status || 'Completed')}</span>
+            {item.archive_reason ? <><span className="muted">·</span><span className="muted">{label(item.archive_reason)}</span></> : null}
+          </div>
           <span className="muted">{String(item.note || item.message || item.caption || item.reason || '').slice(0, 160) || 'No summary recorded.'}</span>
           <div className="card-line" style={{ marginTop: 8 }}>
             {item.department_name ? <span className="muted">Department: {item.department_name}</span> : null}
