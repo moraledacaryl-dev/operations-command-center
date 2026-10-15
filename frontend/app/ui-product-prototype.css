@@ -513,3 +513,13 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .request-workspace [role="tablist"],.maintenance-workspace [role="tablist"],.review-workspace [role="tablist"],.approval-workspace [role="tablist"]{max-width:100%!important;overflow-x:auto!important;overscroll-behavior-inline:contain!important;scrollbar-width:thin!important;scrollbar-color:#91aaa1 transparent!important}
 .request-workspace [role="tablist"]::after{content:"";flex:0 0 14px!important}
 }
+
+/* Unified sign-in: same centered authentication card on desktop and mobile. */
+.auth-screen{min-height:100dvh!important;width:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:32px 20px!important;background:linear-gradient(145deg,#f5f7f4,#e9f0eb)!important}
+.auth-screen .auth-context{display:none!important}
+.auth-screen .auth-form-panel{display:grid!important;gap:22px!important;width:min(100%,440px)!important;max-width:440px!important;margin:0 auto!important;padding:34px!important;border:1px solid #e1e8e3!important;border-radius:20px!important;background:#fff!important;box-shadow:0 24px 70px rgba(20,51,39,.11)!important}
+.auth-screen .auth-mobile-brand{display:flex!important;align-items:center!important;gap:12px!important}
+.auth-screen .auth-form-panel h2{font-size:28px!important;line-height:1.15!important;color:var(--product-ink)!important}
+.auth-screen .auth-form-panel .form{display:grid!important;gap:14px!important}
+.auth-screen .auth-form-panel .auth-submit{width:100%!important}
+@media(max-width:760px){.auth-screen{padding:20px 16px!important}.auth-screen .auth-form-panel{padding:26px 22px!important;gap:20px!important}}
