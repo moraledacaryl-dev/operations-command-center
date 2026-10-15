@@ -545,3 +545,10 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .marketing-workspace .marketing-form{padding:14px!important}
 .marketing-workspace .marketing-form .form-grid{gap:10px!important}
 }
+
+/* Legacy publishing records remain accessible but subordinate to the campaign calendar. */
+.legacy-section-head{display:flex!important;align-items:baseline!important;justify-content:space-between!important;gap:12px!important;margin:20px 0 10px!important;padding-top:14px!important;border-top:1px solid var(--product-line)!important}
+.legacy-section-head h2{font-size:17px!important}.legacy-section-head .muted{max-width:460px!important;font-size:12px!important}
+.legacy-marketing-summary{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:6px 20px!important;padding:8px 0 12px!important;border-bottom:1px solid var(--product-line)!important;color:var(--product-muted)!important;font-size:12px!important}
+.legacy-marketing-summary span{display:inline-flex!important;align-items:baseline!important;gap:6px!important}.legacy-marketing-summary strong{font-size:18px!important;color:var(--product-ink)!important}
+@media(max-width:760px){.legacy-section-head{display:block!important}.legacy-section-head .muted{margin:5px 0!important}.legacy-marketing-summary{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;font-size:10px!important}.legacy-marketing-summary span{display:grid!important;gap:2px!important}.legacy-marketing-summary strong{font-size:17px!important}}
