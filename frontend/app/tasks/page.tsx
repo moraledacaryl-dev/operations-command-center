@@ -96,7 +96,7 @@ export default function TeamTasksPage() {
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim()} onClick={createTask}>{busy ? 'Saving…' : 'Create task'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
     <div className="task-controls"><div className="toolbar task-search"><input className="input" placeholder="Search team tasks" value={query} onChange={e => setQuery(e.target.value)} /></div><div className="task-view-switch" role="group" aria-label="Task view"><button className={view === 'Board' ? 'active' : ''} onClick={() => setView('Board')}>Board</button><button className={view === 'List' ? 'active' : ''} onClick={() => setView('List')}>List</button></div></div>
-    {view === 'Board' ? <div className="grid cols-4" data-testid="tasks-board">
+    {view === 'Board' ? <div className="grid cols-4" data-testid="tasks-board" tabIndex={0} role="region" aria-label="Task board by workflow stage">
       {columns.map(status => <section className="panel" key={status}>
         <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>{status}</h2><Pill value={String(visible.filter(item => item.status === status).length)} /></div>
         <div className="grid" style={{ marginTop: 12 }}>
