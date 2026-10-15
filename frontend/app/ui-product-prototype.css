@@ -500,3 +500,16 @@ table{font-size:13px!important}th{font-size:10.5px!important;letter-spacing:.06e
 .maintenance-queue>.maintenance-item>.queue-signal{grid-column:1!important;grid-row:1 / span 3!important}
 .maintenance-queue>.maintenance-item>.card-title,.maintenance-queue>.maintenance-item>.maintenance-location,.maintenance-queue>.maintenance-item>.muted{grid-column:2!important}
 @media(max-width:760px){.request-queue>.request-item{grid-template-columns:64px minmax(0,1fr)!important}.request-queue>.request-item>.queue-signal{grid-column:1!important}.request-queue>.request-item>.card-title,.request-queue>.request-item>.queue-context{grid-column:2!important}}
+
+/* Final responsive queue pass: use the available workspace width and expose horizontal filters. */
+@media(min-width:1100px){
+.request-queue>.request-item{grid-template-columns:90px minmax(0,1fr)!important}
+.request-queue>.request-item>.card-title{font-size:15px!important}
+.request-queue>.request-item>.queue-context{white-space:normal!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important}
+.maintenance-queue>.maintenance-item{grid-template-columns:90px minmax(0,1fr)!important}
+}
+@media(max-width:760px){
+.request-workspace,.maintenance-workspace,.review-workspace,.approval-workspace{min-width:0!important}
+.request-workspace [role="tablist"],.maintenance-workspace [role="tablist"],.review-workspace [role="tablist"],.approval-workspace [role="tablist"]{max-width:100%!important;overflow-x:auto!important;overscroll-behavior-inline:contain!important;scrollbar-width:thin!important;scrollbar-color:#91aaa1 transparent!important}
+.request-workspace [role="tablist"]::after{content:"";flex:0 0 14px!important}
+}
