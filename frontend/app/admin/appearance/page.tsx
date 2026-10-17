@@ -63,13 +63,13 @@ export default function AppearancePage() {
     } finally { setBusy(''); }
   }
 
-  if (!isOwner) return <><Top eyebrow="Administration" title="Appearance" /><div className="panel"><div className="empty">Only the owner can manage property appearance media.</div></div></>;
+  if (!isOwner) return <><Top title="Appearance" /><div className="panel"><div className="empty">Only the owner can manage property appearance media.</div></div></>;
 
   return <>
-    <Top eyebrow="Administration" title="Appearance & property media" />
+    <Top title="Appearance & property media" />
     <section className="panel property-media-intro">
       <h2>Owner-managed website imagery</h2>
-      <p className="muted">Replace global Hidden Oasis imagery without editing source code. Upload JPG, PNG, WebP, or GIF images. Maximum size is 10 MB. Room-specific photos remain managed with room records.</p>
+      <p className="muted">JPG, PNG, WebP or GIF, up to 10 MB. Manage room photos from Rooms & spaces.</p>
     </section>
 
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 14 }}>{error}</div> : null}

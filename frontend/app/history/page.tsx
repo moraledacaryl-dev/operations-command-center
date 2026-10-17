@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
+import { Icon } from '@/components/Icon';
+
 
 const kinds = ['', 'projects', 'tasks', 'shift-notes', 'guests', 'fixes', 'posts', 'approvals', 'memos', 'submissions'];
 
@@ -59,8 +61,8 @@ export default function HistoryPage() {
     return groups;
   }, {}), [items]);
 
-  return <>
-    <Top eyebrow="Operational archive" title="History" right={<button className="btn secondary" onClick={() => load(q, kind)} disabled={loading}>{loading ? 'Searching…' : 'Search'}</button>} />
+  return <div className="ops-module">
+    <Top title="History" right={<button className="btn secondary" onClick={() => load(q, kind)} disabled={loading}>{loading ? 'Searching…' : 'Search'}</button>} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     <section className="panel history-controls">
       <div className="toolbar" style={{ marginBottom: 0 }}>
@@ -68,16 +70,16 @@ export default function HistoryPage() {
         <select className="select" aria-label="Record type" value={kind} onChange={event => { const nextKind = event.target.value; setKind(nextKind); void load(q, nextKind); }}>{kinds.map(value => <option value={value} key={value}>{value ? value.replaceAll('-', ' ') : 'All record types'}</option>)}</select>
         {(q || kind) ? <button className="btn secondary" onClick={() => { setQ(''); setKind(''); void load('', ''); }}>Clear</button> : null}
       </div>
-      <p className="muted" style={{ marginBottom: 0 }}>{items.length} archived or completed records. Filters are saved in the URL.</p>
+      <p className="muted" style={{ marginBottom: 0 }}>{items.length} archived or completed records.</p>
     </section>
     {loading ? <div className="panel"><div className="empty">Loading history…</div></div> : Object.entries(grouped).map(([month, rows]) => <section className="panel history-workspace" key={month} style={{ marginBottom: 16 }}>
       <div className="topbar">
-        <div><span className="eyebrow">Archive period</span><h2>{month}</h2></div>
+        <div><h2>{month}</h2></div>
         <span className="muted">{rows.length} record{rows.length === 1 ? '' : 's'}</span>
       </div>
       <div className="history-list">
-        {rows.map(item => <article className="card" key={`${item.kind}-${item.id}`}>
-          <div className="card-title">{item.title || item.name || 'Archived record'}</div>
+        {rows.map(item => <article className="card ops-history-record" key={`${item.kind}-${item.id}`}>
+          <span className="ops-record-icon"><Icon name="history" /></span><div className="card-title">{item.title || item.name || 'Archived record'}</div>
           <div className="card-line">
             <span className="muted">{label(item.kind)}</span>
             <span className="muted">·</span>
@@ -95,5 +97,5 @@ export default function HistoryPage() {
     </section>)}
     {!loading && !items.length ? <div className="panel"><div className="empty">No history matches these filters.</div></div> : null}
     {nextCursor ? <div className="load-more"><button className="btn secondary" disabled={loadingMore} onClick={() => void load(q, kind, nextCursor)}>{loadingMore ? 'Loading…' : 'Load older records'}</button><span className="muted" aria-live="polite">{items.length} records loaded</span></div> : null}
-  </>;
+  </div>;
 }

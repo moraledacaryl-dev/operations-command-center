@@ -1,166 +1,67 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Icon } from '@/components/Icon';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
 import { api, Entity } from '@/lib/api';
 import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
+import { useLatestRequest } from '@/lib/operation-hooks';
 
-function count(value: unknown) {
-  const parsed = Number(value || 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function roleCopy(role: string) {
-  if (['owner', 'admin'].includes(role)) return { eyebrow: 'Property command view', summary: 'Cross-department exceptions, decisions, and connected-app risk.' };
-  if (role === 'manager') return { eyebrow: 'Management view', summary: 'Team execution, pending decisions, and operational exceptions.' };
-  if (['lead', 'supervisor'].includes(role)) return { eyebrow: 'Department lead view', summary: 'Assigned work, current handover, and department escalations.' };
-  return { eyebrow: 'Personal work view', summary: 'Your assigned work, requests, and current shift actions.' };
-}
-
-function Metric({ label, value, detail, href, urgent = false }: { label: string; value: number; detail: string; href: string; urgent?: boolean }) {
-  return (
-    <Link className={`panel ${urgent && value ? 'card-important' : ''}`} href={href} style={{ display: 'grid', gap: 6 }}>
-      <span className="eyebrow">{label}</span>
-      <strong style={{ fontSize: 28 }}>{value}</strong>
-      <span className="muted">{detail}</span>
-    </Link>
-  );
-}
-
-function WorkList({ title, eyebrow, items, href, empty }: { title: string; eyebrow: string; items: Entity[]; href: string; empty: string }) {
-  return (
-    <section className="panel">
-      <div className="topbar" style={{ marginBottom: 12 }}>
-        <div><div className="eyebrow">{eyebrow}</div><h2>{title}</h2></div>
-        <Link className="btn small secondary" href={href}>Open</Link>
-      </div>
-      <div className="grid">
-        {items.length ? items.slice(0, 4).map((item, index) => (
-          <Link className="card" href={href} key={item.id || index}>
-            <strong>{item.title || item.name || item.summary || 'Operational item'}</strong>
-            <div className="card-line">
-              {item.status || item.review_status ? <Pill value={item.status || item.review_status} /> : null}
-              {item.priority || item.urgency ? <Pill value={item.priority || item.urgency} /> : null}
-              {item.department_name ? <Pill value={item.department_name} /> : null}
-            </div>
-          </Link>
-        )) : <div className="empty">{empty}</div>}
-      </div>
-    </section>
-  );
+function count(value: unknown) { const n = Number(value || 0); return Number.isFinite(n) ? n : 0; }
+function WorkList({ title, items, href, empty, loading, unavailable }: { title: string; items: Entity[]; href: string; empty: string; loading: boolean; unavailable?: boolean }) {
+  return <section className="today-list"><header><h2>{title}</h2><Link href={href} aria-label={`View ${title.toLowerCase()}`}>View all <Icon name="arrow" /></Link></header>
+    <div className="today-list-body">{loading ? <div className="today-empty" role="status"><Icon name="refresh" /><span>Loading your workspace…</span></div> : unavailable ? <div className="today-empty"><Icon name="refresh" /><span>Couldn’t load this section. Try refreshing.</span></div> : items.length ? items.slice(0, 4).map((item, index) => <Link key={item.id || index} className="today-work-row" href={item.href || href}><span className="today-row-icon"><Icon name={item.icon || 'tasks'} /></span><span><strong>{item.title || item.name || item.summary || 'Work item'}</strong><span className="today-row-meta">{item.status || item.review_status ? <Pill value={item.status || item.review_status} /> : null}{item.priority || item.urgency ? <Pill value={item.priority || item.urgency} /> : null}{item.department_name ? <span>{item.department_name}</span> : null}</span></span><Icon className="today-row-arrow" name="arrow" /></Link>) : <div className="today-empty"><span className="today-empty-icon"><Icon name="check" /></span><strong>{empty}</strong></div>}</div>
+  </section>;
 }
 
 export default function Home() {
   const [dashboard, setDashboard] = useState<Entity>({});
   const [myWork, setMyWork] = useState<Entity>({});
-  const [integrations, setIntegrations] = useState<Entity>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({ dashboard: false, work: false });
+  const beginRequest = useLatestRequest();
   const user = getStoredUser();
   const role = String(user?.role || 'staff').toLowerCase();
-  const copy = roleCopy(role);
-  const firstName = String(user?.name || 'there').trim().split(/\s+/)[0];
-  const isExecutive = ['owner', 'admin', 'manager'].includes(role);
-  const isLead = ['lead', 'supervisor'].includes(role);
-
+  const executive = ['owner', 'admin', 'manager'].includes(role);
   const load = useCallback(async () => {
+    const request = beginRequest();
     setLoading(true);
-    setError('');
-    const [dashboardResult, workResult, integrationResult] = await Promise.allSettled([
-      api.dashboard({ department_id: getCurrentDepartmentId(getStoredUser()) }),
-      api.list('my-work'),
-      isExecutive ? api.integrationOverview() : Promise.resolve({}),
+    const [summary, work] = await Promise.allSettled([
+      api.dashboard({ department_id: getCurrentDepartmentId(getStoredUser()) }), api.list('my-work'),
     ]);
-    if (dashboardResult.status === 'fulfilled') setDashboard(dashboardResult.value);
-    else setError(dashboardResult.reason?.message || 'Today could not be loaded.');
-    if (workResult.status === 'fulfilled') setMyWork(workResult.value as unknown as Entity);
-    if (integrationResult.status === 'fulfilled') setIntegrations(integrationResult.value);
+    if (!request.isCurrent()) return;
+    if (summary.status === 'fulfilled') setDashboard(summary.value);
+    if (work.status === 'fulfilled') setMyWork(work.value as unknown as Entity);
+    setErrors({ dashboard: summary.status === 'rejected', work: work.status === 'rejected' });
     setLoading(false);
-  }, [isExecutive]);
-
+  }, [beginRequest]);
   useEffect(() => { void load(); }, [load]);
 
-  const counts = useMemo(() => dashboard.counts || {}, [dashboard.counts]);
-  const groups = myWork.groups || {};
-  const overdueCount = (groups.overdue || []).length;
-  const attention = useMemo(() => {
-    const rows: Entity[] = [];
-    if (overdueCount) rows.push({ title: `${overdueCount} assigned task${overdueCount === 1 ? '' : 's'} overdue`, status: 'Overdue', priority: 'Urgent' });
-    if (count(counts.approve)) rows.push({ title: `${counts.approve} decision${count(counts.approve) === 1 ? '' : 's'} waiting`, status: 'Pending', priority: 'High' });
-    if (count(counts.fixes)) rows.push({ title: `${counts.fixes} maintenance item${count(counts.fixes) === 1 ? '' : 's'} open`, status: 'Open', priority: 'Normal' });
-    return rows;
-  }, [counts, overdueCount]);
-
-  const personalRows = [
-    ...(groups.overdue || []),
-    ...(groups.today || []),
-    ...(groups.waiting || []),
-    ...(groups.upcoming || []),
-  ].slice(0, 4);
-  const handover = (dashboard.previous_shift || []).slice(0, 4);
-  const approvals = (dashboard.approvals || []).slice(0, 4);
-  const integrationAlerts = isExecutive
-    ? Object.entries(integrations).filter(([, value]) => value && typeof value === 'object').slice(0, 4).map(([source, value]) => {
-        const sourceValues = Object.values(value as Record<string, unknown>);
-        const total = sourceValues.reduce<number>((sum, item) => sum + count(item), 0);
-        return { title: source, summary: `${total} current signals`, status: 'Connected' };
-      })
-    : [];
-  const allClear = attention.length === 0;
-  const signalValues = [
-    { label: 'Overdue', value: overdueCount, href: '/my-work' },
-    { label: 'Review', value: count(counts.approve), href: '/review' },
-    { label: 'Maintenance', value: count(counts.fixes), href: '/fixes' },
-  ];
-  const signalTotal = signalValues.reduce((sum, item) => sum + item.value, 0);
-
-  return (
-    <>
-      <Top
-        eyebrow={copy.eyebrow}
-        title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${firstName}`}
-        right={<button className="btn secondary" onClick={() => void load()} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>}
-      />
-
-      {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
-
-      <section className="panel home-command-hero" style={{ marginBottom: 16 }}>
-        <div className="home-command-primary">
-          <div>
-            <div className="eyebrow">{allClear ? 'Operations clear' : 'Operational focus'}</div>
-            <h2>{allClear ? 'Nothing urgent is blocking your day' : `${signalTotal} active signal${signalTotal === 1 ? '' : 's'} need attention`}</h2>
-            <p className="muted">{copy.summary}</p>
-          </div>
-          <div className="toolbar home-quick-actions">
-            <Link className="btn" href="/tasks?create=1">New task</Link>
-            <Link className="btn secondary" href="/requests?create=1">New request</Link>
-            <Link className="btn secondary" href="/fixes?create=1">Report issue</Link>
-            <Link className="btn secondary" href="/shift?create=1">Shift note</Link>
-          </div>
-        </div>
-        <div className="home-signal-strip" aria-label="Current operational signals">
-          {signalValues.map(item => <Link href={item.href} className={item.value ? 'home-signal active' : 'home-signal'} key={item.label}>
-            <span className="home-signal-value">{item.value}</span><span>{item.label}</span>
-            <span className="home-signal-track"><span style={{ width: `${signalTotal ? Math.max(8, Math.round(item.value / signalTotal * 100)) : 0}%` }} /></span>
-          </Link>)}
-        </div>
-      </section>
-
-      <div className="grid cols-2">
-        <WorkList title="My work" eyebrow="Assigned to you" items={personalRows} href="/my-work" empty="No assigned work needs attention." />
-        {attention.length ? <WorkList title="Needs attention" eyebrow="Exceptions" items={attention} href={isExecutive ? '/review' : '/my-work'} empty="No urgent exceptions." /> : null}
-        {isExecutive ? <WorkList title="Waiting for review" eyebrow="Decisions" items={approvals} href="/review" empty="No decisions are waiting." /> : null}
-        {isLead || role === 'staff' ? <WorkList title="Shift handover" eyebrow="Current department" items={handover} href="/shift" empty="No unresolved handover notes." /> : null}
-
-      </div>
-
-      {allClear ? (
-        <section className="panel" style={{ marginTop: 16 }}>
-          <div className="card-line"><Pill value="All clear" /><span className="muted">No additional exception panels are shown. Open a workspace only when you need deeper detail.</span></div>
-        </section>
-      ) : null}
-    </>
-  );
+  const counts = dashboard.counts || {}, groups = myWork.groups || {};
+  const overdue = count(groups.overdue?.length), review = count(counts.approve), fixes = count(counts.fixes);
+  const attention: Entity[] = [];
+  if (overdue) attention.push({ title: `${overdue} assigned task${overdue === 1 ? '' : 's'} past due`, status: 'Overdue', icon: 'clock', href: '/my-work' });
+  if (review) attention.push({ title: `${review} decision${review === 1 ? '' : 's'} waiting for review`, status: 'Pending', icon: 'review', href: '/review' });
+  if (fixes) attention.push({ title: `${fixes} open maintenance item${fixes === 1 ? '' : 's'}`, status: 'Open', icon: 'maintenance', href: '/fixes' });
+  const personal = [...(groups.overdue || []), ...(groups.today || []), ...(groups.waiting || []), ...(groups.upcoming || [])];
+  const incomplete = errors.dashboard || errors.work;
+  const now = new Date();
+  return <div className="today-workspace" aria-busy={loading}>
+    <Top title="Today" right={<div className="today-heading-actions"><button className="ops-icon-button" aria-label="Refresh overview" title="Refresh" onClick={() => void load()} disabled={loading}><Icon name="refresh" /></button><Link className="btn" href="/tasks?create=1"><Icon name="plus" />New task</Link></div>} />
+    {incomplete && !loading ? <p role="alert" className="today-error">Some updates couldn’t be loaded. Refresh to try again.</p> : null}
+    <section className="today-hero"><div><span className="today-date"><span className="ops-status-dot" />{now.toLocaleDateString('en-PH', { weekday: 'long', day: 'numeric', month: 'long' })}</span><h2>{loading ? 'Loading…' : incomplete ? 'Some updates are unavailable.' : attention.length ? `${attention.length} area${attention.length === 1 ? '' : 's'} need${attention.length === 1 ? 's' : ''} your attention.` : 'No items need attention.'}</h2></div><div className="today-hero-art" aria-hidden="true"><Icon name={attention.length ? 'leaf' : 'sun'} /></div></section>
+    <WorkspaceStats items={[
+      { label: 'My overdue tasks', value: loading || errors.work ? null : overdue, detail: errors.work ? 'Unavailable' : undefined, icon: 'clock', href: '/my-work', attention: true },
+      { label: 'Waiting for review', value: loading || errors.dashboard ? null : review, detail: errors.dashboard ? 'Unavailable' : undefined, icon: 'review', href: '/review' },
+      { label: 'Open maintenance', value: loading || errors.dashboard ? null : fixes, detail: errors.dashboard ? 'Unavailable' : undefined, icon: 'maintenance', href: '/fixes' },
+    ]} />
+    <div className="today-columns"><div className="today-main-lists">
+      <WorkList title={attention.length ? 'Needs attention' : 'My work'} items={attention.length ? attention : personal} href={attention.length ? '/review' : '/my-work'} empty="No assigned tasks" loading={loading} unavailable={incomplete} />
+      {attention.length > 0 && <WorkList title="My work" items={personal} href="/my-work" empty="No assigned tasks" loading={loading} unavailable={errors.work} />}
+      <WorkList title={executive ? 'Waiting for review' : 'Shift handover'} items={executive ? dashboard.approvals || [] : dashboard.previous_shift || []} href={executive ? '/review' : '/shift'} empty={executive ? 'No decisions waiting' : 'No handover notes'} loading={loading} unavailable={errors.dashboard} />
+    </div><aside className="today-quick"><h2>Quick actions</h2><div className="today-shortcuts"><Link href="/fixes?create=1"><Icon name="maintenance" /><strong>Report issue</strong></Link><Link href="/requests?create=1"><Icon name="request" /><strong>New request</strong></Link></div><div className="today-handover"><span className="today-handover-icon"><Icon name="shift" /></span><h3>Shift handover</h3><Link href="/shift?create=1">Add a shift note <Icon name="arrow" /></Link></div></aside></div>
+  </div>;
 }
