@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
+import { Icon } from '@/components/Icon';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
 import { Top } from '@/components/Top';
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
@@ -76,15 +78,15 @@ export default function TeamTasksPage() {
     finally { setBusy(false); }
   }
 
-  if (!hydrated || loading) return <><Top eyebrow="Team execution" title="Tasks" /><LoadingPanel label="Loading team tasks…" /></>;
+  if (!hydrated || loading) return <><Top title="Tasks" /><LoadingPanel label="Loading team tasks…" /></>;
 
-  return <>
-    <Top eyebrow="Team execution" title="Tasks" right={<button data-testid="create-task" className="btn" onClick={() => setShowAdd(value => !value)}>New task</button>} />
-    <div className="operational-summary" style={{ marginBottom: 16 }}>
-      <span><strong>{visible.filter(item => item.status !== 'Done').length}</strong> open tasks</span>
-      <span><strong>{visible.filter(item => item.status === 'Review').length}</strong> awaiting review</span>
-      <span className={overdue ? 'summary-alert' : ''}><strong>{overdue}</strong> overdue</span>
-    </div>
+  return <div className="ops-module">
+    <Top title="Tasks" right={<button data-testid="create-task" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New task</button>} />
+    <WorkspaceStats items={[
+      { label: 'Active tasks', value: visible.filter(item => item.status !== 'Done').length, icon: 'tasks' },
+      { label: 'Waiting for review', value: visible.filter(item => item.status === 'Review').length, icon: 'review' },
+      { label: 'Overdue', value: overdue, icon: 'clock', attention: true },
+    ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
       <h2>Create team task</h2>
@@ -101,16 +103,17 @@ export default function TeamTasksPage() {
         <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>{status}</h2><Pill value={String(visible.filter(item => item.status === status).length)} /></div>
         <div className="grid" style={{ marginTop: 12 }}>
           {visible.filter(item => item.status === status).map(item => <button type="button" className="card" key={item.id} onClick={async () => { try { setSelected(await api.get('tasks', item.id)); } catch (err: any) { setError(err.message || 'Task could not be opened.'); } }} style={{ textAlign: 'left' }}>
-            <strong>{item.title}</strong>
+            <span className="ops-task-card-icon"><Icon name="tasks" /></span><strong>{item.title}</strong>
+            {item.note ? <span className="ops-task-description">{item.note}</span> : null}
             <span className="card-line"><Pill value={item.priority || 'Normal'} />{item.project_id ? <Pill value="Project task" /> : null}</span>
-            <span className="muted">{dueLabel(item.due_date)}</span>
+            <span className="muted ops-task-date"><Icon name="clock" />{dueLabel(item.due_date)}</span>
           </button>)}
-          {!visible.some(item => item.status === status) ? <div className="empty">No tasks</div> : null}
+          {!visible.some(item => item.status === status) ? <div className="empty"><Icon name="check" />No tasks here</div> : null}
         </div>
       </section>)}
-    </div> : <div className="task-list" data-testid="tasks-list">{visible.map(item => <button type="button" className="card task-list-item" key={item.id} onClick={async () => { try { setSelected(await api.get('tasks', item.id)); } catch (err: any) { setError(err.message || 'Task could not be opened.'); } }}><span className="task-list-state">{item.status}</span><strong>{item.title}</strong><span className="muted">{dueLabel(item.due_date)}</span><Pill value={item.priority || 'Normal'} /></button>)}{!visible.length ? <div className="empty">No tasks match this search.</div> : null}</div>}
+    </div> : <div className="task-list" data-testid="tasks-list">{visible.map(item => <button type="button" className="card task-list-item" key={item.id} onClick={async () => { try { setSelected(await api.get('tasks', item.id)); } catch (err: any) { setError(err.message || 'Task could not be opened.'); } }}><span className="task-list-state">{item.status}</span><strong>{item.title}</strong><span className="muted ops-task-date"><Icon name="clock" />{dueLabel(item.due_date)}</span><Pill value={item.priority || 'Normal'} /></button>)}{!visible.length ? <div className="empty">No tasks match this search.</div> : null}</div>}
     <Drawer item={selected} title="Team task" onClose={() => setSelected(null)}>
       {selected ? <section className="panel"><h2>Move task</h2>{(selected.allowed_actions || []).some((action: string) => ['request-changes', 'reopen'].includes(action)) ? <label className="label">Reason<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} /></label> : null}<div className="toolbar">{(selected.allowed_actions || []).map((action: string) => <button className="btn small secondary" key={action} disabled={busy || (['request-changes', 'reopen'].includes(action) && !actionNote.trim())} onClick={() => move(selected, action)}>{({ start: 'Start work', 'submit-review': 'Submit for review', 'request-changes': 'Request changes', complete: 'Complete', reopen: 'Reopen' } as Record<string, string>)[action] || action}</button>)}</div>{!(selected.allowed_actions || []).length ? <p className="muted">No task transition is available for your role and this state.</p> : null}</section> : null}
     </Drawer>
-  </>;
+  </div>;
 }

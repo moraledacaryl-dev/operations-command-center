@@ -209,7 +209,7 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
 
   return (
     <>
-      <Top eyebrow={config.eyebrow} title={config.title} right={canManage ? <button data-testid={`create-${config.resource}`} className="btn" onClick={() => setShowAdd(s => !s)}>Add</button> : undefined} />
+      <Top title={config.title} right={canManage ? <button data-testid={`create-${config.resource}`} className="btn" onClick={() => setShowAdd(s => !s)}>Add</button> : undefined} />
       <div className="grid cols-3" style={{ marginBottom: 16 }}>
         <div className="panel"><div className="eyebrow">Active</div><h2>{activeCount}</h2></div>
         <div className="panel"><div className="eyebrow">Urgent</div><h2>{urgentCount}</h2></div>

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, Boolean, Column, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .clock import UTCDateTime as DateTime, utc_now
 from .database import Base
@@ -303,6 +303,7 @@ class Comment(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     parent_type = Column(String(40), nullable=False)
     parent_id = Column(Integer, nullable=False)
+    reply_to_id = Column(Integer, ForeignKey("comments.id"), nullable=True, index=True)
     comment_type = Column(String(40), default="General", nullable=False)
     body = Column(Text, nullable=False)
     author_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -330,3 +331,43 @@ class ActivityLog(Base):
     message = Column(Text, nullable=True)
     metadata_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utc_now, nullable=False)
+
+
+class ProjectCommentVote(Base, TimestampMixin):
+    __tablename__ = "project_comment_votes"
+    __table_args__ = (UniqueConstraint("comment_id", "user_id", name="uq_project_comment_vote"),)
+    id = Column(Integer, primary_key=True)
+    comment_id = Column(Integer, ForeignKey("comments.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+
+class ProjectBudget(Base, TimestampMixin):
+    __tablename__ = "project_budgets"
+    __table_args__ = (CheckConstraint("limit_cents >= 0", name="ck_project_budget_nonnegative"),)
+    project_id = Column(Integer, ForeignKey("projects.id"), primary_key=True)
+    limit_cents = Column(Integer, nullable=True)
+    version = Column(Integer, default=1, nullable=False)
+    updated_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+
+class ProjectPurchaseItem(Base, TimestampMixin):
+    __tablename__ = "project_purchase_items"
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_project_purchase_quantity"),
+        CheckConstraint("unit_price_cents >= 0", name="ck_project_purchase_price"),
+        CheckConstraint("actual_total_cents >= 0", name="ck_project_purchase_actual"),
+        CheckConstraint("status IN ('Suggested', 'Planned', 'Purchased', 'Declined')", name="ck_project_purchase_status"),
+    )
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False, index=True)
+    source_comment_id = Column(Integer, ForeignKey("comments.id"), nullable=True)
+    name = Column(String(180), nullable=False)
+    quantity = Column(Integer, nullable=False, default=1)
+    unit_price_cents = Column(Integer, nullable=True)
+    actual_total_cents = Column(Integer, nullable=True)
+    category = Column(String(60), nullable=False, default="Other")
+    note = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default="Suggested")
+    proposed_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    updated_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    version = Column(Integer, nullable=False, default=1)

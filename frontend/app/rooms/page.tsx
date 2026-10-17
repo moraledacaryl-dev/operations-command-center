@@ -5,6 +5,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API_BASE, api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
+import { Icon } from '@/components/Icon';
+import { SpaceVisual } from '@/components/SpaceVisual';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
 
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Entity[]>([]);
@@ -13,7 +16,7 @@ export default function RoomsPage() {
   const [kind, setKind] = useState('All');
   const [error, setError] = useState('');
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadMedia = useCallback(async (rows: Entity[]) => {
     const results = await Promise.all(rows.map(async room => {
@@ -48,37 +51,36 @@ export default function RoomsPage() {
   const kinds = useMemo(() => ['All', ...Array.from(new Set(rooms.map(room => String(room.kind || 'Room'))))], [rooms]);
   const visible = useMemo(() => rooms.filter(room => {
     const matchesKind = kind === 'All' || String(room.kind || 'Room') === kind;
-    const haystack = [room.name, room.kind, room.status].filter(Boolean).join(' ').toLowerCase();
+    const haystack = [room.name, room.kind, room.status, room.note].filter(Boolean).join(' ').toLowerCase();
     return matchesKind && (!query.trim() || haystack.includes(query.trim().toLowerCase()));
-  }), [rooms, query, kind]);
+  }).sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { numeric: true })), [rooms, query, kind]);
 
-  return <>
-    <Top eyebrow="Property memory" title="Rooms & areas" />
+  return <div className="spaces-workspace" aria-busy={loading}>
+    <Top title="Rooms & spaces" right={<Link className="btn secondary" href="/fixes?create=1"><Icon name="plus" />Report an issue</Link>} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    <section className="panel" style={{ marginBottom: 16 }}>
-      <div className="toolbar" style={{ marginBottom: 0 }}>
-        <input className="input" aria-label="Search rooms and areas" placeholder="Search room or area" value={query} onChange={event => setQuery(event.target.value)} />
-        <select className="select" aria-label="Room or area type" value={kind} onChange={event => setKind(event.target.value)}>{kinds.map(value => <option key={value}>{value}</option>)}</select>
-      </div>
-      <p className="muted" style={{ marginBottom: 0 }}>{visible.length} of {rooms.length} spaces shown. Open a space for its guest matters, maintenance history and room photo.</p>
-    </section>
-    <div className="grid cols-3 room-card-grid">
+    <WorkspaceStats items={[
+      { label: 'Spaces', value: loading || error ? null : rooms.length, detail: nextCursor ? 'Loaded so far' : undefined, icon: 'home' },
+      { label: 'Guest rooms', value: loading || error ? null : rooms.filter(r => r.kind === 'room').length, icon: 'rooms' },
+      { label: 'Shared areas', value: loading || error ? null : rooms.filter(r => r.kind !== 'room').length, icon: 'leaf' },
+    ]} />
+    <div className="spaces-toolbar">
+      <div className="spaces-filters" aria-label="Space type">{kinds.map(value => <button type="button" key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>{value === 'All' ? 'All spaces' : value === 'room' ? 'Guest rooms' : value === 'area' ? 'Shared areas' : value}</button>)}</div>
+      <input className="input" aria-label="Search rooms and areas" placeholder="Find a room or space…" value={query} onChange={event => setQuery(event.target.value)} />
+    </div>
+    <div className="spaces-results"><span>{visible.length} {visible.length === 1 ? 'space' : 'spaces'}{nextCursor ? ' loaded' : ''}</span><span>Details · Guest matters · Maintenance</span></div>
+    <div className="spaces-grid">
       {visible.map(room => {
         const roomMedia = media[Number(room.id)];
-        const imageStyle = roomMedia?.configured && roomMedia.content_url
-          ? { backgroundImage: `url(${roomMedia.content_url})` }
-          : undefined;
-        return <Link className="card card-button room-card" key={room.id} href={`/rooms/${room.id}`} aria-label={`Open ${room.name} operational memory`}>
-          <span className="room-card-media" aria-hidden="true" style={imageStyle} />
-          <span className="room-card-info">
-            <span className="card-title">{room.name}</span>
-            <span className="card-line"><Pill value={room.kind || 'Room'} /><Pill value={room.status || 'Active'} /></span>
-            <span className="muted room-card-link">Open operational history</span>
-          </span>
+        return <Link className="space-card" key={room.id} href={`/rooms/${room.id}`} aria-label={`Open ${room.name}`}>
+          <SpaceVisual name={room.name} kind={room.kind} photo={roomMedia?.configured ? roomMedia.content_url : undefined} />
+          <div className="space-card-copy"><div className="space-card-type">{room.kind === 'room' ? 'Guest room' : 'Shared space'}<Pill value={room.status || 'Active'} /></div>
+            <h2>{room.name}</h2><p>{room.note}</p>
+            <span className="space-card-footer">Explore space<Icon name="arrow" /></span>
+          </div>
         </Link>;
       })}
-      {!visible.length ? <div className="empty">No matching rooms or areas.</div> : null}
     </div>
-    {nextCursor ? <div className="load-more"><button className="btn secondary" disabled={loading} onClick={() => void load(nextCursor)}>{loading ? 'Loading…' : 'Load more spaces'}</button><span className="muted" aria-live="polite">{rooms.length} spaces loaded</span></div> : null}
-  </>;
+    {!visible.length ? <div className="empty" role="status"><Icon name={loading ? 'refresh' : 'rooms'} />{loading ? 'Loading your property…' : error ? 'Rooms are unavailable. Please try again.' : 'No spaces match your search.'}{!loading && (query || kind !== 'All') ? <button className="btn secondary" onClick={() => { setQuery(''); setKind('All'); }}>Clear filters</button> : null}{error ? <button className="btn secondary" onClick={() => void load()}>Try again</button> : null}</div> : null}
+    {nextCursor ? <div className="load-more"><button className="btn secondary" disabled={loading} onClick={() => void load(nextCursor)}>{loading ? 'Loading…' : 'Load more spaces'}</button></div> : null}
+  </div>;
 }

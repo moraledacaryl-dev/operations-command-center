@@ -5,6 +5,10 @@ import { api, Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
 import { Top } from '@/components/Top';
+import { Icon } from '@/components/Icon';
+import { WorkCard } from '@/components/WorkCard';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
+
 import { Pill } from '@/components/Pill';
 import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
@@ -140,33 +144,34 @@ export default function ReviewPage() {
   const showPostDecision = kind === 'Posts' && canManage && !['OK', 'Posted', 'Archived'].includes(String(selected?.status || ''));
   const hasActions = showImportedSeen || showImportedTask || showImportedApproval || showImportedReject || showApprovalDecision || showInboxDecision || showVerify || showPostDecision;
 
-  return <>
-    <Top eyebrow="Decision queue" title="Review" right={<button className="btn secondary" onClick={() => void load()} disabled={loading || submitting}>{loading ? 'Refreshing…' : 'Refresh'}</button>} />
+  return <div className="ops-module">
+    <Top title="Review" right={<button className="btn secondary" onClick={() => void load()} disabled={loading || submitting}>{loading ? 'Refreshing…' : 'Refresh'}</button>} />
+    <WorkspaceStats items={[
+      { label: 'Approvals', value: loading || error ? null : (queue.approvals || []).length, icon: 'approval' },
+      { label: 'Creative reviews', value: loading || error ? null : (queue.posts || []).length, icon: 'marketing' },
+      { label: 'Repairs to verify', value: loading || error ? null : (queue.fixes || []).length, icon: 'maintenance' },
+    ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
 
-    <section className="review-controls" style={{ marginBottom: 16 }}>
+    <section className="ops-review-controls" style={{ marginBottom: 16 }}>
       <div className="toolbar">
         <input className="input" placeholder="Search decisions" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
       <Tabs values={['All', ...sources.map(([, label]) => label)]} active={filter} onChange={setFilter} label="Decision source" />
     </section>
 
-    <section className="review-workspace">
-      <div className="queue-heading"><div><div className="eyebrow">Highest consequence first</div><h2>Pending decisions</h2></div></div>
-      {loading ? <div className="empty">Loading review queue…</div> : items.length ? <div className="grid">
-        {items.map(item => <button type="button" className="review-queue-item" key={`${item.review_kind}-${item.id}`} onClick={() => void open(item)} style={{ textAlign: 'left', width: '100%' }}>
-          <span className="queue-signal">{String(item.priority || item.urgency || 'Normal')}</span><div className="card-title">{item.title || item.name || 'Review item'}</div>
-          <span className="review-source">{item.review_kind}{age(item) ? ` · ${age(item)}` : ''}</span>
-          {summary(item) ? <div className="muted review-summary">{summary(item).slice(0, 180)}</div> : null}
-        </button>)}
-      </div> : <div className="empty">No decisions match this view.</div>}
+    <section className="ops-review-workspace">
+      <div className="queue-heading"><div><h2>Pending decisions</h2></div></div>
+      {loading ? <div className="empty">Loading review queue…</div> : items.length ? <div className="ops-card-grid">
+        {items.map(item => <WorkCard key={`${item.review_kind}-${item.id}`} icon={item.review_kind === 'Verify' ? 'maintenance' : item.review_kind === 'Posts' ? 'marketing' : 'approval'} title={item.title || item.name || 'Review item'} description={summary(item)} meta={<><Pill value={item.review_kind} /><Pill value={item.priority || item.urgency || 'Normal'} /></>} footer={<><span>{age(item)}</span><span>Open review</span></>} onOpen={() => void open(item)} />)}
+      </div> : <div className="empty"><Icon name="check" />No decisions match this view.</div>}
     </section>
 
     <Drawer item={selected} title={`${kind} decision`} onClose={() => { if (!submitting) setSelected(null); }}>
       <div className="panel">
         <h2>{hasActions ? 'Decision' : 'Review details'}</h2>
         <div className="form" style={{ marginTop: 12 }}>
-          {hasActions ? <textarea className="textarea" placeholder="Decision reason or operational context" value={note} onChange={event => setNote(event.target.value)} disabled={submitting} /> : <p className="muted">No legal action is available for this item in your current session and state.</p>}
+          {hasActions ? <textarea className="textarea" placeholder="Decision note" value={note} onChange={event => setNote(event.target.value)} disabled={submitting} /> : <p className="muted">No further action is available for this item.</p>}
           {hasActions ? <div className="toolbar" style={{ marginBottom: 0 }}>
             {showApprovalDecision ? <><button className="btn small" onClick={() => void decide('Approved')} disabled={submitting}>Approve</button><button className="btn small secondary" onClick={() => void decide('Rejected')} disabled={submitting || !note.trim()}>Reject</button></> : null}
             {showImportedSeen ? <button className="btn small" onClick={() => void decide('Seen')} disabled={submitting}>Seen</button> : null}
@@ -180,5 +185,5 @@ export default function ReviewPage() {
         </div>
       </div>
     </Drawer>
-  </>;
+  </div>;
 }

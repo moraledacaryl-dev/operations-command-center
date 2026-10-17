@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { Icon, IconName } from '@/components/Icon';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
+import { useLatestRequest } from '@/lib/operation-hooks';
 import { api, Entity } from '@/lib/api';
 import { getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 import styles from './departments.module.css';
@@ -18,7 +21,6 @@ const tabs = [
   ['Routine', 'routines'],
   ['Docs', 'docs'],
   ['People', 'people'],
-  ['History', 'history'],
 ] as const;
 
 const priorityRank: Record<string, number> = { urgent: 0, critical: 0, high: 1, normal: 2, medium: 2, low: 3 };
@@ -29,15 +31,15 @@ function text(value: unknown) {
 }
 
 function titleFor(item: Entity) {
-  return item.title || item.name || item.subject || item.summary || item.role || 'Untitled item';
+  return item.title || item.name || item.subject || item.summary || item.role || item.message_type || 'Update';
 }
 
 function detailFor(item: Entity) {
-  return item.note || item.description || item.body || item.summary || item.detail || item.email || '';
+  return item.note || item.description || item.body || item.summary || item.detail || item.reason || item.checklist || item.email || '';
 }
 
 function ownerFor(item: Entity) {
-  return item.owner?.name || item.assignee?.name || item.owner_name || item.assignee_name || '';
+  return item.owner?.name || item.assignee?.name || item.owner_name || item.assignee_name || item.assigned_to?.name || '';
 }
 
 function dateFor(item: Entity) {
@@ -77,27 +79,27 @@ function WorkspaceCard({ item, kind, compact = false }: { item: Entity; kind: st
   const href = destination(kind);
   const detail = detailFor(item);
   const date = dateFor(item);
-  const content = <>
+  const icons: Record<string, IconName> = { Tasks: 'tasks', Projects: 'projects', Requests: 'request', Shift: 'shift', Talk: 'shift', Docs: 'review', Routine: 'check', People: 'guests' };
+  const content = <><span className={styles.recordIcon}><Icon name={icons[kind] || 'history'} /></span><div className={styles.recordBody}>
     <div className={styles.cardHead}>
       <div className={styles.cardTitle}>{titleFor(item)}</div>
       {date ? <span>{date}</span> : null}
     </div>
     <div className={styles.cardMeta}>
-      <Pill value={kind} />
       <Pill value={item.status || item.role || item.type} />
       <Pill value={item.priority || item.urgency} />
     </div>
-    {!compact && detail ? <p>{text(detail).slice(0, 180)}</p> : null}
-    {ownerFor(item) ? <small>Owner: {ownerFor(item)}</small> : null}
-  </>;
+    {detail ? <p className={compact ? styles.compactDetail : undefined}>{compact ? text(detail).slice(0, 180) : text(detail)}</p> : null}
+    {ownerFor(item) ? <small>{ownerFor(item)}</small> : null}
+  </div></>;
 
   return href ? <Link className={styles.workspaceCard} href={href}>{content}</Link> : <div className={styles.workspaceCard}>{content}</div>;
 }
 
-function WorkspaceSection({ title, eyebrow, href, children }: { title: string; eyebrow: string; href?: string; children: React.ReactNode }) {
+function WorkspaceSection({ title, href, children }: { title: string; href?: string; children: React.ReactNode }) {
   return <section className={styles.surface}>
     <div className={styles.sectionHead}>
-      <div><span>{eyebrow}</span><h2>{title}</h2></div>
+      <div><h2>{title}</h2></div>
       {href ? <Link className="btn small secondary" href={href}>View all</Link> : null}
     </div>
     {children}
@@ -115,18 +117,27 @@ export default function DepartmentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  async function loadWorkspace(id: number) {
+  const beginRequest = useLatestRequest();
+  const loadWorkspace = useCallback(async (id: number) => {
+    const request = beginRequest();
     setLoading(true);
     setError('');
     try {
-      setWorkspace(await api.departmentWorkspace(id));
+      const result = await api.departmentWorkspace(id);
+      if (!request.isCurrent()) return;
+      const names = new Map((result.people || []).map((person: Entity) => [person.id, person.name]));
+      for (const key of ['tasks', 'requests', 'projects', 'routines', 'shift']) {
+        result[key] = (result[key] || []).map((item: Entity) => ({ ...item, owner_name: names.get(item.assigned_to_id || item.owner_id || item.submitted_by_id) || item.owner_name }));
+      }
+      setWorkspace(result);
     } catch (err: any) {
+      if (!request.isCurrent()) return;
       setWorkspace(null);
       setError(err.message || 'Could not load this department workspace.');
     } finally {
-      setLoading(false);
+      if (request.isCurrent()) setLoading(false);
     }
-  }
+  }, [beginRequest]);
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -140,11 +151,10 @@ export default function DepartmentsPage() {
     } else {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, loadWorkspace]);
 
   function switchDept(id: number) {
     setDeptId(id);
-    setCurrentDepartmentId(id);
     setQuery('');
     setTab('Overview');
     router.push(`/departments?dept=${id}`);
@@ -163,10 +173,7 @@ export default function DepartmentsPage() {
   const docs = useMemo(() => sortRows(workspace?.docs || []), [workspace]);
   const people: Entity[] = workspace?.people || [];
 
-  const totalActive = ['tasks', 'requests', 'projects', 'shift'].reduce((sum, key) => sum + Number(workspace?.aggregate_counts?.[key] || 0), 0) || activeTasks.length + activeRequests.length + activeProjects.length + handover.length;
-  const urgentTaskCount = Number(workspace?.aggregate_counts?.urgent_tasks ?? urgentTasks.length);
-  const pulse = urgentTaskCount ? 'Needs attention' : totalActive > 14 ? 'Busy' : 'Healthy';
-
+  const urgentTaskCount = urgentTasks.length;
   const key = tabs.find(([label]) => label === tab)?.[1] || 'tasks';
   const allRows = useMemo<Entity[]>(() => key === 'overview' ? [] : workspace?.[key] || [], [key, workspace]);
   const normalizedQuery = query.trim().toLowerCase();
@@ -174,78 +181,37 @@ export default function DepartmentsPage() {
 
   const emptyText = normalizedQuery ? 'No matching records' : tab === 'People' ? 'No people linked to this department yet' : tab === 'Docs' ? 'No documents or SOPs yet' : tab === 'History' ? 'No archived activity yet' : `No ${tab.toLowerCase()} yet`;
 
-  return <>
-    <Top
-      eyebrow="Department workspace"
-      title={activeDept?.name || 'Departments'}
-      right={<div className="toolbar tight" style={{ marginBottom: 0 }}>
-        {departments.length > 1 ? <select className="select" aria-label="Department workspace" style={{ maxWidth: 220 }} value={deptId || ''} onChange={event => switchDept(Number(event.target.value))} disabled={loading}>{departments.map((department: Entity) => <option key={department.id} value={department.id}>{department.name}</option>)}</select> : null}
-        <button className="btn secondary" onClick={() => deptId && loadWorkspace(deptId)} disabled={!deptId || loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
-      </div>}
-    />
-
-    {error ? <div className="pill urgent" style={{ marginBottom: 14 }}>{error}</div> : null}
-
+  return <div className={styles.departmentPage} aria-busy={loading}>
+    <Top title="Departments" right={<button className="ops-icon-button" aria-label="Refresh department" onClick={() => deptId && loadWorkspace(deptId)} disabled={!deptId || loading}><Icon name="refresh" /></button>} />
+    <nav className={styles.departmentPicker} aria-label="Choose department">{departments.map((department: Entity) => <button key={department.id} aria-pressed={deptId === department.id} onClick={() => switchDept(department.id)}><span>{({ Management: 'MG', Maintenance: 'MT', Marketing: 'MK' } as Record<string, string>)[department.name] || text(department.name).slice(0, 2).toUpperCase()}</span>{department.name}</button>)}</nav>
     <section className={styles.hero}>
-      <div>
-        <span className={styles.heroLabel}>Live department hub</span>
-        <h2>{pulse === 'Healthy' ? 'The department is operating normally.' : `${urgentTaskCount || totalActive} items need coordination.`}</h2>
-        <p>Work, handovers, projects, requests, routines, documents and people in one operational workspace.</p>
-      </div>
-      <div className={styles.quickActions}>
-        <Link className="btn" href="/tasks">+ Task</Link>
-        <Link className="btn secondary" href="/requests">+ Request</Link>
-        <Link className="btn secondary" href="/shift">+ Handover</Link>
-        <Link className="btn secondary" href="/projects">+ Project</Link>
-      </div>
+      <div className={styles.departmentIdentity}><span className={styles.departmentEmblem}><Icon name="guests" /></span><div><h2>{loading ? 'Opening workspace…' : activeDept?.name || 'Choose a department'}</h2><p>{loading ? 'Loading…' : error ? 'This workspace could not be loaded.' : `${people.length} people`}</p></div></div>
+      <div className={styles.quickActions}><Link className="btn" href="/tasks?create=1"><Icon name="plus" />New task</Link><Link className="btn secondary" href="/shift?create=1"><Icon name="shift" />Handover</Link></div>
     </section>
-
-    <div className={styles.metrics}>
-      <div className={`${styles.metric} ${urgentTaskCount ? styles.urgent : styles.ok}`}><span>Department pulse</span><strong>{pulse}</strong><small>{urgentTaskCount} urgent or high-priority</small></div>
-      <div className={styles.metric}><span>Active work</span><strong>{totalActive}</strong><small>Across tasks, projects, requests and handover</small></div>
-      <div className={styles.metric}><span>People</span><strong>{people.length}</strong><small>Linked operational identities</small></div>
-      <div className={styles.metric}><span>Knowledge</span><strong>{routines.length + docs.length}</strong><small>Routines and department documents</small></div>
+    {error ? <div className="today-error" role="alert">{error}</div> : null}
+    <WorkspaceStats items={[
+      { label: 'Tasks', value: loading || error ? null : counts.Tasks || 0, detail: loading ? 'Loading…' : `${urgentTaskCount} high-priority open task${urgentTaskCount === 1 ? '' : 's'}`, icon: 'tasks', attention: true },
+      { label: 'Requests', value: loading || error ? null : counts.Requests || 0, icon: 'request' },
+      { label: 'Projects', value: loading || error ? null : counts.Projects || 0, icon: 'projects' },
+    ]} />
+    <div className={styles.tabs} aria-label="Department sections">
+      {tabs.map(([label]) => <button aria-pressed={tab === label} className={`${styles.tab} ${tab === label ? styles.activeTab : ''}`} key={label} onClick={() => { setTab(label); setQuery(''); }} disabled={loading}>{label}{label !== 'Overview' ? <span>{counts[label] || 0}</span> : null}</button>)}<Link className={styles.tab} href="/history">History <Icon name="external" width="13" height="13" /></Link>
     </div>
-
-    <div className={styles.tabs}>
-      {tabs.map(([label]) => <button className={`${styles.tab} ${tab === label ? styles.activeTab : ''}`} key={label} onClick={() => { setTab(label); setQuery(''); }} disabled={loading}>{label}{label !== 'Overview' ? <span>{counts[label] || 0}</span> : null}</button>)}
-    </div>
-
-    {loading ? <div className="panel"><div className="empty">Loading department workspace…</div></div> : tab === 'Overview' ? <div className={styles.workspaceGrid}>
-      <WorkspaceSection title="Needs attention" eyebrow="Priority work" href="/tasks">
-        <div className={styles.stack}>{urgentTasks.length ? urgentTasks.slice(0, 4).map((item, index) => <WorkspaceCard key={`urgent-${item.id || index}`} item={item} kind="Tasks" compact />) : <div className={styles.clearState}><strong>All clear</strong><span>No urgent department work.</span></div>}</div>
-      </WorkspaceSection>
-
-      <WorkspaceSection title="Shift handover" eyebrow="Continuity" href="/shift">
-        <div className={styles.stack}>{handover.length ? handover.slice(0, 4).map((item, index) => <WorkspaceCard key={`shift-${item.id || index}`} item={item} kind="Shift" compact />) : <div className="empty">No open handover notes.</div>}</div>
-      </WorkspaceSection>
-
-      <WorkspaceSection title="Active projects" eyebrow="Execution" href="/projects">
-        <div className={styles.stack}>{activeProjects.length ? activeProjects.slice(0, 4).map((item, index) => <WorkspaceCard key={`project-${item.id || index}`} item={item} kind="Projects" compact />) : <div className="empty">No active projects.</div>}</div>
-      </WorkspaceSection>
-
-      <WorkspaceSection title="Requests & decisions" eyebrow="Coordination" href="/requests">
-        <div className={styles.stack}>{activeRequests.length ? activeRequests.slice(0, 4).map((item, index) => <WorkspaceCard key={`request-${item.id || index}`} item={item} kind="Requests" compact />) : <div className="empty">No active requests.</div>}</div>
-      </WorkspaceSection>
-
-      <WorkspaceSection title="Recurring work" eyebrow="Operating rhythm">
-        <div className={styles.stack}>{routines.length ? routines.slice(0, 4).map((item, index) => <WorkspaceCard key={`routine-${item.id || index}`} item={item} kind="Routine" compact />) : <div className="empty">No recurring work templates yet.</div>}</div>
-      </WorkspaceSection>
-
-      <WorkspaceSection title="Docs & SOPs" eyebrow="Department knowledge">
-        <div className={styles.stack}>{docs.length ? docs.slice(0, 4).map((item, index) => <WorkspaceCard key={`doc-${item.id || index}`} item={item} kind="Docs" compact />) : <div className="empty">No department documents yet.</div>}</div>
-      </WorkspaceSection>
-
-      <WorkspaceSection title="People & roles" eyebrow="Accountability">
-        <div className={styles.peopleGrid}>{people.length ? people.slice(0, 8).map((person, index) => <div className={styles.person} key={person.id || index}><div>{text(person.name).slice(0, 1).toUpperCase()}</div><span><strong>{person.name || 'Team member'}</strong><small>{person.role || person.email || 'Department member'}</small></span></div>) : <div className="empty">No linked people.</div>}</div>
-      </WorkspaceSection>
-    </div> : <>
-      <div className={styles.browserToolbar}>
-        <input className="input" aria-label={`Search ${tab.toLowerCase()}`} value={query} onChange={event => setQuery(event.target.value)} placeholder={`Search ${tab.toLowerCase()} by title, owner, status, or details`} />
-        {normalizedQuery ? <button className="btn secondary" onClick={() => setQuery('')}>Clear</button> : null}
+    {loading ? <div className="empty" role="status"><Icon name="refresh" />Loading department workspace…</div> : error ? null : !workspace ? <div className="empty">Choose a department to see its work.</div> : tab === 'Overview' ? <div className={styles.workspaceGrid}>
+      <div className={styles.mainColumn}>
+        <WorkspaceSection title="Open tasks" href="/tasks"><div className={styles.stack}>{activeTasks.length ? activeTasks.slice(0, 4).map(item => <WorkspaceCard key={item.id} item={item} kind="Tasks" compact />) : <div className={styles.clearState}><Icon name="check" /><strong>No open tasks</strong></div>}</div></WorkspaceSection>
+        <WorkspaceSection title="Projects" href="/projects"><div className={styles.stack}>{activeProjects.length ? activeProjects.slice(0, 3).map(item => <WorkspaceCard key={item.id} item={item} kind="Projects" compact />) : <div className="empty">No active projects.</div>}</div></WorkspaceSection>
+        <WorkspaceSection title="Requests" href="/requests"><div className={styles.stack}>{activeRequests.length ? activeRequests.slice(0, 3).map(item => <WorkspaceCard key={item.id} item={item} kind="Requests" compact />) : <div className="empty">No active requests.</div>}</div></WorkspaceSection>
       </div>
-      <div className={styles.browserHeader}><div><b>{tab}</b><span>{rows.length} shown</span></div>{destination(tab) ? <Link className="btn small secondary" href={destination(tab)}>Open full module</Link> : null}</div>
+      <div className={styles.sideColumn}>
+        <WorkspaceSection title="Shift handover" href="/shift"><div className={styles.stack}>{handover.length ? handover.slice(0, 3).map(item => <WorkspaceCard key={item.id} item={item} kind="Shift" compact />) : <div className="empty">No open handover notes.</div>}</div></WorkspaceSection>
+        <WorkspaceSection title="Your team"><div className={styles.peopleGrid}>{people.length ? people.slice(0, 6).map(person => <div className={styles.person} key={person.id}><div>{text(person.name).split(' ').map(word => word[0]).slice(0, 2).join('').toUpperCase()}</div><span><strong>{person.name}</strong><small>{person.role || 'Team member'}</small></span></div>) : <div className="empty">No linked people.</div>}</div>{people.length > 6 ? <button className={styles.textButton} onClick={() => setTab('People')}>View all {people.length} people <Icon name="arrow" /></button> : null}</WorkspaceSection>
+        <section className={styles.resources}><h2>Team essentials</h2><button onClick={() => setTab('Routine')}><span className={styles.resourceIcon}><Icon name="check" /></span><span><strong>Routines</strong><small>{routines.length} recurring checklists</small></span><Icon name="arrow" /></button><button onClick={() => setTab('Docs')}><span className={styles.resourceIcon}><Icon name="review" /></span><span><strong>Docs & guides</strong><small>{docs.length} team resources</small></span><Icon name="arrow" /></button></section>
+      </div>
+    </div> : <>
+      <div className={styles.browserToolbar}><input className="input" aria-label={`Search ${tab.toLowerCase()}`} value={query} onChange={event => setQuery(event.target.value)} placeholder={`Search ${tab.toLowerCase()}…`} />{normalizedQuery ? <button className="btn secondary" onClick={() => setQuery('')}>Clear</button> : null}</div>
+      <div className={styles.browserHeader}><div><b>{tab}</b><span>{rows.length} shown</span></div>{destination(tab) ? <Link className="btn small secondary" href={destination(tab)}>View all <Icon name="arrow" /></Link> : null}</div>
       <div className={styles.recordGrid}>{rows.length ? rows.map((item, index) => <WorkspaceCard key={`${tab}-${item.id || index}`} item={item} kind={tab} />) : <div className="empty">{emptyText}</div>}</div>
     </>}
-  </>;
+  </div>;
 }

@@ -7,6 +7,8 @@ import { API_BASE, api, Entity } from '@/lib/api';
 import { getStoredUser } from '@/lib/session';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
+import { SpaceVisual } from '@/components/SpaceVisual';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
 
 function dateLabel(value?: string) {
   if (!value) return '';
@@ -81,40 +83,38 @@ export default function RoomMemoryPage() {
   const fixes: Entity[] = memory?.fixes || [];
   const openGuest = guests.filter(item => item.status !== 'Done').length;
   const openFixes = fixes.filter(item => !['Verified', 'Done'].includes(String(item.status))).length;
-  const photoStyle = media?.configured && media.content_url ? { backgroundImage: `url(${media.content_url})` } : undefined;
+
 
   return <>
-    <Top eyebrow="Property memory" title={room?.name || 'Room'} right={<Link className="btn secondary" href="/rooms">All rooms</Link>} />
+    <Top title={room?.name || 'Room'} right={<Link className="btn secondary" href="/rooms">All rooms</Link>} />
     {error ? <div className="pill urgent" role="alert">{error}</div> : null}
     {!memory && !error ? <div className="panel"><div className="empty">Loading room memory…</div></div> : null}
     {memory ? <>
-      <section className="panel room-detail-media-panel">
-        <div className="room-detail-photo" style={photoStyle} role="img" aria-label={`${room?.name || 'Room'} photo`} />
-        <div className="room-detail-media-copy">
-          <div><div className="eyebrow">Room image</div><h2>{room?.name}</h2><p className="muted">{media?.configured ? 'Using this room’s assigned photo.' : 'Using the Owner Appearance default room placeholder.'}</p></div>
-          {isOwner ? <div className="room-media-controls">
-            <label className="label">Choose room photo<input className="input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={event => setFile(event.target.files?.[0] || null)} /></label>
-            <div className="toolbar"><button className="btn small" disabled={!file || busyMedia} onClick={uploadRoomPhoto}>{busyMedia ? 'Saving…' : media?.configured ? 'Replace photo' : 'Upload photo'}</button>{media?.configured ? <button className="btn small secondary" disabled={busyMedia} onClick={resetRoomPhoto}>Use default</button> : null}</div>
-          </div> : null}
-        </div>
+      <section className="space-profile">
+        <SpaceVisual name={room?.name || 'Room'} kind={room?.kind} photo={media?.configured ? media.content_url : undefined} />
+        <div className="space-profile-copy"><div className="card-line"><Pill value={room?.kind === 'room' ? 'Guest room' : 'Shared space'} /><Pill value={room?.status || 'Active'} /></div><h2>Details</h2>{room?.note ? <p>{room.note}</p> : null}</div>
       </section>
-      <div className="room-detail-status">
-        <div className="panel"><div className="eyebrow">Space</div><h2>{room?.kind || 'Room'}</h2><Pill value={room?.status || 'Active'} /></div>
-        <div className="panel"><div className="eyebrow">Open guest matters</div><h2>{openGuest}</h2></div>
-        <div className="panel"><div className="eyebrow">Open maintenance</div><h2>{openFixes}</h2></div>
-      </div>
+      <WorkspaceStats items={[
+        { label: 'Guest matters', value: openGuest, icon: 'guests' },
+        { label: 'Maintenance', value: openFixes, icon: 'maintenance' },
+        { label: 'History', value: guests.length + fixes.length, icon: 'history' },
+      ]} />
+      {isOwner ? <details className="space-photo-settings"><summary>Manage space photo</summary><div className="room-media-controls">
+        <label className="label">Choose room photo<input className="input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={event => setFile(event.target.files?.[0] || null)} /></label>
+        <div className="toolbar"><button className="btn small" disabled={!file || busyMedia} onClick={uploadRoomPhoto}>{busyMedia ? 'Saving…' : media?.configured ? 'Replace photo' : 'Upload photo'}</button>{media?.configured ? <button className="btn small secondary" disabled={busyMedia} onClick={resetRoomPhoto}>Use illustration</button> : null}</div>
+      </div></details> : null}
       <div className="grid cols-2 room-memory-columns">
         <section className="panel">
-          <div className="topbar"><div><div className="eyebrow">Service recovery</div><h2>Guest matters</h2></div><Link className="btn small secondary" href="/guests?create=1">New matter</Link></div>
+          <div className="topbar"><div><h2>Guest matters</h2></div><Link className="btn small secondary" href="/guests?create=1">New matter</Link></div>
           <div className="grid" style={{ marginTop: 12 }}>
-            {guests.map(item => <div className="card" key={item.id}><strong>{item.title || item.guest_name || 'Guest matter'}</strong><div className="card-line"><Pill value={item.issue_type} /><Pill value={item.status} /><Pill value={item.urgency} /></div>{item.guest_name ? <span className="muted">Guest: {item.guest_name}</span> : null}{dateLabel(item.follow_up_at || item.updated_at) ? <span className="muted">{dateLabel(item.follow_up_at || item.updated_at)}</span> : null}</div>)}
+            {guests.map(item => <div className="card" key={item.id}><strong>{item.title || item.guest_name || 'Guest matter'}</strong><div className="card-line"><Pill value={item.issue_type} /><Pill value={item.status} /><Pill value={item.urgency} /></div>{item.note ? <p>{item.note}</p> : null}{item.action_taken ? <p><strong>Follow-up:</strong> {item.action_taken}</p> : null}{item.guest_name ? <span className="muted">Guest: {item.guest_name}</span> : null}{dateLabel(item.follow_up_date || item.updated_at) ? <span className="muted">{dateLabel(item.follow_up_date || item.updated_at)}</span> : null}</div>)}
             {!guests.length ? <div className="empty">No guest matters for this space.</div> : null}
           </div>
         </section>
         <section className="panel">
-          <div className="topbar"><div><div className="eyebrow">Repair history</div><h2>Maintenance</h2></div><Link className="btn small secondary" href="/fixes?create=1">Report issue</Link></div>
+          <div className="topbar"><div><h2>Maintenance</h2></div><Link className="btn small secondary" href="/fixes?create=1">Report issue</Link></div>
           <div className="grid" style={{ marginTop: 12 }}>
-            {fixes.map(item => <div className="card" key={item.id}><strong>{item.title || 'Maintenance item'}</strong><div className="card-line"><Pill value={item.status} /><Pill value={item.urgency} /></div>{item.technician_name ? <span className="muted">Assigned: {item.technician_name}</span> : null}{dateLabel(item.target_date || item.updated_at) ? <span className="muted">{dateLabel(item.target_date || item.updated_at)}</span> : null}</div>)}
+            {fixes.map(item => <div className="card" key={item.id}><strong>{item.title || 'Maintenance item'}</strong><div className="card-line"><Pill value={item.status} /><Pill value={item.urgency} /></div>{item.problem ? <p>{item.problem}</p> : null}{item.note ? <p>{item.note}</p> : null}{item.technician_name ? <span className="muted">Assigned: {item.technician_name}</span> : null}{dateLabel(item.target_date || item.updated_at) ? <span className="muted">{dateLabel(item.target_date || item.updated_at)}</span> : null}</div>)}
             {!fixes.length ? <div className="empty">No maintenance history for this space.</div> : null}
           </div>
         </section>

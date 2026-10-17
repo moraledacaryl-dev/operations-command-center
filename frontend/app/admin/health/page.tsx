@@ -22,7 +22,7 @@ export default function HealthPage() {
     }
   }
   return <div className="admin-health">
-    <Top eyebrow="Admin" title="Health" right={<div className="toolbar" style={{ margin: 0 }}>{owner ? <Link className="btn secondary" href="/admin/appearance">Appearance</Link> : null}<button className="btn secondary" onClick={runArchive}>Run archive</button></div>} />
+    <Top title="Health" right={<div className="toolbar" style={{ margin: 0 }}>{owner ? <Link className="btn secondary" href="/admin/appearance">Appearance</Link> : null}<button className="btn secondary" onClick={runArchive}>Run archive</button></div>} />
     {error ? <div className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
     <div className="health-overview">
       <section className="health-status-row">

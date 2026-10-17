@@ -1,11 +1,16 @@
 'use client';
 
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { Icon } from '@/components/Icon';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
+
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 import { hasCapability } from '@/lib/capabilities';
@@ -33,8 +38,6 @@ export default function ProjectsPage() {
   const [priority, setPriority] = useState('Normal');
   const [note, setNote] = useState('');
   const [actionNote, setActionNote] = useState('');
-  const [comment, setComment] = useState('');
-  const [commentType, setCommentType] = useState('Update');
   const [taskNote, setTaskNote] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -98,18 +101,24 @@ export default function ProjectsPage() {
     return { ...project, linked_tasks: linked, progress: linked.length ? Math.round((done / linked.length) * 100) : 0, overdue_tasks: overdue };
   }), [projects, tasks]);
 
-  const visible = filter === 'All' ? enriched : enriched.filter(project => project.status === filter);
-
-  async function openProject(project: EnrichedProject) {
-    try {
-      const detail = await api.get('projects', project.id);
-      setSelected({ ...project, ...detail });
-      setActionNote('');
-      setComment('');
-    } catch (err: any) {
-      setError(err.message || 'Project could not be opened.');
+  const searchParams = useSearchParams();
+  const detailId = Number(searchParams.get('project'));
+  useEffect(() => {
+    if (!detailId || !hydrated) return;
+    let active = true;
+    async function openDetails() {
+      try {
+        const detail = await api.get('projects', detailId);
+        const rows = await api.listAll('tasks', { active: true, department_id: detail.department_id || '' });
+        const linked = rows.filter(t => Number(t.project_id) === detailId);
+        if (active) setSelected({ ...detail, linked_tasks: linked, progress: linked.length ? Math.round(linked.filter(t => t.status === 'Done').length * 100 / linked.length) : 0, overdue_tasks: linked.filter(t => t.status !== 'Done' && t.due_date && new Date(t.due_date).getTime() < Date.now()).length });
+      } catch (err: any) { if (active) setError(err.message || 'Project could not be opened.'); }
     }
-  }
+    void openDetails();
+    return () => { active = false; };
+  }, [detailId, hydrated]);
+
+  const visible = filter === 'All' ? enriched : enriched.filter(project => project.status === filter);
 
   async function transition(action: string) {
     if (!selected || busy) return;
@@ -122,21 +131,6 @@ export default function ProjectsPage() {
       await load();
     } catch (err: any) {
       setError(err.message || 'Project status could not be updated.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function addComment() {
-    if (!selected || !comment.trim() || busy) return;
-    setBusy(true);
-    try {
-      await api.comment('projects', selected.id, comment.trim(), commentType);
-      const detail = await api.get('projects', selected.id);
-      setSelected({ ...selected, ...detail });
-      setComment('');
-    } catch (err: any) {
-      setError(err.message || 'Project update could not be added.');
     } finally {
       setBusy(false);
     }
@@ -178,15 +172,15 @@ export default function ProjectsPage() {
     }
   }
 
-  if (!hydrated || loading) return <><Top eyebrow="Delivery portfolio" title="Projects" /><LoadingPanel label="Loading projects and progress…" /></>;
+  if (!hydrated || loading) return <><Top title="Projects" /><LoadingPanel label="Loading projects and progress…" /></>;
 
-  return <>
-    <Top eyebrow="Delivery portfolio" title="Projects" right={canManage ? <button data-testid="create-project" className="btn" onClick={() => setShowAdd(value => !value)}>New project</button> : undefined} />
-    <div className="operational-summary" style={{ marginBottom: 16 }}>
-      <span><strong>{enriched.filter(project => project.status === 'Active').length}</strong> in delivery</span>
-      <span><strong>{enriched.filter(project => project.overdue_tasks > 0 || project.status === 'Paused').length}</strong> need attention</span>
-      <span><strong>{enriched.filter(project => project.status === 'Done').length}</strong> completed</span>
-    </div>
+  return <div className="ops-module">
+    <Top title="Projects" right={canManage ? <button data-testid="create-project" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New project</button> : undefined} />
+    <WorkspaceStats items={[
+      { label: 'In progress', value: error ? null : enriched.filter(p => p.status === 'Active').length, icon: 'projects' },
+      { label: 'Paused or overdue', value: error ? null : enriched.filter(p => p.overdue_tasks > 0 || p.status === 'Paused').length, icon: 'clock', attention: true },
+      { label: 'Completed', value: error ? null : enriched.filter(p => p.status === 'Done').length, icon: 'check' },
+    ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {canManage && showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-project-form">
       <h2>Create project</h2>
@@ -198,24 +192,25 @@ export default function ProjectsPage() {
       <label className="label">Notes<textarea className="textarea" value={note} onChange={event => setNote(event.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim()} onClick={createProject}>{busy ? 'Saving…' : 'Create project'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
-    <div className="portfolio-toolbar"><div><div className="eyebrow">Portfolio</div><h2>Project portfolio</h2></div><Tabs values={['All', 'Planned', 'Active', 'Paused', 'Done']} active={filter} onChange={setFilter} label="Project status" /></div>
-    <div className="grid cols-3 project-gallery">
-      {visible.map(project => <button type="button" className={`card project-portfolio-card ${project.overdue_tasks ? 'card-important' : ''}`} key={project.id} onClick={() => openProject(project)} style={{ textAlign: 'left' }}>
-        <span className="project-card-kicker">{project.overdue_tasks ? 'Needs attention' : project.status === 'Paused' ? 'Paused' : project.status === 'Planned' ? 'Planned' : 'In delivery'}</span><strong className="card-title">{project.title}</strong>
-        <span className="project-card-meta"><span><b>{project.linked_tasks.length}</b> tasks</span><span><b>{project.progress}%</b> complete</span>{project.overdue_tasks ? <span className="project-risk"><b>{project.overdue_tasks}</b> overdue</span> : null}</span>
-        <span className="muted">Due {formatDate(project.due_date)} · {project.priority || 'Normal'} priority</span>
-        {project.linked_tasks.length ? <span className="project-progress" aria-label={`${project.progress}% complete`}><span style={{ width: `${project.progress}%` }} /></span> : <span className="project-next-action">No linked tasks yet — define the next action</span>}
-      </button>)}
-      {!visible.length ? <div className="empty">No projects in this view.</div> : null}
+    <div className="ops-filter-bar"><Tabs values={['All', 'Planned', 'Active', 'Paused', 'Done']} active={filter} onChange={setFilter} label="Project status" /></div>
+    <div className="ops-project-grid">
+      {visible.map(project => <Link className="ops-project-card" key={project.id} href={`/projects/${project.id}`}>
+        <span className={`ops-project-cover ${project.overdue_tasks ? 'ops-cover-sand' : ''}`}><span className="ops-project-emblem"><Icon name="projects" /></span><Pill value={project.status || 'Planned'} /><span className="ops-cover-lines" aria-hidden="true" /></span>
+        <span className="ops-project-content"><span className="ops-project-kicker">{project.overdue_tasks ? `${project.overdue_tasks} overdue task${project.overdue_tasks === 1 ? '' : 's'}` : project.priority + ' priority'}</span><strong>{project.title}</strong>{project.note ? <span className="ops-work-card-description">{project.note}</span> : null}
+        <span className="ops-progress-label"><span>{project.linked_tasks.filter((t: Entity) => t.status === 'Done').length} of {project.linked_tasks.length} tasks done</span><b>{project.progress}%</b></span>
+        <span className="ops-progress-track" role="progressbar" aria-label={`${project.title} task completion`} aria-valuenow={project.progress} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${project.progress}%` }} /></span>
+        <span className="ops-work-card-footer"><span><Icon name="clock" />{project.due_date ? `Due ${formatDate(project.due_date)}` : 'No due date'}</span><Icon name="arrow" /></span></span>
+      </Link>)}
     </div>
-    <Drawer item={selected} title="Project" onClose={() => setSelected(null)}>
+    {!visible.length ? <div className="empty"><Icon name="projects" />No projects in this view.</div> : null}
+    <Drawer item={selected} title={selected?.title || 'Project'} showSupplemental={false} onClose={() => setSelected(null)}>
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}>
-          <div className="eyebrow">Delivery health</div>
+
           <h2>{selected.overdue_tasks ? 'At risk' : selected.status === 'Paused' ? 'Paused' : 'On track'}</h2>
           <div className="card-line"><Pill value={`${selected.progress}% complete`} /><Pill value={`${selected.linked_tasks.length} tasks`} />{selected.overdue_tasks ? <Pill value={`${selected.overdue_tasks} overdue`} /> : null}</div>
           {(selected.allowed_actions || []).length ? <>
-            <label className="label" style={{ marginTop: 14 }}>Action note<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} placeholder="Required for pause or reopen; useful for the audit trail" /></label>
+            <label className="label" style={{ marginTop: 14 }}>Action note<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} placeholder="Required to pause or reopen" /></label>
             <div className="toolbar">
               {(selected.allowed_actions || []).map((action: string) => <button className={action === 'complete' ? 'btn' : 'btn secondary'} key={action} disabled={busy || (['pause', 'reopen'].includes(action) && !actionNote.trim())} onClick={() => transition(action)}>{({ start: 'Start project', pause: 'Pause', resume: 'Resume', complete: 'Complete', reopen: 'Reopen' } as Record<string, string>)[action] || action}</button>)}
             </div>
@@ -229,21 +224,16 @@ export default function ProjectsPage() {
             {!selected.linked_tasks.length ? <div className="empty">No linked tasks yet.</div> : null}
           </div>
         </section>
-        <section className="panel" style={{ marginTop: 16 }}>
-          <h2>Project discussion</h2>
-          <div className="form" style={{ marginTop: 12 }}><select className="select" aria-label="Discussion type" value={commentType} onChange={event => setCommentType(event.target.value)}>{['Update', 'Question', 'Decision', 'Risk', 'Blocker'].map(value => <option key={value}>{value}</option>)}</select><textarea className="textarea" placeholder="Add context that stays attached to this project" value={comment} onChange={event => setComment(event.target.value)} /><button className="btn secondary" disabled={busy || !comment.trim()} onClick={addComment}>Add {commentType.toLowerCase()}</button></div>
-          <p className="muted">Mention a teammate as <code>@[Full Name]</code> or with their email address to notify them.</p>
-          <div className="grid" style={{ marginTop: 12 }}>{(selected.comments || []).map((item: Entity) => <div className="card" key={item.id}><div className="card-line"><Pill value={item.comment_type || 'Update'} />{item.author_name ? <span className="muted">{item.author_name}</span> : null}</div><span>{item.body}</span><span className="muted">{formatDate(item.created_at)}</span></div>)}{!(selected.comments || []).length ? <div className="empty">No project discussion yet.</div> : null}</div>
-        </section>
+        <Link className="btn" style={{ marginTop: 16 }} href={`/projects/${selected.id}`}>Discussion & purchase list</Link>
         <section className="panel" style={{ marginTop: 16 }}>
           <h2>Files & activity</h2>
           {canManage ? <div className="form" style={{ marginTop: 12 }}><input className="input" type="file" onChange={event => setFile(event.target.files?.[0] || null)} /><button className="btn secondary" disabled={busy || !file} onClick={uploadFile}>Upload project file</button></div> : null}
           <div className="grid cols-2" style={{ marginTop: 12 }}>
             <div><h3>Files</h3><div className="grid">{(selected.attachments || []).map((item: Entity) => <button type="button" className="card" key={item.id} onClick={() => api.downloadAttachment(item.id, item.filename || 'project-file')}><strong>{item.filename || 'Project file'}</strong><span className="muted">Uploaded {formatDate(item.created_at)}</span></button>)}{!(selected.attachments || []).length ? <div className="empty">No files yet.</div> : null}</div></div>
-            <div><h3>Activity</h3><div className="timeline">{(selected.activity || []).map((item: Entity) => <div className="timeline-item" key={item.id}><b>{item.action}</b><span>{item.message}</span><small>{formatDate(item.created_at)}</small></div>)}{!(selected.activity || []).length ? <div className="empty">No activity yet.</div> : null}</div></div>
+            <div><h3>Activity</h3><div className="timeline">{(selected.activity || []).map((item: Entity) => <div className="timeline-item" key={item.id}><b>{String(item.action).replaceAll('_', ' ')}</b><span>{item.message}</span><small>{formatDate(item.created_at)}</small></div>)}{!(selected.activity || []).length ? <div className="empty">No activity yet.</div> : null}</div></div>
           </div>
         </section>
       </> : null}
     </Drawer>
-  </>;
+  </div>;
 }
