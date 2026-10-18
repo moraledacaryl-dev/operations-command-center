@@ -232,7 +232,7 @@ test('rapid department switching ignores stale old-department response', async (
 
   await page.goto('/tasks');
   await assertSession(page, 1);
-  const selector = page.locator('.dept-switch select');
+  const selector = page.getByRole('combobox', { name: 'Workspace', exact: true });
   await expect(selector).toBeVisible();
   await selector.selectOption('2');
 

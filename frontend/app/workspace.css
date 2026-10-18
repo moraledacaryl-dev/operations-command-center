@@ -1,6 +1,6 @@
 /* The current Operations visual system. Keep shell classes independent of legacy
    presentation selectors; explicit overrides bridge existing workflow components. */
-:root{--ops-bg:#f6f7f9;--ops-surface:#fff;--ops-ink:#253138;--ops-muted:#69777d;--ops-line:#e4e9ec;--ops-accent:#177b61;--ops-soft:#eaf3ee;--ops-sidebar:#222d2e;--product-bg:var(--ops-bg);--product-ink:var(--ops-ink);--product-muted:var(--ops-muted);--product-line:var(--ops-line);--product-green:var(--ops-accent);--v3-ink:var(--ops-ink);--v3-text:var(--ops-ink);--v3-accent:var(--ops-accent)}
+:root{--ops-bg:#f6f7f9;--ops-surface:#fff;--ops-ink:#253138;--ops-muted:#5e6c73;--ops-line:#e4e9ec;--ops-accent:#177b61;--ops-soft:#eaf3ee;--ops-sidebar:#222d2e;--product-bg:var(--ops-bg);--product-ink:var(--ops-ink);--product-muted:var(--ops-muted);--product-line:var(--ops-line);--product-green:var(--ops-accent);--v3-ink:var(--ops-ink);--v3-text:var(--ops-ink);--v3-accent:var(--ops-accent)}
 html,body{background:var(--ops-bg)!important;color:var(--ops-ink)!important}
 #operations-app-root{display:grid!important;grid-template-columns:224px minmax(0,1fr)!important;min-height:100dvh;gap:0!important;padding:0!important;background:var(--ops-bg)!important;font-size:14px;line-height:1.5}
 #operations-app-root *{box-sizing:border-box}
@@ -209,7 +209,7 @@ html,body{background:var(--ops-bg)!important;color:var(--ops-ink)!important}
  #operations-app-root .mobile-bottom-nav a.active:before{display:none}
  #operations-app-root .today-shortcuts{grid-template-columns:1fr 1fr}
  #operations-app-root .today-shortcuts a{display:flex}
- body[data-modal-open='true'] #operations-app-root .mobile-bottom-nav,body[data-modal-open='true'] #operations-app-root .mobile-header,body[data-modal-open='true'] #operations-app-root .ops-sidebar{visibility:hidden!important;pointer-events:none!important}
+ body[data-modal-open='true'] #operations-app-root .mobile-bottom-nav,body[data-modal-open='true'] #operations-app-root .mobile-header,body[data-modal-open='true'] #operations-app-root .ops-sidebar{display:none!important}
 }
 @media(max-width:700px){
  #operations-app-root .main{padding:22px 16px 100px!important}
@@ -512,9 +512,9 @@ body .drawer .pill{border-radius:5px!important;font-size:11px!important;font-wei
 #operations-app-root .event-post-header>div{display:grid;gap:3px;min-width:0}
 #operations-app-root .event-post-header strong{font-size:12px;font-weight:600}
 #operations-app-root .event-post-header time{font-size:10px;color:var(--ops-muted)}
-#operations-app-root .event-type{margin-left:auto;font-size:10px;padding:5px 8px;border-radius:5px;background:#f1f3f1;color:#748073}
-#operations-app-root .event-type-suggestion{background:#eef2e8;color:#73845b}
-#operations-app-root .event-type-question{background:#eaf0f5;color:#748ca1}
+#operations-app-root .event-type{margin-left:auto;font-size:10px;padding:5px 8px;border-radius:5px;background:#f1f3f1;color:#546151}
+#operations-app-root .event-type-suggestion{background:#eef2e8;color:#526339}
+#operations-app-root .event-type-question{background:#eaf0f5;color:#496a85}
 #operations-app-root .event-type-decision{background:#e3f0e8;color:#487759}
 #operations-app-root .event-post-body{font-size:14px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:19px 0;color:var(--ops-ink)}
 #operations-app-root .event-thread-actions{display:flex;align-items:center;gap:8px;padding-top:14px;border-top:1px solid #edf0ee;flex-wrap:wrap}
@@ -551,7 +551,7 @@ body .drawer .pill{border-radius:5px!important;font-size:11px!important;font-wei
 #operations-app-root .event-budget-forecast>strong{font-size:22px;font-weight:550;letter-spacing:-.03em}
 #operations-app-root .event-budget-forecast small{font-size:11px;color:#956749}
 #operations-app-root .event-budget-footnote{font-size:10px;color:var(--ops-muted);margin:16px 0 0}
-#operations-app-root .event-unpriced{font-size:11px;line-height:1.7;color:#946c48;background:#f7efe2;border-radius:8px;padding:12px;margin:14px 0 0}
+#operations-app-root .event-unpriced{font-size:11px;line-height:1.7;color:#805936;background:#f7efe2;border-radius:8px;padding:12px;margin:14px 0 0}
 #operations-app-root .event-budget-form{padding:14px 0;border-block:1px solid var(--ops-line);margin:15px 0}
 #operations-app-root .event-budget-form .label{margin-bottom:10px}
 #operations-app-root .event-inline-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -561,10 +561,10 @@ body .drawer .pill{border-radius:5px!important;font-size:11px!important;font-wei
 #operations-app-root .event-purchase-heading>div{flex:1;min-width:0}
 #operations-app-root .event-purchase-heading h3{font-size:15px!important;font-weight:600!important;line-height:1.5;overflow-wrap:anywhere}
 #operations-app-root .event-purchase-heading>div>span{display:block;font-size:10px;color:var(--ops-muted);margin-top:3px}
-#operations-app-root .event-purchase-status{font-size:10px;border-radius:5px;padding:5px 8px;background:#f1eee7;color:#978461}
-#operations-app-root .event-status-planned{background:#e8eff5;color:#68839a}
-#operations-app-root .event-status-purchased{background:#e7f1e8;color:#5d8464}
-#operations-app-root .event-status-declined{background:#f2eae7;color:#a07b6d}
+#operations-app-root .event-purchase-status{font-size:10px;border-radius:5px;padding:5px 8px;background:#f1eee7;color:#71603e}
+#operations-app-root .event-status-planned{background:#e8eff5;color:#42647e}
+#operations-app-root .event-status-purchased{background:#e7f1e8;color:#3f6846}
+#operations-app-root .event-status-declined{background:#f2eae7;color:#805547}
 #operations-app-root .event-purchase-note{font-size:12px;line-height:1.7;color:var(--ops-muted);margin:15px 0;white-space:pre-wrap;overflow-wrap:anywhere}
 #operations-app-root .event-item-cost{display:flex;flex-wrap:wrap;gap:15px 28px;padding:17px 0}
 #operations-app-root .event-item-cost>div{display:grid;gap:7px;min-width:70px}
