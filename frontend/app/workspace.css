@@ -506,9 +506,9 @@ body .drawer .pill{border-radius:5px!important;font-size:11px!important;font-wei
 #operations-app-root .event-feed-heading .select{width:110px;min-width:0;font-size:12px!important}
 #operations-app-root .event-feed,#operations-app-root .event-purchase-list{display:grid;gap:16px}
 #operations-app-root .event-post-header{display:flex;gap:11px;align-items:center}
-#operations-app-root .event-avatar{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;border-radius:50%;background:#e8eee5;color:#6a7d60;font-size:11px;font-weight:600}
-#operations-app-root .event-thread:nth-child(3n+2) .event-avatar{background:#efe9df;color:#988365}
-#operations-app-root .event-thread:nth-child(3n) .event-avatar{background:#e6eef0;color:#6f8b93}
+#operations-app-root .event-avatar{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;border-radius:50%;background:#e8eee5;color:#536648;font-size:11px;font-weight:600}
+#operations-app-root .event-thread:nth-child(3n+2) .event-avatar{background:#efe9df;color:#756144}
+#operations-app-root .event-thread:nth-child(3n) .event-avatar{background:#e6eef0;color:#466772}
 #operations-app-root .event-post-header>div{display:grid;gap:3px;min-width:0}
 #operations-app-root .event-post-header strong{font-size:12px;font-weight:600}
 #operations-app-root .event-post-header time{font-size:10px;color:var(--ops-muted)}
