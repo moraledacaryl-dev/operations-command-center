@@ -2,47 +2,48 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Icon, IconName } from '@/components/Icon';
 import { api, Entity } from '@/lib/api';
 import { Capability, hasCapability } from '@/lib/capabilities';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
-type NavItem = { href: string; label: string; shortLabel?: string; icon: string; badge?: number };
+type NavItem = { href: string; label: string; shortLabel?: string; icon: IconName; badge?: number };
 type AdminNavItem = NavItem & { capability?: Capability; ownerOnly?: boolean };
 
 const homeItems: NavItem[] = [
-  { href: '/', label: 'Overview', icon: '⌂' },
-  { href: '/my-work', label: 'My Work', shortLabel: 'My Work', icon: '✓' },
+  { href: '/', label: 'Today', icon: 'home' },
+  { href: '/my-work', label: 'My Work', shortLabel: 'My Work', icon: 'check' },
 ];
 
 const workItems: NavItem[] = [
-  { href: '/tasks', label: 'Tasks', icon: '▣' },
-  { href: '/projects', label: 'Projects', icon: '◇' },
-  { href: '/requests', label: 'Requests', icon: '↗' },
+  { href: '/tasks', label: 'Tasks', icon: 'tasks' },
+  { href: '/projects', label: 'Projects', icon: 'projects' },
+  { href: '/requests', label: 'Requests', icon: 'request' },
 ];
 
 const operationsItems: NavItem[] = [
-  { href: '/guests', label: 'Guest Matters', shortLabel: 'Guests', icon: '◎' },
-  { href: '/fixes', label: 'Maintenance', icon: '◆' },
-  { href: '/rooms', label: 'Rooms', icon: '▦' },
-  { href: '/shift', label: 'Shift Handover', shortLabel: 'Handover', icon: '⇄' },
+  { href: '/guests', label: 'Guest Matters', shortLabel: 'Guests', icon: 'guests' },
+  { href: '/fixes', label: 'Maintenance', icon: 'maintenance' },
+  { href: '/rooms', label: 'Rooms', icon: 'rooms' },
+  { href: '/shift', label: 'Shift Handover', shortLabel: 'Handover', icon: 'shift' },
 ];
 
 const decisionItems: NavItem[] = [
-  { href: '/review', label: 'Review', icon: '◫' },
-  { href: '/approvals', label: 'Approvals', icon: '✓' },
+  { href: '/review', label: 'Review', icon: 'review' },
+  { href: '/approvals', label: 'Approvals', icon: 'check' },
 ];
 
 const activityItems: NavItem[] = [
-  { href: '/notifications', label: 'Notifications', icon: '♢' },
-  { href: '/history', label: 'History', icon: '◷' },
+  { href: '/notifications', label: 'Notifications', icon: 'bell' },
+  { href: '/history', label: 'History', icon: 'history' },
 ];
 
 const adminItems: AdminNavItem[] = [
-  { href: '/admin/appearance', label: 'Appearance', shortLabel: 'Appearance', icon: '◈', ownerOnly: true },
-  { href: '/admin/users', label: 'People & Access', shortLabel: 'People', icon: '♙', capability: 'manage_accounts' },
-  { href: '/admin/approve', label: 'Approval Administration', shortLabel: 'Approvals', icon: '✓', capability: 'manage_approvals' },
-  { href: '/admin/health', label: 'System Health', shortLabel: 'Health', icon: '●', capability: 'view_system_health' },
+  { href: '/admin/appearance', label: 'Appearance', shortLabel: 'Appearance', icon: 'palette', ownerOnly: true },
+  { href: '/admin/users', label: 'People & Access', shortLabel: 'People', icon: 'guests', capability: 'manage_accounts' },
+  { href: '/admin/approve', label: 'Approval Administration', shortLabel: 'Approvals', icon: 'check', capability: 'manage_approvals' },
+  { href: '/admin/health', label: 'System Health', shortLabel: 'Health', icon: 'health', capability: 'view_system_health' },
 ];
 
 const connectedApps = [
@@ -58,7 +59,6 @@ function SignInRequired() {
         <div className="logo big">HO</div>
         <p className="eyebrow">Hidden Oasis Operations</p>
         <h1>Sign in to continue</h1>
-        <p className="muted">Use your personal account to open your work, department and approvals.</p>
         <Link className="btn" href="/login">Open sign in</Link>
       </section>
     </main>
@@ -66,27 +66,27 @@ function SignInRequired() {
 }
 
 function isActivePath(path: string, href: string) {
-  return href === '/' ? path === '/' : path.startsWith(href);
+  if (href === '/') return path === '/';
+  if (href === '/posts') return path === '/posts';
+  return path === href || path.startsWith(`${href}/`);
 }
 
 function NavLink({ item, path, onNavigate }: { item: NavItem; path: string; onNavigate?: () => void }) {
   const active = isActivePath(path, item.href);
-  return (
-    <Link className={active ? 'active' : ''} href={item.href} onClick={onNavigate} aria-current={active ? 'page' : undefined} aria-label={item.label}>
-      <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-      <span className="nav-copy">{item.label}</span>
-      {item.badge ? <span className="nav-badge" aria-label={`${item.badge} unread`}>{item.badge > 99 ? '99+' : item.badge}</span> : null}
-    </Link>
-  );
+  return <Link className={`ops-nav-link${active ? ' active' : ''}`} href={item.href} onClick={onNavigate} aria-current={active ? 'page' : undefined} title={item.label} aria-label={item.label}>
+    <Icon name={item.icon} /><span className="ops-nav-copy">{item.label}</span>
+    {item.badge ? <span className="ops-badge" aria-label={`${item.badge} unread`}>{item.badge > 99 ? '99+' : item.badge}</span> : null}
+  </Link>;
 }
 
-function NavSection({ label, items, path, onNavigate }: { label?: string; items: NavItem[]; path: string; onNavigate: () => void }) {
-  return (
-    <div className="nav-group">
-      {label ? <span className="nav-label">{label}</span> : null}
-      {items.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={onNavigate} />)}
-    </div>
-  );
+function NavGroup({ label, icon, items, path, onNavigate, onExpand }: { label: string; icon: IconName; items: NavItem[]; path: string; onNavigate: () => void; onExpand: () => void }) {
+  const active = items.some(item => isActivePath(path, item.href));
+  const [open, setOpen] = useState(active);
+  useEffect(() => { if (active) setOpen(true); }, [active]);
+  return <details className={`ops-nav-group${active ? ' has-active' : ''}`} open={open} onToggle={event => setOpen(event.currentTarget.open)}>
+    <summary title={label} aria-label={label} onClick={onExpand}><Icon name={icon} /><span className="ops-nav-copy">{label}</span><Icon className="ops-chevron" name="down" /></summary>
+    <div className="ops-subnav">{items.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={onNavigate} />)}</div>
+  </details>;
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -95,8 +95,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Entity | null>(null);
   const [deptId, setDeptId] = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [compact, setCompact] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => { try { setCompact(localStorage.getItem('ops-sidebar-compact') === 'true'); } catch { /* Storage is optional. */ } }, []);
   const isLogin = path === '/login';
   const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/admin'].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
 
@@ -110,10 +114,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) { setUnreadCount(0); return; }
     let cancelled = false;
-    const refresh = () => api.notifications({ unread_only: true, limit: 1 }).then(page => { if (!cancelled) setUnreadCount(Number(page.unread_count || 0)); }).catch(() => undefined);
+    const refresh = () => { if (document.visibilityState !== 'visible') return; return api.notifications({ unread_only: true, limit: 1 }).then(page => { if (!cancelled) setUnreadCount(Number(page.unread_count || 0)); }).catch(() => undefined); };
     void refresh();
-    const timer = window.setInterval(refresh, 60_000);
-    return () => { cancelled = true; window.clearInterval(timer); };
+    const timer = window.setInterval(refresh, 10_000);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('notifications-changed', refresh);
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener('focus', refresh); window.removeEventListener('notifications-changed', refresh); };
   }, [path, user]);
 
   useEffect(() => {
@@ -130,10 +136,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!mobileOpen) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileOpen(false); };
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const focusFrame = requestAnimationFrame(() => sidebarRef.current?.querySelector<HTMLElement>('a, button, select, summary')?.focus());
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false);
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>('a, button, select, summary') || []).filter(node => node.getClientRects().length && !node.hasAttribute('disabled'));
+      const first = controls[0], last = controls[controls.length - 1];
+      if (!sidebarRef.current?.contains(document.activeElement)) { event.preventDefault(); first?.focus(); }
+      else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
     window.addEventListener('keydown', onKeyDown);
     return () => {
       document.body.style.overflow = previous;
+      cancelAnimationFrame(focusFrame);
+      previousFocus?.focus();
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [mobileOpen]);
@@ -146,10 +164,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const visibleAdminItems = adminItems.filter(item => (!item.ownerOnly || role === 'owner') && (!item.capability || hasCapability(user, item.capability)));
   const canOpenMarketing = hasCapability(user, 'view_all_operations') || deptOptions.some((department: Entity) => String(department.name || '').toLowerCase().includes('marketing'));
   const contentItems: NavItem[] = canOpenMarketing ? [
-    { href: '/posts', label: 'Marketing', icon: '◉' },
-    { href: '/posts/editor', label: 'Annotation Studio', shortLabel: 'Studio', icon: '✎' },
+    { href: '/posts', label: 'Marketing', icon: 'marketing' },
+    { href: '/posts/editor', label: 'Annotation Studio', shortLabel: 'Studio', icon: 'edit' },
   ] : [];
-  const peopleItems: NavItem[] = [{ href: '/departments', label: 'Departments', icon: '▥' }];
+  const peopleItems: NavItem[] = [{ href: '/departments', label: 'Departments', icon: 'guests' }];
   const closeMobile = () => setMobileOpen(false);
 
   function changeDept(value: string) {
@@ -175,74 +193,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!isKnownRoute) return <>{children}</>;
   if (!user) return <SignInRequired />;
 
+  const allNavItems = [...homeItems, ...workItems, ...operationsItems, ...decisionItems, ...contentItems, ...peopleItems, ...activityItems, ...visibleAdminItems];
+  const currentPage = [...allNavItems].sort((a, b) => b.href.length - a.href.length).find(item => isActivePath(path, item.href))?.label || 'Account';
+  function toggleCompact() {
+    const next = !compact;
+    setCompact(next);
+    try { localStorage.setItem('ops-sidebar-compact', String(next)); } catch { /* Storage is optional. */ }
+  }
+  const expand = () => { if (compact) { setCompact(false); try { localStorage.setItem('ops-sidebar-compact', 'false'); } catch { /* Storage is optional. */ } } };
+
   return (
-    <div id="operations-app-root" className="app">
+    <div id="operations-app-root" className={`app ops-app${compact ? ' ops-compact' : ''}`}>
+      <a className="ops-skip" href="#workspace-main">Skip to content</a>
       <header className="mobile-header">
-        <Link className="mobile-brand" href="/">
-          <span className="logo">HO</span>
-          <span><strong>Operations</strong><small>{workspaceName}</small></span>
-        </Link>
-        <button className="menu-toggle" type="button" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} aria-controls="mobile-sidebar" onClick={() => setMobileOpen(open => !open)}>
-          {mobileOpen ? 'Close' : 'Menu'}
-        </button>
+        <Link className="ops-brand" href="/"><span className="ops-mark"><Icon name="leaf" /></span><span><strong>Hidden Oasis</strong><small>Operations</small></span></Link>
+        <button ref={menuRef} className="ops-icon-button" type="button" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} aria-controls="mobile-sidebar" onClick={() => setMobileOpen(open => !open)}><Icon name={mobileOpen ? 'close' : 'menu'} /></button>
       </header>
-
       {mobileOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={closeMobile} />}
-
-      <aside id="mobile-sidebar" className={`sidebar ${mobileOpen ? 'open' : ''}`} aria-hidden={!mobileOpen ? undefined : false}>
-        <div className="brand">
-          <div className="logo">HO</div>
-          <div><strong>Hidden Oasis</strong><small>Operations</small></div>
+      <aside ref={sidebarRef} id="mobile-sidebar" className={`sidebar ops-sidebar ${mobileOpen ? 'open' : ''}`} aria-label="Workspace navigation">
+        <div className="ops-brand-row"><Link className="ops-brand" href="/" aria-label="Hidden Oasis Operations" onClick={closeMobile}><span className="ops-mark"><Icon name="leaf" /></span><span className="ops-brand-copy"><strong>Hidden Oasis</strong><small>Operations</small></span></Link><button className="ops-mobile-close ops-icon-button" aria-label="Close navigation" onClick={closeMobile}><Icon name="close" /></button></div>
+        <div className="ops-workspace-picker">
+          {fixedMarketingWorkspace ? <span><span className="ops-status-dot" />Marketing workspace</span> : deptOptions.length > 1 ? <label><span>Workspace</span><select value={currentDept?.id || ''} onChange={e => changeDept(e.target.value)}>{deptOptions.map((dept: Entity) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}</select></label> : <span><span className="ops-status-dot" />{workspaceName}</span>}
         </div>
-
-        <div className="user-summary">
-          <span className="user-avatar" aria-hidden="true">{String(user.name || 'U').slice(0, 1).toUpperCase()}</span>
-          <span><strong>{user.name || 'User'}</strong><small>{user.role}</small></span>
-          <Link href="/account" className="account-link" onClick={closeMobile}>Account</Link>
-        </div>
-
-        {fixedMarketingWorkspace ? (
-          <div className="dept-switch"><label><span>Current workspace</span><strong>Marketing</strong></label></div>
-        ) : deptOptions.length > 0 ? (
-          <div className="dept-switch"><label><span>Current workspace</span><select className="select" value={currentDept?.id || ''} onChange={e => changeDept(e.target.value)}>{deptOptions.map((dept: Entity) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}</select></label></div>
-        ) : null}
-
-        <nav className="nav grouped" aria-label="Main navigation">
-          <NavSection items={homeItems} path={path} onNavigate={closeMobile} />
-          <NavSection label="Execution" items={workItems} path={path} onNavigate={closeMobile} />
-          <NavSection label="Property" items={operationsItems} path={path} onNavigate={closeMobile} />
-          <NavSection label="Control" items={decisionItems} path={path} onNavigate={closeMobile} />
-          {contentItems.length ? <NavSection label="Content" items={contentItems} path={path} onNavigate={closeMobile} /> : null}
-          <NavSection label="Organization" items={peopleItems} path={path} onNavigate={closeMobile} />
-
-          {visibleAdminItems.length > 0 ? (
-            <details className="nav-admin" open={path.startsWith('/admin')}>
-              <summary>Administration</summary>
-              <NavSection items={visibleAdminItems} path={path} onNavigate={closeMobile} />
-            </details>
-          ) : null}
-
-          <NavSection label="Activity" items={activityItems.map(item => item.href === '/notifications' ? { ...item, badge: unreadCount } : item)} path={path} onNavigate={closeMobile} />
-
-          {connectedApps.length > 0 ? (
-            <div className="nav-group">
-              <span className="nav-label">Connected Apps</span>
-              {connectedApps.map(([label, href]) => <a href={href} key={label} rel="noreferrer" target="_blank"><span className="nav-icon external" aria-hidden="true">↗</span><span className="nav-copy">{label}</span></a>)}
-            </div>
-          ) : null}
+        <nav className="ops-nav" aria-label="Main navigation">
+          {homeItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
+          <NavLink item={decisionItems[0]} path={path} onNavigate={closeMobile} />
+          <span className="ops-nav-label">Workspace</span>
+          {workItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
+          <NavLink item={operationsItems[1]} path={path} onNavigate={closeMobile} />
+          <NavGroup label="Property" icon="rooms" items={operationsItems.filter(item => item.href !== '/fixes')} path={path} onNavigate={closeMobile} onExpand={expand} />
+          {contentItems.length ? <NavGroup label="Marketing" icon="marketing" items={contentItems} path={path} onNavigate={closeMobile} onExpand={expand} /> : null}
+          <NavLink item={peopleItems[0]} path={path} onNavigate={closeMobile} />
+          <NavGroup label="Activity" icon="history" items={[decisionItems[1], ...activityItems.map(item => item.href === '/notifications' ? { ...item, badge: unreadCount } : item)]} path={path} onNavigate={closeMobile} onExpand={expand} />
+          {visibleAdminItems.length ? <NavGroup label="Administration" icon="settings" items={visibleAdminItems} path={path} onNavigate={closeMobile} onExpand={expand} /> : null}
+          {connectedApps.length > 0 ? <details className="ops-nav-group"><summary title="Connected apps" onClick={expand}><Icon name="external" /><span className="ops-nav-copy">Connected apps</span><Icon className="ops-chevron" name="down" /></summary><div className="ops-subnav">{connectedApps.map(([label, href]) => <a className="ops-nav-link" href={href} key={label} rel="noreferrer" target="_blank"><Icon name="external" /><span>{label}</span></a>)}</div></details> : null}
         </nav>
-
-        <button className="btn secondary logout" disabled={signingOut} onClick={logout}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
+        <div className="ops-profile"><Link href="/account" onClick={closeMobile} title="Your account" aria-label="Your account"><span className="ops-avatar">{String(user.name || 'U').slice(0, 1).toUpperCase()}</span><span className="ops-profile-copy"><strong>{user.name || 'User'}</strong><small>{user.role}</small></span></Link><button className="ops-icon-button" title="Sign out" aria-label="Sign out" disabled={signingOut} onClick={logout}><Icon name="logout" /></button></div>
       </aside>
-
-      <main className="main" key={deptId ?? 'no-department'}>{children}</main>
-
+      <div className="ops-stage">
+        <header className="ops-topbar"><div className="ops-breadcrumb"><button className="ops-icon-button ops-collapse" type="button" aria-label={compact ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!compact} aria-controls="mobile-sidebar" onClick={toggleCompact}><Icon name="panel" /></button><span>{workspaceName}</span><span aria-hidden="true">/</span><strong>{currentPage}</strong></div><Link className="ops-icon-button ops-notifications" href="/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}><Icon name="bell" />{unreadCount > 0 && <span className="ops-unread-dot" />}</Link></header>
+        {process.env.NEXT_PUBLIC_DEMO_PREVIEW === 'true' && <div className="ops-demo-banner"><span>Demo workspace</span> Fictional sample data for design preview</div>}
+        <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{children}</main>
+      </div>
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
-        {[homeItems[0], homeItems[1], workItems[0], decisionItems[0]].map(item => {
-          const active = isActivePath(path, item.href);
-          return <Link key={item.href} href={item.href} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} aria-label={item.label}><span aria-hidden="true">{item.icon}</span><small>{item.shortLabel || item.label}</small></Link>;
-        })}
-        <button type="button" aria-label="Open all navigation" onClick={() => setMobileOpen(true)}><span aria-hidden="true">•••</span><small>More</small></button>
+        {[homeItems[0], homeItems[1], workItems[0], decisionItems[0]].map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
+        <button type="button" aria-label="Open all navigation" onClick={() => setMobileOpen(true)}><Icon name="menu" /><small>More</small></button>
       </nav>
     </div>
   );

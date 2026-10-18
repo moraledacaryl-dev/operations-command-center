@@ -118,6 +118,13 @@ async function allCursorPages(path: string, params: Record<string, any> = {}): P
 }
 
 export const api = {
+  projectWorkspace: (id: number) => request<Entity>(`/project-workspaces/${id}`),
+  projectDiscussion: (id: number, data: Entity) => request<Entity>(`/project-workspaces/${id}/discussion`, { method: 'POST', body: JSON.stringify(data) }),
+  projectVote: (id: number, commentId: number, voted: boolean) => request<Entity>(`/project-workspaces/${id}/discussion/${commentId}/vote`, { method: 'POST', body: JSON.stringify({ voted }) }),
+  projectBudget: (id: number, data: Entity) => request<Entity>(`/project-workspaces/${id}/budget`, { method: 'PUT', body: JSON.stringify(data) }),
+  projectPurchase: (id: number, data: Entity) => request<Entity>(`/project-workspaces/${id}/purchases`, { method: 'POST', body: JSON.stringify(data) }),
+  editProjectPurchase: (id: number, itemId: number, data: Entity) => request<Entity>(`/project-workspaces/${id}/purchases/${itemId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  projectPurchaseStatus: (id: number, itemId: number, data: Entity) => request<Entity>(`/project-workspaces/${id}/purchases/${itemId}/status`, { method: 'POST', body: JSON.stringify(data) }),
   list: (resource: string, params: Record<string, any> = {}, options: { signal?: AbortSignal } = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {

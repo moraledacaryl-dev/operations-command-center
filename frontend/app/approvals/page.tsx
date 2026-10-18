@@ -8,6 +8,10 @@ import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { Icon } from '@/components/Icon';
+import { WorkCard } from '@/components/WorkCard';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
+
 
 function formatDate(value?: string) {
   if (!value) return '—';
@@ -83,25 +87,27 @@ export default function ApprovalsPage() {
     }
   }
 
-  return <>
-    <Top eyebrow="Decision queue" title="Approvals" right={<button className="btn secondary" onClick={() => void load()} disabled={loading || busy}>{loading ? 'Refreshing…' : 'Refresh'}</button>} />
+  return <div className="ops-module">
+    <Top title="Approvals" right={<button className="btn secondary" onClick={() => void load()} disabled={loading || busy}>{loading ? 'Refreshing…' : 'Refresh'}</button>} />
+    <WorkspaceStats items={[
+      { label: 'Pending', value: loading || error ? null : items.filter(i => i.status === 'Pending').length, icon: 'approval' },
+      { label: 'Approved', value: loading || error ? null : items.filter(i => i.status === 'Approved').length, icon: 'check' },
+      { label: 'Rejected', value: loading || error ? null : items.filter(i => i.status === 'Rejected').length, icon: 'history' },
+    ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
 
-    <section className="approval-controls" style={{ marginBottom: 16 }}>
+    <section className="ops-review-controls" style={{ marginBottom: 16 }}>
       <div className="toolbar">
         <input className="input" placeholder="Search approvals" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
       <Tabs values={['Pending', 'Approved', 'Rejected', 'All']} active={filter} onChange={setFilter} label="Approval status" />
     </section>
 
-    <section className="approval-workspace">
-      <div className="queue-heading"><div><div className="eyebrow">Decision authority</div><h2>Approval queue</h2><p className="muted">Review the operational context before recording a decision.</p></div></div>
-      {loading ? <div className="empty">Loading approvals…</div> : visible.length ? <div className="approval-queue">
-        {visible.map(item => <button type="button" className="card approval-queue-item" key={item.id} onClick={() => void open(item)} style={{ textAlign: 'left', width: '100%' }}>
-          <span className="queue-signal">{item.priority || 'Normal'}</span><div className="approval-item-main"><div className="card-title">{item.title || 'Approval'}</div>
-          <div className="muted">{item.source_type || 'Operational request'}{item.note ? ` · ${String(item.note).slice(0, 160)}` : ''}</div></div>
-        </button>)}
-      </div> : <div className="empty">No approvals match this view.</div>}
+    <section className="ops-review-workspace">
+
+      {loading ? <div className="empty">Loading approvals…</div> : visible.length ? <div className="ops-card-grid">
+        {visible.map(item => <WorkCard key={item.id} icon="approval" title={item.title || 'Approval'} description={item.note || item.decision_note} meta={<><Pill value={item.status} /><Pill value={item.priority || 'Normal'} /></>} footer={<><span>{item.source_type || 'Operational request'}</span><span>{formatDate(item.created_at)}</span></>} onOpen={() => void open(item)} />)}
+      </div> : <div className="empty"><Icon name="check" />No approvals match this view.</div>}
     </section>
 
     <Drawer item={selected} title="Approval decision" onClose={() => { if (!busy) setSelected(null); }}>
@@ -133,5 +139,5 @@ export default function ApprovalsPage() {
         {!canDecide && selected.status === 'Pending' ? <div className="panel" style={{ marginTop: 16 }}><span className="muted">You can review this approval, but your session does not include decision authority.</span></div> : null}
       </> : null}
     </Drawer>
-  </>;
+  </div>;
 }

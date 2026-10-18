@@ -132,7 +132,7 @@ export default function UsersPage() {
   const activeDrawerError = mode && error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null;
 
   return <>
-    <Top eyebrow="Administration" title="People & access" right={<button className="btn" onClick={() => open('create')}>Create user</button>} />
+    <Top title="People & access" right={<button className="btn" onClick={() => open('create')}>Create user</button>} />
     {!mode && error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {saved ? <div className="pill ok" role="status" style={{ marginBottom: 12 }}>{saved}</div> : null}
 
@@ -142,13 +142,13 @@ export default function UsersPage() {
         <button className="btn secondary" onClick={() => void searchDirectory(query)}>Search</button>
         {(query || appliedQuery) ? <button className="btn secondary" onClick={() => { setQuery(''); void searchDirectory(''); }}>Clear</button> : null}
       </div>
-      <p className="muted" style={{ marginBottom: 0 }}>{directory.length} account{directory.length === 1 ? '' : 's'} loaded{appliedQuery ? ` for “${appliedQuery}”` : ''}. Password and access actions open in protected drawers.</p>
+      <p className="muted" style={{ marginBottom: 0 }}>{directory.length} account{directory.length === 1 ? '' : 's'} loaded{appliedQuery ? ` for “${appliedQuery}”` : ''}. Manage team profiles and department access.</p>
     </section>
 
     {initialLoading ? <LoadingPanel label="Loading accounts and access…" /> : <div className="people-directory">
       {directory.map(user => <article className="card person-card" key={user.id}>
-        <div className="card-title">{user.name}</div>
-        <div className="card-line"><span className="muted">{user.role}</span>{!user.is_active ? <Pill value="Inactive" /> : null}{user.departments?.map((department: Entity) => <span className="muted" key={department.id}>{department.name}{department.is_primary ? " · primary" : ""}</span>)}</div>
+        <div className="ops-person-heading"><span className="ops-person-avatar">{String(user.name || '?').split(/\s+/).map(part => part[0]).slice(0, 2).join('').toUpperCase()}</span><div><div className="card-title">{user.name}</div><span className="muted">{user.role}</span></div></div>
+        <div className="card-line">{!user.is_active ? <Pill value="Inactive" /> : null}{user.departments?.map((department: Entity) => <span className="muted" key={department.id}>{department.name}{department.is_primary ? " · primary" : ""}</span>)}</div>
         <span className="muted">{user.email}</span>
         <div className="card-line" style={{ marginTop: 8 }}><span className="muted">Last login: {localDate(user.last_login_at)}</span></div>
         <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>

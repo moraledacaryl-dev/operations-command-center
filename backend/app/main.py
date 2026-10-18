@@ -22,6 +22,7 @@ from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.authorized_crud import router as authorized_crud_router
 from .routers.integrations_v2 import router as integrations_v2_router
+from .routers.project_workspace import router as project_workspace_router
 from .routers.my_work import router as my_work_router
 from .routers.notifications import router as notifications_router
 from .routers.marketing import router as marketing_router
@@ -122,6 +123,7 @@ async def security_headers(request: Request, call_next):
 
 
 app.include_router(readiness_router)
+app.include_router(project_workspace_router)
 app.include_router(review_router)
 app.include_router(my_work_router)
 app.include_router(notifications_router)

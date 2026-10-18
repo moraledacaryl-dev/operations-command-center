@@ -40,17 +40,14 @@ export default function LoginPage() {
   const errorId = error ? 'login-error' : undefined;
   return <main className="auth-screen">
     <section className="auth-context" aria-label="Hidden Oasis Operations introduction">
-      <div className="auth-brand"><span className="logo big" aria-hidden="true">HO</span><span><strong>Hidden Oasis</strong><small>Operations command center</small></span></div>
+      <div className="auth-brand"><span className="logo big" aria-hidden="true">HO</span><span><strong>Hidden Oasis</strong><small>Operations</small></span></div>
       <div>
-        <p className="eyebrow">One clear operating picture</p>
-        <h1>Coordinate today.<br />Remember tomorrow.</h1>
-        <p>Bring work, handovers, guest follow-ups, maintenance, projects and approvals into one accountable place.</p>
+        <h1>Operations</h1>
       </div>
-      <div className="auth-signals" aria-hidden="true"><span>Daily command</span><span>Clear ownership</span><span>Durable history</span></div>
     </section>
     <section className="auth-form-panel" aria-labelledby="login-title">
       <div className="auth-mobile-brand"><span className="logo big" aria-hidden="true">HO</span><span><strong>Hidden Oasis</strong><small>Operations</small></span></div>
-      <div><p className="eyebrow">Welcome back</p><h2 id="login-title">Sign in to Operations</h2><p className="muted">Use your personal work account.</p></div>
+      <div><h2 id="login-title">Sign in to Operations</h2></div>
       <form className="form" onSubmit={event => { event.preventDefault(); void login(); }}>
         {searchParams.get('password') === 'changed' ? <p className="pill ok" role="status">Password updated. Sign in with your new password.</p> : null}
         <label className="label" htmlFor="login-email">Email<input id="login-email" className="input" type="email" inputMode="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="username" required aria-describedby={errorId} autoFocus /></label>

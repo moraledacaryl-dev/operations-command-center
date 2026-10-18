@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE, api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
+import { Icon } from '@/components/Icon';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
+
 import { Pill } from '@/components/Pill';
 import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
@@ -246,14 +249,18 @@ export default function MarketingPage() {
   const scheduled = items.filter(item => item.status === 'Set').length;
   const allowedActions: string[] = selected?.allowed_actions || [];
 
-  return <>
-    <Top eyebrow="Publishing calendar" title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Annotation studio</Link>{canManage && departmentId ? <button className="btn" onClick={openCreate}>New content</button> : null}</div>} />
+  return <div className="ops-module">
+    <Top title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Annotation studio</Link>{canManage && departmentId ? <button className="btn" onClick={openCreate}><Icon name="plus" />New content</button> : null}</div>} />
     {departmentId ? <MarketingWorkspace departmentId={departmentId} canManage={canManage} createIntentKey={canonicalCreateIntent} /> : null}
-    <div className="legacy-section-head"><div><p className="eyebrow">Compatibility workspace</p><h2>Legacy content records</h2></div><p className="muted">Existing posts remain available while campaigns and platform deliverables become the primary planning model.</p></div>
-    <div className="legacy-marketing-summary" aria-label="Legacy content status totals"><span><strong>{awaitingReview}</strong> Awaiting review</span><span><strong>{needsFix}</strong> Needs revision</span><span><strong>{scheduled}</strong> Scheduled</span></div>
+    <div className="ops-content-heading"><span className="ops-record-icon"><Icon name="palette" /></span><div><h2>Individual posts</h2></div></div>
+    <WorkspaceStats items={[
+      { label: 'For review', value: loading || error ? null : awaitingReview, icon: 'review' },
+      { label: 'Needs changes', value: loading || error ? null : needsFix, icon: 'edit' },
+      { label: 'Scheduled', value: loading || error ? null : scheduled, icon: 'clock' },
+    ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {canManage && showAdd ? <section ref={createSurfaceRef} className="panel" style={{ marginBottom: 16, scrollMarginTop: 24 }} aria-label="Create marketing content">
-      <div className="card-line" style={{ justifyContent: 'space-between' }}><div><div className="eyebrow">Legacy marketing content</div><h2>Create content item</h2></div><button className="btn small secondary" onClick={() => setShowAdd(false)}>Close</button></div>
+      <div className="card-line" style={{ justifyContent: 'space-between' }}><div><div className="eyebrow">Individual post</div><h2>Create content item</h2></div><button className="btn small secondary" onClick={() => setShowAdd(false)}>Close</button></div>
       <div className="form" style={{ marginTop: 14 }}>
         <div className="form-grid">
           <label className="label">Title<input className="input" value={data.title} onChange={event => setData({ ...data, title: event.target.value })} /></label>
@@ -270,11 +277,12 @@ export default function MarketingPage() {
       <Tabs values={['Active', 'All', ...statuses]} active={filter} onChange={setFilter} label="Marketing status" />
       <select className="select" aria-label="Filter by platform" value={platformFilter} onChange={event => setPlatformFilter(event.target.value)}><option>All</option>{platforms.map(value => <option key={value}>{value}</option>)}</select>
     </div>
-    <div className="grid">
-      {Object.entries(groups).map(([month, monthItems]) => <section className="panel" key={month}>
+    <div className="ops-content-months">
+      {Object.entries(groups).map(([month, monthItems]) => <section className="ops-content-month" key={month}>
         <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>{month}</h2><Pill value={String(monthItems.length)} /></div>
-        <div className="grid cols-3" style={{ marginTop: 12 }}>
-          {monthItems.map(item => <button type="button" className={`card ${item.status === 'Fix' || item.status === 'Review' ? 'card-important' : ''}`} key={item.id} onClick={() => open(item)} style={{ textAlign: 'left' }}>
+        <div className="ops-project-grid" style={{ marginTop: 18 }}>
+          {monthItems.map(item => <button type="button" className="ops-content-card" key={item.id} onClick={() => open(item)} style={{ textAlign: 'left' }}>
+            <span className={`ops-content-cover ops-format-${String(item.content_type || 'idea').toLowerCase()}`}><Icon name={item.content_type === 'Reel' ? 'marketing' : item.content_type === 'Carousel' ? 'projects' : 'palette'} /><span>{item.content_type || 'Idea'}</span><span className="ops-cover-lines" aria-hidden="true" /></span>
             <strong>{item.title}</strong>
             <span className="card-line"><Pill value={item.platform || 'Platform'} /><Pill value={item.status || 'Idea'} /><Pill value={item.content_type || 'Content'} /></span>
             <span className="muted">{formatDate(item.post_date)}{item.campaign ? ` · ${item.campaign}` : ''}</span>
@@ -288,8 +296,8 @@ export default function MarketingPage() {
     <Drawer item={selected} title="Marketing item" onClose={() => { if (!busy) setSelected(null); }}>
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}>
-          <div className="eyebrow">Publishing readiness</div>
-          <h2>{selected.status === 'Posted' ? 'Published' : allowedActions.length ? 'Ready for action' : 'No next action'}</h2>
+
+          <h2>{selected.title}</h2>
           <div className="card-line"><Pill value={selected.status || 'Idea'} /><Pill value={selected.platform || 'Platform'} /><Pill value={formatDate(selected.post_date)} /></div>
           <p className="muted">{selected.caption || 'No caption or creative brief yet.'}</p>
           {allowedActions.length ? <label className="label">Action note<textarea className="textarea" value={transitionNote} onChange={event => setTransitionNote(event.target.value)} placeholder="Required for revisions, returns, and reopen actions" /></label> : null}
@@ -318,5 +326,5 @@ export default function MarketingPage() {
         </section>
       </> : null}
     </Drawer>
-  </>;
+  </div>;
 }

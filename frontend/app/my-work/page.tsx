@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
+import { SectionHeading } from '@/components/WorkCard';
+import { Icon } from '@/components/Icon';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
+
 import { Pill } from '@/components/Pill';
 import { Drawer } from '@/components/Drawer';
 
@@ -32,32 +36,36 @@ export default function MyWorkPage() {
 
   const groups = payload?.groups || {};
 
-  return <>
-    <Top eyebrow="Personal workspace" title="My work" />
-    <p className="muted" style={{ marginTop: -12, marginBottom: 18 }}>Tasks assigned to you across every department you can access.</p>
+  return <div className="ops-module">
+    <Top title="My work" />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {!payload && !error ? <div className="empty">Loading your work…</div> : null}
 
-    <div className="my-work-agenda">
-      {sections.map(([key, label], index) => {
+    <WorkspaceStats items={[
+      { label: 'Past due', value: payload ? (groups.overdue || []).length : null, icon: 'clock', attention: true },
+      { label: 'Due today', value: payload ? (groups.today || []).length : null, icon: 'sun' },
+      { label: 'Waiting', value: payload ? (groups.waiting || []).length : null, icon: 'review' },
+    ]} />
+    {payload ? <div className="ops-agenda">
+      {sections.map(([key, label]) => {
         const items: Entity[] = groups[key] || [];
         return (
-          <section className={`my-work-section my-work-${key} ${index < 2 ? 'my-work-primary' : ''}`} key={key}>
-            <div className="my-work-section-head"><h2>{label}</h2><span className="my-work-count">{items.length}</span></div>
-            {items.length ? <div className="my-work-items">
+          <section className={`ops-agenda-section ops-agenda-${key}`} key={key}>
+            <SectionHeading title={label} icon={key === 'overdue' ? 'clock' : key === 'today' ? 'sun' : key === 'recently_completed' ? 'check' : 'tasks'} count={items.length} />
+            {items.length ? <div className="ops-agenda-items">
               {items.map(item => (
-                <button className="card my-work-item" type="button" key={item.id} onClick={() => setSelected(item)}>
-                  <span className="card-title">{item.title}</span>
+                <button className="ops-agenda-item" type="button" key={item.id} onClick={() => setSelected(item)}>
+                  <span className="ops-task-check"><Icon name={item.status === 'Done' ? 'check' : 'tasks'} /></span><span className="ops-agenda-item-copy"><strong>{item.title}</strong>
                   <span className="card-line"><Pill value={item.priority} /></span>
-                  <span className="muted">{item.department_name || 'No department'} · {dueLabel(item.due_date)}</span>
+                  <span className="muted">{item.department_name || 'No department'} · {dueLabel(item.due_date)}</span></span><Icon className="ops-row-arrow" name="arrow" />
                 </button>
               ))}
-            </div> : <div className="my-work-empty">Nothing scheduled</div>}
+            </div> : <div className="ops-agenda-empty"><Icon name="check" />Nothing scheduled here.</div>}
           </section>
         );
       })}
-    </div>
+    </div> : null}
 
     <Drawer item={selected} onClose={() => setSelected(null)} />
-  </>;
+  </div>;
 }

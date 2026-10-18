@@ -7,6 +7,10 @@ import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
+import { Icon } from '@/components/Icon';
+import { WorkCard } from '@/components/WorkCard';
+import { WorkspaceStats } from '@/components/WorkspaceStats';
+
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 
@@ -94,11 +98,15 @@ export default function RequestsPage() {
   const approved = items.filter(item => ['Approved', 'Planned'].includes(item.status)).length;
   const urgent = items.filter(item => item.urgency === 'Urgent' && !['Done', 'Rejected'].includes(item.status)).length;
 
-  if (!hydrated || loading) return <><Top eyebrow="Proposal pipeline" title="Requests" /><LoadingPanel label="Loading requests and decisions…" /></>;
+  if (!hydrated || loading) return <><Top title="Requests" /><LoadingPanel label="Loading requests and decisions…" /></>;
 
-  return <>
-    <Top eyebrow="Proposal pipeline" title="Requests" right={<button data-testid="create-request" className="btn" onClick={() => setShowAdd(value => !value)}>Add</button>} />
-    <div className="operational-summary" style={{ marginBottom: 16 }}><span><strong>{pending}</strong> awaiting decision</span><span><strong>{approved}</strong> approved / planned</span><span><strong>{urgent}</strong> urgent open</span></div>
+  return <div className="ops-module">
+    <Top title="Requests" right={<button data-testid="create-request" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New request</button>} />
+    <WorkspaceStats items={[
+      { label: 'For review', value: error ? null : pending, icon: 'review' },
+      { label: 'Approved / planned', value: error ? null : approved, icon: 'request' },
+      { label: 'Urgent', value: error ? null : urgent, icon: 'clock', attention: true },
+    ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
       <h2>New request</h2>
@@ -110,25 +118,23 @@ export default function RequestsPage() {
       <label className="label">Business reason<textarea className="textarea" value={reason} onChange={e => setReason(e.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim() || !reason.trim()} onClick={createRequest}>{busy ? 'Saving…' : 'Create draft'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
-    <section className="request-workspace"><div className="queue-heading"><div><div className="eyebrow">Decision pipeline</div><h2>Request queue</h2></div></div>
+    <section>
     <Tabs values={['Open','Draft','Review','Approved','Planned','Done','Rejected','All']} active={filter} onChange={setFilter} label="Request status" />
-    <div className="request-queue">
-      {visible.map(item => <button type="button" key={item.id} className={`card request-item ${item.urgency === 'Urgent' ? 'card-important' : ''}`} onClick={() => setSelected(item)} style={{ textAlign: 'left' }}>
-        <span className="queue-signal">{item.urgency === 'Urgent' ? 'Urgent' : item.status === 'Review' ? 'Decision' : item.status}</span><strong className="card-title">{item.title}</strong><span className="muted queue-context">{item.request_type || 'General'} · {String(item.reason || '').slice(0, 150)}</span>
-      </button>)}
-      {!visible.length ? <div className="empty">No requests in this view.</div> : null}
-    </div></section>
+    <div className="ops-card-grid">
+      {visible.map(item => <WorkCard key={item.id} icon="request" accent="blue" title={item.title} description={item.reason} attention={item.urgency === 'Urgent'} meta={<><Pill value={item.status} />{item.urgency !== 'Normal' ? <Pill value={item.urgency} /> : null}</>} footer={<><span>{item.request_type || 'General'}</span><span>View request</span></>} onOpen={() => { setNote(''); setSelected(item); }} />)}
+    </div>
+    {!visible.length ? <div className="empty"><Icon name="request" />No requests in this view.</div> : null}</section>
     <Drawer item={selected} title="Request" onClose={() => !busy && setSelected(null)}>
       {selected ? <>
-        <section className="panel" style={{ marginBottom: 16 }}><div className="eyebrow">Decision context</div><h2>{selected.title}</h2><p>{selected.reason || 'No business reason recorded.'}</p><div className="card-line"><Pill value={selected.status} /><Pill value={selected.urgency || 'Normal'} /><Pill value={selected.request_type || 'General'} /></div></section>
+        <section className="panel" style={{ marginBottom: 16 }}><h2>{selected.title}</h2><p>{selected.reason || 'No business reason recorded.'}</p><div className="card-line"><Pill value={selected.status} /><Pill value={selected.urgency || 'Normal'} /><Pill value={selected.request_type || 'General'} /></div></section>
         <section className="panel"><h2>Next action</h2><textarea className="textarea" placeholder="Implementation note" value={note} onChange={e => setNote(e.target.value)} disabled={busy} /><div className="toolbar">
           {selected.status === 'Draft' ? <button className="btn" disabled={busy} onClick={submitForReview}>{busy ? 'Submitting…' : 'Send for review'}</button> : null}
           {selected.status === 'Review' ? <span className="muted">Decision is made from the Approval workflow.</span> : null}
           {selected.status === 'Approved' ? <button className="btn" disabled={busy} onClick={plan}>Plan implementation</button> : null}
           {selected.status === 'Planned' ? <button className="btn" disabled={busy} onClick={complete}>Mark implemented</button> : null}
-          {['Done','Rejected'].includes(selected.status) ? <span className="muted">This request is terminal.</span> : null}
+          {['Done','Rejected'].includes(selected.status) ? <span className="muted">This request is closed.</span> : null}
         </div></section>
       </> : null}
     </Drawer>
-  </>;
+  </div>;
 }

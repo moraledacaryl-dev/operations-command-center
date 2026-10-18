@@ -61,7 +61,7 @@ test('successful browser login persists metadata only and uses cookie transport'
   await page.getByLabel('Password').fill('correct-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByText(/Good (morning|afternoon|evening), Cookie/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
 
   const browserStorage = await page.evaluate(() => ({
     user: JSON.parse(localStorage.getItem('cc_user') || '{}'),

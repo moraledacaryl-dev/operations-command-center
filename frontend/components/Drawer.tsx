@@ -38,13 +38,16 @@ function detailValue(key: string, value: unknown) {
   return String(value);
 }
 
-export function Drawer({ item, title, onClose, children }: {
+export function Drawer({ item, title, onClose, children, showSupplemental = true }: {
   item: Entity | null;
   title?: string;
   onClose: () => void;
   children?: React.ReactNode;
+  showSupplemental?: boolean;
 }) {
   const titleId = useId();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -64,7 +67,7 @@ export function Drawer({ item, title, onClose, children }: {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== 'Tab' || !dialogRef.current) return;
@@ -98,7 +101,7 @@ export function Drawer({ item, title, onClose, children }: {
       if (appRoot) appRoot.inert = false;
       previouslyFocused?.focus();
     };
-  }, [item, onClose]);
+  }, [item]);
 
   if (!item || typeof document === 'undefined') return null;
 
@@ -135,7 +138,7 @@ export function Drawer({ item, title, onClose, children }: {
 
         {children}
 
-        {item.activity?.length ? (
+        {showSupplemental && item.activity?.length ? (
           <div className="panel" style={{ marginTop: 16 }}>
             <h2>Activity</h2>
             <div className="timeline">
@@ -150,7 +153,7 @@ export function Drawer({ item, title, onClose, children }: {
           </div>
         ) : null}
 
-        {item.attachments?.length ? (
+        {showSupplemental && item.attachments?.length ? (
           <div className="panel" style={{ marginTop: 16 }}>
             <h2>Attachments</h2>
             <div className="grid" style={{ marginTop: 12 }}>
@@ -164,7 +167,7 @@ export function Drawer({ item, title, onClose, children }: {
           </div>
         ) : null}
 
-        {details.length ? (
+        {showSupplemental && details.length ? (
           <div className="panel drawer-details" style={{ marginTop: 16 }}>
             <h2>Details</h2>
             {details.map(([key, value]) => (

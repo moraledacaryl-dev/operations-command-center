@@ -342,7 +342,7 @@ export default function MarketingAnnotationStudio() {
   }
 
   return <main className={styles.page}>
-    <header className={styles.hero}><div className={styles.heroCopy}><div className={styles.eyebrow}>Marketing · Creative review</div><h1>Annotation studio</h1><p>Review creatives with editable text, overlays, shapes, arrows and freehand marks. Select any annotation to move, resize, recolor, duplicate, reorder or delete it before saving a new version.</p></div><Link className={styles.back} href="/posts">← Back to Marketing</Link></header>
+    <header className={styles.hero}><div className={styles.heroCopy}><div className={styles.eyebrow}>Marketing · Creative review</div><h1>Annotation studio</h1><p>Select an annotation to edit it. Save to create a new version.</p></div><Link className={styles.back} href="/posts">← Back to Marketing</Link></header>
     {error ? <div className="pill urgent" role="alert">{error}</div> : null}
     <div className={styles.shell}>
       <aside className={styles.rail} aria-label="Annotation controls">

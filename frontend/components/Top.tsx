@@ -1,8 +1,7 @@
-export function Top({ eyebrow, title, right }: { eyebrow: string; title: string; right?: React.ReactNode }) {
+export function Top({ title, right }: { title: string; right?: React.ReactNode }) {
   return (
-    <div className="topbar">
+    <div className="topbar ops-page-heading">
       <div>
-        <div className="eyebrow">{eyebrow}</div>
         <h1>{title}</h1>
       </div>
       {right}
