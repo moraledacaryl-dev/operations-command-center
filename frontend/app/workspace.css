@@ -515,7 +515,7 @@ body .drawer .pill{border-radius:5px!important;font-size:11px!important;font-wei
 #operations-app-root .event-type{margin-left:auto;font-size:10px;padding:5px 8px;border-radius:5px;background:#f1f3f1;color:#546151}
 #operations-app-root .event-type-suggestion{background:#eef2e8;color:#526339}
 #operations-app-root .event-type-question{background:#eaf0f5;color:#496a85}
-#operations-app-root .event-type-decision{background:#e3f0e8;color:#487759}
+#operations-app-root .event-type-decision{background:#e3f0e8;color:#3e6b4e}
 #operations-app-root .event-post-body{font-size:14px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:19px 0;color:var(--ops-ink)}
 #operations-app-root .event-thread-actions{display:flex;align-items:center;gap:8px;padding-top:14px;border-top:1px solid #edf0ee;flex-wrap:wrap}
 #operations-app-root .event-thread-actions button{background:none;border:0;padding:7px 9px;color:var(--ops-muted);font-size:11px;border-radius:7px;display:flex;align-items:center;gap:7px;cursor:pointer}
