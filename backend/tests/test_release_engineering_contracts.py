@@ -79,13 +79,16 @@ def test_production_deploy_isolates_pytest_from_production_secrets():
     assert 'DATABASE_URL="sqlite:///$TEST_DB"' in deploy
 
 
-def test_production_deploy_normalizes_sqlalchemy_url_for_pg_dump():
+def test_production_deploy_backs_up_postgresql_without_credentials_in_argv():
     deploy = (REPO_ROOT / "scripts" / "deploy_production.sh").read_text()
-    assert "make_url" in deploy
-    assert 'url.get_backend_name() != "postgresql"' in deploy
-    assert 'url.set(drivername="postgresql")' in deploy
-    assert 'pg_dump --format=custom --no-owner --no-acl --dbname="$PG_DUMP_URL"' in deploy
-    assert "unset PG_DUMP_URL" in deploy
+    helper = (REPO_ROOT / "backend" / "scripts" / "backup_postgres.py").read_text()
+    assert '"$STAGING_RELEASE/backend/scripts/backup_postgres.py" "$BACKUP_FILE"' in deploy
+    assert 'pg_dump --format=custom --no-owner --no-acl --dbname="$PG_DUMP_URL"' not in deploy
+    assert 'url.get_backend_name() != "postgresql"' in helper
+    assert 'url.set(drivername="postgresql", password=None)' in helper
+    assert 'child_env["PGPASSWORD"] = url.password' in helper
+    assert 'child_env.pop("DATABASE_URL", None)' in helper
+    assert 'os.replace(temporary, destination)' in helper
 
 
 def test_compose_exposes_only_same_origin_gateway_and_uses_one_shot_migration():
