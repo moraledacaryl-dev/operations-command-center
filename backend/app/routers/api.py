@@ -1230,6 +1230,7 @@ def generate_routine_task(routine_id: int, user: models.User = Depends(require_u
     # Search by the immutable routine ID and local generation date, not
     # mutable title or archive state; completed tasks must not be recreated.
     existing = db.query(models.Task).filter(
+        models.Task.department_id == routine.department_id,
         models.Task.note.like(f"Generated from routine {routine_id} on {today}.%"),
     ).order_by(models.Task.id.desc()).first()
     if existing:
