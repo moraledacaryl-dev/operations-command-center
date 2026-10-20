@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import URL, make_url
 
 
 def backup_postgres(database_url: str, destination: Path) -> None:
@@ -18,7 +18,16 @@ def backup_postgres(database_url: str, destination: Path) -> None:
 
     # Arguments appear in process listings; never include the database password.
     # libpq accepts the password via PGPASSWORD instead.
-    dump_url = url.set(drivername="postgresql", password=None).render_as_string(hide_password=False)
+    # URL.set(password=None) retains the original password in SQLAlchemy;
+    # construct a new passwordless URL explicitly instead.
+    dump_url = URL.create(
+        drivername="postgresql",
+        username=url.username,
+        host=url.host,
+        port=url.port,
+        database=url.database,
+        query=url.query,
+    ).render_as_string(hide_password=False)
     child_env = os.environ.copy()
     child_env.pop("DATABASE_URL", None)
     if url.password is not None:
