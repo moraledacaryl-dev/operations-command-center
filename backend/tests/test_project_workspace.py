@@ -159,3 +159,57 @@ def test_purchase_notifications_and_failed_changes_are_atomic(ctx):
     assert notice.title == 'Candy: Planned'
     forbidden(lambda: w.purchase_status(p.id, item['id'], w.PurchaseTransition(status='Declined', version=1), owner, db), 409)
     assert db.query(Notification).count() == 1
+
+
+def test_financial_audit_records_before_and_after_values(ctx):
+    import json
+
+    db, owner, staff, _, _, project, _ = ctx
+    w.set_budget(project.id, w.BudgetPayload(limit_cents=10000, version=0), owner, db)
+    w.set_budget(project.id, w.BudgetPayload(limit_cents=15000, version=1), owner, db)
+    item = w.add_purchase(project.id, w.PurchasePayload(name='Tables', quantity=2, unit_price_cents=2000), staff, db)
+    w.edit_purchase(project.id, item['id'], w.PurchaseEdit(
+        name='Tables and chairs', quantity=3, unit_price_cents=2200,
+        category='Equipment', version=1), staff, db)
+    w.purchase_status(project.id, item['id'], w.PurchaseTransition(status='Planned', version=2), owner, db)
+    w.purchase_status(project.id, item['id'], w.PurchaseTransition(
+        status='Purchased', actual_total_cents=6700, version=3), owner, db)
+
+    entries = db.query(m.ActivityLog).filter_by(entity_type='projects', entity_id=project.id).all()
+    budgets = [json.loads(e.metadata_json) for e in entries if e.action == 'budget']
+    assert budgets[0]['previous_limit_cents'] is None
+    assert budgets[0]['new_limit_cents'] == 10000
+    assert budgets[1]['previous_limit_cents'] == 10000
+    assert budgets[1]['new_limit_cents'] == 15000
+    assert budgets[1]['previous_version'] == 1
+
+    suggested = next(json.loads(e.metadata_json) for e in entries if e.action == 'purchase_suggested')
+    assert suggested['purchase_id'] == item['id']
+    assert suggested['quantity'] == 2
+    assert suggested['unit_price_cents'] == 2000
+
+    edited = next(json.loads(e.metadata_json) for e in entries if e.action == 'purchase_edited')
+    assert edited['before']['name'] == 'Tables'
+    assert edited['before']['quantity'] == 2
+    assert edited['after']['name'] == 'Tables and chairs'
+    assert edited['after']['quantity'] == 3
+
+    transitions = [json.loads(e.metadata_json) for e in entries if e.action == 'purchase_status']
+    assert transitions[0]['previous_status'] == 'Suggested'
+    assert transitions[0]['new_status'] == 'Planned'
+    assert transitions[1]['previous_status'] == 'Planned'
+    assert transitions[1]['new_status'] == 'Purchased'
+    assert transitions[1]['new_actual_total_cents'] == 6700
+    assert all(e.actor_id is not None for e in entries if e.action in {
+        'budget', 'purchase_suggested', 'purchase_edited', 'purchase_status'
+    })
+
+
+def test_failed_purchase_update_does_not_write_audit_entry(ctx):
+    db, owner, staff, _, _, project, _ = ctx
+    item = w.add_purchase(project.id, w.PurchasePayload(name='Decor'), staff, db)
+    w.purchase_status(project.id, item['id'], w.PurchaseTransition(status='Planned', version=1), owner, db)
+    before = db.query(m.ActivityLog).count()
+    forbidden(lambda: w.purchase_status(
+        project.id, item['id'], w.PurchaseTransition(status='Declined', version=1), owner, db), 409)
+    assert db.query(m.ActivityLog).count() == before
