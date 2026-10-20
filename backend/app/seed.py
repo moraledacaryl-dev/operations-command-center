@@ -7,7 +7,7 @@ from .clock import utc_now
 
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
-ALLOW_DEMO_SEED = os.getenv("ALLOW_DEMO_SEED", "true").strip().lower() == "true"
+ALLOW_DEMO_SEED = os.getenv("ALLOW_DEMO_SEED", "false").strip().lower() == "true"
 ALLOW_DEFAULT_ADMIN_BOOTSTRAP = os.getenv("ALLOW_DEFAULT_ADMIN_BOOTSTRAP", "false").strip().lower() == "true"
 LOCAL_SEED_PASSWORD = os.getenv("LOCAL_SEED_PASSWORD", "command123")
 BOOTSTRAP_OWNER_EMAIL = normalize_email(os.getenv("BOOTSTRAP_OWNER_EMAIL"))
@@ -64,7 +64,7 @@ def backfill_local_user_passwords(db: Session):
 def seed_if_empty(db: Session):
     if db.query(models.Department).count() > 0:
         return
-    if not ALLOW_DEMO_SEED:
+    if ENVIRONMENT == "production" or not ALLOW_DEMO_SEED:
         return
 
     departments = [
