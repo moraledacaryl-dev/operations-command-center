@@ -120,23 +120,14 @@ set -a
 source "$BACKEND_ENV"
 set +a
 
-PG_DUMP_URL="$(
-  "$STAGING_RELEASE/backend/.venv/bin/python" - <<'PY'
-import os
-from sqlalchemy.engine import make_url
-
-url = make_url(os.environ.get("DATABASE_URL", ""))
-if url.get_backend_name() != "postgresql":
-    raise SystemExit("Production DATABASE_URL must use PostgreSQL")
-print(url.set(drivername="postgresql").render_as_string(hide_password=False))
-PY
-)"
 BACKUP_STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 BACKUP_FILE="$BACKUP_DIR/database-$CANDIDATE_SHA-$BACKUP_STAMP.dump"
-pg_dump --format=custom --no-owner --no-acl --dbname="$PG_DUMP_URL" > "$BACKUP_FILE"
+# Keep DATABASE_URL credentials out of pg_dump process arguments.
+# The helper uses a private temporary file and publishes only a complete dump.
+"$STAGING_RELEASE/backend/.venv/bin/python" \
+  "$STAGING_RELEASE/backend/scripts/backup_postgres.py" "$BACKUP_FILE"
 test -s "$BACKUP_FILE"
 sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
-unset PG_DUMP_URL
 
 UPLOAD_PATH="${UPLOAD_DIR:-/var/lib/operations-command-center/uploads}"
 UPLOAD_BACKUP="$BACKUP_DIR/uploads-$CANDIDATE_SHA-$BACKUP_STAMP.tar.gz"
