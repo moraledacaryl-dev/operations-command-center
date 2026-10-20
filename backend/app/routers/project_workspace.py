@@ -225,6 +225,8 @@ def vote(project_id: int, comment_id: int, payload: VotePayload, user: m.User = 
 def set_budget(project_id: int, payload: BudgetPayload, user: m.User = Depends(require_user), db: Session = Depends(get_db)):
     project_for(db, user, project_id, Action.EDIT)
     budget = db.get(m.ProjectBudget, project_id)
+    previous_limit_cents = budget.limit_cents if budget else None
+    previous_version = budget.version if budget else 0
     if not budget:
         if payload.version != 0:
             raise HTTPException(409, 'Refresh the project budget.')
@@ -232,7 +234,7 @@ def set_budget(project_id: int, payload: BudgetPayload, user: m.User = Depends(r
     else:
         update_versioned(db, m.ProjectBudget, m.ProjectBudget.project_id == project_id, payload.version,
                          {'limit_cents': payload.limit_cents, 'updated_by_id': user.id})
-    log_activity(db, 'projects', project_id, 'budget', 'Project budget updated', actor_id=user.id, metadata={'previous_limit_cents': budget.limit_cents if budget else None, 'new_limit_cents': payload.limit_cents, 'previous_version': budget.version if budget else 0})
+    log_activity(db, 'projects', project_id, 'budget', 'Project budget updated', actor_id=user.id, metadata={'previous_limit_cents': previous_limit_cents, 'new_limit_cents': payload.limit_cents, 'previous_version': previous_version})
     commit(db)
     return {'saved': True}
 
