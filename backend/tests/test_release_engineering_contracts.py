@@ -93,6 +93,23 @@ def test_production_deploy_backs_up_postgresql_without_credentials_in_argv():
     assert 'os.replace(temporary, destination)' in helper
 
 
+
+def test_deployment_validates_private_upload_and_database_archives_before_migration():
+    deploy = (REPO_ROOT / "scripts" / "deploy_production.sh").read_text()
+    helper = (REPO_ROOT / "scripts" / "backup_uploads.sh").read_text()
+    assert "umask 077" in deploy.split("REPO_ROOT=", 1)[0]
+    assert 'pg_restore --list "$BACKUP_FILE" >/dev/null' in deploy
+    assert 'bash "$STAGING_RELEASE/scripts/backup_uploads.sh" "$UPLOAD_PATH" "$UPLOAD_BACKUP"' in deploy
+    assert deploy.index("pg_restore --list") < deploy.index("alembic upgrade head")
+    assert deploy.index("backup_uploads.sh") < deploy.index("alembic upgrade head")
+    assert 'umask 077' in helper
+    assert 'if [[ ! -d "$UPLOAD_PATH" ]]' in helper
+    assert 'TEMP_ARCHIVE="$(mktemp ' in helper
+    assert 'trap \'rm -f -- "$TEMP_ARCHIVE"\' EXIT' in helper
+    assert 'tar -tzf "$TEMP_ARCHIVE" >/dev/null' in helper
+    assert 'mv -f -- "$TEMP_ARCHIVE" "$DESTINATION"' in helper
+    assert 'mkdir -p "$UPLOAD_PATH"' not in deploy
+
 def test_compose_exposes_only_same_origin_gateway_and_uses_one_shot_migration():
     compose = (REPO_ROOT / "docker-compose.yml").read_text()
     assert "gateway:" in compose
