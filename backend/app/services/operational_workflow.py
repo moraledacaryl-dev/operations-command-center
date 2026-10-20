@@ -112,6 +112,22 @@ def transition_operational(
     if transition.note_required and not clean_note:
         raise HTTPException(status_code=400, detail="A reason is required for this action.")
 
+    # A reopened archived record must return to active queues, not just
+    # change its status while remaining hidden. Seen shift notes can also be
+    # automatically archived before a later follow-up is requested.
+    restoring_visibility = action == "reopen" or (
+        resource == "shift-notes" and action == "follow-up-seen"
+    )
+    prior_archive = {}
+    if restoring_visibility and obj.hidden_from_active:
+        prior_archive = {
+            "previous_archived_at": obj.archived_at,
+            "previous_archive_reason": obj.archive_reason,
+        }
+        obj.hidden_from_active = False
+        obj.archived_at = None
+        obj.archive_reason = None
+
     obj.status = transition.target
     mark_completed_if_needed(obj, transition.target)
     now = utc_now()
@@ -133,7 +149,7 @@ def transition_operational(
         action,
         f"{transition.source} → {transition.target}",
         actor_id=user.id,
-        metadata={"note": clean_note or None},
+        metadata={"note": clean_note or None, **prior_archive},
     )
     db.commit()
     db.refresh(obj)
