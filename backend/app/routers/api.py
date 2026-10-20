@@ -7,6 +7,7 @@ import shutil
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +21,7 @@ from ..auth import (
     verify_password,
 )
 from ..clock import utc_now
+from ..authorization_policy import Action, authorize_action
 from ..database import get_db
 from .. import models
 from ..utils import apply_payload, log_activity, mark_completed_if_needed, model_to_dict, serialize_many
@@ -1211,17 +1213,34 @@ def room_memory(room_id: int, user: models.User = Depends(require_user), db: Ses
 
 @router.post("/routines/{routine_id}/generate-task")
 def generate_routine_task(routine_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
-    routine = fetch_or_404(db, models.RoutineTemplate, routine_id)
-    assert_resource_access(db, user, routine)
-    today = utc_now().date().isoformat()
+    # Lock the template so two workers cannot both pass the same-day check.
+    routine = db.query(models.RoutineTemplate).filter(
+        models.RoutineTemplate.id == routine_id
+    ).with_for_update().one_or_none()
+    if routine is None:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    authorize_action(db, user, "routines", Action.TRANSITION, obj=routine)
+    authorize_action(db, user, "tasks", Action.CREATE, department_id=routine.department_id)
+
+    if routine.hidden_from_active or (routine.status or "").strip().lower() != "active":
+        raise HTTPException(status_code=409, detail="Only active routines can generate tasks.")
+
+    now = utc_now()
+    today = now.astimezone(ZoneInfo("Asia/Manila")).date().isoformat()
+    # Search by the immutable routine ID and local generation date, not
+    # mutable title or archive state; completed tasks must not be recreated.
     existing = db.query(models.Task).filter(
-        models.Task.department_id == routine.department_id,
-        models.Task.title == routine.title,
-        models.Task.hidden_from_active == False,
-        models.Task.note.ilike(f"%Generated from routine {routine_id} on {today}%")
-    ).first()
+        models.Task.note.like(f"Generated from routine {routine_id} on {today}.%"),
+    ).order_by(models.Task.id.desc()).first()
     if existing:
+        if existing.hidden_from_active:
+            raise HTTPException(status_code=409, detail="This routine was already generated today; its task is in History.")
         return model_to_dict(existing)
+    if routine.last_generated_at and routine.last_generated_at.astimezone(
+        ZoneInfo("Asia/Manila")
+    ).date().isoformat() == today:
+        raise HTTPException(status_code=409, detail="This routine was already generated today.")
+
     task = models.Task(
         title=routine.title,
         department_id=routine.department_id,
@@ -1230,11 +1249,11 @@ def generate_routine_task(routine_id: int, user: models.User = Depends(require_u
         priority=routine.priority,
         note=f"Generated from routine {routine_id} on {today}.\n\nChecklist:\n{routine.checklist or ''}",
     )
-    routine.last_generated_at = utc_now()
+    routine.last_generated_at = now
     db.add(task)
     db.flush()
-    log_activity(db, "routines", routine.id, "generated", f"Generated task #{task.id}")
-    log_activity(db, "tasks", task.id, "created", f"Created from routine #{routine.id}")
+    log_activity(db, "routines", routine.id, "generated", f"Generated task #{task.id}", actor_id=user.id)
+    log_activity(db, "tasks", task.id, "created", f"Created from routine #{routine.id}", actor_id=user.id)
     db.commit()
     db.refresh(task)
     return model_to_dict(task)
