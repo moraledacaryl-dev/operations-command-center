@@ -97,7 +97,10 @@ def test_production_deploy_backs_up_postgresql_without_credentials_in_argv():
 def test_deployment_validates_private_upload_and_database_archives_before_migration():
     deploy = (REPO_ROOT / "scripts" / "deploy_production.sh").read_text()
     helper = (REPO_ROOT / "scripts" / "backup_uploads.sh").read_text()
-    assert "umask 077" in deploy.split("REPO_ROOT=", 1)[0]
+    assert '(\n  umask 077\n' in deploy
+    # Applying a global restrictive umask would make built releases unreadable
+    # by the non-root operations service; protect backup artifacts only.
+    assert deploy.index("umask 077") > deploy.index("npm run verify")
     assert 'pg_restore --list "$BACKUP_FILE" >/dev/null' in deploy
     assert 'bash "$STAGING_RELEASE/scripts/backup_uploads.sh" "$UPLOAD_PATH" "$UPLOAD_BACKUP"' in deploy
     assert deploy.index("pg_restore --list") < deploy.index("alembic upgrade head")
