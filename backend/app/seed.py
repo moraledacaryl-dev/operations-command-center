@@ -62,9 +62,9 @@ def backfill_local_user_passwords(db: Session):
 
 
 def seed_if_empty(db: Session):
-    if db.query(models.Department).count() > 0:
-        return
     if ENVIRONMENT == "production" or not ALLOW_DEMO_SEED:
+        return
+    if db.query(models.Department).count() > 0:
         return
 
     departments = [
