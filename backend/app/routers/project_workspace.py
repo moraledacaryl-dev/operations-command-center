@@ -266,6 +266,8 @@ def edit_purchase(project_id: int, item_id: int, payload: PurchaseEdit, user: m.
         raise HTTPException(422, 'Record actual cost when marking the item purchased.')
     if item.status == 'Purchased' and payload.actual_total_cents is None:
         raise HTTPException(422, 'Enter the actual total paid.')
+    if item.status == 'Purchased' and not manager:
+        raise HTTPException(403, 'Only project managers can change purchased items.')
     previous = {key: getattr(item, key) for key in payload.model_fields if key != 'version'}
     values = payload.model_dump(exclude={'version'})
     update_versioned(db, m.ProjectPurchaseItem, m.ProjectPurchaseItem.id == item_id, payload.version,
