@@ -71,7 +71,7 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
     if external_item is not None:
         external_item.status = decision
         if approval.decision_note:
-            external_item.summary = f"{external_item.summary or ''}\\n\\nDecision: {approval.decision_note}".strip()
+            external_item.summary = f"{external_item.summary or ''}\n\nDecision: {approval.decision_note}".strip()
         log_activity(db, "external-review-items", external_item.id, "decision", f"External review item {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
 
     log_activity(db, "approvals", approval.id, "decision", f"Approval {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
