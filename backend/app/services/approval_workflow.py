@@ -29,28 +29,19 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
     if approval.status != "Pending":
         raise HTTPException(status_code=409, detail="Approval has already been decided")
 
-    now = utc_now()
-    approval.status = decision
-    approval.decided_by_id = user.id
-    approval.decided_at = now
-    approval.decision_note = (note or "").strip() or None
-    approval.completed_at = now
-
+    # Validate linked sources before changing any ORM objects. A rejected
+    # cross-department operation must remain unchanged even if a caller later
+    # commits the reused Session.
     request = None
     external_item = None
     if approval.source_type == "ops_need" and approval.source_id:
         request = db.query(models.Request).filter(models.Request.id == approval.source_id).with_for_update().one_or_none()
         if request is None:
             raise HTTPException(status_code=409, detail="Linked Request no longer exists")
-        # Read-all visibility does not grant authority to change the linked Request.
+        # Organization-wide read access does not authorize cross-department writes.
         authorize_action(db, user, "requests", Action.TRANSITION, obj=request)
         if request.status != "Review":
             raise HTTPException(status_code=409, detail="Linked Request is not awaiting approval")
-        request.status = decision
-        request.decision = approval.decision_note
-        if decision == "Rejected":
-            request.completed_at = now
-        log_activity(db, "requests", request.id, "decision", f"Request {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
 
     if approval.source_type == "external_review_item" and approval.source_id:
         external_item = db.query(models.ExternalReviewItem).filter(models.ExternalReviewItem.id == approval.source_id).with_for_update().one_or_none()
@@ -62,9 +53,25 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
             raise HTTPException(status_code=409, detail="External review item is linked to another Approval")
         if external_item.status != "Pending Approval":
             raise HTTPException(status_code=409, detail="Linked external review item is not awaiting approval")
+
+    now = utc_now()
+    approval.status = decision
+    approval.decided_by_id = user.id
+    approval.decided_at = now
+    approval.decision_note = (note or "").strip() or None
+    approval.completed_at = now
+
+    if request is not None:
+        request.status = decision
+        request.decision = approval.decision_note
+        if decision == "Rejected":
+            request.completed_at = now
+        log_activity(db, "requests", request.id, "decision", f"Request {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
+
+    if external_item is not None:
         external_item.status = decision
         if approval.decision_note:
-            external_item.summary = f"{external_item.summary or ''}\n\nDecision: {approval.decision_note}".strip()
+            external_item.summary = f"{external_item.summary or ''}\\n\\nDecision: {approval.decision_note}".strip()
         log_activity(db, "external-review-items", external_item.id, "decision", f"External review item {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
 
     log_activity(db, "approvals", approval.id, "decision", f"Approval {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
