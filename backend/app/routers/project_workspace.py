@@ -232,7 +232,7 @@ def set_budget(project_id: int, payload: BudgetPayload, user: m.User = Depends(r
     else:
         update_versioned(db, m.ProjectBudget, m.ProjectBudget.project_id == project_id, payload.version,
                          {'limit_cents': payload.limit_cents, 'updated_by_id': user.id})
-    log_activity(db, 'projects', project_id, 'budget', 'Project budget updated', actor_id=user.id)
+    log_activity(db, 'projects', project_id, 'budget', 'Project budget updated', actor_id=user.id, metadata={'previous_limit_cents': budget.limit_cents if budget else None, 'new_limit_cents': payload.limit_cents, 'previous_version': budget.version if budget else 0})
     commit(db)
     return {'saved': True}
 
@@ -247,7 +247,7 @@ def add_purchase(project_id: int, payload: PurchasePayload, user: m.User = Depen
     db.flush()
     notify_project(db, project, user, 'Purchase suggestion', f'{user.name} suggested a purchase',
                    f'{project.title}: {item.name}', managers=True, anchor=f'?purchase={item.id}')
-    log_activity(db, 'projects', project_id, 'purchase_suggested', payload.name, actor_id=user.id)
+    log_activity(db, 'projects', project_id, 'purchase_suggested', payload.name, actor_id=user.id, metadata={'purchase_id': item.id, 'quantity': item.quantity, 'unit_price_cents': item.unit_price_cents, 'status': item.status})
     commit(db)
     db.refresh(item)
     return model_to_dict(item)
@@ -264,10 +264,11 @@ def edit_purchase(project_id: int, item_id: int, payload: PurchaseEdit, user: m.
         raise HTTPException(422, 'Record actual cost when marking the item purchased.')
     if item.status == 'Purchased' and payload.actual_total_cents is None:
         raise HTTPException(422, 'Enter the actual total paid.')
+    previous = {key: getattr(item, key) for key in payload.model_fields if key != 'version'}
     values = payload.model_dump(exclude={'version'})
     update_versioned(db, m.ProjectPurchaseItem, m.ProjectPurchaseItem.id == item_id, payload.version,
                      {**values, 'updated_by_id': user.id})
-    log_activity(db, 'projects', project_id, 'purchase_edited', payload.name, actor_id=user.id)
+    log_activity(db, 'projects', project_id, 'purchase_edited', payload.name, actor_id=user.id, metadata={'purchase_id': item_id, 'before': previous, 'after': values, 'previous_version': payload.version})
     commit(db)
     return {'saved': True}
 
@@ -286,10 +287,12 @@ def purchase_status(project_id: int, item_id: int, payload: PurchaseTransition, 
         raise HTTPException(422, 'Enter the actual total paid.')
     if payload.status != 'Purchased' and payload.actual_total_cents is not None:
         raise HTTPException(422, 'Actual cost applies only to purchased items.')
+    previous_status = item.status
+    previous_actual_total_cents = item.actual_total_cents
     update_versioned(db, m.ProjectPurchaseItem, m.ProjectPurchaseItem.id == item_id, payload.version,
                      {'status': payload.status, 'actual_total_cents': payload.actual_total_cents, 'updated_by_id': user.id})
     notify_project(db, project, user, 'Purchase update', f'{item.name}: {payload.status}', project.title,
                    recipient_ids={item.proposed_by_id}, anchor=f'?purchase={item.id}')
-    log_activity(db, 'projects', project_id, 'purchase_status', f'{item.name}: {payload.status}', actor_id=user.id)
+    log_activity(db, 'projects', project_id, 'purchase_status', f'{item.name}: {payload.status}', actor_id=user.id, metadata={'purchase_id': item_id, 'previous_status': previous_status, 'new_status': payload.status, 'previous_actual_total_cents': previous_actual_total_cents, 'new_actual_total_cents': payload.actual_total_cents, 'previous_version': payload.version})
     commit(db)
     return {'saved': True}
