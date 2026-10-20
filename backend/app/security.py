@@ -87,6 +87,8 @@ def validate_security_settings(settings: SecuritySettings) -> None:
         errors.append("ALLOWED_HOSTS must contain explicit hostnames and may not use a wildcard.")
 
     if settings.production:
+        if _bool("ALLOW_DEMO_SEED"):
+            errors.append("ALLOW_DEMO_SEED must be disabled in production.")
         if _is_placeholder(settings.session_secret) or len(settings.session_secret) < 32:
             errors.append("SESSION_SECRET must be a unique production secret of at least 32 characters.")
         if _is_placeholder(settings.integration_api_key) or len(settings.integration_api_key) < 24:
