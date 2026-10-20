@@ -12,7 +12,7 @@
     "verify": "npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {
-    "next": "15.5.24",
+    "next": "15.5.28",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
@@ -21,12 +21,13 @@
     "@types/react": "18.2.67",
     "@types/react-dom": "18.2.22",
     "eslint": "8.57.1",
-    "eslint-config-next": "15.5.24",
+    "eslint-config-next": "15.5.28",
     "typescript": "5.4.2"
   },
   "overrides": {
     "nanoid": "3.3.18",
     "postcss": "8.5.23",
-    "sharp": "0.35.3"
+    "sharp": "^0.35.6",
+    "source-map-js": "^1.2.2"
   }
 }
