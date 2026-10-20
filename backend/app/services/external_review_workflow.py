@@ -28,9 +28,21 @@ def _require_approval_department(db: Session, user: models.User, department_id: 
         raise HTTPException(status_code=403, detail="No approval-management access to this department.")
 
 
+def _require_review_source_department(db: Session, user: models.User, item: models.ExternalReviewItem) -> None:
+    # Viewing the global review inbox must not grant authority to change
+    # another department's source record, even if the destination is allowed.
+    if can_mutate_globally(user):
+        return
+    if item.department_id is None or item.department_id not in department_ids_for(db, user):
+        raise HTTPException(status_code=403, detail="No workflow access to this review item's department.")
+
+
 def mark_seen(db: Session, user: models.User, item_id: int, note: str | None = None):
     item = _lock_item(db, item_id)
     authorize_action(db, user, "external-review-items", Action.VIEW, obj=item)
+    if not has_capability(user.role, "manage_approvals"):
+        raise HTTPException(status_code=403, detail="Review-management authority is required")
+    _require_review_source_department(db, user, item)
     if item.status in TERMINAL_STATES or item.status in {"In Progress", "Pending Approval"}:
         raise HTTPException(status_code=409, detail="External review item cannot regress to Seen")
     if item.status == "For Review":
@@ -46,6 +58,7 @@ def mark_seen(db: Session, user: models.User, item_id: int, note: str | None = N
 def create_task(db: Session, user: models.User, item_id: int, department_id: int | None = None, note: str | None = None):
     item = _lock_item(db, item_id)
     authorize_action(db, user, "external-review-items", Action.VIEW, obj=item)
+    _require_review_source_department(db, user, item)
     target_department = department_id if department_id is not None else item.department_id
     if item.status in TERMINAL_STATES or item.status == "Pending Approval":
         raise HTTPException(status_code=409, detail="External review item cannot create a task in its current state")
@@ -84,6 +97,7 @@ def create_approval(db: Session, user: models.User, item_id: int, department_id:
     authorize_action(db, user, "external-review-items", Action.VIEW, obj=item)
     if not has_capability(user.role, "manage_approvals"):
         raise HTTPException(status_code=403, detail="Approval-management authority is required")
+    _require_review_source_department(db, user, item)
     target_department = department_id if department_id is not None else item.department_id
     if item.status in TERMINAL_STATES:
         raise HTTPException(status_code=409, detail="Terminal external review item cannot create an Approval")
@@ -123,6 +137,7 @@ def reject_item(db: Session, user: models.User, item_id: int, note: str | None):
     authorize_action(db, user, "external-review-items", Action.VIEW, obj=item)
     if not has_capability(user.role, "make_decisions"):
         raise HTTPException(status_code=403, detail="Decision authority is required")
+    _require_review_source_department(db, user, item)
     if item.status in TERMINAL_STATES:
         raise HTTPException(status_code=409, detail="External review item is already terminal")
     if item.status == "Pending Approval":
