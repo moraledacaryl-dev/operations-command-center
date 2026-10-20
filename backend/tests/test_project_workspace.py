@@ -213,3 +213,17 @@ def test_failed_purchase_update_does_not_write_audit_entry(ctx):
     forbidden(lambda: w.purchase_status(
         project.id, item['id'], w.PurchaseTransition(status='Declined', version=1), owner, db), 409)
     assert db.query(m.ActivityLog).count() == before
+
+
+def test_purchased_item_financial_edits_require_manager(ctx):
+    db, owner, staff, _, _, project, _ = ctx
+    item = w.add_purchase(project.id, w.PurchasePayload(name='Equipment', unit_price_cents=2000), staff, db)
+    w.purchase_status(project.id, item['id'], w.PurchaseTransition(status='Planned', version=1), owner, db)
+    w.purchase_status(project.id, item['id'], w.PurchaseTransition(
+        status='Purchased', actual_total_cents=2100, version=2), owner, db)
+    payload = w.PurchaseEdit(name='Equipment', quantity=1, unit_price_cents=2000,
+                             actual_total_cents=2200, category='Other', version=3)
+    forbidden(lambda: w.edit_purchase(project.id, item['id'], payload, staff, db))
+    assert db.get(m.ProjectPurchaseItem, item['id']).actual_total_cents == 2100
+    w.edit_purchase(project.id, item['id'], payload, owner, db)
+    assert db.get(m.ProjectPurchaseItem, item['id']).actual_total_cents == 2200
