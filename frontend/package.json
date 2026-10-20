@@ -7,7 +7,7 @@
     "build": "next build && npm run package:standalone",
     "package:standalone": "node scripts/package-standalone.mjs",
     "start": "next start -H 0.0.0.0",
-    "lint": "next lint --no-cache",
+    "lint": "eslint app components lib middleware.ts --no-cache",
     "typecheck": "tsc --noEmit",
     "verify": "npm run lint && npm run typecheck && npm run build"
   },
