@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app import models
-from app.services.external_review_workflow import create_approval, create_task
+from app.services.external_review_workflow import create_approval, create_task, mark_seen, reject_item
 
 
 @pytest.fixture()
@@ -146,3 +146,102 @@ def test_same_department_task_retry_preserves_idempotency(context):
     next_task, _ = create_task(db, manager, item.id)
     assert first.id == next_task.id
     assert db.query(models.Task).count() == 1
+
+
+@pytest.mark.parametrize("action", ["seen", "reject", "task", "approval"])
+def test_manager_global_read_does_not_allow_foreign_review_writes(context, action):
+    db, front, maintenance, _, manager, _ = context
+    item = new_item(db, maintenance.id, f"foreign-source-{action}")
+    # Managers can read the organization-wide review queue, but they may
+    # mutate neither foreign source records nor redirect them to their team.
+    def attempt():
+        if action == "seen":
+            return mark_seen(db, manager, item.id, "Seen by wrong department")
+        if action == "reject":
+            return reject_item(db, manager, item.id, "Rejected by wrong department")
+        if action == "task":
+            return create_task(db, manager, item.id, department_id=front.id)
+        return create_approval(db, manager, item.id, department_id=front.id)
+
+    with pytest.raises(HTTPException) as exc:
+        attempt()
+    assert exc.value.status_code == 403
+    db.refresh(item)
+    assert item.status == "For Review"
+    assert item.linked_task_id is None
+    assert item.linked_approval_id is None
+    assert db.query(models.Task).count() == 0
+    assert db.query(models.Approval).count() == 0
+    assert db.query(models.ActivityLog).count() == 0
+
+
+@pytest.mark.parametrize("action", ["seen", "reject", "task", "approval"])
+def test_manager_cannot_change_unscoped_review_item(context, action):
+    db, front, _, _, manager, _ = context
+    item = new_item(db, None, f"unscoped-source-{action}")
+    def attempt():
+        if action == "seen":
+            return mark_seen(db, manager, item.id)
+        if action == "reject":
+            return reject_item(db, manager, item.id, "Cannot reject global source")
+        if action == "task":
+            return create_task(db, manager, item.id, department_id=front.id)
+        return create_approval(db, manager, item.id, department_id=front.id)
+
+    with pytest.raises(HTTPException) as exc:
+        attempt()
+    assert exc.value.status_code == 403
+    db.refresh(item)
+    assert item.status == "For Review"
+    assert db.query(models.Task).count() == 0
+    assert db.query(models.Approval).count() == 0
+
+
+def test_staff_cannot_mark_review_seen_or_append_manager_note(context):
+    db, front, _, _, _, _ = context
+    staff = models.User(name="Front Desk Staff", role="staff", department_id=front.id, is_active=True)
+    db.add(staff)
+    db.commit()
+    item = new_item(db, front.id, "staff-must-not-mark-seen")
+    with pytest.raises(HTTPException) as exc:
+        mark_seen(db, staff, item.id, "Unauthorized note")
+    assert exc.value.status_code == 403
+    db.refresh(item)
+    assert item.status == "For Review"
+    assert item.summary is None
+    assert db.query(models.ActivityLog).count() == 0
+
+
+def test_manager_can_mark_seen_and_reject_own_department(context):
+    db, front, _, _, manager, _ = context
+    item = new_item(db, front.id, "manager-scope-happy-path")
+    seen = mark_seen(db, manager, item.id, "Checked")
+    assert seen.status == "Seen"
+    assert "Checked" in seen.summary
+    rejected = reject_item(db, manager, item.id, "Not actionable")
+    assert rejected.status == "Rejected"
+    assert db.query(models.ActivityLog).count() == 2
+
+
+def test_manager_membership_grants_source_write_permission(context):
+    db, _, maintenance, _, manager, _ = context
+    db.add(models.UserDepartment(
+        user_id=manager.id, department_id=maintenance.id, is_primary=False
+    ))
+    db.commit()
+    item = new_item(db, maintenance.id, "additional-source-membership")
+    assert mark_seen(db, manager, item.id).status == "Seen"
+
+
+def test_owner_can_review_cross_department_sources(context):
+    db, front, maintenance, owner, _, _ = context
+    seen_item = new_item(db, maintenance.id, "owner-cross-dept-seen")
+    assert mark_seen(db, owner, seen_item.id).status == "Seen"
+    task_item = new_item(db, maintenance.id, "owner-cross-dept-task")
+    task, _ = create_task(db, owner, task_item.id, department_id=front.id)
+    assert task.department_id == front.id
+    approval_item = new_item(db, maintenance.id, "owner-cross-dept-approval")
+    approval, _ = create_approval(db, owner, approval_item.id, department_id=front.id)
+    assert approval.department_id == front.id
+    reject_item_row = new_item(db, maintenance.id, "owner-cross-dept-reject")
+    assert reject_item(db, owner, reject_item_row.id, "Declined").status == "Rejected"
