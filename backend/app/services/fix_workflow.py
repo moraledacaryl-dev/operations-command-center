@@ -95,12 +95,22 @@ def reopen_fix(db: Session, user: models.User, fix_id: int, reason: str | None):
         raise HTTPException(status_code=403, detail="Decision authority is required to reopen a verified Fix")
     if fix.status != "Verified":
         raise HTTPException(status_code=409, detail="Only Verified fixes can be reopened")
+    # Reopening a verified Fix must also undo auto-archive visibility.
+    prior_archive = {}
+    if fix.hidden_from_active:
+        prior_archive = {
+            "previous_archived_at": fix.archived_at,
+            "previous_archive_reason": fix.archive_reason,
+        }
+        fix.hidden_from_active = False
+        fix.archived_at = None
+        fix.archive_reason = None
     fix.status = "Working"
     fix.verified_at = None
     fix.verified_by_id = None
     fix.completed_at = None
     fix.note = f"{fix.note or ''}\n\nReopened: {reason.strip()}".strip()
-    log_activity(db, "fixes", fix.id, "reopened", reason.strip(), actor_id=user.id)
+    log_activity(db, "fixes", fix.id, "reopened", reason.strip(), actor_id=user.id, metadata=prior_archive)
     db.commit()
     db.refresh(fix)
     return fix
