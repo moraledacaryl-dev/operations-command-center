@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+# Deployment artifacts can contain customer records, credentials, and uploaded files.
+umask 077
 
 REPO_ROOT="${REPO_ROOT:-/root/repos/operations-command-center}"
 APP_ROOT="${APP_ROOT:-/opt/operations-command-center}"
@@ -127,18 +129,18 @@ BACKUP_FILE="$BACKUP_DIR/database-$CANDIDATE_SHA-$BACKUP_STAMP.dump"
 "$STAGING_RELEASE/backend/.venv/bin/python" \
   "$STAGING_RELEASE/backend/scripts/backup_postgres.py" "$BACKUP_FILE"
 test -s "$BACKUP_FILE"
+# This validates pg_dump's archive index; it is not a substitute for a restore drill.
+pg_restore --list "$BACKUP_FILE" >/dev/null
 sha256sum "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
 
 UPLOAD_PATH="${UPLOAD_DIR:-/var/lib/operations-command-center/uploads}"
 UPLOAD_BACKUP="$BACKUP_DIR/uploads-$CANDIDATE_SHA-$BACKUP_STAMP.tar.gz"
-if [[ -d "$UPLOAD_PATH" ]]; then
-  tar -C "$UPLOAD_PATH" -czf "$UPLOAD_BACKUP" .
-else
-  mkdir -p "$UPLOAD_PATH"
-  tar -C "$UPLOAD_PATH" -czf "$UPLOAD_BACKUP" .
-fi
+# Never silently substitute an empty uploads directory for the configured source.
+# Build and validate the archive before publishing the final filename.
+bash "$STAGING_RELEASE/scripts/backup_uploads.sh" "$UPLOAD_PATH" "$UPLOAD_BACKUP"
+test -s "$UPLOAD_BACKUP"
 sha256sum "$UPLOAD_BACKUP" > "$UPLOAD_BACKUP.sha256"
-echo "PASS | paired database/upload backup checksummed"
+echo "PASS | private database/upload backups validated and checksummed"
 
 (
   cd "$STAGING_RELEASE/backend"
