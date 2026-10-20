@@ -26,6 +26,7 @@ from ..database import get_db
 from .. import models
 from ..utils import apply_payload, log_activity, mark_completed_if_needed, model_to_dict, serialize_many
 from ..auto_archive import run_auto_archive
+from ..authorization_policy import scope_query
 from ..pagination import decode_history_cursor, encode_history_cursor
 from ..session_security import revoke_user_sessions
 from ..services.guest_workflow import create_fix_from_guest
@@ -1203,12 +1204,19 @@ def history_search(
 @router.get("/rooms/{room_id}/memory")
 def room_memory(room_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     room = fetch_or_404(db, models.RoomArea, room_id)
-    guests = db.query(models.GuestNote).filter(models.GuestNote.room_area_id == room_id).order_by(models.GuestNote.updated_at.desc()).limit(50).all()
-    fixes = db.query(models.Fix).filter(models.Fix.room_area_id == room_id).order_by(models.Fix.updated_at.desc()).limit(50).all()
-    if not can_view_all(user):
-        allowed = department_ids_for(db, user)
-        guests = [guest for guest in guests if not hasattr(guest, "department_id") or not guest.department_id or guest.department_id in allowed]
-        fixes = [fix for fix in fixes if not hasattr(fix, "department_id") or not fix.department_id or fix.department_id in allowed]
+    # Apply the same department visibility rules as ordinary resource reads
+    # before sorting and limiting; post-limit filtering silently loses older
+    # authorized records and previously exposed records without a department.
+    guest_query = scope_query(
+        db, user, models.GuestNote,
+        db.query(models.GuestNote).filter(models.GuestNote.room_area_id == room_id),
+    )
+    fix_query = scope_query(
+        db, user, models.Fix,
+        db.query(models.Fix).filter(models.Fix.room_area_id == room_id),
+    )
+    guests = guest_query.order_by(models.GuestNote.updated_at.desc(), models.GuestNote.id.desc()).limit(50).all()
+    fixes = fix_query.order_by(models.Fix.updated_at.desc(), models.Fix.id.desc()).limit(50).all()
     return {"room": model_to_dict(room), "guests": serialize_many(guests), "fixes": serialize_many(fixes)}
 
 @router.post("/routines/{routine_id}/generate-task")
