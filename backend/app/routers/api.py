@@ -1171,13 +1171,24 @@ def history_search(
         elif not can_view_all(user) and hasattr(model, "department_id"):
             query = query.filter(model.department_id.in_(department_ids_for(db, user)))
         query = apply_search(query, model, resource, q)
-        if hasattr(model, "updated_at"):
-            query = query.order_by(model.updated_at.desc())
+        if cursor_key:
+            # The global history sort key is (updated_at, resource, id), all
+            # descending. Apply its boundary in SQL *before* each resource's
+            # limit, otherwise later pages omit older records when a resource
+            # has more than limit+1 entries newer than the cursor.
+            boundary_time, boundary_resource, boundary_id = cursor_key
+            if resource < boundary_resource:
+                query = query.filter(model.updated_at <= boundary_time)
+            elif resource == boundary_resource:
+                query = query.filter(or_(
+                    model.updated_at < boundary_time,
+                    (model.updated_at == boundary_time) & (model.id < boundary_id),
+                ))
+            else:
+                query = query.filter(model.updated_at < boundary_time)
+        query = query.order_by(model.updated_at.desc(), model.id.desc())
         for item in query.limit(limit + 1).all():
             updated_at = item.updated_at
-            key = (updated_at, resource, item.id)
-            if cursor_key and key >= cursor_key:
-                continue
             data = model_to_dict(item)
             data["kind"] = resource
             results.append((updated_at, resource, item.id, data))
