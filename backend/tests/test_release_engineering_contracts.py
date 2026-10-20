@@ -85,7 +85,9 @@ def test_production_deploy_backs_up_postgresql_without_credentials_in_argv():
     assert '"$STAGING_RELEASE/backend/scripts/backup_postgres.py" "$BACKUP_FILE"' in deploy
     assert 'pg_dump --format=custom --no-owner --no-acl --dbname="$PG_DUMP_URL"' not in deploy
     assert 'url.get_backend_name() != "postgresql"' in helper
-    assert 'url.set(drivername="postgresql", password=None)' in helper
+    assert 'dump_url = URL.create(' in helper
+    assert 'username=url.username' in helper
+    assert 'query=url.query' in helper
     assert 'child_env["PGPASSWORD"] = url.password' in helper
     assert 'child_env.pop("DATABASE_URL", None)' in helper
     assert 'os.replace(temporary, destination)' in helper
