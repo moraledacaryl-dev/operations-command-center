@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from .. import models
-from ..authorization_policy import Action, authorize_action
+from ..authorization_policy import Action, authorize_action, can_mutate_globally, department_ids_for
 from ..capabilities import has_capability
 from ..utils import log_activity
 
@@ -16,6 +16,16 @@ def _lock_item(db: Session, item_id: int) -> models.ExternalReviewItem:
     if row is None:
         raise HTTPException(status_code=404, detail="External review item not found")
     return row
+
+
+def _require_approval_department(db: Session, user: models.User, department_id: int | None) -> None:
+    # Approvals are system-owned and intentionally cannot use Action.CREATE.
+    # Their workflow still needs an explicit mutation boundary: manager-level
+    # access to the review inbox is not authority over every department.
+    if can_mutate_globally(user):
+        return
+    if department_id is None or department_id not in department_ids_for(db, user):
+        raise HTTPException(status_code=403, detail="No approval-management access to this department.")
 
 
 def mark_seen(db: Session, user: models.User, item_id: int, note: str | None = None):
@@ -36,14 +46,20 @@ def mark_seen(db: Session, user: models.User, item_id: int, note: str | None = N
 def create_task(db: Session, user: models.User, item_id: int, department_id: int | None = None, note: str | None = None):
     item = _lock_item(db, item_id)
     authorize_action(db, user, "external-review-items", Action.VIEW, obj=item)
-    target_department = department_id or item.department_id
-    authorize_action(db, user, "tasks", Action.CREATE, department_id=target_department)
+    target_department = department_id if department_id is not None else item.department_id
     if item.status in TERMINAL_STATES or item.status == "Pending Approval":
         raise HTTPException(status_code=409, detail="External review item cannot create a task in its current state")
     if item.linked_task_id:
         existing = db.get(models.Task, item.linked_task_id)
         if existing is not None:
+            # A retry must authorize the *actual* linked Task, not only the
+            # requested destination. Reject attempts to silently reroute it.
+            authorize_action(db, user, "tasks", Action.CREATE, department_id=existing.department_id)
+            authorize_action(db, user, "tasks", Action.VIEW, obj=existing)
+            if department_id is not None and existing.department_id != department_id:
+                raise HTTPException(status_code=409, detail="The linked Task belongs to a different department.")
             return existing, item
+    authorize_action(db, user, "tasks", Action.CREATE, department_id=target_department)
     task = models.Task(
         title=item.title,
         department_id=target_department,
@@ -68,13 +84,17 @@ def create_approval(db: Session, user: models.User, item_id: int, department_id:
     authorize_action(db, user, "external-review-items", Action.VIEW, obj=item)
     if not has_capability(user.role, "manage_approvals"):
         raise HTTPException(status_code=403, detail="Approval-management authority is required")
-    target_department = department_id or item.department_id
+    target_department = department_id if department_id is not None else item.department_id
     if item.status in TERMINAL_STATES:
         raise HTTPException(status_code=409, detail="Terminal external review item cannot create an Approval")
     if item.linked_approval_id:
         existing = db.get(models.Approval, item.linked_approval_id)
         if existing is not None:
+            _require_approval_department(db, user, existing.department_id)
+            if department_id is not None and existing.department_id != department_id:
+                raise HTTPException(status_code=409, detail="The linked Approval belongs to a different department.")
             return existing, item
+    _require_approval_department(db, user, target_department)
     approval = models.Approval(
         title=item.title,
         source_type="external_review_item",
