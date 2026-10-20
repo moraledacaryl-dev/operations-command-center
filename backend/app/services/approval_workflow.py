@@ -8,6 +8,7 @@ from ..authorization_policy import Action, authorize_action
 from ..clock import utc_now
 from ..utils import log_activity
 from .notifications import notify_user
+from .external_review_workflow import _require_review_source_department
 
 
 def _locked_approval(db: Session, approval_id: int) -> models.Approval:
@@ -41,7 +42,8 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
         request = db.query(models.Request).filter(models.Request.id == approval.source_id).with_for_update().one_or_none()
         if request is None:
             raise HTTPException(status_code=409, detail="Linked Request no longer exists")
-        authorize_action(db, user, "requests", Action.VIEW, obj=request)
+        # Read-all visibility does not grant authority to change the linked Request.
+        authorize_action(db, user, "requests", Action.TRANSITION, obj=request)
         if request.status != "Review":
             raise HTTPException(status_code=409, detail="Linked Request is not awaiting approval")
         request.status = decision
@@ -55,6 +57,11 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
         if external_item is None:
             raise HTTPException(status_code=409, detail="Linked external review item no longer exists")
         authorize_action(db, user, "external-review-items", Action.VIEW, obj=external_item)
+        _require_review_source_department(db, user, external_item)
+        if external_item.linked_approval_id not in (None, approval.id):
+            raise HTTPException(status_code=409, detail="External review item is linked to another Approval")
+        if external_item.status != "Pending Approval":
+            raise HTTPException(status_code=409, detail="Linked external review item is not awaiting approval")
         external_item.status = decision
         if approval.decision_note:
             external_item.summary = f"{external_item.summary or ''}\n\nDecision: {approval.decision_note}".strip()
