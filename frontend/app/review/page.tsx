@@ -120,7 +120,7 @@ export default function ReviewPage() {
         if (action === 'Rejected') await api.externalReject(selected.id, { note: note.trim() });
       } else if (kind === 'Verify') await api.verifyFix(selected.id, { note: note.trim() });
       else if (kind === 'Posts') {
-        const workflowAction = action === 'OK' ? 'approve' : 'request-revision';
+        const workflowAction = action === 'OK' ? 'approve' : action === 'Resubmit' ? 'resubmit-review' : 'request-revision';
         await api.workflowAction('posts', selected.id, workflowAction, { note: note.trim() || undefined });
       }
       setSelected(null);
@@ -134,14 +134,14 @@ export default function ReviewPage() {
 
   const importedStatus = String(selected?.status || '');
   const importedTerminal = externalTerminal.has(importedStatus);
-  const showImportedSeen = kind === 'Imported' && importedStatus === 'For Review';
+  const showImportedSeen = kind === 'Imported' && canManageApprovals && importedStatus === 'For Review';
   const showImportedTask = kind === 'Imported' && canManage && !importedTerminal && importedStatus !== 'Pending Approval';
-  const showImportedApproval = kind === 'Imported' && canManageApprovals && !importedTerminal;
+  const showImportedApproval = kind === 'Imported' && canManageApprovals && !importedTerminal && importedStatus !== 'Pending Approval';
   const showImportedReject = kind === 'Imported' && canDecide && !importedTerminal && importedStatus !== 'Pending Approval';
   const showApprovalDecision = kind === 'Approvals' && canDecide && selected?.status === 'Pending';
-  const showInboxDecision = kind === 'Inbox' && canDecide && selected?.review_status === 'New';
+  const showInboxDecision = kind === 'Inbox' && canDecide && ['New', 'Review'].includes(String(selected?.review_status || ''));
   const showVerify = kind === 'Verify' && canDecide && selected?.status === 'Done';
-  const showPostDecision = kind === 'Posts' && canManage && !['OK', 'Posted', 'Archived'].includes(String(selected?.status || ''));
+  const showPostDecision = kind === 'Posts' && canManage && ['Review', 'Fix'].includes(String(selected?.status || ''));
   const hasActions = showImportedSeen || showImportedTask || showImportedApproval || showImportedReject || showApprovalDecision || showInboxDecision || showVerify || showPostDecision;
 
   return <div className="ops-module">
@@ -180,7 +180,8 @@ export default function ReviewPage() {
             {showImportedReject ? <button className="btn small secondary" onClick={() => void decide('Rejected')} disabled={submitting || !note.trim()}>Reject</button> : null}
             {showVerify ? <button className="btn small" onClick={() => void decide('Verified')} disabled={submitting || !note.trim()}>Verify</button> : null}
             {showInboxDecision ? <><button className="btn small" onClick={() => void decide('Accepted')} disabled={submitting}>Accept</button><button className="btn small secondary" onClick={() => void decide('Rejected')} disabled={submitting || !note.trim()}>Reject</button></> : null}
-            {showPostDecision ? <><button className="btn small" onClick={() => void decide('OK')} disabled={submitting}>Approve creative</button><button className="btn small secondary" onClick={() => void decide('Fix')} disabled={submitting || !note.trim()}>Needs fix</button></> : null}
+            {showPostDecision && selected?.status === 'Review' ? <><button className="btn small" onClick={() => void decide('OK')} disabled={submitting}>Approve creative</button><button className="btn small secondary" onClick={() => void decide('Fix')} disabled={submitting || !note.trim()}>Needs fix</button></> : null}
+            {showPostDecision && selected?.status === 'Fix' ? <button className="btn small" onClick={() => void decide('Resubmit')} disabled={submitting}>Resubmit for review</button> : null}
           </div> : null}
         </div>
       </div>
