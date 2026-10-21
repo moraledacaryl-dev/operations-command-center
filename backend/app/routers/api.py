@@ -400,6 +400,10 @@ def item_summary(payload: Dict[str, Any]) -> str:
 
 def store_external_review_item(db: Session, payload: Dict[str, Any], allowed: set[str], source_app: str):
     require_integration_event(payload, allowed)
+    # The route, not the producer body, determines source identity. A shared
+    # legacy token must never permit cross-app event spoofing or collisions.
+    if payload["external_source"] != source_app:
+        raise HTTPException(status_code=400, detail="external_source does not match integration endpoint")
     existing = db.query(models.ExternalReviewItem).filter(
         models.ExternalReviewItem.external_source == payload["external_source"],
         models.ExternalReviewItem.external_id == payload["external_id"],
@@ -418,7 +422,9 @@ def store_external_review_item(db: Session, payload: Dict[str, Any], allowed: se
         title=item_title(clean),
         summary=item_summary(clean),
         priority=payload.get("priority") or "Normal",
-        status=payload.get("status") or "For Review",
+        # A source system reports a fact, but cannot pre-approve or close
+        # Operations' manager review. Only canonical review actions may do so.
+        status="For Review",
         payload_json=json.dumps(clean, default=str),
     )
     db.add(item)
