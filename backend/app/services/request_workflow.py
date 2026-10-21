@@ -23,15 +23,30 @@ def submit_request(db: Session, user: models.User, request_id: int, note: str | 
         raise HTTPException(status_code=409, detail="Only Draft requests can be submitted")
     if request.department_id is None:
         raise HTTPException(status_code=400, detail="Request requires a department before submission")
+    # Resolve and validate existing Approval identity before changing Request
+    # status. A stale/mismatched link must never be returned or reused.
+    approvals = (
+        db.query(models.Approval)
+        .filter(
+            models.Approval.source_type == "ops_need",
+            models.Approval.source_id == request.id,
+            models.Approval.status == "Pending",
+            models.Approval.hidden_from_active == False,
+        )
+        .order_by(models.Approval.id.asc())
+        .with_for_update()
+        .limit(2)
+        .all()
+    )
+    if len(approvals) > 1:
+        raise HTTPException(status_code=409, detail="Multiple pending Approvals exist for this Request")
+    approval = approvals[0] if approvals else None
+    if approval is not None:
+        authorize_action(db, user, "approvals", Action.VIEW, obj=approval)
+        if approval.department_id != request.department_id:
+            raise HTTPException(status_code=409, detail="Linked Approval department does not match Request")
     request.requested_by_id = request.requested_by_id or user.id
     request.status = "Review"
-
-    approval = db.query(models.Approval).filter(
-        models.Approval.source_type == "ops_need",
-        models.Approval.source_id == request.id,
-        models.Approval.status == "Pending",
-        models.Approval.hidden_from_active == False,
-    ).with_for_update().first()
     if approval is None:
         approval = models.Approval(
             title=request.title,
@@ -60,8 +75,18 @@ def plan_request(db: Session, user: models.User, request_id: int, note: str | No
         raise HTTPException(status_code=409, detail="Only Approved requests can be planned")
 
     task = None
-    if request.linked_task_id:
-        task = db.get(models.Task, request.linked_task_id)
+    if request.linked_task_id is not None:
+        task = (
+            db.query(models.Task)
+            .filter(models.Task.id == request.linked_task_id)
+            .with_for_update()
+            .one_or_none()
+        )
+        if task is None:
+            raise HTTPException(status_code=409, detail="Linked Task no longer exists")
+        authorize_action(db, user, "tasks", Action.VIEW, obj=task)
+        if task.department_id != request.department_id:
+            raise HTTPException(status_code=409, detail="Linked Task department does not match Request")
     if task is None:
         authorize_action(db, user, "tasks", Action.CREATE, department_id=request.department_id)
         task = models.Task(
