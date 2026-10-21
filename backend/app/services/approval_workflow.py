@@ -79,17 +79,28 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
         log_activity(db, "external-review-items", external_item.id, "decision", f"External review item {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
 
     log_activity(db, "approvals", approval.id, "decision", f"Approval {decision}", actor_id=user.id, metadata={"note": approval.decision_note})
-    notify_user(
-        db,
-        approval.requested_by_id,
-        "approval-decision",
-        f"{approval.title}: {decision}",
-        approval.decision_note,
-        source_type="approvals",
-        source_id=approval.id,
-        action_url="/approvals",
-        priority=approval.priority or "Normal",
-    )
+    # Approval notifications include a decision note and source title. A
+    # requester may have left the company or lost department membership
+    # while the decision was pending; do not disclose restricted information
+    # to a recipient who can no longer view this Approval.
+    recipient = db.get(models.User, approval.requested_by_id) if approval.requested_by_id else None
+    if recipient is not None and recipient.is_active:
+        try:
+            authorize_action(db, recipient, "approvals", Action.VIEW, obj=approval)
+        except HTTPException:
+            pass
+        else:
+            notify_user(
+                db,
+                recipient.id,
+                "approval-decision",
+                f"{approval.title}: {decision}",
+                approval.decision_note,
+                source_type="approvals",
+                source_id=approval.id,
+                action_url="/approvals",
+                priority=approval.priority or "Normal",
+            )
     db.commit()
     db.refresh(approval)
     if request is not None:
