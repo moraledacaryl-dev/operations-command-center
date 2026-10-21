@@ -35,6 +35,12 @@ DERIVED_CREATE_FIELDS = {
     "fixes": "reported_by_id",
 }
 WORKFLOW_STATE_RESOURCES = WORKFLOW_RESOURCES
+# Guest ↔ Fix links must be written atomically by the canonical workflow.
+# Generic CRUD must not forge or unlink either end of this relationship.
+WORKFLOW_OWNED_LINK_FIELDS = {
+    "guests": {"linked_fix_id"},
+    "fixes": {"linked_guest_note_id"},
+}
 TASK_STATUS_ORDER = {"To Do": 0, "Doing": 1, "Review": 2, "Done": 3}
 
 RESOURCE_URLS = {
@@ -63,6 +69,15 @@ def _reject_identity_fields(payload: dict[str, Any]) -> None:
     supplied = sorted(AUDIT_IDENTITY_FIELDS.intersection(payload))
     if supplied:
         raise HTTPException(status_code=400, detail=f"Audit identity fields are server-controlled: {', '.join(supplied)}")
+
+
+def _reject_workflow_owned_links(resource: str, payload: dict[str, Any]) -> None:
+    supplied = sorted(WORKFLOW_OWNED_LINK_FIELDS.get(resource, set()).intersection(payload))
+    if supplied:
+        raise HTTPException(
+            status_code=405,
+            detail=f"Use the canonical workflow endpoint for {', '.join(supplied)}.",
+        )
 
 
 def _validate_payload(resource: str, payload: dict[str, Any], *, patch: bool = False) -> dict[str, Any]:
@@ -152,6 +167,7 @@ def create_resource_authorized(
     if resource in SYSTEM_OWNED_RESOURCES:
         authorize_action(db, user, resource, Action.CREATE)
     _reject_identity_fields(payload)
+    _reject_workflow_owned_links(resource, payload)
     clean = _validate_payload(resource, payload)
     authorize_action(db, user, resource, Action.CREATE, department_id=clean.get("department_id"))
     obj = model()
@@ -210,6 +226,7 @@ def update_resource_authorized(
     previous_assignee = getattr(obj, "assigned_to_id", None)
     expected_updated_at = payload.pop("expected_updated_at", None)
     _reject_identity_fields(payload)
+    _reject_workflow_owned_links(resource, payload)
     if expected_updated_at and hasattr(obj, "updated_at"):
         try:
             expected = as_utc(datetime.fromisoformat(str(expected_updated_at).replace("Z", "+00:00")))
