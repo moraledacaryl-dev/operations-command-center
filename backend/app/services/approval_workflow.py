@@ -28,6 +28,10 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
     authorize_action(db, user, "approvals", Action.DECIDE, obj=approval)
     if approval.status != "Pending":
         raise HTTPException(status_code=409, detail="Approval has already been decided")
+    if approval.source_type in {"ops_need", "external_review_item"} and not approval.source_id:
+        # Source-owned Approvals cannot be decided independently if their
+        # source pointer was lost. Preserve the pending record for repair.
+        raise HTTPException(status_code=409, detail="Linked Approval source identity is missing")
 
     # Validate linked sources before changing any ORM objects. A rejected
     # cross-department operation must remain unchanged even if a caller later
