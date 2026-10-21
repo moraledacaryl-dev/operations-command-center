@@ -36,7 +36,9 @@ def decide_submission(
 
     authorize_action(db, user, "submissions", Action.DECIDE, obj=submission)
 
-    if submission.review_status != "New":
+    # The Review queue deliberately includes both New and Review submissions.
+    # Both remain awaiting a decision; only Accepted/Rejected are terminal.
+    if submission.review_status not in {"New", "Review"}:
         raise HTTPException(status_code=409, detail="This submission has already been decided.")
 
     now = utc_now()
