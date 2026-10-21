@@ -1250,6 +1250,23 @@ def generate_routine_task(routine_id: int, user: models.User = Depends(require_u
     ).date().isoformat() == today:
         raise HTTPException(status_code=409, detail="This routine was already generated today.")
 
+    if routine.assigned_to_id is not None:
+        # Templates can predate assignment checks or outlive an employee's
+        # department membership. Validate the recipient when generating the
+        # actual task, not just when the routine template was saved.
+        assignee = db.get(models.User, routine.assigned_to_id)
+        if assignee is None or not assignee.is_active:
+            raise HTTPException(status_code=422, detail="Routine assignee must be an active team member.")
+        try:
+            authorize_action(db, assignee, "tasks", Action.VIEW, department_id=routine.department_id)
+        except HTTPException as exc:
+            if exc.status_code == 403:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Routine assignee cannot access the generated task's department.",
+                ) from exc
+            raise
+
     task = models.Task(
         title=routine.title,
         department_id=routine.department_id,
