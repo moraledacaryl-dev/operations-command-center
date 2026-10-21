@@ -197,7 +197,28 @@ def _source_keys() -> Dict[str, str]:
             raise HTTPException(status_code=503, detail="INTEGRATION_API_KEYS_JSON is invalid") from exc
         if not isinstance(parsed, dict):
             raise HTTPException(status_code=503, detail="INTEGRATION_API_KEYS_JSON must be an object")
-        return {str(key): str(value) for key, value in parsed.items() if value}
+        environment = os.getenv("ENVIRONMENT", "development").strip().lower()
+        strict = environment in {"prod", "production", "staging"}
+        credentials: Dict[str, str] = {}
+        for source, value in parsed.items():
+            if source not in SOURCE_EVENT_TYPES:
+                continue
+            if not isinstance(value, str) or not value.strip():
+                if strict:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Integration credentials must be non-empty strings for configured sources",
+                    )
+                continue
+            credentials[source] = value.strip()
+        if strict and len(set(credentials.values())) != len(credentials):
+            # Do not expose source names or any portion of a credential in
+            # operational errors. Equal keys enable source impersonation.
+            raise HTTPException(
+                status_code=503,
+                detail="Integration source credentials must be unique",
+            )
+        return credentials
 
     environment = os.getenv("ENVIRONMENT", "development").strip().lower()
     legacy = os.getenv("INTEGRATION_API_KEY", "").strip()
