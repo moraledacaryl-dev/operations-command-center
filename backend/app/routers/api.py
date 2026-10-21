@@ -398,19 +398,43 @@ def item_summary(payload: Dict[str, Any]) -> str:
     return body.get("summary") or body.get("privacy_note") or ""
 
 
+def _legacy_replay_result(item: models.ExternalReviewItem, source_app: str, clean: Dict[str, Any]):
+    # Reuse the event identity only when its safe, stored operational facts
+    # actually match. A changed payload must not be silently acknowledged as
+    # delivered or overwrite the original review/audit trail.
+    try:
+        prior = json.loads(item.payload_json or "{}")
+    except (TypeError, ValueError):
+        prior = None
+    # Older receiver versions retained source-supplied status in payload_json.
+    # It is not an authoritative fact: Review status is controlled by Operations.
+    if isinstance(prior, dict):
+        prior.pop("status", None)
+    if (
+        item.source_app != source_app
+        or item.event_type != clean.get("event_type")
+        or prior != clean
+    ):
+        raise HTTPException(status_code=409, detail="external_id was already used with different event data")
+    return {"status": "already_applied", "id": item.id}
+
+
 def store_external_review_item(db: Session, payload: Dict[str, Any], allowed: set[str], source_app: str):
     require_integration_event(payload, allowed)
     # The route, not the producer body, determines source identity. A shared
     # legacy token must never permit cross-app event spoofing or collisions.
     if payload["external_source"] != source_app:
         raise HTTPException(status_code=400, detail="external_source does not match integration endpoint")
+    # Canonicalize what gets stored (including default=str conversions).
+    # The submitted top-level status cannot mutate or initialize Review state.
+    clean = json.loads(json.dumps(scrub_payload(payload), default=str))
+    clean.pop("status", None)
     existing = db.query(models.ExternalReviewItem).filter(
         models.ExternalReviewItem.external_source == payload["external_source"],
         models.ExternalReviewItem.external_id == payload["external_id"],
     ).first()
     if existing:
-        return {"status": "already_applied", "id": existing.id}
-    clean = scrub_payload(payload)
+        return _legacy_replay_result(existing, source_app, clean)
     item = models.ExternalReviewItem(
         external_source=payload["external_source"],
         external_id=payload["external_id"],
@@ -436,10 +460,11 @@ def store_external_review_item(db: Session, payload: Dict[str, Any], allowed: se
             models.ExternalReviewItem.external_source == payload["external_source"],
             models.ExternalReviewItem.external_id == payload["external_id"],
         ).first()
-        return {"status": "already_applied", "id": existing.id if existing else None}
+        if existing:
+            return _legacy_replay_result(existing, source_app, clean)
+        raise HTTPException(status_code=409, detail="Integration event conflicts with an existing record")
     db.refresh(item)
     return {"status": "accepted", "id": item.id}
-
 
 def overview_cards(db: Session):
     rows = db.query(models.ExternalReviewItem).filter(models.ExternalReviewItem.status != "Rejected").order_by(models.ExternalReviewItem.updated_at.desc()).limit(300).all()
