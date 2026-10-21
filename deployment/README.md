@@ -23,7 +23,29 @@ The templates add planned ports:
 
 Do not switch `hiddenoasis.app` to the launcher until all four app subdomains are verified. Use `nginx/hidden-oasis-subdomains.conf` first, then `nginx/hidden-oasis-launcher-cutover.conf` after Accounting, POS, Operations, and Staff all pass HTTPS and login checks.
 
-Before direct cross-app POST testing, install the same real `INTEGRATION_API_KEY` in Accounting, POS, Operations, and Staff/Payroll server settings. The committed files only contain placeholders.
+For versioned (`/api/integrations/v2/events/{source_app}`) integrations, use
+distinct per-source keys in Operations' protected
+`/etc/hiddenoasis/operations.env` environment file. **Shell-quote the entire
+JSON value**, or sourcing the file will destroy JSON syntax:
+
+```bash
+INTEGRATION_API_KEYS_JSON='{"hidden_oasis_staff_payroll":"STAFF_SECRET","accounting_program":"ACCOUNTING_SECRET","dedicated_pos_cloud":"POS_SECRET","inventory_procurement":"INVENTORY_SECRET"}'
+```
+
+These are format placeholders, not usable secrets. Replace each with a different
+random value and provision the corresponding source application with its own key.
+Never print or commit real integration credentials. Unlike development, production
+v2 events do **not** fall back to `INTEGRATION_API_KEY`. The older
+`/api/integrations/staff/events`, `/api/integrations/accounting/status` and
+`/api/integrations/pos/status` receivers still use the legacy shared key until
+producers migrate.
+
+The canonical deployment preflights the sourced JSON before backups/migrations
+and aborts with a non-secret error if it is malformed or contains duplicate keys.
+To correct an existing `INTEGRATION_API_KEYS_JSON={...}` assignment, edit it
+in place using `sudo nano /etc/hiddenoasis/operations.env` and add a **single
+quote at each end of the existing JSON**. Keep the existing secret values
+unchanged; do not paste them into tickets or chat.
 
 ## Server Source Layout
 
