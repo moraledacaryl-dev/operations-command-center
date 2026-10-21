@@ -120,6 +120,27 @@ set -a
 source "$BACKEND_ENV"
 set +a
 
+# Check v2 source credentials before backups, migrations or activation.
+# The same runtime validator enforces distinct nonempty source keys, while
+# this gate deliberately never prints credential values.
+if [[ -n "${INTEGRATION_API_KEYS_JSON:-}" ]]; then
+  (
+    cd "$STAGING_RELEASE/backend"
+    PYTHONPATH=. .venv/bin/python - <<'PY'
+from fastapi import HTTPException
+from app.routers.integrations_v2 import _source_keys
+
+try:
+    sources = _source_keys()
+except HTTPException as exc:
+    raise SystemExit(f"ERROR | v2 integration credential preflight: {exc.detail}")
+print(f"PASS | v2 integration credential isolation: {len(sources)} configured source(s)")
+PY
+  )
+else
+  echo "WARN | v2 source credentials not configured; check legacy integration routing before migration"
+fi
+
 BACKUP_STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 BACKUP_FILE="$BACKUP_DIR/database-$CANDIDATE_SHA-$BACKUP_STAMP.dump"
 UPLOAD_PATH="${UPLOAD_DIR:-/var/lib/operations-command-center/uploads}"
