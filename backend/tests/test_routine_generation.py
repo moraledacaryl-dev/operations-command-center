@@ -146,3 +146,80 @@ def test_forged_note_in_other_department_cannot_expose_task(context):
     assert generated["title"] == "Opening checklist"
     assert generated["department_id"] == routine.department_id
     assert db.query(models.Task).count() == 2
+
+
+@pytest.mark.parametrize("assignee_kind", ["foreign", "inactive", "missing"])
+def test_legacy_routine_cannot_generate_task_for_inaccessible_assignee(context, assignee_kind):
+    db, owner, staff, outsider, routine, _, _ = context
+    if assignee_kind == "foreign":
+        routine.assigned_to_id = outsider.id
+        expected_status = 403
+    elif assignee_kind == "inactive":
+        staff.is_active = False
+        expected_status = 422
+    else:
+        routine.assigned_to_id = 999999
+        expected_status = 422
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        generate(db, owner, routine)
+    assert exc.value.status_code == expected_status
+    # A later commit of the same Session cannot persist an orphaned task,
+    # an activity record or an incorrect generation marker.
+    db.commit()
+    db.refresh(routine)
+    assert routine.last_generated_at is None
+    assert db.query(models.Task).count() == 0
+    assert db.query(models.ActivityLog).count() == 0
+
+
+def test_legacy_routine_secondary_membership_allows_valid_generation(context):
+    db, owner, _, outsider, routine, department, _ = context
+    routine.assigned_to_id = outsider.id
+    db.add(models.UserDepartment(
+        user_id=outsider.id, department_id=department.id, is_primary=False,
+    ))
+    db.commit()
+
+    generated = generate(db, owner, routine)
+    assert generated["assigned_to_id"] == outsider.id
+    assert generated["department_id"] == department.id
+    assert db.query(models.Task).count() == 1
+
+
+def test_routine_global_read_role_may_receive_cross_department_task(context):
+    db, owner, _, _, routine, department, other = context
+    manager = models.User(
+        name="Operations Manager", role="manager", department_id=other.id,
+        email="operations.manager@example.test", is_active=True,
+    )
+    db.add(manager)
+    db.flush()
+    db.add(models.UserDepartment(user_id=manager.id, department_id=other.id, is_primary=True))
+    routine.assigned_to_id = manager.id
+    db.commit()
+
+    generated = generate(db, owner, routine)
+    assert generated["assigned_to_id"] == manager.id
+    assert generated["department_id"] == department.id
+
+
+def test_unassigned_routine_generation_remains_valid(context):
+    db, owner, _, _, routine, _, _ = context
+    routine.assigned_to_id = None
+    db.commit()
+    result = generate(db, owner, routine)
+    assert result["assigned_to_id"] is None
+    assert db.query(models.Task).count() == 1
+
+
+def test_existing_generated_task_retry_does_not_make_a_new_assignment(context):
+    db, owner, staff, outsider, routine, _, _ = context
+    existing = generate(db, owner, routine)
+    routine.assigned_to_id = outsider.id  # later edits should not duplicate an existing daily task
+    db.commit()
+    retry = generate(db, owner, routine)
+    assert retry["id"] == existing["id"]
+    assert retry["assigned_to_id"] == staff.id
+    assert db.query(models.Task).count() == 1
