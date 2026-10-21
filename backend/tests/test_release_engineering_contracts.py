@@ -1,5 +1,6 @@
 import ast
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -167,7 +168,7 @@ def test_env_example_survives_bash_source_with_valid_v2_integration_json():
         [
             "bash",
             "-c",
-            'set -e; set -a; source "$1"; python -c "$2"',
+            'set -e; set -a; source "$1"; "$3" -c "$2"',
             "bash",
             str(env_path),
             (
@@ -179,6 +180,9 @@ def test_env_example_survives_bash_source_with_valid_v2_integration_json():
                 '"dedicated_pos_cloud", "inventory_procurement"}; '
                 'assert os.environ["BOOTSTRAP_OWNER_NAME"] == "Operations Owner"'
             ),
+            # Do not rely on an unversioned "python" executable in the VPS
+            # PATH; production has Python 3.12 through the release venv.
+            sys.executable,
         ],
         capture_output=True,
         text=True,
