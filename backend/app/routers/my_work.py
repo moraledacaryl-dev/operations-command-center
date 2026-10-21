@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..clock import as_utc, utc_now
+from ..authorization_policy import scope_query
 from ..database import get_db
 from ..utils import model_to_dict
 from .api import require_user
@@ -28,7 +29,9 @@ def my_work(user: models.User = Depends(require_user), db: Session = Depends(get
     # Do not exclude completed tasks from "Recently completed" simply because
     # the automatic archive process has moved them out of the active task queue.
     recent = (
-        db.query(models.Task)
+        # Apply the same department read policy as the Task endpoints BEFORE
+        # ordering/limiting. Stale assignments must not leak revoked departments.
+        scope_query(db, user, models.Task, db.query(models.Task))
         .filter(
             models.Task.assigned_to_id == user.id,
             models.Task.status == "Done",
@@ -40,7 +43,7 @@ def my_work(user: models.User = Depends(require_user), db: Session = Depends(get
         .all()
     )
     tasks = (
-        db.query(models.Task)
+        scope_query(db, user, models.Task, db.query(models.Task))
         .filter(
             models.Task.assigned_to_id == user.id,
             models.Task.hidden_from_active.is_(False),
