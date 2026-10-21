@@ -40,17 +40,34 @@ def create_fix_from_guest(
                 status_code=409,
                 detail="The guest matter has an inconsistent maintenance link; review it before proceeding.",
             )
-    if existing is None:
-        existing = (
-            db.query(models.Fix)
-            .filter(models.Fix.linked_guest_note_id == guest.id)
-            .order_by(models.Fix.id.asc())
-            .first()
-        )
+    # Resolve *all* possible reverse links up to the duplication threshold,
+    # even when the guest has a direct pointer. Silently selecting the oldest
+    # Fix masks an inconsistent graph and can route later verification to the
+    # wrong maintenance ticket.
+    linked_fixes = (
+        db.query(models.Fix)
+        .filter(models.Fix.linked_guest_note_id == guest.id)
+        .order_by(models.Fix.id.asc())
+        .with_for_update()
+        .limit(2)
+        .all()
+    )
+    # Apply read authorization before reporting duplicate-link integrity.
+    # A user allowed to edit the guest may not read maintenance Fix details.
     if existing is not None:
-        # The caller may be allowed to see the guest matter but not a Fix
-        # assigned to another department. Do not reveal that ticket.
         authorize_action(db, user, "fixes", Action.VIEW, obj=existing)
+    for candidate in linked_fixes:
+        authorize_action(db, user, "fixes", Action.VIEW, obj=candidate)
+    if len(linked_fixes) > 1 or (
+        existing is not None and linked_fixes and existing.id != linked_fixes[0].id
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Multiple maintenance Fix links exist for this guest matter; reconcile before proceeding.",
+        )
+    if existing is None and linked_fixes:
+        existing = linked_fixes[0]
+    if existing is not None:
         if department_id is not None and existing.department_id != department_id:
             raise HTTPException(
                 status_code=409,
