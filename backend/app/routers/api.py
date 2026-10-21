@@ -738,9 +738,9 @@ def dashboard(department_id: Optional[int] = Query(default=None), user: models.U
         "requests": dq(models.Request).filter(models.Request.hidden_from_active == False, models.Request.status.in_(["Review", "Draft", "Planned"])).count(),
     }
     focus = []
-    focus += [("Task", x) for x in dq(models.Task).filter(models.Task.hidden_from_active == False, models.Task.priority == "Urgent").order_by(models.Task.updated_at.desc()).limit(3).all()]
-    focus += [("Guest", x) for x in dq(models.GuestNote).filter(models.GuestNote.hidden_from_active == False, models.GuestNote.urgency == "Urgent").order_by(models.GuestNote.updated_at.desc()).limit(3).all()]
-    focus += [("Fix", x) for x in dq(models.Fix).filter(models.Fix.hidden_from_active == False, models.Fix.urgency == "Urgent").order_by(models.Fix.updated_at.desc()).limit(3).all()]
+    focus += [("Task", x) for x in dq(models.Task).filter(models.Task.hidden_from_active == False, models.Task.status != "Done", models.Task.priority == "Urgent").order_by(models.Task.updated_at.desc()).limit(3).all()]
+    focus += [("Guest", x) for x in dq(models.GuestNote).filter(models.GuestNote.hidden_from_active == False, models.GuestNote.status != "Done", models.GuestNote.urgency == "Urgent").order_by(models.GuestNote.updated_at.desc()).limit(3).all()]
+    focus += [("Fix", x) for x in dq(models.Fix).filter(models.Fix.hidden_from_active == False, models.Fix.status != "Verified", models.Fix.urgency == "Urgent").order_by(models.Fix.updated_at.desc()).limit(3).all()]
     focus += [("Post", x) for x in dq(models.Post).filter(models.Post.hidden_from_active == False, models.Post.status == "Review").order_by(models.Post.updated_at.desc()).limit(3).all()]
     previous_shift = dq(models.ShiftNote).filter(models.ShiftNote.hidden_from_active == False, models.ShiftNote.status.in_(["New", "Follow"])).order_by(models.ShiftNote.created_at.desc()).limit(5).all()
     approvals = dq(models.Approval).filter(models.Approval.hidden_from_active == False, models.Approval.status == "Pending").order_by(models.Approval.created_at.desc()).limit(5).all()
