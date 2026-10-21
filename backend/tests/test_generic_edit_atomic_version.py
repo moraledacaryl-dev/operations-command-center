@@ -4,8 +4,6 @@ Production PostgreSQL has row-level SELECT FOR UPDATE; SQLite regression cases
 exercise the stale identity-map and two independent session behavior.
 """
 
-from datetime import timedelta
-
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import create_engine
