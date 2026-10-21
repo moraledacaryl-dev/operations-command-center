@@ -218,7 +218,8 @@ def test_production_rejects_nonstring_or_empty_integration_credentials(monkeypat
     with pytest.raises(HTTPException) as exc:
         _source_keys()
     assert exc.value.status_code == 503
-    assert invalid_value is None or str(invalid_value) not in exc.value.detail
+    if invalid_value is not None and str(invalid_value):
+        assert str(invalid_value) not in exc.value.detail
 
 
 def test_nonproduction_shared_credentials_remain_supported(monkeypatch):
