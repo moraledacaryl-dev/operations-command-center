@@ -41,6 +41,29 @@ WORKFLOW_OWNED_LINK_FIELDS = {
     "guests": {"linked_fix_id"},
     "fixes": {"linked_guest_note_id"},
 }
+# References passed through generic CRUD must be real records that the
+# caller can read. Otherwise a guessed foreign ID becomes a persistent
+# cross-department link (or a dangling link on databases without FK checking).
+LINKED_REFERENCE_FIELDS = {
+    "requests": {
+        "linked_task_id": ("tasks", models.Task),
+        "linked_project_id": ("projects", models.Project),
+    },
+    "tasks": {
+        "project_id": ("projects", models.Project),
+        "linked_guest_note_id": ("guests", models.GuestNote),
+        "linked_fix_id": ("fixes", models.Fix),
+        "linked_post_id": ("posts", models.Post),
+    },
+    "shift-notes": {
+        "linked_task_id": ("tasks", models.Task),
+        "linked_guest_note_id": ("guests", models.GuestNote),
+        "linked_fix_id": ("fixes", models.Fix),
+    },
+    "guests": {"linked_task_id": ("tasks", models.Task)},
+    "fixes": {"linked_task_id": ("tasks", models.Task)},
+    "posts": {"project_id": ("projects", models.Project)},
+}
 TASK_STATUS_ORDER = {"To Do": 0, "Doing": 1, "Review": 2, "Done": 3}
 
 RESOURCE_URLS = {
@@ -107,6 +130,37 @@ def _require_assignee_visibility(db: Session, resource: str, assignee_id: int | 
                 detail="The assignee cannot access this record's department.",
             ) from exc
         raise
+
+
+def _validate_linked_references(
+    db: Session,
+    user: models.User,
+    resource: str,
+    values: dict[str, Any],
+    *,
+    original: Any = None,
+    department_changed: bool = False,
+) -> None:
+    # Validate references before writing anything. Department changes also
+    # recheck retained links against the record's resulting department.
+    department_id = values.get("department_id", getattr(original, "department_id", None))
+    for field, (target_resource, target_model) in LINKED_REFERENCE_FIELDS.get(resource, {}).items():
+        if field not in values and not department_changed:
+            continue
+        target_id = values.get(field, getattr(original, field, None))
+        if target_id is None:
+            continue
+        target = db.get(target_model, target_id)
+        if target is None:
+            raise HTTPException(status_code=409, detail=f"Linked {target_resource} record no longer exists.")
+        authorize_action(db, user, target_resource, Action.VIEW, obj=target)
+        # A Request's planned Task is owned by the Request's department.
+        # General Project/Task collaboration may intentionally cross teams.
+        if resource == "requests" and field == "linked_task_id" and target.department_id != department_id:
+            raise HTTPException(
+                status_code=409,
+                detail="Linked Task department does not match Request.",
+            )
 
 
 def _commit_or_conflict(db: Session) -> None:
@@ -179,6 +233,7 @@ def create_resource_authorized(
     if derived_field and hasattr(obj, derived_field):
         clean[derived_field] = user.id
     _require_assignee_visibility(db, resource, clean.get("assigned_to_id"), clean.get("department_id"))
+    _validate_linked_references(db, user, resource, clean)
     apply_payload(obj, clean)
     db.add(obj)
     try:
@@ -250,6 +305,10 @@ def update_resource_authorized(
     next_assignee_id = clean.get("assigned_to_id", previous_assignee)
     if next_assignee_id != previous_assignee or next_department != getattr(obj, "department_id", None):
         _require_assignee_visibility(db, resource, next_assignee_id, next_department)
+    _validate_linked_references(
+        db, user, resource, clean, original=obj,
+        department_changed=next_department != getattr(obj, "department_id", None),
+    )
     apply_payload(obj, clean, excluded={"id", "created_at", "updated_at"} | AUDIT_IDENTITY_FIELDS)
     try:
         db.flush()
