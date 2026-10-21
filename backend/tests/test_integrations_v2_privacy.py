@@ -181,3 +181,76 @@ def test_replay_digest_changes_for_operational_payload_change():
     )
 
     assert _payload_hash(_canonical_payload(first)) != _payload_hash(_canonical_payload(second))
+
+@pytest.mark.parametrize("environment", ["prod", "production", "staging"])
+def test_source_specific_credentials_must_be_distinct_in_protected_environments(monkeypatch, environment):
+    monkeypatch.setenv("ENVIRONMENT", environment)
+    monkeypatch.setenv("INTEGRATION_API_KEYS_JSON", json.dumps({
+        "hidden_oasis_staff_payroll": "private-reused-key",
+        "accounting_program": "private-reused-key",
+        "dedicated_pos_cloud": "separate-pos-key",
+        "inventory_procurement": "separate-inventory-key",
+    }))
+    with pytest.raises(HTTPException) as exc:
+        _authenticate_source("hidden_oasis_staff_payroll", "private-reused-key")
+    assert exc.value.status_code == 503
+    assert "unique" in exc.value.detail
+    assert "private-reused-key" not in exc.value.detail
+
+
+def test_trailing_spaces_cannot_hide_duplicate_source_credentials(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("INTEGRATION_API_KEYS_JSON", json.dumps({
+        "hidden_oasis_staff_payroll": "duplicate ",
+        "accounting_program": " duplicate",
+    }))
+    with pytest.raises(HTTPException) as exc:
+        _source_keys()
+    assert exc.value.status_code == 503
+
+
+@pytest.mark.parametrize("invalid_value", [True, 12345, None, "", "    "])
+def test_production_rejects_nonstring_or_empty_integration_credentials(monkeypatch, invalid_value):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("INTEGRATION_API_KEYS_JSON", json.dumps({
+        "hidden_oasis_staff_payroll": invalid_value,
+    }))
+    with pytest.raises(HTTPException) as exc:
+        _source_keys()
+    assert exc.value.status_code == 503
+    assert invalid_value is None or str(invalid_value) not in exc.value.detail
+
+
+def test_nonproduction_shared_credentials_remain_supported(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "test")
+    monkeypatch.setenv("INTEGRATION_API_KEYS_JSON", json.dumps({
+        "hidden_oasis_staff_payroll": "test-shared",
+        "accounting_program": "test-shared",
+    }))
+    _authenticate_source("hidden_oasis_staff_payroll", "test-shared")
+    _authenticate_source("accounting_program", "test-shared")
+
+
+def test_production_rejects_wrong_source_key_despite_present_other_source(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("INTEGRATION_API_KEYS_JSON", json.dumps({
+        "hidden_oasis_staff_payroll": "staff-key",
+        "accounting_program": "accounting-key",
+        "inventory_procurement": "inventory-key",
+    }))
+    _authenticate_source("accounting_program", "accounting-key")
+    with pytest.raises(HTTPException) as exc:
+        _authenticate_source("inventory_procurement", "staff-key")
+    assert exc.value.status_code == 401
+
+
+def test_unknown_future_source_key_does_not_block_existing_source_credentials(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("INTEGRATION_API_KEYS_JSON", json.dumps({
+        "hidden_oasis_staff_payroll": "staff-key",
+        "future_unregistered_app": "staff-key",
+    }))
+    _authenticate_source("hidden_oasis_staff_payroll", "staff-key")
+    with pytest.raises(HTTPException) as exc:
+        _authenticate_source("future_unregistered_app", "staff-key")
+    assert exc.value.status_code == 404
