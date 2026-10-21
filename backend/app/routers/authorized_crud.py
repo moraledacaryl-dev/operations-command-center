@@ -74,12 +74,6 @@ def _validate_payload(resource: str, payload: dict[str, Any], *, patch: bool = F
         raise RequestValidationError(exc.errors()) from exc
 
 
-def _department_id(payload: dict[str, Any], obj: Any = None) -> int | None:
-    if "department_id" in payload:
-        return payload.get("department_id")
-    return getattr(obj, "department_id", None) if obj is not None else None
-
-
 def _commit_or_conflict(db: Session) -> None:
     try:
         db.commit()
@@ -205,7 +199,15 @@ def update_resource_authorized(
     if resource in WORKFLOW_STATE_RESOURCES and "status" in payload:
         raise HTTPException(status_code=405, detail="Use the canonical workflow endpoint.")
     clean = _validate_payload(resource, payload, patch=True)
-    authorize_action(db, user, resource, Action.EDIT, obj=obj, department_id=_department_id(clean, obj))
+    # Validate authority over the original record before considering any
+    # requested department reassignment. The target must not override the
+    # source scope when deciding if an existing record can be edited.
+    authorize_action(db, user, resource, Action.EDIT, obj=obj)
+    if "department_id" in clean and clean["department_id"] != getattr(obj, "department_id", None):
+        # Validate the destination independently, including an explicit null
+        # destination. Non-executive users cannot move scoped records into an
+        # unscoped location or to another department they do not manage.
+        authorize_action(db, user, resource, Action.EDIT, department_id=clean["department_id"])
     apply_payload(obj, clean, excluded={"id", "created_at", "updated_at"} | AUDIT_IDENTITY_FIELDS)
     try:
         db.flush()
