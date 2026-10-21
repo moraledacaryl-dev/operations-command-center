@@ -277,11 +277,25 @@ def update_resource_authorized(
     db: Session = Depends(get_db),
 ):
     model = get_model(resource)
-    obj = fetch_or_404(db, model, item_id)
+    # Re-read the current row *under the write lock* before comparing the
+    # caller's version. PostgreSQL READ COMMITTED waits for an earlier editor,
+    # then exposes its committed version; ordinary db.get() can reuse a stale
+    # identity-map object instead and let two simultaneous edits both pass.
+    obj = (
+        db.query(model)
+        .filter(model.id == item_id)
+        .with_for_update()
+        .populate_existing()
+        .one_or_none()
+    )
+    if obj is None:
+        raise HTTPException(status_code=404, detail="Record not found")
     previous_assignee = getattr(obj, "assigned_to_id", None)
-    expected_updated_at = payload.pop("expected_updated_at", None)
-    _reject_identity_fields(payload)
-    _reject_workflow_owned_links(resource, payload)
+    # Do not consume the caller's request dictionary on a failed retry.
+    clean_payload = dict(payload)
+    expected_updated_at = clean_payload.pop("expected_updated_at", None)
+    _reject_identity_fields(clean_payload)
+    _reject_workflow_owned_links(resource, clean_payload)
     if expected_updated_at and hasattr(obj, "updated_at"):
         try:
             expected = as_utc(datetime.fromisoformat(str(expected_updated_at).replace("Z", "+00:00")))
@@ -289,9 +303,9 @@ def update_resource_authorized(
             raise HTTPException(status_code=422, detail="Invalid record version timestamp.")
         if as_utc(obj.updated_at) != expected:
             raise HTTPException(status_code=409, detail="This record changed after you opened it. Refresh before saving.")
-    if resource in WORKFLOW_STATE_RESOURCES and "status" in payload:
+    if resource in WORKFLOW_STATE_RESOURCES and "status" in clean_payload:
         raise HTTPException(status_code=405, detail="Use the canonical workflow endpoint.")
-    clean = _validate_payload(resource, payload, patch=True)
+    clean = _validate_payload(resource, clean_payload, patch=True)
     # Validate authority over the original record before considering any
     # requested department reassignment. The target must not override the
     # source scope when deciding if an existing record can be edited.
