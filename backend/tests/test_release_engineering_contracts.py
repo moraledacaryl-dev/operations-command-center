@@ -1,4 +1,5 @@
 import ast
+import subprocess
 from pathlib import Path
 
 
@@ -154,3 +155,34 @@ def test_deploy_preflights_v2_credentials_before_backups_or_database_changes():
     assert deploy.index("sources = _source_keys()") < deploy.index("alembic upgrade head")
     # The older receiver remains usable until producers migrate to v2.
     assert "v2 source credentials not configured" in deploy
+
+
+
+def test_env_example_survives_bash_source_with_valid_v2_integration_json():
+    # A bare JSON object in a shell assignment loses its double quotes when
+    # Bash sources the file, even though the same raw line is valid JSON.
+    # This is the exact failure mode of the production v2 deploy preflight.
+    env_path = REPO_ROOT / ".env.example"
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            'set -e; set -a; source "$1"; python -c "$2"',
+            "bash",
+            str(env_path),
+            (
+                "import json, os; "
+                'x = json.loads(os.environ["INTEGRATION_API_KEYS_JSON"]); '
+                "assert isinstance(x, dict); "
+                "assert set(x) == {"
+                '"hidden_oasis_staff_payroll", "accounting_program", '
+                '"dedicated_pos_cloud", "inventory_procurement"}; '
+                'assert os.environ["BOOTSTRAP_OWNER_NAME"] == "Operations Owner"'
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    # Do not report the environment or secrets in assertion details.
+    assert result.returncode == 0, "Example environment file must source cleanly and preserve v2 JSON"
