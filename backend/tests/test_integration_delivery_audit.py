@@ -63,7 +63,7 @@ def test_empty_audit_reports_missing_evidence_without_claiming_integrations_are_
     assert len(report["sources"]) == 4
     assert {item["delivery_observation"] for item in report["sources"].values()} == {"not_observed"}
     assert report["totals"]["observed_recent_v2"] == 0
-    assert db.new == set() and db.dirty == set()
+    assert not db.new and not db.dirty
 
 
 def test_successful_delivery_counts_and_corresponding_links(db):
@@ -133,4 +133,4 @@ def test_all_four_sources_only_pass_recent_evidence_when_each_delivers(db):
 def test_invalid_hours_does_not_query_or_mutate_database(db):
     with pytest.raises(ValueError, match="hours"):
         audit_delivery_integrity(db, now=NOW, hours=0)
-    assert db.new == set() and db.dirty == set()
+    assert not db.new and not db.dirty
