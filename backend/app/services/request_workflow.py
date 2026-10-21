@@ -31,7 +31,8 @@ def submit_request(db: Session, user: models.User, request_id: int, note: str | 
             models.Approval.source_type == "ops_need",
             models.Approval.source_id == request.id,
             models.Approval.status == "Pending",
-            models.Approval.hidden_from_active == False,
+            # Archived pending records still own this source identity. Ignoring
+            # them can create a second pending Approval for the same Request.
         )
         .order_by(models.Approval.id.asc())
         .with_for_update()
@@ -45,6 +46,8 @@ def submit_request(db: Session, user: models.User, request_id: int, note: str | 
         authorize_action(db, user, "approvals", Action.VIEW, obj=approval)
         if approval.department_id != request.department_id:
             raise HTTPException(status_code=409, detail="Linked Approval department does not match Request")
+        if approval.hidden_from_active:
+            raise HTTPException(status_code=409, detail="Archived pending Approval must be reconciled before submission")
     request.requested_by_id = request.requested_by_id or user.id
     request.status = "Review"
     if approval is None:
