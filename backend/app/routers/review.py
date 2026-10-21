@@ -35,6 +35,7 @@ def review_queue(
             maybe_department(db.query(models.Submission), models.Submission)
             .filter(
                 models.Submission.hidden_from_active == False,
+                models.Submission.requires_review.is_(True),
                 models.Submission.review_status.in_(["New", "Review"]),
             )
             .order_by(models.Submission.updated_at.desc())
