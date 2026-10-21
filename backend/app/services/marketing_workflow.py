@@ -56,6 +56,10 @@ def allowed_deliverable_actions(db: Session, user: models.User, deliverable: fou
 
 
 def _sync_parent_states(db: Session, concept: foundation.ContentConcept, campaign: foundation.MarketingCampaign) -> None:
+    # Production SessionLocal sets autoflush=False. Without this flush the
+    # scalar query sees a deliverable's previous database status, leaving
+    # concepts/campaigns one transition behind (including final publication).
+    db.flush()
     deliverable_statuses = [
         value for (value,) in db.query(foundation.PlatformDeliverable.status)
         .filter(foundation.PlatformDeliverable.concept_id == concept.id)
@@ -87,7 +91,9 @@ def transition_deliverable(db: Session, user: models.User, deliverable_id: int, 
     if deliverable is None:
         raise HTTPException(status_code=404, detail="Platform deliverable not found")
     concept = db.get(foundation.ContentConcept, deliverable.concept_id)
-    campaign = campaign_or_404(db, concept.campaign_id) if concept else None
+    if concept is None:
+        raise HTTPException(status_code=409, detail="Platform deliverable has no linked content concept")
+    campaign = campaign_or_404(db, concept.campaign_id)
     authorize_campaign(db, user, campaign, Action.TRANSITION)
     if deliverable.status != transition.source:
         raise HTTPException(status_code=409, detail=f"{action.replace('-', ' ').title()} requires {transition.source}; current state is {deliverable.status}.")
