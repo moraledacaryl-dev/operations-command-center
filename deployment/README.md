@@ -96,3 +96,38 @@ host, and environment together.
 `deploy-accounting.sh` and `deploy-pos.sh` are conservative guard scripts because those apps are already live. They validate env presence, back up `/opt`, and stop before replacing live files.
 
 `deploy-all-safe.sh` runs nginx backups, Accounting/POS guard checks, then Operations/Staff deployment. Root launcher cutover remains a separate manual gate.
+
+
+## Post-deployment integration delivery audit (read-only)
+
+After the canonical Operations deployment reports `DEPLOYMENT GATE: PASS`,
+check whether real source events from Staff/Payroll, Accounting, POS and
+Inventory have actually arrived in the configured time window. The following
+reads Operations database metadata only; it **does not post synthetic events,
+alter a Review decision, access payloads or print credentials**.
+
+```bash
+sudo bash -c '
+set -a
+source /etc/hiddenoasis/operations.env
+set +a
+cd /opt/operations-command-center/current/backend
+PYTHONPATH=. .venv/bin/python -m scripts.audit_integration_deliveries --hours 168
+'
+```
+
+The result is a JSON report with `read_only: true`, one row per registered
+source, last observed v2 delivery timestamp, recent delivery counts, legacy
+Review rows, and any v2 deliveries missing an Inbox or Review entry. It reports
+`not_observed` or `no_recent_event` **without** claiming a source is
+disconnected: some event categories are naturally infrequent, and legacy
+receivers may still be in use. `structural_integrity: pass` means only that
+the existing v2 delivery graph has no detected missing links or nonprocessed
+deliveries; it is not a live producer/receiver certification.
+
+Exit code 2 indicates missing v2 Review/Inbox links or unprocessed deliveries.
+To require at least one v2 event from *all four* sources during a controlled
+canary window, add `--require-all-sources` (exit code 3 if coverage is missing).
+Use distinct real source-side test events when safe, rather than replaying or
+forging actual financial/HR transactions. No real API keys are printed or
+required on the command line.
