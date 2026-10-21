@@ -163,3 +163,53 @@ def test_plan_without_existing_task_still_creates_one(context):
     assert updated.linked_task_id == task.id
     assert task.department_id == front.id
     assert db.query(models.Task).count() == 1
+
+
+@pytest.mark.parametrize("actor", ["owner", "manager"])
+def test_archived_pending_approval_is_not_ignored_or_replaced(context, actor):
+    db, front, _, owner, manager = context
+    request = new_request(db, front.id, "Draft")
+    approval = pending_approval(db, request, front.id)
+    approval.hidden_from_active = True
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        submit_request(db, owner if actor == "owner" else manager, request.id)
+    assert exc.value.status_code == 409
+    assert "Archived pending Approval" in str(exc.value.detail)
+    assert_request_unchanged(db, request, "Draft")
+    db.refresh(approval)
+    assert approval.status == "Pending"
+    assert approval.hidden_from_active is True
+    assert db.query(models.Approval).count() == 1
+
+
+def test_active_and_archived_pending_approvals_are_a_conflict(context):
+    db, front, _, owner, _ = context
+    request = new_request(db, front.id, "Draft")
+    active = pending_approval(db, request, front.id)
+    archived = pending_approval(db, request, front.id)
+    archived.hidden_from_active = True
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        submit_request(db, owner, request.id)
+    assert exc.value.status_code == 409
+    assert "Multiple pending Approvals" in str(exc.value.detail)
+    assert_request_unchanged(db, request, "Draft")
+    assert db.query(models.Approval).count() == 2
+    assert active.status == "Pending"
+
+
+def test_archived_cross_department_pending_approval_is_not_bypassed(context):
+    db, front, maintenance, owner, _ = context
+    request = new_request(db, front.id, "Draft")
+    foreign = pending_approval(db, request, maintenance.id)
+    foreign.hidden_from_active = True
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        submit_request(db, owner, request.id)
+    assert exc.value.status_code == 409
+    assert db.query(models.Approval).count() == 1
+    assert_request_unchanged(db, request, "Draft")

@@ -145,3 +145,74 @@ def test_fix_can_be_created_after_explicit_guest_reopen(context):
     assert returned.linked_fix_id == fix.id
     assert returned.status == "Follow"
     assert db.query(models.Fix).count() == 1
+
+
+@pytest.mark.parametrize("direct_link", [False, True])
+def test_multiple_reverse_linked_fixes_are_rejected_without_selecting_one(context, direct_link):
+    db, front, _, owner, _, _, guest = context
+    first = models.Fix(
+        title="First maintenance ticket",
+        department_id=front.id,
+        linked_guest_note_id=guest.id,
+    )
+    second = models.Fix(
+        title="Duplicate maintenance ticket",
+        department_id=front.id,
+        linked_guest_note_id=guest.id,
+    )
+    db.add_all([first, second])
+    db.flush()
+    guest.linked_fix_id = first.id if direct_link else None
+    db.commit()
+    prior_link = guest.linked_fix_id
+
+    with pytest.raises(HTTPException) as exc:
+        create_fix_from_guest(db, owner, guest.id)
+    assert exc.value.status_code == 409
+    assert "Multiple maintenance Fix links" in str(exc.value.detail)
+    db.commit()
+    db.refresh(guest)
+    assert guest.linked_fix_id == prior_link
+    assert guest.status == "Open"
+    assert db.query(models.Fix).count() == 2
+    assert db.query(models.ActivityLog).count() == 0
+
+
+def test_cross_department_duplicate_does_not_reveal_ticket_to_unauthorized_lead(context):
+    db, front, maintenance, owner, lead, _, guest = context
+    first = models.Fix(
+        title="Private maintenance #1",
+        department_id=maintenance.id,
+        linked_guest_note_id=guest.id,
+    )
+    second = models.Fix(
+        title="Private maintenance #2",
+        department_id=maintenance.id,
+        linked_guest_note_id=guest.id,
+    )
+    db.add_all([first, second])
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        create_fix_from_guest(db, lead, guest.id)
+    assert exc.value.status_code == 403
+    assert db.query(models.ActivityLog).count() == 0
+    assert guest.linked_fix_id is None
+
+
+def test_direct_link_with_only_one_matching_reverse_link_remains_idempotent(context):
+    db, front, _, owner, _, _, guest = context
+    existing = models.Fix(
+        title="Existing ticket",
+        department_id=front.id,
+        linked_guest_note_id=guest.id,
+    )
+    db.add(existing)
+    db.flush()
+    guest.linked_fix_id = existing.id
+    db.commit()
+
+    _, found = create_fix_from_guest(db, owner, guest.id)
+    assert found.id == existing.id
+    assert db.query(models.Fix).count() == 1
+    assert db.query(models.ActivityLog).count() == 0
