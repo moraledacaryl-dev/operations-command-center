@@ -136,3 +136,21 @@ def test_backend_systemd_uses_relocation_safe_virtualenv_entrypoint():
     unit = (REPO_ROOT / "deployment" / "systemd" / "operations-backend.service").read_text()
     assert "/backend/.venv/bin/python -m uvicorn" in unit
     assert "/backend/.venv/bin/uvicorn" not in unit
+
+
+def test_deploy_preflights_v2_credentials_before_backups_or_database_changes():
+    deploy = (REPO_ROOT / "scripts" / "deploy_production.sh").read_text()
+    assert 'source "$BACKEND_ENV"' in deploy
+    assert "from app.routers.integrations_v2 import _source_keys" in deploy
+    assert "sources = _source_keys()" in deploy
+    assert "v2 integration credential preflight" in deploy
+    assert "len(sources)" in deploy
+    assert "INTEGRATION_API_KEYS_JSON" in deploy
+    # Never print the JSON value: the report includes only configured count.
+    assert 'echo "$INTEGRATION_API_KEYS_JSON"' not in deploy
+    assert 'print(sources)' not in deploy
+    assert deploy.index('source "$BACKEND_ENV"') < deploy.index("sources = _source_keys()")
+    assert deploy.index("sources = _source_keys()") < deploy.index('BACKUP_STAMP=')
+    assert deploy.index("sources = _source_keys()") < deploy.index("alembic upgrade head")
+    # The older receiver remains usable until producers migrate to v2.
+    assert "v2 source credentials not configured" in deploy
