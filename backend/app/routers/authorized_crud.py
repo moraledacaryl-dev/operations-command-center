@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models
-from ..authorization_policy import Action, SYSTEM_OWNED_RESOURCES, authorize_action, scope_query
+from ..authorization_policy import Action, DEPARTMENT_SCOPED_RESOURCES, SYSTEM_OWNED_RESOURCES, authorize_action, scope_query
 from ..clock import as_utc, utc_now
 from ..database import get_db
 from ..domain_values import WORKFLOW_RESOURCES
@@ -72,6 +72,26 @@ def _validate_payload(resource: str, payload: dict[str, Any], *, patch: bool = F
         raise HTTPException(status_code=405, detail="This resource uses an explicit API contract.")
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
+
+
+def _require_assignee_visibility(db: Session, resource: str, assignee_id: int | None, department_id: int | None) -> None:
+    # A notification containing a record title is still an information
+    # disclosure, and a task outside the assignee's department will not appear
+    # in their scoped My Work queue. Validate the recipient before assignment.
+    if assignee_id is None or resource not in DEPARTMENT_SCOPED_RESOURCES:
+        return
+    assignee = db.get(models.User, assignee_id)
+    if assignee is None or not assignee.is_active:
+        raise HTTPException(status_code=422, detail="Assign an active team member.")
+    try:
+        authorize_action(db, assignee, resource, Action.VIEW, department_id=department_id)
+    except HTTPException as exc:
+        if exc.status_code == 403:
+            raise HTTPException(
+                status_code=403,
+                detail="The assignee cannot access this record's department.",
+            ) from exc
+        raise
 
 
 def _commit_or_conflict(db: Session) -> None:
@@ -142,6 +162,7 @@ def create_resource_authorized(
     derived_field = DERIVED_CREATE_FIELDS.get(resource)
     if derived_field and hasattr(obj, derived_field):
         clean[derived_field] = user.id
+    _require_assignee_visibility(db, resource, clean.get("assigned_to_id"), clean.get("department_id"))
     apply_payload(obj, clean)
     db.add(obj)
     try:
@@ -208,6 +229,10 @@ def update_resource_authorized(
         # destination. Non-executive users cannot move scoped records into an
         # unscoped location or to another department they do not manage.
         authorize_action(db, user, resource, Action.EDIT, department_id=clean["department_id"])
+    next_department = clean.get("department_id", getattr(obj, "department_id", None))
+    next_assignee_id = clean.get("assigned_to_id", previous_assignee)
+    if next_assignee_id != previous_assignee or next_department != getattr(obj, "department_id", None):
+        _require_assignee_visibility(db, resource, next_assignee_id, next_department)
     apply_payload(obj, clean, excluded={"id", "created_at", "updated_at"} | AUDIT_IDENTITY_FIELDS)
     try:
         db.flush()
