@@ -43,22 +43,42 @@ def finish_fix(db: Session, user: models.User, fix_id: int, note: str | None = N
     return _transition(db, user, fix_id, "Working", "Done", note)
 
 
+def _linked_guest_for_decision(db: Session, user: models.User, fix: models.Fix) -> models.GuestNote | None:
+    if fix.linked_guest_note_id is None:
+        return None
+    # Lock and reauthorize the *actual* guest matter before writing to it.
+    # A manager's organization-wide read access is not cross-department write access.
+    guest = (
+        db.query(models.GuestNote)
+        .filter(models.GuestNote.id == fix.linked_guest_note_id)
+        .with_for_update()
+        .one_or_none()
+    )
+    if guest is None:
+        raise HTTPException(status_code=409, detail="Linked guest matter no longer exists")
+    authorize_action(db, user, "guests", Action.TRANSITION, obj=guest)
+    if guest.linked_fix_id is not None and guest.linked_fix_id != fix.id:
+        raise HTTPException(status_code=409, detail="Guest matter is linked to another maintenance Fix")
+    return guest
+
+
 def verify_fix(db: Session, user: models.User, fix_id: int, note: str | None, proof_url: str | None = None, filename: str | None = None):
     if not (note or "").strip():
         raise HTTPException(status_code=400, detail="Verification note is required")
     fix = _lock_fix(db, fix_id)
-    authorize_action(db, user, "fixes", Action.VIEW, obj=fix)
     if not has_capability(user.role, "make_decisions"):
         raise HTTPException(status_code=403, detail="Decision authority is required to verify a Fix")
+    authorize_action(db, user, "fixes", Action.TRANSITION, obj=fix)
     if fix.status != "Done":
         raise HTTPException(status_code=409, detail="Only Done fixes can be verified")
 
-    now = utc_now()
-    fix.status = "Verified"
-    fix.verified_at = now
-    fix.verified_by_id = user.id
-    fix.completed_at = now
-    db.add(models.Comment(parent_type="fixes", parent_id=fix.id, body=note.strip(), author_id=user.id, comment_type="Verification"))
+    guest = _linked_guest_for_decision(db, user, fix)
+    if guest is not None and guest.status not in {"Open", "Follow"}:
+        raise HTTPException(status_code=409, detail="Linked guest matter is not awaiting resolution")
+
+    # Validate proof ownership before any ORM mutations: a later Session commit
+    # must not accidentally persist a failed verification.
+    existing_proof = None
     if proof_url:
         match = ATTACHMENT_DOWNLOAD_RE.match(proof_url.strip())
         if match:
@@ -66,20 +86,29 @@ def verify_fix(db: Session, user: models.User, fix_id: int, note: str | None, pr
             if not attachment or attachment.parent_type != "fixes" or attachment.parent_id != fix.id:
                 raise HTTPException(status_code=400, detail="Verification attachment does not belong to this Fix")
         else:
-            existing = db.query(models.Attachment).filter(
+            existing_proof = db.query(models.Attachment).filter(
                 models.Attachment.parent_type == "fixes",
                 models.Attachment.parent_id == fix.id,
                 models.Attachment.file_url == proof_url,
             ).first()
-            if existing is None:
-                db.add(models.Attachment(parent_type="fixes", parent_id=fix.id, filename=filename or "Verification proof", file_url=proof_url, uploaded_by_id=user.id))
-    if fix.linked_guest_note_id:
-        guest = db.get(models.GuestNote, fix.linked_guest_note_id)
-        if guest:
-            guest.status = "Done"
-            guest.action_taken = note.strip()
-            guest.completed_at = now
-            log_activity(db, "guests", guest.id, "resolved", f"Resolved by fix #{fix.id}", actor_id=user.id)
+
+    now = utc_now()
+    fix.status = "Verified"
+    fix.verified_at = now
+    fix.verified_by_id = user.id
+    fix.completed_at = now
+    db.add(models.Comment(parent_type="fixes", parent_id=fix.id, body=note.strip(), author_id=user.id, comment_type="Verification"))
+    if proof_url and not ATTACHMENT_DOWNLOAD_RE.match(proof_url.strip()) and existing_proof is None:
+        db.add(models.Attachment(
+            parent_type="fixes", parent_id=fix.id,
+            filename=filename or "Verification proof",
+            file_url=proof_url, uploaded_by_id=user.id,
+        ))
+    if guest is not None:
+        guest.status = "Done"
+        guest.action_taken = note.strip()
+        guest.completed_at = now
+        log_activity(db, "guests", guest.id, "resolved", f"Resolved by fix #{fix.id}", actor_id=user.id)
     log_activity(db, "fixes", fix.id, "verified", "Fix verified", actor_id=user.id, metadata={"note": note, "proof_url": proof_url})
     db.commit()
     db.refresh(fix)
@@ -90,12 +119,17 @@ def reopen_fix(db: Session, user: models.User, fix_id: int, reason: str | None):
     if not (reason or "").strip():
         raise HTTPException(status_code=400, detail="Reopen reason is required")
     fix = _lock_fix(db, fix_id)
-    authorize_action(db, user, "fixes", Action.VIEW, obj=fix)
     if not has_capability(user.role, "make_decisions"):
         raise HTTPException(status_code=403, detail="Decision authority is required to reopen a verified Fix")
+    authorize_action(db, user, "fixes", Action.TRANSITION, obj=fix)
     if fix.status != "Verified":
         raise HTTPException(status_code=409, detail="Only Verified fixes can be reopened")
-    # Reopening a verified Fix must also undo auto-archive visibility.
+
+    guest = _linked_guest_for_decision(db, user, fix)
+    if guest is not None and guest.status not in {"Open", "Follow", "Done"}:
+        raise HTTPException(status_code=409, detail="Linked guest matter has an incompatible status")
+
+    # Reopening a verified Fix must undo auto-archive visibility.
     prior_archive = {}
     if fix.hidden_from_active:
         prior_archive = {
@@ -110,6 +144,25 @@ def reopen_fix(db: Session, user: models.User, fix_id: int, reason: str | None):
     fix.verified_by_id = None
     fix.completed_at = None
     fix.note = f"{fix.note or ''}\n\nReopened: {reason.strip()}".strip()
+
+    if guest is not None and guest.status == "Done":
+        guest_prior_archive = {}
+        if guest.hidden_from_active:
+            guest_prior_archive = {
+                "previous_archived_at": guest.archived_at,
+                "previous_archive_reason": guest.archive_reason,
+            }
+            guest.hidden_from_active = False
+            guest.archived_at = None
+            guest.archive_reason = None
+        guest.status = "Follow"
+        guest.completed_at = None
+        log_activity(
+            db, "guests", guest.id, "reopened",
+            f"Reopened with maintenance Fix #{fix.id}", actor_id=user.id,
+            metadata={"reason": reason.strip(), **guest_prior_archive},
+        )
+
     log_activity(db, "fixes", fix.id, "reopened", reason.strip(), actor_id=user.id, metadata=prior_archive)
     db.commit()
     db.refresh(fix)
