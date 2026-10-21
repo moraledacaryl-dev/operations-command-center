@@ -62,16 +62,23 @@ def create_task(db: Session, user: models.User, item_id: int, department_id: int
     target_department = department_id if department_id is not None else item.department_id
     if item.status in TERMINAL_STATES or item.status == "Pending Approval":
         raise HTTPException(status_code=409, detail="External review item cannot create a task in its current state")
-    if item.linked_task_id:
-        existing = db.get(models.Task, item.linked_task_id)
-        if existing is not None:
-            # A retry must authorize the *actual* linked Task, not only the
-            # requested destination. Reject attempts to silently reroute it.
-            authorize_action(db, user, "tasks", Action.CREATE, department_id=existing.department_id)
-            authorize_action(db, user, "tasks", Action.VIEW, obj=existing)
-            if department_id is not None and existing.department_id != department_id:
-                raise HTTPException(status_code=409, detail="The linked Task belongs to a different department.")
-            return existing, item
+    if item.linked_task_id is not None:
+        existing = (
+            db.query(models.Task)
+            .filter(models.Task.id == item.linked_task_id)
+            .with_for_update()
+            .one_or_none()
+        )
+        if existing is None:
+            # A dangling reference requires explicit reconciliation. Do not
+            # silently create a second Task and replace audit lineage.
+            raise HTTPException(status_code=409, detail="Linked Task no longer exists")
+        # Authorize the actual linked record before it can be returned.
+        authorize_action(db, user, "tasks", Action.CREATE, department_id=existing.department_id)
+        authorize_action(db, user, "tasks", Action.VIEW, obj=existing)
+        if department_id is not None and existing.department_id != department_id:
+            raise HTTPException(status_code=409, detail="The linked Task belongs to a different department.")
+        return existing, item
     authorize_action(db, user, "tasks", Action.CREATE, department_id=target_department)
     task = models.Task(
         title=item.title,
@@ -101,13 +108,23 @@ def create_approval(db: Session, user: models.User, item_id: int, department_id:
     target_department = department_id if department_id is not None else item.department_id
     if item.status in TERMINAL_STATES:
         raise HTTPException(status_code=409, detail="Terminal external review item cannot create an Approval")
-    if item.linked_approval_id:
-        existing = db.get(models.Approval, item.linked_approval_id)
-        if existing is not None:
-            _require_approval_department(db, user, existing.department_id)
-            if department_id is not None and existing.department_id != department_id:
-                raise HTTPException(status_code=409, detail="The linked Approval belongs to a different department.")
-            return existing, item
+    if item.linked_approval_id is not None:
+        existing = (
+            db.query(models.Approval)
+            .filter(models.Approval.id == item.linked_approval_id)
+            .with_for_update()
+            .one_or_none()
+        )
+        if existing is None:
+            raise HTTPException(status_code=409, detail="Linked Approval no longer exists")
+        _require_approval_department(db, user, existing.department_id)
+        if department_id is not None and existing.department_id != department_id:
+            raise HTTPException(status_code=409, detail="The linked Approval belongs to a different department.")
+        if existing.source_type != "external_review_item" or existing.source_id != item.id:
+            raise HTTPException(status_code=409, detail="Linked Approval belongs to another source")
+        if existing.status != "Pending":
+            raise HTTPException(status_code=409, detail="Linked Approval is no longer pending")
+        return existing, item
     _require_approval_department(db, user, target_department)
     approval = models.Approval(
         title=item.title,
