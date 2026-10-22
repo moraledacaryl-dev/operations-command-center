@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
+import { isOverduePropertyDay } from '@/lib/property-dates';
 import { Drawer } from '@/components/Drawer';
 import { Pill } from '@/components/Pill';
 import { Icon } from '@/components/Icon';
@@ -58,7 +59,7 @@ export default function TeamTasksPage() {
   useEffect(() => { void load(); }, [load]);
 
   const visible = useMemo(() => items.filter(item => !query.trim() || [item.title, item.note, item.status, item.priority].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase())), [items, query]);
-  const overdue = visible.filter(item => item.due_date && !['Done'].includes(item.status) && new Date(item.due_date).getTime() < Date.now()).length;
+  const overdue = visible.filter(item => item.status !== 'Done' && isOverduePropertyDay(item.due_date)).length;
 
   async function createTask() {
     if (!title.trim() || busy || !hydrated) return;
