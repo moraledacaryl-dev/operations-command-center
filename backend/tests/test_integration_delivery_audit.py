@@ -1,6 +1,7 @@
 """Production-safe integration audit: four-source coverage, linkage and privacy."""
 
 from datetime import datetime, timedelta, timezone
+import json
 
 import pytest
 from sqlalchemy import create_engine
@@ -10,7 +11,11 @@ from app.database import Base
 from app.foundation_models import IntegrationEventInbox
 from app.integration_models import IntegrationDelivery
 from app.models import ExternalReviewItem
-from scripts.audit_integration_deliveries import audit_delivery_integrity
+from scripts.audit_integration_deliveries import (
+    audit_delivery_integrity,
+    audit_receiver_configuration,
+    _identity_hint,
+)
 
 
 NOW = datetime(2026, 10, 22, 0, 0, tzinfo=timezone.utc)
@@ -192,3 +197,83 @@ def test_negative_diagnostic_limit_rejected_before_database_access(db):
     with pytest.raises(ValueError, match="diagnostic_limit"):
         audit_delivery_integrity(db, now=NOW, diagnostic_limit=-1)
     assert not db.new and not db.dirty
+
+
+@pytest.mark.parametrize(
+    "source,event_id",
+    [
+        ("accounting_program", "connectivity-cert-20260910T080514Z-3589855-accounting"),
+        ("dedicated_pos_cloud", "connectivity-cert-20260910T080514Z-3589855-pos"),
+        ("hidden_oasis_staff_payroll", "connectivity-cert-20260910T054009Z-3581003-staff"),
+        ("inventory_procurement", "connectivity-cert-20260910T080514Z-3589855-inventory"),
+    ],
+)
+def test_historical_certification_id_is_only_an_investigation_hint(db, source, event_id):
+    add_delivery(db, source=source, event_id=event_id, with_review=False)
+    report = audit_delivery_integrity(db, now=NOW, diagnostic_limit=10)
+    assert report["structural_integrity"] == "investigate"
+    assert report["totals"]["missing_review"] == 1
+    details = report["diagnostics"]["deliveries"]
+    assert details[0]["identity_hint"] == "suspected_connectivity_test"
+    assert db.query(ExternalReviewItem).count() == 0
+
+
+def test_certification_hint_requires_exact_timestamp_format_and_matching_source():
+    assert _identity_hint(
+        "accounting_program", "connectivity-cert-20260910T080514Z-3589855-pos"
+    ) == "unclassified"
+    assert _identity_hint(
+        "accounting_program", "connectivity-cert-20260910T080514Z-other-accounting"
+    ) == "unclassified"
+    assert _identity_hint(
+        "accounting_program", "genuine-budget-variance-1"
+    ) == "unclassified"
+
+
+def test_receiver_readiness_reports_presence_without_leaking_keys(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.delenv("INTEGRATION_API_KEY", raising=False)
+    values = {
+        "accounting_program": "confidential-accounting-01",
+        "dedicated_pos_cloud": "confidential-pos-02",
+        "hidden_oasis_staff_payroll": "confidential-staff-03",
+        "inventory_procurement": "confidential-inventory-04",
+    }
+    monkeypatch.setenv("INTEGRATION_API_KEYS_JSON", json.dumps(values))
+    report = audit_receiver_configuration()
+    assert report["configuration_valid"] is True
+    assert report["all_sources_configured"] is True
+    assert set(report["configured_sources"]) == set(values)
+    assert all(report["configured_sources"].values())
+    assert all(secret not in str(report) for secret in values.values())
+
+
+def test_receiver_readiness_distinguishes_missing_key_from_bad_configuration(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.delenv("INTEGRATION_API_KEY", raising=False)
+    monkeypatch.setenv(
+        "INTEGRATION_API_KEYS_JSON",
+        json.dumps({"accounting_program": "one-accounting-key"}),
+    )
+    incomplete = audit_receiver_configuration()
+    assert incomplete["configuration_valid"] is True
+    assert incomplete["configured_sources"]["accounting_program"] is True
+    assert incomplete["configured_sources"]["inventory_procurement"] is False
+    assert incomplete["all_sources_configured"] is False
+
+    monkeypatch.setenv(
+        "INTEGRATION_API_KEYS_JSON",
+        json.dumps({
+            "accounting_program": "duplicate-secret",
+            "dedicated_pos_cloud": "duplicate-secret",
+        }),
+    )
+    invalid = audit_receiver_configuration()
+    assert invalid["configuration_valid"] is False
+    assert invalid["all_sources_configured"] is False
+    assert "duplicate-secret" not in str(invalid)
+
+    monkeypatch.setenv("INTEGRATION_API_KEYS_JSON", "{bad-json")
+    malformed = audit_receiver_configuration()
+    assert malformed["configuration_valid"] is False
+    assert "{bad-json" not in str(malformed)
