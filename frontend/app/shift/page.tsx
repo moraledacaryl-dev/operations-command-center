@@ -11,6 +11,8 @@ import { WorkspaceStats } from '@/components/WorkspaceStats';
 
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
+import { getStoredUser } from '@/lib/session';
+import { hasCapability } from '@/lib/capabilities';
 
 function formatStamp(value?: string) {
   if (!value) return 'Time not recorded';
@@ -34,9 +36,12 @@ export default function ShiftPage() {
   const [actionNote, setActionNote] = useState('');
   const [loading, setLoading] = useState(true);
   const { departmentId, hydrated } = useActiveDepartment();
+  const canManageWork = hasCapability(getStoredUser(), 'manage_department');
   const beginRequest = useLatestRequest();
 
-  const openCreate = useCallback(() => setShowAdd(true), []);
+  const openCreate = useCallback(() => {
+    if (hasCapability(getStoredUser(), 'manage_department')) setShowAdd(true);
+  }, []);
   useCreateIntent(openCreate);
 
   const load = useCallback(async () => {
@@ -90,14 +95,14 @@ export default function ShiftPage() {
   if (!hydrated || loading) return <><Top title="Shift handover" /><LoadingPanel label="Loading shift handover…" /></>;
 
   return <div className="ops-module">
-    <Top title="Shift handover" right={<button data-testid="create-shift" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New handover</button>} />
+    <Top title="Shift handover" right={canManageWork ? <button data-testid="create-shift" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New handover</button> : null} />
     <WorkspaceStats items={[
       { label: 'Open notes', value: error ? null : unresolved, icon: 'shift' },
       { label: 'Urgent', value: error ? null : urgent, icon: 'clock', attention: true },
       { label: 'Follow-ups', value: error ? null : follow, icon: 'tasks' },
     ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-shift-form">
+    {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-shift-form">
       <h2>New handover note</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Title<input className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
