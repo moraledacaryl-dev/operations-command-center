@@ -13,17 +13,21 @@ def _lock_request(db: Session, request_id: int) -> models.Request:
     row = db.query(models.Request).filter(models.Request.id == request_id).with_for_update().one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="Request not found")
-    if row.hidden_from_active:
+    return row
+
+
+def _reject_archived_request(request: models.Request) -> None:
+    if request.hidden_from_active:
         raise HTTPException(
             status_code=409,
             detail="Archived Request must be reconciled before advancing its workflow",
         )
-    return row
 
 
 def submit_request(db: Session, user: models.User, request_id: int, note: str | None = None):
     request = _lock_request(db, request_id)
     authorize_action(db, user, "requests", Action.TRANSITION, obj=request)
+    _reject_archived_request(request)
     if request.status != "Draft":
         raise HTTPException(status_code=409, detail="Only Draft requests can be submitted")
     if request.department_id is None:
@@ -79,6 +83,7 @@ def submit_request(db: Session, user: models.User, request_id: int, note: str | 
 def plan_request(db: Session, user: models.User, request_id: int, note: str | None = None):
     request = _lock_request(db, request_id)
     authorize_action(db, user, "requests", Action.TRANSITION, obj=request)
+    _reject_archived_request(request)
     if request.status != "Approved":
         raise HTTPException(status_code=409, detail="Only Approved requests can be planned")
 
@@ -126,6 +131,7 @@ def plan_request(db: Session, user: models.User, request_id: int, note: str | No
 def complete_request(db: Session, user: models.User, request_id: int, note: str | None = None):
     request = _lock_request(db, request_id)
     authorize_action(db, user, "requests", Action.TRANSITION, obj=request)
+    _reject_archived_request(request)
     if request.status != "Planned":
         raise HTTPException(status_code=409, detail="Only Planned requests can be completed")
     request.status = "Done"
