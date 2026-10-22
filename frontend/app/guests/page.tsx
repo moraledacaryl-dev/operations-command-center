@@ -12,6 +12,8 @@ import { WorkspaceStats } from '@/components/WorkspaceStats';
 
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
+import { getStoredUser } from '@/lib/session';
+import { hasCapability } from '@/lib/capabilities';
 
 function dateLabel(value?: string) {
   if (!value) return 'No follow-up set';
@@ -36,9 +38,12 @@ export default function GuestMattersPage() {
   const [actionNote, setActionNote] = useState('');
   const [loading, setLoading] = useState(true);
   const { departmentId, hydrated } = useActiveDepartment();
+  const canManageWork = hasCapability(getStoredUser(), 'manage_department');
   const beginRequest = useLatestRequest();
 
-  const openCreate = useCallback(() => setShowAdd(true), []);
+  const openCreate = useCallback(() => {
+    if (hasCapability(getStoredUser(), 'manage_department')) setShowAdd(true);
+  }, []);
   useCreateIntent(openCreate);
 
   function roomName(roomAreaId?: number | string | null) {
@@ -109,14 +114,14 @@ export default function GuestMattersPage() {
   if (!hydrated || loading) return <><Top title="Guest matters" /><LoadingPanel label="Loading guest matters…" /></>;
 
   return <div className="ops-module">
-    <Top title="Guest matters" right={<button data-testid="create-guest" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New guest matter</button>} />
+    <Top title="Guest matters" right={canManageWork ? <button data-testid="create-guest" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New guest matter</button> : null} />
     <WorkspaceStats items={[
       { label: 'Open matters', value: error ? null : active, icon: 'guests' },
       { label: 'Urgent', value: error ? null : urgent, icon: 'clock', attention: true },
       { label: 'Follow-ups', value: error ? null : follow, icon: 'shift' },
     ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-guest-form">
+    {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-guest-form">
       <h2>Log guest matter</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Matter<input className="input" value={String(form.title || '')} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
