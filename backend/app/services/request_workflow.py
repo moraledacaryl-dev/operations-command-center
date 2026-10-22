@@ -90,6 +90,13 @@ def plan_request(db: Session, user: models.User, request_id: int, note: str | No
         authorize_action(db, user, "tasks", Action.VIEW, obj=task)
         if task.department_id != request.department_id:
             raise HTTPException(status_code=409, detail="Linked Task department does not match Request")
+        if task.hidden_from_active:
+            # An archived Task cannot be the visible execution plan for a
+            # newly Planned Request. Do not silently resurrect or replace it.
+            raise HTTPException(
+                status_code=409,
+                detail="Archived linked Task must be reconciled before planning this Request",
+            )
     if task is None:
         authorize_action(db, user, "tasks", Action.CREATE, department_id=request.department_id)
         task = models.Task(
