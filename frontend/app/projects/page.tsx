@@ -221,7 +221,7 @@ export default function ProjectsPage() {
           <h2>Linked tasks</h2>
           {canManage ? <div className="form" style={{ marginTop: 12 }}><textarea className="textarea" placeholder="Describe the next project action" value={taskNote} onChange={event => setTaskNote(event.target.value)} /><button className="btn secondary" disabled={busy} onClick={createLinkedTask}>Create linked task</button></div> : null}
           <div className="grid" style={{ marginTop: 12 }}>
-            {selected.linked_tasks.map((task: Entity) => <div className="card" key={task.id}><strong>{task.title}</strong><div className="card-line"><Pill value={task.status} /><Pill value={task.priority || 'Normal'} /></div><span className="muted">Due {formatDate(task.due_date)}</span></div>)}
+            {selected.linked_tasks.map((task: Entity) => <div className="card" key={task.id}><strong>{task.title}</strong><div className="card-line"><Pill value={task.status} />{task.hidden_from_active ? <Pill value="Archived" /> : null}<Pill value={task.priority || 'Normal'} /></div><span className="muted">Due {formatDate(task.due_date)}</span></div>)}
             {!selected.linked_tasks.length ? <div className="empty">No linked tasks yet.</div> : null}
           </div>
         </section>
