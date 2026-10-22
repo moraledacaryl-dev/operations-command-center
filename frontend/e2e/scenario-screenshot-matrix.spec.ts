@@ -161,7 +161,7 @@ const scenarios: Scenario[] = [
   {
     id: 'mobile-navigation-drawer-open', route: '/', description: 'Mobile navigation drawer open', viewport: { width: 390, height: 844 },
     ready: async page => { await expect(page.getByRole('button', { name: 'Open navigation' })).toBeVisible(); },
-    prepare: async page => { await page.getByRole('button', { name: 'Open navigation' }).click(); await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible(); await expect(page.getByRole('button', { name: 'Close navigation' }).first()).toBeVisible(); },
+    prepare: async page => { await page.getByRole('button', { name: 'Open navigation' }).click(); await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible(); await expect(page.locator('.mobile-header .ops-brand')).toBeVisible(); await expect(page.locator('#mobile-sidebar .ops-brand-row')).toBeHidden(); await expect(page.getByRole('button', { name: 'Close navigation' }).first()).toBeVisible(); },
   },
   {
     id: 'task-create-surface-open', route: '/tasks', description: 'Task create surface open', ready: async page => { await expect(page.getByTestId('create-task')).toBeVisible(); },
