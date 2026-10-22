@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import datetime, timedelta
 from typing import Any
 
+from fastapi import HTTPException
 from sqlalchemy import and_, func, or_, text
 from sqlalchemy.orm import Session
 
@@ -18,7 +20,56 @@ from app.clock import as_utc, utc_now
 from app.foundation_models import IntegrationEventInbox
 from app.integration_models import IntegrationDelivery
 from app.models import ExternalReviewItem
-from app.routers.integrations_v2 import SOURCE_EVENT_TYPES
+from app.routers.integrations_v2 import SOURCE_EVENT_TYPES, _source_keys
+
+# A filename-style event identity is an investigation hint, never permission
+# to delete records or exempt a missing Review from integrity checks.
+CONNECTIVITY_CERT_ID = re.compile(
+    r"^connectivity-cert-\d{8}T\d{6}Z-\d+-(staff|accounting|pos|inventory)$"
+)
+CERT_SOURCE_SUFFIX = {
+    "hidden_oasis_staff_payroll": "staff",
+    "accounting_program": "accounting",
+    "dedicated_pos_cloud": "pos",
+    "inventory_procurement": "inventory",
+}
+
+
+def _identity_hint(source_app: str, event_id: str) -> str:
+    match = CONNECTIVITY_CERT_ID.fullmatch(event_id)
+    if match and match.group(1) == CERT_SOURCE_SUFFIX.get(source_app):
+        return "suspected_connectivity_test"
+    return "unclassified"
+
+
+def audit_receiver_configuration() -> dict[str, Any]:
+    """Report only presence/validity, never values of receiver credentials.
+
+    This checks the Operations receiver configuration, NOT whether a producer
+    possesses the same key or has an active sending worker.
+    """
+    try:
+        configured = _source_keys()
+    except HTTPException:
+        return {
+            "configuration_valid": False,
+            "configured_sources": {source: False for source in sorted(SOURCE_EVENT_TYPES)},
+            "all_sources_configured": False,
+            "distinct_source_credentials": False,
+            "reason": "Receiver credential configuration was rejected; inspect protected environment",
+        }
+    source_presence = {
+        source: bool(configured.get(source)) for source in sorted(SOURCE_EVENT_TYPES)
+    }
+    values = [configured[source] for source in SOURCE_EVENT_TYPES if configured.get(source)]
+    distinct_credentials = len(values) == len(set(values))
+    return {
+        "configuration_valid": distinct_credentials,
+        "configured_sources": source_presence,
+        "distinct_source_credentials": distinct_credentials,
+        "all_sources_configured": all(source_presence.values()) and distinct_credentials,
+        "reason": "Presence and distinctness only; producer credentials and traffic are unverified",
+    }
 
 
 def audit_delivery_integrity(
@@ -189,6 +240,7 @@ def audit_delivery_integrity(
                 "source_app": delivery.source_app,
                 "event_id": delivery.event_id,
                 "event_type": delivery.event_type,
+                "identity_hint": _identity_hint(delivery.source_app, delivery.event_id),
                 "received_at_utc": as_utc(delivery.received_at).isoformat(),
                 "status": delivery.status,
                 "inbox_id": int(inbox_id) if inbox_id is not None else None,
@@ -229,6 +281,11 @@ def main() -> int:
         help="Fail when any source has no v2 deliveries within the selected window.",
     )
     parser.add_argument(
+        "--receiver-credentials",
+        action="store_true",
+        help="Opt in to receiver key presence/validity flags; never prints secrets.",
+    )
+    parser.add_argument(
         "--diagnostic-limit",
         type=int,
         default=0,
@@ -250,11 +307,16 @@ def main() -> int:
         report = audit_delivery_integrity(db, hours=args.hours, diagnostic_limit=args.diagnostic_limit)
         db.rollback()
 
+    if args.receiver_credentials:
+        report["receiver_configuration"] = audit_receiver_configuration()
+
     print(json.dumps(report, indent=2, sort_keys=True))
     if report["structural_integrity"] != "pass":
         return 2
     if args.require_all_sources and not report["all_sources_observed_recently"]:
         return 3
+    if args.receiver_credentials and not report["receiver_configuration"]["all_sources_configured"]:
+        return 4
     return 0
 
 
