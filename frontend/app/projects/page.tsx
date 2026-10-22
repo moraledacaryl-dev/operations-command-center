@@ -60,7 +60,7 @@ export default function ProjectsPage() {
       setError('');
       const [projectRows, taskRows] = await Promise.all([
         api.listAll('projects', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
-        api.listAll('tasks', { active: true, department_id: departmentId || '' }, { signal: request.signal }),
+        api.listAll('tasks', { active: false, department_id: departmentId || '' }, { signal: request.signal }),
       ]);
       if (!request.isCurrent()) return;
       setProjects(projectRows);
@@ -98,7 +98,7 @@ export default function ProjectsPage() {
   const enriched = useMemo<EnrichedProject[]>(() => projects.map((project): EnrichedProject => {
     const linked = tasks.filter(task => Number(task.project_id) === Number(project.id));
     const done = linked.filter(task => task.status === 'Done').length;
-    const overdue = linked.filter(task => task.status !== 'Done' && isOverduePropertyDay(task.due_date)).length;
+    const overdue = linked.filter(task => !task.hidden_from_active && task.status !== 'Done' && isOverduePropertyDay(task.due_date)).length;
     return { ...project, linked_tasks: linked, progress: linked.length ? Math.round((done / linked.length) * 100) : 0, overdue_tasks: overdue };
   }), [projects, tasks]);
 
@@ -110,9 +110,9 @@ export default function ProjectsPage() {
     async function openDetails() {
       try {
         const detail = await api.get('projects', detailId);
-        const rows = await api.listAll('tasks', { active: true, department_id: detail.department_id || '' });
+        const rows = await api.listAll('tasks', { active: false, department_id: detail.department_id || '' });
         const linked = rows.filter(t => Number(t.project_id) === detailId);
-        if (active) setSelected({ ...detail, linked_tasks: linked, progress: linked.length ? Math.round(linked.filter(t => t.status === 'Done').length * 100 / linked.length) : 0, overdue_tasks: linked.filter(t => t.status !== 'Done' && isOverduePropertyDay(t.due_date)).length });
+        if (active) setSelected({ ...detail, linked_tasks: linked, progress: linked.length ? Math.round(linked.filter(t => t.status === 'Done').length * 100 / linked.length) : 0, overdue_tasks: linked.filter(t => !t.hidden_from_active && t.status !== 'Done' && isOverduePropertyDay(t.due_date)).length });
       } catch (err: any) { if (active) setError(err.message || 'Project could not be opened.'); }
     }
     void openDetails();
@@ -146,7 +146,7 @@ export default function ProjectsPage() {
       setTaskNote('');
       await load();
       const detail = await api.get('projects', selected.id);
-      const linked = (await api.listAll('tasks', { active: true, department_id: selected.department_id || departmentId })).filter(task => Number(task.project_id) === Number(selected.id));
+      const linked = (await api.listAll('tasks', { active: false, department_id: selected.department_id || departmentId })).filter(task => Number(task.project_id) === Number(selected.id));
       setSelected({ ...selected, ...detail, linked_tasks: linked });
     } catch (err: any) {
       setError(err.message || 'Linked task could not be created.');
