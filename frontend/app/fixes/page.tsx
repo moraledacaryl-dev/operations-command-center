@@ -11,6 +11,8 @@ import { WorkspaceStats } from '@/components/WorkspaceStats';
 import { Top } from '@/components/Top';
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
+import { getStoredUser } from '@/lib/session';
+import { hasCapability } from '@/lib/capabilities';
 
 const statuses = ['Open', 'Working', 'Done', 'Verified'];
 const emptyForm: Entity = { title: '', room_area_id: '', urgency: 'Normal', problem: '', assigned_to_id: '' };
@@ -22,9 +24,12 @@ export default function MaintenancePage() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Entity>({ ...emptyForm });
   const { departmentId, hydrated } = useActiveDepartment();
+  const canManageWork = hasCapability(getStoredUser(), 'manage_department');
   const beginRequest = useLatestRequest();
 
-  const openCreate = useCallback(() => setShowAdd(true), []);
+  const openCreate = useCallback(() => {
+    if (hasCapability(getStoredUser(), 'manage_department')) setShowAdd(true);
+  }, []);
   useCreateIntent(openCreate);
 
   function roomName(id?: number | string | null) { if (!id) return 'Location not recorded'; return rooms.find(room => Number(room.id) === Number(id))?.name || `Room / area #${id}`; }
@@ -60,14 +65,14 @@ export default function MaintenancePage() {
   const active = items.filter(item => item.status !== 'Verified').length; const working = items.filter(item => item.status === 'Working').length; const verifyCount = items.filter(item => item.status === 'Done').length;
   if (!hydrated || loading) return <><Top title="Maintenance" /><LoadingPanel label="Loading maintenance work…" /></>;
   return <div className="ops-module">
-    <Top title="Maintenance" right={<button data-testid="create-fix" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />Report issue</button>} />
+    <Top title="Maintenance" right={canManageWork ? <button data-testid="create-fix" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />Report issue</button> : null} />
     <WorkspaceStats items={[
       { label: 'Open work orders', value: active, icon: 'maintenance' },
       { label: 'In progress', value: working, icon: 'clock' },
       { label: 'To verify', value: verifyCount, icon: 'check' },
     ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-fix-form"><h2>Log maintenance work</h2><div className="form-grid" style={{ marginTop: 12 }}><label className="label">Work item<input className="input" value={String(form.title || '')} onChange={e => setForm({ ...form, title: e.target.value })} /></label><label className="label">Room / area<select className="select" value={String(form.room_area_id || '')} onChange={e => setForm({ ...form, room_area_id: e.target.value })}><option value="">Not assigned</option>{rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}</select></label><label className="label">Urgency<select className="select" value={String(form.urgency)} onChange={e => setForm({ ...form, urgency: e.target.value })}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label><label className="label">Assigned technician<select className="select" value={String(form.assigned_to_id || '')} onChange={e => setForm({ ...form, assigned_to_id: e.target.value })}><option value="">Unassigned</option>{people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label></div><label className="label">Problem / scope<textarea className="textarea" value={String(form.problem || '')} onChange={e => setForm({ ...form, problem: e.target.value })} /></label><div className="toolbar"><button className="btn" disabled={busy || !String(form.title || '').trim()} onClick={createFix}>{busy ? 'Saving…' : 'Create work item'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div></section> : null}
+    {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-fix-form"><h2>Log maintenance work</h2><div className="form-grid" style={{ marginTop: 12 }}><label className="label">Work item<input className="input" value={String(form.title || '')} onChange={e => setForm({ ...form, title: e.target.value })} /></label><label className="label">Room / area<select className="select" value={String(form.room_area_id || '')} onChange={e => setForm({ ...form, room_area_id: e.target.value })}><option value="">Not assigned</option>{rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}</select></label><label className="label">Urgency<select className="select" value={String(form.urgency)} onChange={e => setForm({ ...form, urgency: e.target.value })}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label><label className="label">Assigned technician<select className="select" value={String(form.assigned_to_id || '')} onChange={e => setForm({ ...form, assigned_to_id: e.target.value })}><option value="">Unassigned</option>{people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label></div><label className="label">Problem / scope<textarea className="textarea" value={String(form.problem || '')} onChange={e => setForm({ ...form, problem: e.target.value })} /></label><div className="toolbar"><button className="btn" disabled={busy || !String(form.title || '').trim()} onClick={createFix}>{busy ? 'Saving…' : 'Create work item'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div></section> : null}
     <Tabs values={['Active','Urgent',...statuses,'All']} active={filter} onChange={setFilter} label="Maintenance filters" />
     <section className="maintenance-workspace" aria-label="Maintenance work orders">
       <div className="maintenance-board">{(filter === 'All' ? statuses : filter === 'Active' || filter === 'Urgent' ? statuses.filter(status => status !== 'Verified') : [filter]).map(status => <section className="maintenance-lane" data-status={status} key={status}>
