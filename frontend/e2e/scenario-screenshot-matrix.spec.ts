@@ -161,7 +161,7 @@ const scenarios: Scenario[] = [
   {
     id: 'mobile-navigation-drawer-open', route: '/', description: 'Mobile navigation drawer open', viewport: { width: 390, height: 844 },
     ready: async page => { await expect(page.getByRole('button', { name: 'Open navigation' })).toBeVisible(); },
-    prepare: async page => { await page.getByRole('button', { name: 'Open navigation' }).click(); await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible(); await expect(page.getByRole('button', { name: 'Close navigation' }).first()).toBeVisible(); },
+    prepare: async page => { await page.getByRole('button', { name: 'Open navigation' }).click(); await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible(); await expect(page.locator('.mobile-header .ops-brand')).toBeVisible(); await expect(page.locator('#mobile-sidebar .ops-brand-row')).toBeHidden(); await expect(page.getByRole('button', { name: 'Close navigation' }).first()).toBeVisible(); },
   },
   {
     id: 'task-create-surface-open', route: '/tasks', description: 'Task create surface open', ready: async page => { await expect(page.getByTestId('create-task')).toBeVisible(); },
@@ -169,7 +169,7 @@ const scenarios: Scenario[] = [
   },
   {
     id: 'task-detail-drawer-open', route: '/tasks', description: 'Task detail drawer with workflow actions', ready: async page => { await expect(page.getByTestId('tasks-board')).toBeVisible(); },
-    prepare: async page => { await page.getByRole('button', { name: /Fix leaking faucet/ }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.getByText('Move task')).toBeVisible(); },
+    prepare: async page => { await page.getByRole('button', { name: /Fix leaking faucet/ }).click(); const dialog = page.getByRole('dialog'); await expect(dialog).toBeVisible(); await expect(dialog.getByRole('heading', { name: 'Fix leaking faucet — Room 2' })).toBeVisible(); await expect(dialog.getByText('Fix leaking faucet — Room 2', { exact: true })).toHaveCount(1); await expect(page.getByText('Move task')).toBeVisible(); },
   },
   {
     id: 'request-create-surface-open', route: '/requests', description: 'Request create surface open', ready: async page => { await expect(page.getByTestId('create-request')).toBeVisible(); },
@@ -177,7 +177,7 @@ const scenarios: Scenario[] = [
   },
   {
     id: 'request-detail-drawer-open', route: '/requests', description: 'Request detail drawer at Draft status', ready: async page => { await expect(page.getByText('Replace reception printer')).toBeVisible(); },
-    prepare: async page => { await page.getByRole('button', { name: /Replace reception printer/ }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.getByText('Send for review')).toBeVisible(); },
+    prepare: async page => { await page.getByRole('button', { name: /Replace reception printer/ }).click(); const dialog = page.getByRole('dialog'); await expect(dialog).toBeVisible(); await expect(dialog.getByRole('heading', { name: 'Replace reception printer' })).toBeVisible(); await expect(dialog.getByText('Replace reception printer', { exact: true })).toHaveCount(1); await expect(page.getByText('Send for review')).toBeVisible(); },
   },
   {
     id: 'maintenance-create-surface-open', route: '/fixes', description: 'Maintenance create surface open', ready: async page => { await expect(page.getByTestId('create-fix')).toBeVisible(); },
@@ -185,7 +185,7 @@ const scenarios: Scenario[] = [
   },
   {
     id: 'maintenance-verify-drawer-open', route: '/fixes', description: 'Maintenance Done item awaiting verification', ready: async page => { await expect(page.getByText('Function hall outlet')).toBeVisible(); },
-    prepare: async page => { await page.getByRole('button', { name: /Function hall outlet/ }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.getByRole('heading', { name: 'Verify closure' })).toBeVisible(); },
+    prepare: async page => { await page.getByRole('button', { name: /Function hall outlet/ }).click(); const dialog = page.getByRole('dialog'); await expect(dialog).toBeVisible(); await expect(dialog.getByRole('heading', { name: 'Function hall outlet' })).toBeVisible(); await expect(page.getByRole('heading', { name: 'Verify closure' })).toBeVisible(); },
   },
 ];
 

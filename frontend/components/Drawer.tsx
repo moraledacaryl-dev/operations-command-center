@@ -105,7 +105,11 @@ export function Drawer({ item, title, onClose, children, showSupplemental = true
 
   if (!item || typeof document === 'undefined') return null;
 
-  const details = Object.entries(item).filter(([key, value]) => shouldShowDetail(key, value));
+  const displayTitle = title || item.title || item.name || 'Item';
+  const details = Object.entries(item).filter(([key, value]) =>
+    shouldShowDetail(key, value)
+    && !((key === 'title' || key === 'name') && value === displayTitle)
+  );
 
   return createPortal(
     <div
@@ -124,8 +128,7 @@ export function Drawer({ item, title, onClose, children, showSupplemental = true
       >
         <div className="drawer-head">
           <div>
-            <div className="eyebrow">Open</div>
-            <h1 id={titleId}>{title || item.title || item.name || 'Item'}</h1>
+            <h1 id={titleId}>{displayTitle}</h1>
             <div className="card-line">
               <Pill value={item.status || item.review_status} />
               <Pill value={item.priority || item.urgency} />

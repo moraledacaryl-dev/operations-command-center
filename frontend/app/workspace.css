@@ -609,3 +609,12 @@ body .drawer .pill{border-radius:5px!important;font-size:11px!important;font-wei
  #operations-app-root .event-budget-mobile-remaining{margin-top:9px}
  #operations-app-root .event-budget-mobile-remaining.event-over-budget,#operations-app-root .event-budget-mobile-remaining.event-over-budget strong{color:#aa614d}
 }
+
+/* Mobile navigation uses the fixed top app header as its visible identity and
+   close control. The desktop sidebar brand row would otherwise create a second
+   logo/header and a second close button inside the open overlay. */
+@media (max-width: 920px) {
+  #operations-app-root #mobile-sidebar.open .ops-brand-row {
+    display: none !important;
+  }
+}

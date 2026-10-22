@@ -137,7 +137,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const previousFocus = document.activeElement as HTMLElement | null;
-    const focusFrame = requestAnimationFrame(() => sidebarRef.current?.querySelector<HTMLElement>('a, button, select, summary')?.focus());
+    const focusFrame = requestAnimationFrame(() => {
+      // The desktop brand row is intentionally hidden in the mobile overlay.
+      // Focus the first *visible* drawer control rather than a hidden link.
+      const firstVisible = Array.from(
+        sidebarRef.current?.querySelectorAll<HTMLElement>('a, button, select, summary') || [],
+      ).find(node => node.getClientRects().length > 0 && !node.hasAttribute('disabled'));
+      firstVisible?.focus();
+    });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMobileOpen(false);
       if (event.key !== 'Tab') return;

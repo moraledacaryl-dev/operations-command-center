@@ -124,9 +124,9 @@ export default function RequestsPage() {
       {visible.map(item => <WorkCard key={item.id} icon="request" accent="blue" title={item.title} description={item.reason} attention={item.urgency === 'Urgent'} meta={<><Pill value={item.status} />{item.urgency !== 'Normal' ? <Pill value={item.urgency} /> : null}</>} footer={<><span>{item.request_type || 'General'}</span><span>View request</span></>} onOpen={() => { setNote(''); setSelected(item); }} />)}
     </div>
     {!visible.length ? <div className="empty"><Icon name="request" />No requests in this view.</div> : null}</section>
-    <Drawer item={selected} title="Request" onClose={() => !busy && setSelected(null)}>
+    <Drawer item={selected} title={selected?.title || "Request"} onClose={() => !busy && setSelected(null)}>
       {selected ? <>
-        <section className="panel" style={{ marginBottom: 16 }}><h2>{selected.title}</h2><p>{selected.reason || 'No business reason recorded.'}</p><div className="card-line"><Pill value={selected.status} /><Pill value={selected.urgency || 'Normal'} /><Pill value={selected.request_type || 'General'} /></div></section>
+        <section className="panel" style={{ marginBottom: 16 }}><h2>Business reason</h2><p>{selected.reason || 'No business reason recorded.'}</p><div className="card-line"><Pill value={selected.request_type || 'General'} /></div></section>
         <section className="panel"><h2>Next action</h2><textarea className="textarea" placeholder="Implementation note" value={note} onChange={e => setNote(e.target.value)} disabled={busy} /><div className="toolbar">
           {selected.status === 'Draft' ? <button className="btn" disabled={busy} onClick={submitForReview}>{busy ? 'Submitting…' : 'Send for review'}</button> : null}
           {selected.status === 'Review' ? <span className="muted">Decision is made from the Approval workflow.</span> : null}
