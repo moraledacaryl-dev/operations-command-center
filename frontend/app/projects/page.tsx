@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
+import { isOverduePropertyDay } from '@/lib/property-dates';
 import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
 import { Pill } from '@/components/Pill';
@@ -24,7 +25,7 @@ type EnrichedProject = Entity & {
 
 function formatDate(value?: string) {
   if (!value) return 'No due date';
-  return new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
+  return new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(value));
 }
 
 export default function ProjectsPage() {
@@ -97,7 +98,7 @@ export default function ProjectsPage() {
   const enriched = useMemo<EnrichedProject[]>(() => projects.map((project): EnrichedProject => {
     const linked = tasks.filter(task => Number(task.project_id) === Number(project.id));
     const done = linked.filter(task => task.status === 'Done').length;
-    const overdue = linked.filter(task => task.due_date && task.status !== 'Done' && new Date(task.due_date).getTime() < Date.now()).length;
+    const overdue = linked.filter(task => task.status !== 'Done' && isOverduePropertyDay(task.due_date)).length;
     return { ...project, linked_tasks: linked, progress: linked.length ? Math.round((done / linked.length) * 100) : 0, overdue_tasks: overdue };
   }), [projects, tasks]);
 
@@ -111,7 +112,7 @@ export default function ProjectsPage() {
         const detail = await api.get('projects', detailId);
         const rows = await api.listAll('tasks', { active: true, department_id: detail.department_id || '' });
         const linked = rows.filter(t => Number(t.project_id) === detailId);
-        if (active) setSelected({ ...detail, linked_tasks: linked, progress: linked.length ? Math.round(linked.filter(t => t.status === 'Done').length * 100 / linked.length) : 0, overdue_tasks: linked.filter(t => t.status !== 'Done' && t.due_date && new Date(t.due_date).getTime() < Date.now()).length });
+        if (active) setSelected({ ...detail, linked_tasks: linked, progress: linked.length ? Math.round(linked.filter(t => t.status === 'Done').length * 100 / linked.length) : 0, overdue_tasks: linked.filter(t => t.status !== 'Done' && isOverduePropertyDay(t.due_date)).length });
       } catch (err: any) { if (active) setError(err.message || 'Project could not be opened.'); }
     }
     void openDetails();
