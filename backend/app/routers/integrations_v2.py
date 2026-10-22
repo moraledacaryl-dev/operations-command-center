@@ -302,6 +302,28 @@ def _find_operations_user(db: Session, payload: IdentityLinkPayload) -> models.U
     return match
 
 
+def _require_complete_delivery_links(db: Session, delivery: IntegrationDelivery) -> None:
+    """Never acknowledge a replay when the recorded event is structurally incomplete.
+
+    A v2 event is applied atomically with its Inbox and Review rows. If one
+    has subsequently disappeared, idempotent replay must not masquerade as a
+    successful delivery or silently recreate a human Review decision.
+    """
+    inbox_exists = db.query(IntegrationEventInbox.id).filter(
+        IntegrationEventInbox.source_app == delivery.source_app,
+        IntegrationEventInbox.external_event_id == delivery.event_id,
+    ).first() is not None
+    review_exists = db.query(models.ExternalReviewItem.id).filter(
+        models.ExternalReviewItem.external_source == delivery.source_app,
+        models.ExternalReviewItem.external_id == delivery.event_id,
+    ).first() is not None
+    if delivery.status != "processed" or not inbox_exists or not review_exists:
+        raise HTTPException(
+            status_code=409,
+            detail="Integration delivery has incomplete processing or missing Review/Inbox linkage; reconcile before replay",
+        )
+
+
 @router.post("/events/{source_app}")
 def receive_event(
     source_app: str,
@@ -324,6 +346,7 @@ def receive_event(
     if existing:
         if existing.payload_sha256 != digest:
             raise HTTPException(status_code=409, detail="event_id was already used with a different payload")
+        _require_complete_delivery_links(db, existing)
         return {"status": "already_applied", "delivery_id": existing.id}
 
     subject = event.subject
@@ -379,6 +402,7 @@ def receive_event(
             IntegrationDelivery.event_id == event_id,
         ).first()
         if existing and existing.payload_sha256 == digest:
+            _require_complete_delivery_links(db, existing)
             return {"status": "already_applied", "delivery_id": existing.id}
         raise HTTPException(status_code=409, detail="Integration event conflicts with an existing delivery")
 
