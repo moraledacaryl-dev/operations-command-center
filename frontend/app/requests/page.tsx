@@ -13,6 +13,8 @@ import { WorkspaceStats } from '@/components/WorkspaceStats';
 
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
+import { getStoredUser } from '@/lib/session';
+import { hasCapability } from '@/lib/capabilities';
 
 export default function RequestsPage() {
   const [items, setItems] = useState<Entity[]>([]);
@@ -28,9 +30,12 @@ export default function RequestsPage() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const { departmentId, hydrated } = useActiveDepartment();
+  const canManageWork = hasCapability(getStoredUser(), 'manage_department');
   const beginRequest = useLatestRequest();
 
-  const openCreate = useCallback(() => setShowAdd(true), []);
+  const openCreate = useCallback(() => {
+    if (hasCapability(getStoredUser(), 'manage_department')) setShowAdd(true);
+  }, []);
   useCreateIntent(openCreate);
 
   const load = useCallback(async () => {
@@ -101,14 +106,14 @@ export default function RequestsPage() {
   if (!hydrated || loading) return <><Top title="Requests" /><LoadingPanel label="Loading requests and decisions…" /></>;
 
   return <div className="ops-module">
-    <Top title="Requests" right={<button data-testid="create-request" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New request</button>} />
+    <Top title="Requests" right={canManageWork ? <button data-testid="create-request" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New request</button> : null} />
     <WorkspaceStats items={[
       { label: 'For review', value: error ? null : pending, icon: 'review' },
       { label: 'Approved / planned', value: error ? null : approved, icon: 'request' },
       { label: 'Urgent', value: error ? null : urgent, icon: 'clock', attention: true },
     ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
+    {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
       <h2>New request</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Request<input className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
