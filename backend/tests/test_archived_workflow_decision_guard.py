@@ -141,3 +141,44 @@ def test_archived_submission_cannot_receive_new_decision(context, status):
     assert submission.reviewed_at is None
     assert submission.hidden_from_active is True
     assert db.query(models.ActivityLog).count() == 0
+
+
+@pytest.mark.parametrize("status,action", [
+    ("Draft", "submit"),
+    ("Approved", "plan"),
+    ("Planned", "complete"),
+])
+def test_archived_request_does_not_reveal_foreign_department_to_manager(context, status, action):
+    db, _, department = context
+    other = models.Department(name="Restricted maintenance")
+    db.add(other)
+    db.flush()
+    manager = models.User(
+        name="Manager", role="manager",
+        department_id=department.id, is_active=True,
+    )
+    db.add(manager)
+    db.flush()
+    db.add(models.UserDepartment(
+        user_id=manager.id, department_id=department.id, is_primary=True,
+    ))
+    request = models.Request(
+        title="Private archived request", department_id=other.id,
+        status=status, hidden_from_active=True, archive_reason="manual_archive",
+    )
+    db.add(request)
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        if action == "submit":
+            submit_request(db, manager, request.id)
+        elif action == "plan":
+            plan_request(db, manager, request.id)
+        else:
+            complete_request(db, manager, request.id)
+    assert exc.value.status_code == 403
+    db.commit()
+    db.refresh(request)
+    assert request.status == status
+    assert request.hidden_from_active is True
+    assert db.query(models.ActivityLog).count() == 0
