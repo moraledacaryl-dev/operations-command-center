@@ -128,3 +128,57 @@ def test_v2_receiver_rejects_unsupported_event_type_before_persistence(monkeypat
     assert db.query(IntegrationDelivery).count() == 0
     assert db.query(IntegrationEventInbox).count() == 0
     assert db.query(models.ExternalReviewItem).count() == 0
+
+
+@pytest.mark.parametrize("missing_link", ["review", "inbox", "unprocessed"])
+def test_v2_replay_refuses_incomplete_historical_delivery(monkeypatch, missing_link):
+    configure_source_keys(monkeypatch)
+    db = make_session()
+    event = staff_event(event_id=f"evt-v2-incomplete-{missing_link}")
+    first = receive_event(
+        "hidden_oasis_staff_payroll", event,
+        x_integration_api_key="alpha", db=db,
+    )
+    delivery = db.get(IntegrationDelivery, first["delivery_id"])
+    if missing_link == "review":
+        db.query(models.ExternalReviewItem).delete()
+    elif missing_link == "inbox":
+        db.query(IntegrationEventInbox).delete()
+    else:
+        delivery.status = "received"
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        receive_event(
+            "hidden_oasis_staff_payroll", event,
+            x_integration_api_key="alpha", db=db,
+        )
+
+    assert exc.value.status_code == 409
+    assert "reconcile" in str(exc.value.detail)
+    assert db.query(IntegrationDelivery).count() == 1
+    assert db.query(models.ExternalReviewItem).count() == (0 if missing_link == "review" else 1)
+    assert db.query(IntegrationEventInbox).count() == (0 if missing_link == "inbox" else 1)
+    db.close()
+
+
+def test_v2_replay_preserves_human_review_decision(monkeypatch):
+    configure_source_keys(monkeypatch)
+    db = make_session()
+    event = staff_event(event_id="evt-v2-human-reviewed")
+    first = receive_event(
+        "hidden_oasis_staff_payroll", event,
+        x_integration_api_key="alpha", db=db,
+    )
+    review = db.query(models.ExternalReviewItem).one()
+    review.status = "Seen"
+    db.commit()
+
+    replay = receive_event(
+        "hidden_oasis_staff_payroll", event,
+        x_integration_api_key="alpha", db=db,
+    )
+    assert replay == {"status": "already_applied", "delivery_id": first["delivery_id"]}
+    assert db.query(models.ExternalReviewItem).one().status == "Seen"
+    assert db.query(models.ExternalReviewItem).count() == 1
+    db.close()
