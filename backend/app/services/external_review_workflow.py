@@ -76,6 +76,13 @@ def create_task(db: Session, user: models.User, item_id: int, department_id: int
         # Authorize the actual linked record before it can be returned.
         authorize_action(db, user, "tasks", Action.CREATE, department_id=existing.department_id)
         authorize_action(db, user, "tasks", Action.VIEW, obj=existing)
+        if existing.hidden_from_active:
+            # Returning a hidden Task makes an active Review appear to have
+            # created work that cannot be found in operational queues.
+            raise HTTPException(
+                status_code=409,
+                detail="Archived linked Task must be reconciled before continuing this Review",
+            )
         if department_id is not None and existing.department_id != department_id:
             raise HTTPException(status_code=409, detail="The linked Task belongs to a different department.")
         return existing, item
@@ -124,6 +131,13 @@ def create_approval(db: Session, user: models.User, item_id: int, department_id:
             raise HTTPException(status_code=409, detail="Linked Approval belongs to another source")
         if existing.status != "Pending":
             raise HTTPException(status_code=409, detail="Linked Approval is no longer pending")
+        if existing.hidden_from_active:
+            # A pending but archived Approval is an integrity exception, not
+            # an idempotent successful retry. Do not replace or unarchive it.
+            raise HTTPException(
+                status_code=409,
+                detail="Archived linked Approval must be reconciled before continuing this Review",
+            )
         return existing, item
     _require_approval_department(db, user, target_department)
     approval = models.Approval(
