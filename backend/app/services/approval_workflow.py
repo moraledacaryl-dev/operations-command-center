@@ -28,6 +28,11 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
     authorize_action(db, user, "approvals", Action.DECIDE, obj=approval)
     if approval.status != "Pending":
         raise HTTPException(status_code=409, detail="Approval has already been decided")
+    if approval.hidden_from_active:
+        raise HTTPException(
+            status_code=409,
+            detail="Archived pending Approval must be reconciled before a decision",
+        )
     if approval.source_type in {"ops_need", "external_review_item"} and not approval.source_id:
         # Source-owned Approvals cannot be decided independently if their
         # source pointer was lost. Preserve the pending record for repair.
@@ -46,6 +51,11 @@ def decide_approval(db: Session, user: models.User, approval_id: int, decision: 
         authorize_action(db, user, "requests", Action.TRANSITION, obj=request)
         if request.status != "Review":
             raise HTTPException(status_code=409, detail="Linked Request is not awaiting approval")
+        if request.hidden_from_active:
+            raise HTTPException(
+                status_code=409,
+                detail="Archived linked Request must be reconciled before an Approval decision",
+            )
 
     if approval.source_type == "external_review_item" and approval.source_id:
         external_item = db.query(models.ExternalReviewItem).filter(models.ExternalReviewItem.id == approval.source_id).with_for_update().one_or_none()

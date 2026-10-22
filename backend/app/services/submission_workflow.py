@@ -35,6 +35,11 @@ def decide_submission(
         raise HTTPException(status_code=404, detail="Submission not found.")
 
     authorize_action(db, user, "submissions", Action.DECIDE, obj=submission)
+    if submission.hidden_from_active:
+        raise HTTPException(
+            status_code=409,
+            detail="Archived Submission must be reconciled before a decision",
+        )
 
     # The Review queue deliberately includes both New and Review submissions.
     # Both remain awaiting a decision; only Accepted/Rejected are terminal.

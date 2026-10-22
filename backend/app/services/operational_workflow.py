@@ -73,6 +73,15 @@ RESOURCE_MODELS = {
 }
 
 
+def _restores_archived_visibility(resource: str, action: str) -> bool:
+    # A deliberate reopen returns terminal work to active queues. Seen shift
+    # handovers have their own documented follow-up action which also restores
+    # auto-archived records.
+    return action == "reopen" or (
+        resource == "shift-notes" and action == "follow-up-seen"
+    )
+
+
 def allowed_actions_for(db: Session, user: models.User, resource: str, obj) -> list[str]:
     transitions = TRANSITIONS.get(resource)
     if not transitions or obj is None:
@@ -82,7 +91,14 @@ def allowed_actions_for(db: Session, user: models.User, resource: str, obj) -> l
     except HTTPException:
         return []
     current = str(getattr(obj, "status", ""))
-    return [action for action, transition in transitions.items() if transition.source == current]
+    return [
+        action for action, transition in transitions.items()
+        if transition.source == current
+        and (
+            not getattr(obj, "hidden_from_active", False)
+            or _restores_archived_visibility(resource, action)
+        )
+    ]
 
 
 def transition_operational(
@@ -112,12 +128,15 @@ def transition_operational(
     if transition.note_required and not clean_note:
         raise HTTPException(status_code=400, detail="A reason is required for this action.")
 
-    # A reopened archived record must return to active queues, not just
-    # change its status while remaining hidden. Seen shift notes can also be
-    # automatically archived before a later follow-up is requested.
-    restoring_visibility = action == "reopen" or (
-        resource == "shift-notes" and action == "follow-up-seen"
-    )
+    # Archived records must never undergo a hidden transition that leaves
+    # them out of My Work and active department queues. Only explicit
+    # visibility-restoring actions may transition these records.
+    restoring_visibility = _restores_archived_visibility(resource, action)
+    if obj.hidden_from_active and not restoring_visibility:
+        raise HTTPException(
+            status_code=409,
+            detail="Archived record must be reopened or reconciled before this action.",
+        )
     prior_archive = {}
     if restoring_visibility and obj.hidden_from_active:
         prior_archive = {
