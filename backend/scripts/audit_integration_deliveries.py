@@ -12,9 +12,9 @@ import re
 from datetime import datetime, timedelta
 from typing import Any
 
+from fastapi import HTTPException
 from sqlalchemy import and_, func, or_, text
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
 
 from app.clock import as_utc, utc_now
 from app.foundation_models import IntegrationEventInbox
@@ -25,7 +25,7 @@ from app.routers.integrations_v2 import SOURCE_EVENT_TYPES, _source_keys
 # A filename-style event identity is an investigation hint, never permission
 # to delete records or exempt a missing Review from integrity checks.
 CONNECTIVITY_CERT_ID = re.compile(
-    r"^connectivity-cert-\\d{8}T\\d{6}Z-\\d+-(staff|accounting|pos|inventory)$"
+    r"^connectivity-cert-\d{8}T\d{6}Z-\d+-(staff|accounting|pos|inventory)$"
 )
 CERT_SOURCE_SUFFIX = {
     "hidden_oasis_staff_payroll": "staff",
@@ -66,8 +66,6 @@ def audit_receiver_configuration() -> dict[str, Any]:
         "all_sources_configured": all(source_presence.values()),
         "reason": "Presence only; does not verify producer credentials or outbound traffic",
     }
-
-
 
 
 def audit_delivery_integrity(
