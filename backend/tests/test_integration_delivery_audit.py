@@ -243,6 +243,7 @@ def test_receiver_readiness_reports_presence_without_leaking_keys(monkeypatch):
     report = audit_receiver_configuration()
     assert report["configuration_valid"] is True
     assert report["all_sources_configured"] is True
+    assert report["distinct_source_credentials"] is True
     assert set(report["configured_sources"]) == set(values)
     assert all(report["configured_sources"].values())
     assert all(secret not in str(report) for secret in values.values())
@@ -277,3 +278,15 @@ def test_receiver_readiness_distinguishes_missing_key_from_bad_configuration(mon
     malformed = audit_receiver_configuration()
     assert malformed["configuration_valid"] is False
     assert "{bad-json" not in str(malformed)
+
+
+def test_receiver_readiness_rejects_shared_legacy_key_even_in_development(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.delenv("INTEGRATION_API_KEYS_JSON", raising=False)
+    monkeypatch.setenv("INTEGRATION_API_KEY", "single-shared-development-key")
+    report = audit_receiver_configuration()
+    assert all(report["configured_sources"].values())
+    assert report["distinct_source_credentials"] is False
+    assert report["configuration_valid"] is False
+    assert report["all_sources_configured"] is False
+    assert "single-shared-development-key" not in str(report)
