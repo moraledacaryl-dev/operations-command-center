@@ -126,7 +126,7 @@ export default function RequestsPage() {
     {!visible.length ? <div className="empty"><Icon name="request" />No requests in this view.</div> : null}</section>
     <Drawer item={selected} title={selected?.title || "Request"} onClose={() => !busy && setSelected(null)}>
       {selected ? <>
-        <section className="panel" style={{ marginBottom: 16 }}><h2>{selected.title}</h2><p>{selected.reason || 'No business reason recorded.'}</p><div className="card-line"><Pill value={selected.status} /><Pill value={selected.urgency || 'Normal'} /><Pill value={selected.request_type || 'General'} /></div></section>
+        <section className="panel" style={{ marginBottom: 16 }}><h2>Business reason</h2><p>{selected.reason || 'No business reason recorded.'}</p><div className="card-line"><Pill value={selected.request_type || 'General'} /></div></section>
         <section className="panel"><h2>Next action</h2><textarea className="textarea" placeholder="Implementation note" value={note} onChange={e => setNote(e.target.value)} disabled={busy} /><div className="toolbar">
           {selected.status === 'Draft' ? <button className="btn" disabled={busy} onClick={submitForReview}>{busy ? 'Submitting…' : 'Send for review'}</button> : null}
           {selected.status === 'Review' ? <span className="muted">Decision is made from the Approval workflow.</span> : null}
