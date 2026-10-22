@@ -213,3 +213,37 @@ def test_archived_cross_department_pending_approval_is_not_bypassed(context):
     assert exc.value.status_code == 409
     assert db.query(models.Approval).count() == 1
     assert_request_unchanged(db, request, "Draft")
+
+
+@pytest.mark.parametrize("actor", ["owner", "manager"])
+def test_plan_rejects_archived_linked_task_without_reopening_or_duplication(context, actor):
+    db, front, _, owner, manager = context
+    request = new_request(db, front.id, "Approved")
+    task = models.Task(
+        title="Archived historical work",
+        department_id=front.id,
+        status="Done",
+        hidden_from_active=True,
+        archive_reason="completed_auto_archive",
+    )
+    db.add(task)
+    db.flush()
+    request.linked_task_id = task.id
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        plan_request(db, owner if actor == "owner" else manager, request.id)
+    assert exc.value.status_code == 409
+    assert "Archived linked Task" in str(exc.value.detail)
+
+    # Even if the caller later commits the retained Session, nothing is
+    # resurrected, duplicated, or marked as planned.
+    db.commit()
+    db.refresh(request)
+    db.refresh(task)
+    assert request.status == "Approved"
+    assert request.linked_task_id == task.id
+    assert task.hidden_from_active is True
+    assert task.archive_reason == "completed_auto_archive"
+    assert db.query(models.Task).count() == 1
+    assert db.query(models.ActivityLog).count() == 0
