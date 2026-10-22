@@ -116,7 +116,7 @@ export default function ShiftPage() {
       </button>)}
       {!visible.length ? <div className="empty"><Icon name="shift" />No handover notes in this view.</div> : null}
     </div>
-    <Drawer item={selected} title="Handover note" onClose={() => !busy && setSelected(null)}>
+    <Drawer item={selected} title={selected?.title || "Handover note"} onClose={() => !busy && setSelected(null)}>
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}><div className="card-line"><Pill value={selected.shift || 'Shift'} /><Pill value={selected.category || 'Other'} /><Pill value={selected.status || 'New'} /></div><h2>{selected.title}</h2><p style={{ lineHeight: 1.6 }}>{selected.note}</p><p className="muted">Recorded {formatStamp(selected.created_at || selected.updated_at)}</p></section>
         <section className="panel"><h2>Handover action</h2>{(selected.allowed_actions || []).includes('reopen') ? <label className="label">Reopen reason<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} /></label> : null}<div className="toolbar">
