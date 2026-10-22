@@ -134,3 +134,61 @@ def test_invalid_hours_does_not_query_or_mutate_database(db):
     with pytest.raises(ValueError, match="hours"):
         audit_delivery_integrity(db, now=NOW, hours=0)
     assert not db.new and not db.dirty
+
+
+def test_opt_in_diagnostics_expose_exact_orphans_and_only_candidate_review_ids(db):
+    add_delivery(db, event_id="staff:diagnostic", with_review=False)
+    delivery = db.query(IntegrationDelivery).one()
+    delivery.subject_type = "task"
+    delivery.subject_id = "42"
+    db.add(ExternalReviewItem(
+        external_source="historical_source_alias",
+        external_id="staff:diagnostic",
+        source_app="hidden_oasis_staff_payroll",
+        source_record_type="task",
+        source_record_id="42",
+        event_type="example.event",
+        title="PRIVATE guest narrative",
+        payload_json='{"bank_account":"PRIVATE ACCOUNT"}',
+        status="Seen",
+    ))
+    db.commit()
+    alternate_id = db.query(ExternalReviewItem).one().id
+
+    standard = audit_delivery_integrity(db, now=NOW)
+    assert "diagnostics" not in standard
+
+    report = audit_delivery_integrity(db, now=NOW, diagnostic_limit=10)
+    assert report["read_only"] is True
+    assert report["totals"]["missing_review"] == 1
+    assert report["diagnostics"]["truncated"] is False
+    assert report["diagnostics"]["candidates_are_not_verified_links"] is True
+    assert len(report["diagnostics"]["deliveries"]) == 1
+    row = report["diagnostics"]["deliveries"][0]
+    assert row["delivery_id"] == delivery.id
+    assert row["source_app"] == "hidden_oasis_staff_payroll"
+    assert row["event_id"] == "staff:diagnostic"
+    assert row["inbox_id"] is not None
+    assert row["review_id"] is None
+    assert row["candidate_review_ids_same_event_id"] == [alternate_id]
+    assert row["candidate_review_ids_same_subject"] == [alternate_id]
+    assert "PRIVATE" not in str(report)
+    assert db.query(ExternalReviewItem).one().status == "Seen"
+    assert not db.new and not db.dirty
+
+
+def test_diagnostic_limit_reports_truncation_without_changing_counts(db):
+    add_delivery(db, event_id="staff:one", with_review=False, with_inbox=False)
+    add_delivery(db, event_id="staff:two", with_review=False)
+    report = audit_delivery_integrity(db, now=NOW, diagnostic_limit=1)
+    assert report["totals"]["missing_review"] == 2
+    assert report["totals"]["missing_inbox"] == 1
+    assert report["diagnostics"]["limit"] == 1
+    assert report["diagnostics"]["truncated"] is True
+    assert len(report["diagnostics"]["deliveries"]) == 1
+
+
+def test_negative_diagnostic_limit_rejected_before_database_access(db):
+    with pytest.raises(ValueError, match="diagnostic_limit"):
+        audit_delivery_integrity(db, now=NOW, diagnostic_limit=-1)
+    assert not db.new and not db.dirty
