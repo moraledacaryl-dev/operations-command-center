@@ -216,3 +216,51 @@ def test_direct_link_with_only_one_matching_reverse_link_remains_idempotent(cont
     assert found.id == existing.id
     assert db.query(models.Fix).count() == 1
     assert db.query(models.ActivityLog).count() == 0
+
+
+@pytest.mark.parametrize(
+    ("fix_status", "hidden", "direct_link"),
+    [
+        ("Verified", False, True),
+        ("Verified", False, False),
+        ("Working", True, True),
+        ("Working", True, False),
+        ("Done", True, True),
+        ("Done", True, False),
+    ],
+)
+def test_active_guest_never_reuses_verified_or_archived_fix(
+    context, fix_status, hidden, direct_link
+):
+    db, front, _, owner, _, _, guest = context
+    fix = models.Fix(
+        title="Prior maintenance response",
+        department_id=front.id,
+        linked_guest_note_id=guest.id,
+        status=fix_status,
+        hidden_from_active=hidden,
+        archive_reason="previous_case" if hidden else None,
+    )
+    db.add(fix)
+    db.flush()
+    guest.status = "Follow"
+    if direct_link:
+        guest.linked_fix_id = fix.id
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        create_fix_from_guest(db, owner, guest.id)
+    assert exc.value.status_code == 409
+    assert "Reopen or reconcile" in str(exc.value.detail)
+
+    # A later commit may not relink to this unusable ticket or create a
+    # replacement behind the user's back.
+    db.commit()
+    db.refresh(guest)
+    db.refresh(fix)
+    assert guest.linked_fix_id == (fix.id if direct_link else None)
+    assert guest.status == "Follow"
+    assert fix.status == fix_status
+    assert fix.hidden_from_active is hidden
+    assert db.query(models.Fix).count() == 1
+    assert db.query(models.ActivityLog).count() == 0
