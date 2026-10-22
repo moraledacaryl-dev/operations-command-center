@@ -25,7 +25,7 @@ type EnrichedProject = Entity & {
 
 function formatDate(value?: string) {
   if (!value) return 'No due date';
-  return new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
+  return new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(value));
 }
 
 export default function ProjectsPage() {
