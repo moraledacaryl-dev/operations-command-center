@@ -9,6 +9,8 @@ import { WorkspaceStats } from '@/components/WorkspaceStats';
 import { Top } from '@/components/Top';
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
+import { getStoredUser } from '@/lib/session';
+import { hasCapability } from '@/lib/capabilities';
 
 const columns = ['To Do', 'Doing', 'Review', 'Done'];
 
@@ -31,9 +33,12 @@ export default function TeamTasksPage() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const { departmentId, hydrated } = useActiveDepartment();
+  const canManageWork = hasCapability(getStoredUser(), 'manage_department');
   const beginRequest = useLatestRequest();
 
-  const openCreate = useCallback(() => setShowAdd(true), []);
+  const openCreate = useCallback(() => {
+    if (hasCapability(getStoredUser(), 'manage_department')) setShowAdd(true);
+  }, []);
   useCreateIntent(openCreate);
 
   const load = useCallback(async () => {
@@ -81,14 +86,14 @@ export default function TeamTasksPage() {
   if (!hydrated || loading) return <><Top title="Tasks" /><LoadingPanel label="Loading team tasks…" /></>;
 
   return <div className="ops-module">
-    <Top title="Tasks" right={<button data-testid="create-task" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New task</button>} />
+    <Top title="Tasks" right={canManageWork ? <button data-testid="create-task" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New task</button> : null} />
     <WorkspaceStats items={[
       { label: 'Active tasks', value: visible.filter(item => item.status !== 'Done').length, icon: 'tasks' },
       { label: 'Waiting for review', value: visible.filter(item => item.status === 'Review').length, icon: 'review' },
       { label: 'Overdue', value: overdue, icon: 'clock', attention: true },
     ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
+    {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
       <h2>Create team task</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Task title<input className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>

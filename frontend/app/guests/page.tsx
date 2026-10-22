@@ -12,6 +12,8 @@ import { WorkspaceStats } from '@/components/WorkspaceStats';
 
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
+import { getStoredUser } from '@/lib/session';
+import { hasCapability } from '@/lib/capabilities';
 
 function dateLabel(value?: string) {
   if (!value) return 'No follow-up set';
@@ -36,9 +38,12 @@ export default function GuestMattersPage() {
   const [actionNote, setActionNote] = useState('');
   const [loading, setLoading] = useState(true);
   const { departmentId, hydrated } = useActiveDepartment();
+  const canManageWork = hasCapability(getStoredUser(), 'manage_department');
   const beginRequest = useLatestRequest();
 
-  const openCreate = useCallback(() => setShowAdd(true), []);
+  const openCreate = useCallback(() => {
+    if (hasCapability(getStoredUser(), 'manage_department')) setShowAdd(true);
+  }, []);
   useCreateIntent(openCreate);
 
   function roomName(roomAreaId?: number | string | null) {
@@ -109,14 +114,14 @@ export default function GuestMattersPage() {
   if (!hydrated || loading) return <><Top title="Guest matters" /><LoadingPanel label="Loading guest matters…" /></>;
 
   return <div className="ops-module">
-    <Top title="Guest matters" right={<button data-testid="create-guest" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New guest matter</button>} />
+    <Top title="Guest matters" right={canManageWork ? <button data-testid="create-guest" className="btn" onClick={() => setShowAdd(value => !value)}><Icon name="plus" />New guest matter</button> : null} />
     <WorkspaceStats items={[
       { label: 'Open matters', value: error ? null : active, icon: 'guests' },
       { label: 'Urgent', value: error ? null : urgent, icon: 'clock', attention: true },
       { label: 'Follow-ups', value: error ? null : follow, icon: 'shift' },
     ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-guest-form">
+    {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-guest-form">
       <h2>Log guest matter</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Matter<input className="input" value={String(form.title || '')} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
@@ -133,7 +138,7 @@ export default function GuestMattersPage() {
     <div className="ops-card-grid">{visible.map(item => <WorkCard key={item.id} icon="guests" accent="sand" title={item.title} description={item.note} attention={['Urgent', 'High'].includes(String(item.urgency)) && item.status !== 'Done'} meta={<><Pill value={item.status} /><Pill value={item.issue_type} /></>} footer={<><span className="ops-guest-line">{item.guest_name || 'Guest not recorded'} · {roomName(item.room_area_id)}</span><span><Icon name="clock" />{dateLabel(item.follow_up_date)}</span></>} onOpen={async () => { try { setActionNote(''); setSelected(await api.get('guests', item.id)); } catch (err: any) { setError(err.message || 'Guest matter could not be opened.'); } }} />)}</div>
     {!visible.length ? <div className="empty"><Icon name="guests" />No guest matters in this view.</div> : null}
     <Drawer item={selected} title={selected?.title || "Guest matter"} onClose={() => setSelected(null)}>
-      {selected ? <><section className="panel" style={{ marginBottom: 16 }}><h2>{selected.guest_name || 'Guest'} · {roomName(selected.room_area_id)}</h2><p>{selected.note || 'No notes.'}</p><p className="muted">Follow-up: {dateLabel(selected.follow_up_date)}</p><div className="card-line"><Pill value={String(selected.issue_type || 'Guest')} /><Pill value={String(selected.urgency || 'Normal')} /><Pill value={String(selected.status || 'Open')} /></div></section><section className="panel"><h2>Next action</h2>{(selected.allowed_actions || []).includes('reopen') ? <label className="label">Reopen reason<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} /></label> : null}<div className="toolbar">{(selected.allowed_actions || []).map((action: string) => <button className="btn small secondary" disabled={busy || (action === 'reopen' && !actionNote.trim())} key={action} onClick={() => move(action)}>{({ 'follow-up': 'Needs follow-up', 'resolve-open': 'Resolve', 'resolve-follow': 'Resolve', reopen: 'Reopen' } as Record<string, string>)[action] || action}</button>)}<button className="btn small secondary" disabled={busy} onClick={createFix}>Create maintenance</button></div></section></> : null}
+      {selected ? <><section className="panel" style={{ marginBottom: 16 }}><h2>{selected.guest_name || 'Guest'} · {roomName(selected.room_area_id)}</h2><p>{selected.note || 'No notes.'}</p><p className="muted">Follow-up: {dateLabel(selected.follow_up_date)}</p><div className="card-line"><Pill value={String(selected.issue_type || 'Guest')} /><Pill value={String(selected.urgency || 'Normal')} /><Pill value={String(selected.status || 'Open')} /></div></section><section className="panel"><h2>Next action</h2>{(selected.allowed_actions || []).includes('reopen') ? <label className="label">Reopen reason<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} /></label> : null}<div className="toolbar">{(selected.allowed_actions || []).map((action: string) => <button className="btn small secondary" disabled={busy || (action === 'reopen' && !actionNote.trim())} key={action} onClick={() => move(action)}>{({ 'follow-up': 'Needs follow-up', 'resolve-open': 'Resolve', 'resolve-follow': 'Resolve', reopen: 'Reopen' } as Record<string, string>)[action] || action}</button>)}{canManageWork ? <button className="btn small secondary" disabled={busy} onClick={createFix}>Create maintenance</button> : null}</div></section></> : null}
     </Drawer>
   </div>;
 }
