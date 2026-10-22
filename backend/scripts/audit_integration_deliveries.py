@@ -22,10 +22,13 @@ from app.routers.integrations_v2 import SOURCE_EVENT_TYPES
 
 
 def audit_delivery_integrity(
-    db: Session, *, now: datetime | None = None, hours: int = 168
+    db: Session, *, now: datetime | None = None, hours: int = 168,
+    diagnostic_limit: int = 0,
 ) -> dict[str, Any]:
     if hours < 1:
         raise ValueError("hours must be at least 1")
+    if diagnostic_limit < 0:
+        raise ValueError("diagnostic_limit must be nonnegative")
 
     now = as_utc(now or utc_now())
     cutoff = now - timedelta(hours=hours)
@@ -130,6 +133,76 @@ def audit_delivery_integrity(
         ):
             report["totals"][name] += int(n)
 
+    if diagnostic_limit:
+        # An explicit opt-in exposes event identifiers and record IDs only.
+        # No guest, payroll, financial, or other event payload is included.
+        problem_deliveries = (
+            db.query(
+                IntegrationDelivery,
+                IntegrationEventInbox.id,
+                ExternalReviewItem.id,
+            )
+            .outerjoin(IntegrationEventInbox, delivery_to_inbox)
+            .outerjoin(ExternalReviewItem, delivery_to_review)
+            .filter(
+                IntegrationDelivery.source_app.in_(tuple(SOURCE_EVENT_TYPES)),
+                or_(
+                    IntegrationEventInbox.id.is_(None),
+                    ExternalReviewItem.id.is_(None),
+                    IntegrationDelivery.status != "processed",
+                ),
+            )
+            .order_by(IntegrationDelivery.source_app, IntegrationDelivery.id)
+            .limit(diagnostic_limit + 1)
+            .all()
+        )
+        details = []
+        for delivery, inbox_id, review_id in problem_deliveries[:diagnostic_limit]:
+            candidate_same_event = []
+            candidate_same_subject = []
+            if review_id is None:
+                # These are leads for a human investigator, not proof of a
+                # replacement review. Never relink records from this audit.
+                candidate_same_event = [
+                    int(row.id)
+                    for row in db.query(ExternalReviewItem.id)
+                    .filter(ExternalReviewItem.external_id == delivery.event_id)
+                    .order_by(ExternalReviewItem.id)
+                    .limit(20)
+                    .all()
+                ]
+                if delivery.subject_type and delivery.subject_id:
+                    candidate_same_subject = [
+                        int(row.id)
+                        for row in db.query(ExternalReviewItem.id)
+                        .filter(
+                            ExternalReviewItem.source_app == delivery.source_app,
+                            ExternalReviewItem.source_record_type == delivery.subject_type,
+                            ExternalReviewItem.source_record_id == delivery.subject_id,
+                        )
+                        .order_by(ExternalReviewItem.id)
+                        .limit(20)
+                        .all()
+                    ]
+            details.append({
+                "delivery_id": int(delivery.id),
+                "source_app": delivery.source_app,
+                "event_id": delivery.event_id,
+                "event_type": delivery.event_type,
+                "received_at_utc": as_utc(delivery.received_at).isoformat(),
+                "status": delivery.status,
+                "inbox_id": int(inbox_id) if inbox_id is not None else None,
+                "review_id": int(review_id) if review_id is not None else None,
+                "candidate_review_ids_same_event_id": candidate_same_event,
+                "candidate_review_ids_same_subject": candidate_same_subject,
+            })
+        report["diagnostics"] = {
+            "limit": diagnostic_limit,
+            "truncated": len(problem_deliveries) > diagnostic_limit,
+            "deliveries": details,
+            "candidates_are_not_verified_links": True,
+        }
+
     report["structural_integrity"] = (
         "pass"
         if not any(
@@ -155,9 +228,17 @@ def main() -> int:
         action="store_true",
         help="Fail when any source has no v2 deliveries within the selected window.",
     )
+    parser.add_argument(
+        "--diagnostic-limit",
+        type=int,
+        default=0,
+        help="Opt in to up to N incomplete delivery IDs and candidate Review IDs (no payloads).",
+    )
     args = parser.parse_args()
     if args.hours < 1:
         parser.error("--hours must be >= 1")
+    if args.diagnostic_limit < 0:
+        parser.error("--diagnostic-limit must be >= 0")
 
     from app.database import SessionLocal
 
@@ -166,7 +247,7 @@ def main() -> int:
         # level; the audit itself contains only SELECT queries.
         if db.bind.dialect.name == "postgresql":
             db.execute(text("SET TRANSACTION READ ONLY"))
-        report = audit_delivery_integrity(db, hours=args.hours)
+        report = audit_delivery_integrity(db, hours=args.hours, diagnostic_limit=args.diagnostic_limit)
         db.rollback()
 
     print(json.dumps(report, indent=2, sort_keys=True))
