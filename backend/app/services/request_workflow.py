@@ -13,6 +13,11 @@ def _lock_request(db: Session, request_id: int) -> models.Request:
     row = db.query(models.Request).filter(models.Request.id == request_id).with_for_update().one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="Request not found")
+    if row.hidden_from_active:
+        raise HTTPException(
+            status_code=409,
+            detail="Archived Request must be reconciled before advancing its workflow",
+        )
     return row
 
 
