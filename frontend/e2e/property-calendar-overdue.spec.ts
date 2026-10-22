@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 
+test.use({ timezoneId: 'UTC' });
+
 const localNow = new Date('2026-10-22T08:00:00Z'); // 4 PM Asia/Manila
 const user = {
   id: 1, name: 'Owner', email: 'owner@example.test', role: 'owner',
@@ -46,6 +48,7 @@ test('Tasks overdue stat uses Manila date, not an elapsed timestamp', async ({ p
   await page.goto('/tasks');
   await expect(page.locator('.ops-stat').filter({ hasText: 'Overdue' }).locator('strong')).toHaveText('1');
   await expect(page.locator('.ops-stat').filter({ hasText: 'Active tasks' }).locator('strong')).toHaveText('4');
+  await expect(page.getByText('Oct 23, 2026')).toBeVisible(); // Manila due date, even in a UTC browser
 
   mkdirSync('test-results/ui-audit', { recursive: true });
   await page.screenshot({ path: 'test-results/ui-audit/tasks-property-calendar-overdue.png', fullPage: true });
