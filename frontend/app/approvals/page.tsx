@@ -53,7 +53,7 @@ export default function ApprovalsPage() {
   const visible = useMemo(() => {
     const term = query.trim().toLowerCase();
     return items
-      .filter(item => filter === 'All' || item.status === filter)
+      .filter(item => filter === 'All' || (!item.hidden_from_active && item.status === filter))
       .filter(item => !term || [item.title, item.source_type, item.note, item.decision_note, item.status].filter(Boolean).join(' ').toLowerCase().includes(term));
   }, [items, filter, query]);
 
@@ -68,7 +68,7 @@ export default function ApprovalsPage() {
   }
 
   async function decide(status: 'Approved' | 'Rejected') {
-    if (!selected || busy || !canDecide || selected.status !== 'Pending') return;
+    if (!selected || busy || !canDecide || selected.status !== 'Pending' || selected.hidden_from_active) return;
     if (status === 'Rejected' && !note.trim()) {
       setError('A rejection note is required.');
       return;
@@ -87,12 +87,14 @@ export default function ApprovalsPage() {
     }
   }
 
+  const activeItems = items.filter(item => !item.hidden_from_active);
+
   return <div className="ops-module">
     <Top title="Approvals" right={<button className="btn secondary" onClick={() => void load()} disabled={loading || busy}>{loading ? 'Refreshing…' : 'Refresh'}</button>} />
     <WorkspaceStats items={[
-      { label: 'Pending', value: loading || error ? null : items.filter(i => i.status === 'Pending').length, icon: 'approval' },
-      { label: 'Approved', value: loading || error ? null : items.filter(i => i.status === 'Approved').length, icon: 'check' },
-      { label: 'Rejected', value: loading || error ? null : items.filter(i => i.status === 'Rejected').length, icon: 'history' },
+      { label: 'Pending', value: loading || error ? null : activeItems.filter(i => i.status === 'Pending').length, icon: 'approval' },
+      { label: 'Approved', value: loading || error ? null : activeItems.filter(i => i.status === 'Approved').length, icon: 'check' },
+      { label: 'Rejected', value: loading || error ? null : activeItems.filter(i => i.status === 'Rejected').length, icon: 'history' },
     ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
 
@@ -106,15 +108,15 @@ export default function ApprovalsPage() {
     <section className="ops-review-workspace">
 
       {loading ? <div className="empty">Loading approvals…</div> : visible.length ? <div className="ops-card-grid">
-        {visible.map(item => <WorkCard key={item.id} icon="approval" title={item.title || 'Approval'} description={item.note || item.decision_note} meta={<><Pill value={item.status} /><Pill value={item.priority || 'Normal'} /></>} footer={<><span>{item.source_type || 'Operational request'}</span><span>{formatDate(item.created_at)}</span></>} onOpen={() => void open(item)} />)}
+        {visible.map(item => <WorkCard key={item.id} icon="approval" title={item.title || 'Approval'} description={item.note || item.decision_note} meta={<><Pill value={item.status} />{item.hidden_from_active ? <Pill value="Archived" /> : null}<Pill value={item.priority || 'Normal'} /></>} footer={<><span>{item.source_type || 'Operational request'}</span><span>{formatDate(item.created_at)}</span></>} onOpen={() => void open(item)} />)}
       </div> : <div className="empty"><Icon name="check" />No approvals match this view.</div>}
     </section>
 
-    <Drawer item={selected} title="Approval decision" onClose={() => { if (!busy) setSelected(null); }}>
+    <Drawer item={selected} title={selected?.title || 'Approval decision'} onClose={() => { if (!busy) setSelected(null); }}>
       {selected ? <>
         <section className="panel">
           <div className="card-line"><Pill value={selected.status || 'Pending'} /><Pill value={selected.priority || 'Normal'} /></div>
-          <h2 style={{ marginTop: 12 }}>{selected.title || 'Approval'}</h2>
+          <h2 style={{ marginTop: 12 }}>Approval details</h2>
           {selected.note ? <p className="muted">{selected.note}</p> : null}
           <div className="grid cols-2" style={{ marginTop: 12 }}>
             <div className="card"><span className="muted">Requested by</span><b>{selected.requested_by_name || '—'}</b></div>
@@ -125,7 +127,9 @@ export default function ApprovalsPage() {
           {selected.decision_note ? <div className="card" style={{ marginTop: 12 }}><span className="muted">Decision note</span><p>{selected.decision_note}</p></div> : null}
         </section>
 
-        {canDecide && selected.status === 'Pending' ? <section className="panel" style={{ marginTop: 16 }}>
+        {selected.hidden_from_active ? <section className="panel" role="status" style={{ marginTop: 16 }}><h2>Archived approval</h2><p className="muted">This is a historical record. Reconcile the archive state before making a decision.</p></section> : null}
+
+        {canDecide && !selected.hidden_from_active && selected.status === 'Pending' ? <section className="panel" style={{ marginTop: 16 }}>
           <h2>Decision</h2>
           <div className="form" style={{ marginTop: 12 }}>
             <textarea className="textarea" placeholder="Decision note. Required when rejecting." value={note} onChange={event => setNote(event.target.value)} disabled={busy} />
@@ -136,7 +140,7 @@ export default function ApprovalsPage() {
           </div>
         </section> : null}
 
-        {!canDecide && selected.status === 'Pending' ? <div className="panel" style={{ marginTop: 16 }}><span className="muted">You can review this approval, but your session does not include decision authority.</span></div> : null}
+        {!canDecide && !selected.hidden_from_active && selected.status === 'Pending' ? <div className="panel" style={{ marginTop: 16 }}><span className="muted">You can review this approval, but your session does not include decision authority.</span></div> : null}
       </> : null}
     </Drawer>
   </div>;
