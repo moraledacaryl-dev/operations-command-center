@@ -8,6 +8,7 @@ import { Top } from '@/components/Top';
 import { WorkspaceStats } from '@/components/WorkspaceStats';
 import { api, Entity } from '@/lib/api';
 import { getCurrentDepartmentId, getStoredUser } from '@/lib/session';
+import { hasCapability } from '@/lib/capabilities';
 import { useLatestRequest } from '@/lib/operation-hooks';
 
 function count(value: unknown) { const n = Number(value || 0); return Number.isFinite(n) ? n : 0; }
@@ -26,6 +27,7 @@ export default function Home() {
   const user = getStoredUser();
   const role = String(user?.role || 'staff').toLowerCase();
   const executive = ['owner', 'admin', 'manager'].includes(role);
+  const canManageWork = hasCapability(user, 'manage_department');
   const load = useCallback(async () => {
     const request = beginRequest();
     setLoading(true);
@@ -50,7 +52,7 @@ export default function Home() {
   const incomplete = errors.dashboard || errors.work;
   const now = new Date();
   return <div className="today-workspace" aria-busy={loading}>
-    <Top title="Today" right={<div className="today-heading-actions"><button className="ops-icon-button" aria-label="Refresh overview" title="Refresh" onClick={() => void load()} disabled={loading}><Icon name="refresh" /></button><Link className="btn" href="/tasks?create=1"><Icon name="plus" />New task</Link></div>} />
+    <Top title="Today" right={<div className="today-heading-actions"><button className="ops-icon-button" aria-label="Refresh overview" title="Refresh" onClick={() => void load()} disabled={loading}><Icon name="refresh" /></button>{canManageWork ? <Link className="btn" href="/tasks?create=1"><Icon name="plus" />New task</Link> : null}</div>} />
     {incomplete && !loading ? <p role="alert" className="today-error">Some updates couldn’t be loaded. Refresh to try again.</p> : null}
     <section className="today-hero"><div><span className="today-date"><span className="ops-status-dot" />{now.toLocaleDateString('en-PH', { weekday: 'long', day: 'numeric', month: 'long' })}</span><h2>{loading ? 'Loading…' : incomplete ? 'Some updates are unavailable.' : attention.length ? `${attention.length} area${attention.length === 1 ? '' : 's'} need${attention.length === 1 ? 's' : ''} your attention.` : 'No items need attention.'}</h2></div><div className="today-hero-art" aria-hidden="true"><Icon name={attention.length ? 'leaf' : 'sun'} /></div></section>
     <WorkspaceStats items={[
@@ -62,6 +64,6 @@ export default function Home() {
       <WorkList title={attention.length ? 'Needs attention' : 'My work'} items={attention.length ? attention : personal} href={attention.length ? '/review' : '/my-work'} empty="No assigned tasks" loading={loading} unavailable={incomplete} />
       {attention.length > 0 && <WorkList title="My work" items={personal} href="/my-work" empty="No assigned tasks" loading={loading} unavailable={errors.work} />}
       <WorkList title={executive ? 'Waiting for review' : 'Shift handover'} items={executive ? dashboard.approvals || [] : dashboard.previous_shift || []} href={executive ? '/review' : '/shift'} empty={executive ? 'No decisions waiting' : 'No handover notes'} loading={loading} unavailable={errors.dashboard} />
-    </div><aside className="today-quick"><h2>Quick actions</h2><div className="today-shortcuts"><Link href="/fixes?create=1"><Icon name="maintenance" /><strong>Report issue</strong></Link><Link href="/requests?create=1"><Icon name="request" /><strong>New request</strong></Link></div><div className="today-handover"><span className="today-handover-icon"><Icon name="shift" /></span><h3>Shift handover</h3><Link href="/shift?create=1">Add a shift note <Icon name="arrow" /></Link></div></aside></div>
+    </div><aside className="today-quick"><h2>Quick actions</h2><div className="today-shortcuts">{canManageWork ? <><Link href="/fixes?create=1"><Icon name="maintenance" /><strong>Report issue</strong></Link><Link href="/requests?create=1"><Icon name="request" /><strong>New request</strong></Link></> : <><Link href="/my-work"><Icon name="tasks" /><strong>My work</strong></Link><Link href="/shift"><Icon name="shift" /><strong>View handover</strong></Link></>}</div><div className="today-handover"><span className="today-handover-icon"><Icon name="shift" /></span><h3>Shift handover</h3><Link href={canManageWork ? "/shift?create=1" : "/shift"}>{canManageWork ? "Add a shift note" : "View shift handover"} <Icon name="arrow" /></Link></div></aside></div>
   </div>;
 }
