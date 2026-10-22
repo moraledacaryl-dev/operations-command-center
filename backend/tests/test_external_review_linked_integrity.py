@@ -181,3 +181,60 @@ def test_valid_new_records_still_create_and_link_once(context):
     assert changed_approval.status == "Pending Approval"
     assert approval.source_type == "external_review_item"
     assert approval.source_id == approval_item.id
+
+
+@pytest.mark.parametrize("actor", ["owner", "manager"])
+def test_archived_linked_task_cannot_be_reused_by_active_review(context, actor):
+    db, front, _, owner, manager = context
+    item = item_for(db, front, f"archived-task-{actor}")
+    task = models.Task(
+        title="Closed historical task",
+        department_id=front.id,
+        status="Done",
+        hidden_from_active=True,
+        archive_reason="historical_completion",
+    )
+    db.add(task)
+    db.flush()
+    item.linked_task_id = task.id
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        create_task(db, owner if actor == "owner" else manager, item.id)
+    assert exc.value.status_code == 409
+    assert "Archived linked Task" in str(exc.value.detail)
+    assert_still_linked(db, item, "linked_task_id", task.id, "For Review")
+    db.refresh(task)
+    assert task.hidden_from_active is True
+    assert task.archive_reason == "historical_completion"
+    assert db.query(models.Task).count() == 1
+
+
+@pytest.mark.parametrize("actor", ["owner", "manager"])
+def test_archived_pending_approval_cannot_be_reused_by_active_review(context, actor):
+    db, front, _, owner, manager = context
+    item = item_for(db, front, f"archived-approval-{actor}")
+    approval = models.Approval(
+        title="Historical pending approval",
+        source_type="external_review_item",
+        source_id=item.id,
+        department_id=front.id,
+        status="Pending",
+        hidden_from_active=True,
+        archive_reason="manual_archive",
+    )
+    db.add(approval)
+    db.flush()
+    item.linked_approval_id = approval.id
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        create_approval(db, owner if actor == "owner" else manager, item.id)
+    assert exc.value.status_code == 409
+    assert "Archived linked Approval" in str(exc.value.detail)
+    assert_still_linked(db, item, "linked_approval_id", approval.id, "For Review")
+    db.refresh(approval)
+    assert approval.status == "Pending"
+    assert approval.hidden_from_active is True
+    assert approval.archive_reason == "manual_archive"
+    assert db.query(models.Approval).count() == 1
