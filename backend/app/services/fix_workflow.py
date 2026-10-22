@@ -26,6 +26,11 @@ def _transition(db: Session, user: models.User, fix_id: int, expected: str, targ
     authorize_action(db, user, "fixes", Action.TRANSITION, obj=fix)
     if fix.status != expected:
         raise HTTPException(status_code=409, detail=f"Fix must be {expected} before moving to {target}")
+    if fix.hidden_from_active:
+        raise HTTPException(
+            status_code=409,
+            detail="Archived maintenance Fix must be reconciled before continuing work",
+        )
     fix.status = target
     if note:
         fix.note = f"{fix.note or ''}\n\n{target}: {note}".strip()
@@ -71,6 +76,11 @@ def verify_fix(db: Session, user: models.User, fix_id: int, note: str | None, pr
     authorize_action(db, user, "fixes", Action.TRANSITION, obj=fix)
     if fix.status != "Done":
         raise HTTPException(status_code=409, detail="Only Done fixes can be verified")
+    if fix.hidden_from_active:
+        raise HTTPException(
+            status_code=409,
+            detail="Archived maintenance Fix must be reconciled before verification",
+        )
 
     guest = _linked_guest_for_decision(db, user, fix)
     if guest is not None and guest.status not in {"Open", "Follow"}:

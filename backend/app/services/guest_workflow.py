@@ -73,6 +73,14 @@ def create_fix_from_guest(
                 status_code=409,
                 detail="This guest matter already has a Fix in a different department.",
             )
+        if existing.hidden_from_active or existing.status == "Verified":
+            # An active guest issue must not reuse a hidden or already verified
+            # maintenance ticket as if it were newly actionable. The verified
+            # Fix has its own auditable Reopen workflow.
+            raise HTTPException(
+                status_code=409,
+                detail="Reopen or reconcile the linked maintenance Fix before continuing this guest matter.",
+            )
         if guest.linked_fix_id is None:
             guest.linked_fix_id = existing.id
             db.commit()
