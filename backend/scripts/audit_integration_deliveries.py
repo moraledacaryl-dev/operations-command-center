@@ -55,16 +55,20 @@ def audit_receiver_configuration() -> dict[str, Any]:
             "configuration_valid": False,
             "configured_sources": {source: False for source in sorted(SOURCE_EVENT_TYPES)},
             "all_sources_configured": False,
+            "distinct_source_credentials": False,
             "reason": "Receiver credential configuration was rejected; inspect protected environment",
         }
     source_presence = {
         source: bool(configured.get(source)) for source in sorted(SOURCE_EVENT_TYPES)
     }
+    values = [configured[source] for source in SOURCE_EVENT_TYPES if configured.get(source)]
+    distinct_credentials = len(values) == len(set(values))
     return {
-        "configuration_valid": True,
+        "configuration_valid": distinct_credentials,
         "configured_sources": source_presence,
-        "all_sources_configured": all(source_presence.values()),
-        "reason": "Presence only; does not verify producer credentials or outbound traffic",
+        "distinct_source_credentials": distinct_credentials,
+        "all_sources_configured": all(source_presence.values()) and distinct_credentials,
+        "reason": "Presence and distinctness only; producer credentials and traffic are unverified",
     }
 
 
