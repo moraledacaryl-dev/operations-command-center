@@ -50,9 +50,10 @@ export function Drawer({ item, title, onClose, children, showSupplemental = true
   onCloseRef.current = onClose;
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const isOpen = item !== null;
 
   useEffect(() => {
-    if (!item) return;
+    if (!isOpen) return;
 
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
@@ -74,7 +75,11 @@ export function Drawer({ item, title, onClose, children, showSupplemental = true
 
       const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      )).filter(element => !element.hasAttribute('hidden'));
+      )).filter(element =>
+        element.getClientRects().length > 0
+        && !element.hasAttribute('hidden')
+        && !element.closest('[inert], [aria-hidden="true"]')
+      );
 
       if (!focusable.length) {
         event.preventDefault();
@@ -84,7 +89,10 @@ export function Drawer({ item, title, onClose, children, showSupplemental = true
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      if (!dialogRef.current.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
@@ -99,8 +107,19 @@ export function Drawer({ item, title, onClose, children, showSupplemental = true
       document.body.style.overflow = previousOverflow;
       delete document.body.dataset.modalOpen;
       if (appRoot) appRoot.inert = false;
-      previouslyFocused?.focus();
+      // A workflow update may move a board card into another column,
+      // disconnecting the original trigger. Never focus a stale node.
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+      else document.getElementById('workspace-main')?.focus();
     };
+  }, [isOpen]);
+
+  // Keep the open dialog usable if a status action replaces its focused
+  // button. Do not reset the original trigger/scroll-lock on item refresh.
+  useEffect(() => {
+    if (item && dialogRef.current && !dialogRef.current.contains(document.activeElement)) {
+      closeRef.current?.focus();
+    }
   }, [item]);
 
   if (!item || typeof document === 'undefined') return null;
