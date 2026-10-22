@@ -170,3 +170,65 @@ def test_failed_fix_reopen_does_not_restore_archive(context):
     assert error.value.status_code == 400
     db.refresh(fix)
     assert fix.hidden_from_active is True
+
+
+@pytest.mark.parametrize(
+    ("model", "resource", "status", "action"),
+    [
+        (models.Task, "tasks", "To Do", "start"),
+        (models.Project, "projects", "Planned", "start"),
+        (models.Post, "posts", "Idea", "start-draft"),
+        (models.GuestNote, "guests", "Open", "follow-up"),
+        (models.ShiftNote, "shift-notes", "New", "acknowledge"),
+        (models.ShiftNote, "shift-notes", "Seen", "resolve-seen"),
+    ],
+)
+def test_archived_work_does_not_advance_in_hidden_queue(
+    context, model, resource, status, action
+):
+    db, owner, department = context
+    archived_at = utc_now() - timedelta(days=1)
+    item = model(
+        title=f"Archived {resource}", department_id=department.id,
+        status=status, hidden_from_active=True,
+        archived_at=archived_at, archive_reason="manual_archive",
+    )
+    if resource == "posts":
+        item.platform = "Instagram"
+        item.content_type = "Reel"
+    db.add(item)
+    db.commit()
+
+    assert action not in allowed_actions_for(db, owner, resource, item)
+    with pytest.raises(HTTPException) as exc:
+        transition_operational(db, owner, resource, item.id, action, "Attempt hidden action")
+    assert exc.value.status_code == 409
+    assert "Archived record" in str(exc.value.detail)
+
+    # A retained Session commit must not save any denied mutations.
+    db.commit()
+    db.refresh(item)
+    assert item.status == status
+    assert item.hidden_from_active is True
+    assert item.archived_at == archived_at
+    assert item.archive_reason == "manual_archive"
+    assert db.query(models.ActivityLog).count() == 0
+
+
+def test_archived_seen_shift_only_offers_restoring_follow_up(context):
+    db, owner, department = context
+    shift = models.ShiftNote(
+        title="Seen archived handover", department_id=department.id,
+        status="Seen", hidden_from_active=True, archived_at=utc_now(),
+        archive_reason="seen_next_shift",
+    )
+    db.add(shift)
+    db.commit()
+
+    assert allowed_actions_for(db, owner, "shift-notes", shift) == ["follow-up-seen"]
+    restored = transition_operational(
+        db, owner, "shift-notes", shift.id, "follow-up-seen", "Needs follow-up"
+    )
+    assert restored.status == "Follow"
+    assert restored.hidden_from_active is False
+    assert restored.archived_at is None
