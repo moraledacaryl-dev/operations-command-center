@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app import models
 from app.clock import utc_now
-from app.services.fix_workflow import reopen_fix, verify_fix
+from app.services.fix_workflow import finish_fix, reopen_fix, start_fix, verify_fix
 
 
 @pytest.fixture()
@@ -227,3 +227,43 @@ def test_decision_capability_required_even_with_department_access(context):
         verify_fix(db, lead, fix.id, "Attempt")
     assert exc.value.status_code == 403
     assert_no_mutations(db, fix, guest, "Done", "Follow")
+
+
+@pytest.mark.parametrize(
+    ("action", "status"),
+    [
+        ("start", "Open"),
+        ("finish", "Working"),
+        ("verify", "Done"),
+    ],
+)
+def test_archived_maintenance_cannot_progress_in_hidden_queue(context, action, status):
+    db, front, _, owner, _, _, _ = context
+    fix = models.Fix(
+        title="Archived ticket",
+        department_id=front.id,
+        status=status,
+        hidden_from_active=True,
+        archived_at=utc_now(),
+        archive_reason="manual_archive",
+    )
+    db.add(fix)
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        if action == "start":
+            start_fix(db, owner, fix.id)
+        elif action == "finish":
+            finish_fix(db, owner, fix.id, "Finished")
+        else:
+            verify_fix(db, owner, fix.id, "Verified without active queue")
+    assert exc.value.status_code == 409
+    assert "Archived maintenance Fix" in str(exc.value.detail)
+
+    db.commit()
+    db.refresh(fix)
+    assert fix.status == status
+    assert fix.hidden_from_active is True
+    assert fix.archive_reason == "manual_archive"
+    assert db.query(models.ActivityLog).count() == 0
+    assert db.query(models.Comment).count() == 0
