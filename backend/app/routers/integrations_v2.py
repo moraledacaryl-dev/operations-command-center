@@ -405,25 +405,47 @@ def link_identity(
         raise HTTPException(status_code=400, detail="external_user_id is required")
 
     user = _find_operations_user(db, payload)
-    row = db.query(ExternalUserIdentity).filter(
-        ExternalUserIdentity.source_app == source_app,
-        ExternalUserIdentity.external_user_id == external_user_id,
-    ).first()
+    row = (
+        db.query(ExternalUserIdentity)
+        .filter(
+            ExternalUserIdentity.source_app == source_app,
+            ExternalUserIdentity.external_user_id == external_user_id,
+        )
+        .with_for_update()
+        .populate_existing()
+        .one_or_none()
+    )
     result_status = "updated" if row else "created"
-    if not row:
+    if row is not None and row.user_id != user.id:
+        # Source IDs are stable identity records, not mutable assignment
+        # targets. Silently rebinding the same external ID to another user
+        # can misattribute historical tasks and audit evidence.
+        raise HTTPException(
+            status_code=409,
+            detail="External user identity is already linked to a different Operations user; reconcile manually",
+        )
+    if row is None:
         row = ExternalUserIdentity(
             source_app=source_app,
             external_user_id=external_user_id,
             user_id=user.id,
         )
         db.add(row)
-    row.user_id = user.id
     row.external_email = normalize_email(payload.email) or None
     row.external_name = payload.display_name
     row.status = payload.status or "active"
     row.last_seen_at = utc_now()
-    db.commit()
-
+    try:
+        db.commit()
+    except IntegrityError:
+        # A concurrent caller can insert the same identity between SELECT
+        # and INSERT. Never let that race produce a 500 or overwrite a
+        # different mapping. The producer may retry the idempotent request.
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="External user identity changed concurrently; retry or reconcile manually",
+        )
     return IdentityLinkResponse(
         status=result_status,
         source_app=source_app,
