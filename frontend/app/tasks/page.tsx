@@ -42,10 +42,11 @@ export default function TeamTasksPage() {
   }, []);
   useCreateIntent(openCreate);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (!hydrated) return;
     const request = beginRequest();
-    setLoading(true);
+    // Status changes refresh list data without unmounting the open drawer.
+    if (!silent) setLoading(true);
     try {
       setError('');
       const rows = await api.listAll('tasks', { active: true, department_id: departmentId || '' }, { signal: request.signal });
@@ -53,7 +54,7 @@ export default function TeamTasksPage() {
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       if (request.isCurrent()) setError(err.message || 'Team tasks could not be loaded.');
-    } finally { if (request.isCurrent()) setLoading(false); }
+    } finally { if (request.isCurrent() && !silent) setLoading(false); }
   }, [beginRequest, departmentId, hydrated]);
 
   useEffect(() => { void load(); }, [load]);
@@ -79,7 +80,7 @@ export default function TeamTasksPage() {
       const updated = await api.workflowAction('tasks', item.id, status, { note: actionNote.trim() || null });
       if (selected?.id === item.id) setSelected({ ...selected, ...updated });
       setActionNote('');
-      await load();
+      await load(true);
     } catch (err: any) { setError(err.message || 'Task could not be updated.'); }
     finally { setBusy(false); }
   }
