@@ -20,9 +20,13 @@ Production data must not be copied to a public CI artifact or committed to Git.
   (matching `docker-compose.yml`), `--network=none`, `--pull=never`,
   **no published ports**, **no host volumes**, and bounded memory/CPU/PIDs.
   It receives **no production DB credentials, DB host or environment file**.
-- Refuses remote Docker daemon configuration and requires the local Docker
-  default context and Unix socket; do not stream private archives to an
-  unintended remote Docker engine.
+- Refuses remote Docker daemon environment overrides. Inspects the actual
+  endpoint of `default` or Docker Desktop's `desktop-linux` context; it must
+  be a Unix socket at `/var/run/docker.sock` or the current operator's
+  `~/.docker/run/docker.sock`, owned by root or that operator. TCP/SSH,
+  unknown contexts and arbitrary socket paths remain forbidden. This permits
+  an unprivileged local Mac rehearsal without a privileged helper or system
+  socket symlink; it does not permit private archives to reach remote engines.
 - The pg_dump archive is streamed through `docker exec -i pg_restore` to the
   disposable database. No `pg_restore` command has a live database URL.
   Post-restore checks require all core table names, exact Alembic revision,

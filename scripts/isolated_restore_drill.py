@@ -99,11 +99,29 @@ def require_local_docker_engine() -> None:
         "DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH",
     )):
         raise DrillFailure("Remote or overridden Docker engine configuration is forbidden")
-    if not Path("/var/run/docker.sock").is_socket():
-        raise DrillFailure("A local Unix Docker engine socket is required")
     context = safe_execute(["docker", "context", "show"], timeout=15)
-    if context.returncode or context.stdout.strip() != b"default":
-        raise DrillFailure("Only the local Docker default context is permitted")
+    name = context.stdout.strip()
+    if context.returncode or name not in {b"default", b"desktop-linux"}:
+        raise DrillFailure("Only a verified local Docker context is permitted")
+    endpoint = safe_execute([
+        "docker", "context", "inspect", name.decode("ascii"),
+        "--format", "{{json .Endpoints.docker.Host}}",
+    ], timeout=15)
+    try:
+        host = json.loads(require_ok(endpoint, "Docker endpoint inspection"))
+    except (ValueError, UnicodeError) as exc:
+        raise DrillFailure("Docker endpoint inspection returned invalid data") from exc
+    # Inspect the effective endpoint, not only the friendly context name.
+    # Docker Desktop's unprivileged Mac default uses its private user socket;
+    # it does not require a root helper or a /var/run symlink for this drill.
+    if not isinstance(host, str) or not host.startswith("unix://"):
+        raise DrillFailure("Remote Docker endpoints are forbidden")
+    socket_path = Path(host.removeprefix("unix://"))
+    allowed = {Path("/var/run/docker.sock"), Path.home() / ".docker/run/docker.sock"}
+    if socket_path not in allowed or not socket_path.is_socket():
+        raise DrillFailure("A known local Unix Docker engine socket is required")
+    if socket_path.stat().st_uid not in {0, os.getuid()}:
+        raise DrillFailure("Docker engine socket must belong to root or the current operator")
 
 
 def restore_database(db_dump: Path, expected_migration: str) -> dict:
