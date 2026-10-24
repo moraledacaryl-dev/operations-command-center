@@ -1,0 +1,24 @@
+[Unit]
+Description=Verified private Operations database and uploads snapshot
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=/etc/hiddenoasis/operations.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+StateDirectory=operations-command-center-backup
+StateDirectoryMode=0755
+UMask=0077
+ExecStart=/opt/operations-command-center/current/backend/.venv/bin/python /opt/operations-command-center/current/scripts/scheduled_backup.py
+TimeoutStartSec=40min
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/root/backups/operations-command-center /run/operations-command-center.deploy.lock /var/lib/operations-command-center-backup
+

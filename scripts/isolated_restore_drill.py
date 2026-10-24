@@ -282,7 +282,7 @@ def run_drill(expected_sha: str, current: Path, backup_dir: Path, *, max_upload_
     manifest = json.loads((current.resolve() / "release-manifest.json").read_text())
     db_archive = Path(manifest["database_backup"])
     uploads_archive = Path(manifest["uploads_backup"])
-    migration = manifest["migration_head"]
+    migration = manifest.get("database_backup_migration_head", manifest["migration_head"])
     if not re.fullmatch(r"[a-zA-Z0-9_]+", migration):
         raise DrillFailure("Invalid recorded migration revision")
     require_local_docker_engine()
@@ -299,6 +299,9 @@ def run_drill(expected_sha: str, current: Path, backup_dir: Path, *, max_upload_
         "isolated_network_disabled": True,
         "restore_drill_performed": True,
         "historical_review_integrity_certified": False,
+        "restored_database_migration": migration,
+        "application_migration": manifest["migration_head"],
+        "application_migrations_required": migration != manifest["migration_head"],
     }
 
 

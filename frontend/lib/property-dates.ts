@@ -11,6 +11,12 @@ const propertyDayFormatter = new Intl.DateTimeFormat('en-US', {
   day: '2-digit',
 });
 
+export function formatPropertyDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not available';
+  return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(date);
+}
+
 function propertyDayKey(value: string | Date): number | null {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return null;
