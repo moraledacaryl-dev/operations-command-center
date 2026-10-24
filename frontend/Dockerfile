@@ -16,6 +16,9 @@ ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 RUN addgroup -S operations && adduser -S operations -G operations
 COPY --from=builder /app/.next/standalone ./
+RUN chmod -R a+rX /app \
+    && mkdir -p /app/.next/cache \
+    && chown operations:operations /app/.next/cache
 USER operations
 EXPOSE 3000
 CMD ["node", "server.js"]
