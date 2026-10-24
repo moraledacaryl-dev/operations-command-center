@@ -22,7 +22,9 @@ fi
 TEMP_ARCHIVE="$(mktemp "${DESTINATION}.tmp.XXXXXXXX")"
 trap 'rm -f -- "$TEMP_ARCHIVE"' EXIT
 
-tar -C "$UPLOAD_PATH" -czf "$TEMP_ARCHIVE" .
+# BSD tar can synthesize AppleDouble entries from macOS file metadata.
+# Keep the archive limited to actual source files on recovery workstations.
+COPYFILE_DISABLE=1 tar -C "$UPLOAD_PATH" -czf "$TEMP_ARCHIVE" .
 test -s "$TEMP_ARCHIVE"
 # Read the entire compressed tar before publishing it, detecting malformed data.
 tar -tzf "$TEMP_ARCHIVE" >/dev/null

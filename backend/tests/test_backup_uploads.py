@@ -22,8 +22,10 @@ def test_private_upload_backup_contains_files_and_is_readable(tmp_path: Path):
 
     assert stat.S_IMODE(destination.stat().st_mode) == 0o600
     with tarfile.open(destination, "r:gz") as archived:
-        member = next(m for m in archived.getmembers() if m.name.endswith("receipt 01.txt"))
+        members = archived.getmembers()
+        member = next(m for m in members if m.name == "./receipt 01.txt")
         assert archived.extractfile(member).read() == b"test upload contents"
+        assert {m.name for m in members} == {".", "./receipt 01.txt"}
     assert not list(backup_dir.glob("*.tmp.*"))
 
 
