@@ -96,6 +96,19 @@ def test_empty_uploads_are_not_misreported_as_attachment_validation(tmp_path):
     assert result["attachment_sample_present"] is False
 
 
+def test_upload_restore_accepts_symlinked_scratch_parent(monkeypatch, tmp_path):
+    scratch = tmp_path / "real-scratch"
+    scratch.mkdir()
+    alias = tmp_path / "scratch-alias"
+    alias.symlink_to(scratch, target_is_directory=True)
+    monkeypatch.setattr(drill.tempfile, "tempdir", str(alias))
+    path = pack(tmp_path, {"proof.txt": (b"Recovered upload", "file")})
+    result = drill.restore_uploads(path, max_bytes=100)
+    assert result["files_restored"] == 1
+    assert result["upload_bytes_restored"] == 16
+    assert list(scratch.iterdir()) == []
+
+
 def test_rejects_failure_before_docker_restore(monkeypatch, tmp_path):
     monkeypatch.setattr(drill, "audit_release_recovery", lambda **_: {"status": "investigate"})
     monkeypatch.setattr(drill, "restore_database", lambda *a: pytest.fail("must not restore"))
@@ -164,6 +177,8 @@ def test_database_restore_runs_only_in_new_container_and_cleans_up(monkeypatch, 
     assert all("DATABASE_URL" not in str(command) for command in commands)
     assert any("--network=none" in command for command in commands)
     assert any("pg_restore" in command for command in commands)
+    readiness = next(command for command in commands if "pg_isready" in command)
+    assert readiness[readiness.index("--host") + 1] == "127.0.0.1"
 
 
 def test_database_restore_error_still_removes_owned_container(monkeypatch, tmp_path):

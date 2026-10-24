@@ -120,7 +120,10 @@ def restore_database(db_dump: Path, expected_migration: str) -> dict:
         for _ in range(45):
             ready = safe_execute([
                 "docker", "exec", container, "pg_isready",
-                "--username", DB_USER, "--dbname", DB_NAME,
+                # The image's initialization server accepts Unix-socket
+                # connections before database initialization is complete.
+                # TCP becomes available only on the final PostgreSQL server.
+                "--host", "127.0.0.1", "--username", DB_USER, "--dbname", DB_NAME,
             ], timeout=10)
             if ready.returncode == 0:
                 break
@@ -179,7 +182,9 @@ def restore_uploads(archive_path: Path, *, max_bytes: int) -> dict:
     total, files, directories = 0, 0, 0
     paths: set[tuple[str, ...]] = set()
     with tempfile.TemporaryDirectory(prefix="operations-uploads-restore-") as tmp:
-        root = Path(tmp)
+        # macOS /var and operator scratch paths can be symlinked. Compare
+        # resolved destinations to the canonical private extraction root.
+        root = Path(tmp).resolve(strict=True)
         root.chmod(0o700)
         try:
             with tarfile.open(archive_path, "r:gz") as archive:
