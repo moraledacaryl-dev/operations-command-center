@@ -10,10 +10,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import secrets
-import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -59,8 +57,7 @@ def container_start_args(name: str, image: str = IMAGE) -> list[str]:
 def safe_execute(args: list[str], *, stdin=None, timeout=120) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
-            args, stdin=stdin, capture_output=stdin is None,
-            stdout=subprocess.PIPE if stdin is not None else subprocess.PIPE,
+            args, stdin=stdin, stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL, timeout=timeout, check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
