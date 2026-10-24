@@ -116,6 +116,23 @@ def test_rejects_failure_before_docker_restore(monkeypatch, tmp_path):
         drill.run_drill("a" * 40, tmp_path / "current", tmp_path, max_upload_bytes=100)
 
 
+@pytest.mark.parametrize('backup_revision,needs_upgrade', [('0002_integration_identity',True),('0011_project_collaboration',False)])
+def test_restore_uses_the_backed_up_schema_and_reports_pending_application_migrations(monkeypatch, tmp_path, backup_revision, needs_upgrade):
+    current=tmp_path/'release';current.mkdir()
+    (current/'release-manifest.json').write_text(json.dumps({'migration_head':'0011_project_collaboration','database_backup_migration_head':backup_revision,'database_backup':str(tmp_path/'db.dump'),'uploads_backup':str(tmp_path/'uploads.tar.gz')}))
+    monkeypatch.setattr(drill,'audit_release_recovery',lambda **kwargs:{'status':'pass'})
+    monkeypatch.setattr(drill,'require_local_docker_engine',lambda:None)
+    def restore(path, expected):
+        assert expected==backup_revision
+        return {'full_pg_restore_succeeded':True}
+    monkeypatch.setattr(drill,'restore_database',restore)
+    monkeypatch.setattr(drill,'restore_uploads',lambda *a,**kw:{'all_upload_members_restored_and_verified':True})
+    report=drill.run_drill('a'*40,current,tmp_path,max_upload_bytes=100)
+    assert report['restored_database_migration']==backup_revision
+    assert report['application_migration']=='0011_project_collaboration'
+    assert report['application_migrations_required'] is needs_upgrade
+
+
 def test_count_parser_accepts_only_integers(monkeypatch):
     class Result:
         returncode = 0

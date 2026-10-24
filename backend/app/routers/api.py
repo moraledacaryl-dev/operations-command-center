@@ -21,6 +21,7 @@ from ..auth import (
     verify_password,
 )
 from ..clock import utc_now
+from ..backup_status import backup_status
 from ..capabilities import has_capability
 from ..authorization_policy import Action, authorize_action
 from ..database import get_db
@@ -529,6 +530,7 @@ def health(db: Session = Depends(get_db)):
         "environment": ENVIRONMENT,
         "release_sha": RELEASE_SHA,
         "readiness": {"ok": not warnings, "warnings": warnings},
+        "backups": backup_status(),
     }
 
 

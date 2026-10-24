@@ -150,6 +150,9 @@ else
 fi
 
 BACKUP_STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+# A deployment backup precedes migrations. Record its actual schema separately
+# from the application migration head written after upgrade.
+BACKUP_MIGRATION_HEAD="$(cd "$STAGING_RELEASE/backend" && PYTHONPATH=. .venv/bin/python scripts/database_revision.py)"
 BACKUP_FILE="$BACKUP_DIR/database-$CANDIDATE_SHA-$BACKUP_STAMP.dump"
 UPLOAD_PATH="${UPLOAD_DIR:-/var/lib/operations-command-center/uploads}"
 UPLOAD_BACKUP="$BACKUP_DIR/uploads-$CANDIDATE_SHA-$BACKUP_STAMP.tar.gz"
@@ -183,7 +186,7 @@ cat > "$STAGING_RELEASE/release.env" <<EOF
 RELEASE_SHA=$CANDIDATE_SHA
 EOF
 cat > "$STAGING_RELEASE/release-manifest.json" <<EOF
-{"release_sha":"$CANDIDATE_SHA","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","migration_head":"$MIGRATION_HEAD","database_backup":"$BACKUP_FILE","uploads_backup":"$UPLOAD_BACKUP","package_lock_sha256":"$(sha256sum "$STAGING_RELEASE/frontend/package-lock.json" | awk '{print $1}')","requirements_sha256":"$(sha256sum "$STAGING_RELEASE/backend/requirements.txt" | awk '{print $1}')"}
+{"release_sha":"$CANDIDATE_SHA","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","migration_head":"$MIGRATION_HEAD","database_backup_migration_head":"$BACKUP_MIGRATION_HEAD","database_backup":"$BACKUP_FILE","uploads_backup":"$UPLOAD_BACKUP","package_lock_sha256":"$(sha256sum "$STAGING_RELEASE/frontend/package-lock.json" | awk '{print $1}')","requirements_sha256":"$(sha256sum "$STAGING_RELEASE/backend/requirements.txt" | awk '{print $1}')"}
 EOF
 rm -rf -- "$STAGING_RELEASE/frontend/.next/standalone/.next/cache"
 ln -s /var/cache/operations-command-center/frontend "$STAGING_RELEASE/frontend/.next/standalone/.next/cache"

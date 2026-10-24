@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly Operations recovery snapshots (owner approved; no pruning)
+
+[Timer]
+OnActiveSec=30s
+OnCalendar=hourly
+AccuracySec=1s
+Persistent=true
+Unit=operations-backup.service
+
+[Install]
+WantedBy=timers.target
