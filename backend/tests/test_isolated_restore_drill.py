@@ -119,3 +119,78 @@ def test_main_requires_explicit_acknowledgment(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         drill.main()
     assert exc.value.code == 2
+
+
+def test_database_restore_runs_only_in_new_container_and_cleans_up(monkeypatch, tmp_path):
+    source = tmp_path / "backup.dump"
+    source.write_bytes(b"private synthetic test bytes")
+    container_id = "a" * 64
+    commands = []
+
+    class Result:
+        def __init__(self, raw=b"", code=0):
+            self.returncode = code
+            self.stdout = raw
+
+    def fake_execute(args, *, stdin=None, timeout=120):
+        commands.append(tuple(args))
+        if args[:2] == ["docker", "run"]:
+            return Result(container_id.encode() + b"\n")
+        if args[:3] == ["docker", "exec", container_id]:
+            if "pg_isready" in args:
+                return Result(b"accepting")
+            if "psql" in args:
+                sql = args[-1]
+                if sql.startswith("SELECT version_num"):
+                    return Result(b"0011_project_collaboration\n")
+                if "information_schema.tables" in sql:
+                    return Result(str(len(drill.CORE_TABLES)).encode() + b"\n")
+                return Result(b"4\n")
+        if "pg_restore" in args:
+            assert stdin is not None
+            assert stdin.read() == source.read_bytes()
+            return Result()
+        if args[:3] == ["docker", "rm", "--force"]:
+            return Result()
+        pytest.fail(f"Unexpected command: {args!r}")
+
+    monkeypatch.setattr(drill, "safe_execute", fake_execute)
+    monkeypatch.setattr(drill.secrets, "token_hex", lambda _: "123456789abc")
+    result = drill.restore_database(source, "0011_project_collaboration")
+    assert result["full_pg_restore_succeeded"] is True
+    assert result["migration_matches_release_manifest"] is True
+    assert result["restored_delivery_count"] == 4
+    assert commands[-1] == ("docker", "rm", "--force", container_id)
+    assert all("DATABASE_URL" not in str(command) for command in commands)
+    assert any("--network=none" in command for command in commands)
+    assert any("pg_restore" in command for command in commands)
+
+
+def test_database_restore_error_still_removes_owned_container(monkeypatch, tmp_path):
+    source = tmp_path / "backup.dump"
+    source.write_bytes(b"synthetic")
+    container_id = "b" * 64
+    commands = []
+
+    class Result:
+        def __init__(self, raw=b"", code=0):
+            self.returncode = code
+            self.stdout = raw
+
+    def fake_execute(args, *, stdin=None, timeout=120):
+        commands.append(tuple(args))
+        if args[:2] == ["docker", "run"]:
+            return Result(container_id.encode() + b"\n")
+        if "pg_isready" in args:
+            return Result()
+        if "pg_restore" in args:
+            return Result(code=1)
+        if args[:3] == ["docker", "rm", "--force"]:
+            return Result()
+        pytest.fail(f"Unexpected command: {args!r}")
+
+    monkeypatch.setattr(drill, "safe_execute", fake_execute)
+    monkeypatch.setattr(drill.secrets, "token_hex", lambda _: "123456789abc")
+    with pytest.raises(drill.DrillFailure):
+        drill.restore_database(source, "0011_project_collaboration")
+    assert commands[-1] == ("docker", "rm", "--force", container_id)
