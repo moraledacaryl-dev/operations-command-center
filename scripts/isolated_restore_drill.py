@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import secrets
 import subprocess
@@ -90,6 +91,19 @@ def query_migration(cid: str) -> str:
     if "\n" in raw or not re.fullmatch(r"[a-zA-Z0-9_]+", raw):
         raise DrillFailure("Unexpected disposable Alembic revision state")
     return raw
+
+
+def require_local_docker_engine() -> None:
+    # Never silently stream a private production dump to a remote daemon.
+    if any(os.environ.get(key) for key in (
+        "DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH",
+    )):
+        raise DrillFailure("Remote or overridden Docker engine configuration is forbidden")
+    if not Path("/var/run/docker.sock").is_socket():
+        raise DrillFailure("A local Unix Docker engine socket is required")
+    context = safe_execute(["docker", "context", "show"], timeout=15)
+    if context.returncode or context.stdout.strip() != b"default":
+        raise DrillFailure("Only the local Docker default context is permitted")
 
 
 def restore_database(db_dump: Path, expected_migration: str) -> dict:
@@ -245,6 +259,7 @@ def run_drill(expected_sha: str, current: Path, backup_dir: Path, *, max_upload_
     migration = manifest["migration_head"]
     if not re.fullmatch(r"[a-zA-Z0-9_]+", migration):
         raise DrillFailure("Invalid recorded migration revision")
+    require_local_docker_engine()
     db_result = restore_database(db_archive, migration)
     uploads_result = restore_uploads(uploads_archive, max_bytes=max_upload_bytes)
     return {
