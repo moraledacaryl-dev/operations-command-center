@@ -71,20 +71,16 @@ RESOURCE_URLS = {
     "shift-notes": "/shift", "guests": "/guests", "fixes": "/fixes",
     "posts": "/posts", "approvals": "/approvals",
 }
+PERSON_FIELDS = (
+    "requested_by_id", "submitted_by_id", "reported_by_id", "verified_by_id",
+    "decided_by_id", "reviewed_by_id", "assigned_to_id", "owner_id", "author_id",
+)
 
 
-def _user_name(db: Session, user_id: int | None) -> str | None:
-    candidate = db.get(models.User, user_id) if user_id else None
-    return str(candidate.name) if candidate else None
-
-
-def _enrich_people(db: Session, data: dict[str, Any]) -> dict[str, Any]:
-    for field in (
-        "requested_by_id", "submitted_by_id", "reported_by_id", "verified_by_id",
-        "decided_by_id", "reviewed_by_id", "assigned_to_id", "owner_id", "author_id",
-    ):
+def _enrich_people(data: dict[str, Any], names: dict[int, str]) -> dict[str, Any]:
+    for field in PERSON_FIELDS:
         if data.get(field):
-            data[f"{field.removesuffix('_id')}_name"] = _user_name(db, int(data[field]))
+            data[f"{field.removesuffix('_id')}_name"] = names.get(int(data[field]))
     return data
 
 
@@ -258,12 +254,18 @@ def get_resource_authorized(resource: str, item_id: int, user: models.User = Dep
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
     authorize_action(db, user, resource, Action.VIEW, obj=obj)
-    data = _enrich_people(db, model_to_dict(obj))
+    data = model_to_dict(obj)
     comment_rows = db.query(models.Comment).filter(models.Comment.parent_type == resource, models.Comment.parent_id == item_id).order_by(models.Comment.created_at.desc()).all()
-    data["comments"] = [_enrich_people(db, model_to_dict(row)) for row in comment_rows]
+    comments = [model_to_dict(row) for row in comment_rows]
     data["attachments"] = serialize_many(db.query(models.Attachment).filter(models.Attachment.parent_type == resource, models.Attachment.parent_id == item_id).order_by(models.Attachment.created_at.desc()).all())
     activity_rows = db.query(models.ActivityLog).filter(models.ActivityLog.entity_type == resource, models.ActivityLog.entity_id == item_id).order_by(models.ActivityLog.created_at.desc()).limit(30).all()
-    data["activity"] = [{**model_to_dict(row), "actor_name": _user_name(db, row.actor_id)} for row in activity_rows]
+    person_ids = {int(row[field]) for row in [data, *comments] for field in PERSON_FIELDS if row.get(field)}
+    person_ids.update(row.actor_id for row in activity_rows if row.actor_id)
+    # Names only: avoid loading private account columns for every comment.
+    names = dict(db.query(models.User.id, models.User.name).filter(models.User.id.in_(person_ids)).all()) if person_ids else {}
+    _enrich_people(data, names)
+    data["comments"] = [_enrich_people(row, names) for row in comments]
+    data["activity"] = [{**model_to_dict(row), "actor_name": names.get(row.actor_id)} for row in activity_rows]
     data["allowed_actions"] = allowed_actions_for(db, user, resource, obj)
     return data
 
