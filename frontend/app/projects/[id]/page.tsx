@@ -147,9 +147,11 @@ export default function ProjectWorkspace() {
     try {
       const updated = await api.update('projects', id, payload);
       setData(current => current ? { ...current, project: { ...current.project, ...updated } } : current);
-      setEditingProject(null);
       try { await load(); }
       catch { setError('Project saved. Refresh the page to reload collaboration details.'); }
+      // Restore the enabled trigger before the Drawer returns keyboard focus.
+      setBusy(false);
+      setEditingProject(null);
     } catch (err: any) { setProjectError(err.message || 'Project could not be saved. Your draft is kept.'); }
     finally { setBusy(false); }
   }
