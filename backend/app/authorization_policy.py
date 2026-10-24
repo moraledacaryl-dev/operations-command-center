@@ -4,6 +4,7 @@ from enum import StrEnum
 from typing import Any
 
 from fastapi import HTTPException
+from sqlalchemy import literal, select
 from sqlalchemy.orm import Query, Session
 
 from . import models
@@ -215,8 +216,11 @@ def scope_query(db: Session, user: models.User, model: type, query: Query):
     if resource in DEPARTMENT_SCOPED_RESOURCES and hasattr(model, "department_id"):
         if has_capability(user.role, "view_all_operations"):
             return query
-        ids = department_ids_for(db, user)
-        if not ids:
-            return query.filter(False)
+        # Resolve memberships inside the read itself. Composed source queries
+        # (for example Notifications) must not perform a membership SELECT for
+        # every resource or use a previously materialized membership snapshot.
+        ids = select(models.UserDepartment.department_id).where(models.UserDepartment.user_id == user.id)
+        if user.department_id:
+            ids = ids.union(select(literal(int(user.department_id))))
         return query.filter(model.department_id.in_(ids))
     return query
