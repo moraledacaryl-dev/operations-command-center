@@ -9,6 +9,8 @@ FRONTEND_SERVICE="${FRONTEND_SERVICE:-operations-frontend}"
 PUBLIC_URL="${PUBLIC_URL:-https://operations.hiddenoasis.app}"
 BACKUP_DIR="${BACKUP_DIR:-/root/backups/operations-command-center}"
 EXPECTED_SHA="${1:-}"
+DEPLOY_LOCK_FILE="${DEPLOY_LOCK_FILE:-/run/operations-command-center.deploy.lock}"
+DEPLOY_MIN_FREE_MB="${DEPLOY_MIN_FREE_MB:-2048}"
 
 if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
   echo "ERROR | run this deployment as root" >&2
@@ -18,6 +20,12 @@ if [[ ! -f "$BACKEND_ENV" ]]; then
   echo "ERROR | environment file missing: $BACKEND_ENV" >&2
   exit 1
 fi
+
+# Serialize the entire procedure, including backup, activation and rollback.
+# /run is root-owned; the default lock cannot be replaced by the app account.
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/deploy_preflight.sh"
+operations_deploy_lock "$DEPLOY_LOCK_FILE"
+operations_deploy_disk_preflight "$DEPLOY_MIN_FREE_MB" "$APP_ROOT" "$BACKUP_DIR"
 
 git -C "$REPO_ROOT" fetch --prune origin
 CANDIDATE_SHA="$(git -C "$REPO_ROOT" rev-parse origin/main)"
