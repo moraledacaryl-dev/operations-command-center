@@ -52,10 +52,10 @@ export default function ProjectsPage() {
   const openCreate = useCallback(() => { if (canManage) setShowAdd(true); }, [canManage]);
   useCreateIntent(openCreate);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (!hydrated) return;
     const request = beginRequest();
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       setError('');
       const [projectRows, taskRows] = await Promise.all([
@@ -68,7 +68,7 @@ export default function ProjectsPage() {
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       if (request.isCurrent()) setError(err.message || 'Projects could not be loaded.');
-    } finally { if (request.isCurrent()) setLoading(false); }
+    } finally { if (request.isCurrent() && !silent) setLoading(false); }
   }, [beginRequest, departmentId, hydrated]);
 
   useEffect(() => { void load(); }, [load]);
@@ -127,9 +127,9 @@ export default function ProjectsPage() {
     setError('');
     try {
       const updated = await api.workflowAction('projects', selected.id, action, { note: actionNote.trim() || null });
-      setSelected({ ...selected, ...updated });
+      setSelected(current => current?.id === selected.id ? { ...current, ...updated } : current);
       setActionNote('');
-      await load();
+      await load(true);
     } catch (err: any) {
       setError(err.message || 'Project status could not be updated.');
     } finally {
@@ -144,10 +144,14 @@ export default function ProjectsPage() {
     try {
       await api.workflowCreateTask('projects', selected.id, { department_id: selected.department_id || departmentId, note: taskNote.trim() || `Next action for project: ${selected.title}` });
       setTaskNote('');
-      await load();
+      await load(true);
       const detail = await api.get('projects', selected.id);
       const linked = (await api.listAll('tasks', { active: false, department_id: selected.department_id || departmentId })).filter(task => Number(task.project_id) === Number(selected.id));
-      setSelected({ ...selected, ...detail, linked_tasks: linked });
+      setSelected(current => current?.id === selected.id ? {
+        ...current, ...detail, linked_tasks: linked,
+        progress: linked.length ? Math.round(linked.filter(task => task.status === 'Done').length * 100 / linked.length) : 0,
+        overdue_tasks: linked.filter(task => !task.hidden_from_active && task.status !== 'Done' && isOverduePropertyDay(task.due_date)).length,
+      } : current);
     } catch (err: any) {
       setError(err.message || 'Linked task could not be created.');
     } finally {
@@ -165,7 +169,7 @@ export default function ProjectsPage() {
       await api.attach('projects', selected.id, form);
       setFile(null);
       const detail = await api.get('projects', selected.id);
-      setSelected({ ...selected, ...detail });
+      setSelected(current => current?.id === selected.id ? { ...current, ...detail } : current);
     } catch (err: any) {
       setError(err.message || 'Project file could not be uploaded.');
     } finally {

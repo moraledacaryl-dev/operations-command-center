@@ -135,7 +135,10 @@ const roleRoutes: Record<Exclude<RoleName, 'owner'>, string[]> = {
 
 const viewports = [
   { name: 'desktop', width: 1440, height: 1000 },
+  { name: 'tablet-1024', width: 1024, height: 900 },
+  { name: 'tablet-768', width: 768, height: 1024 },
   { name: 'mobile', width: 390, height: 844 },
+  { name: 'mobile-320', width: 320, height: 720 },
 ];
 
 function cursorPage(items: unknown[] = []) {
@@ -214,11 +217,17 @@ async function seedAuthenticatedShell(page: Page, user: SessionUser) {
 }
 
 async function capture(page: Page, role: string, viewport: string, path: string) {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
   await page.goto(path);
-  await expect(page.locator('body')).toBeVisible();
+  await expect(page.locator('#workspace-main')).toBeVisible();
+  await expect(page.locator('#workspace-main [aria-busy="true"]')).toHaveCount(0);
   await expect(page.locator('#__next_error__')).toHaveCount(0);
   await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
   await page.screenshot({ path: `test-results/ui-audit/site-${role}-${viewport}-${fileSlug(path)}.png`, fullPage: true });
+  expect(errors, `${role} ${path} browser errors`).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+    `${role} ${path} horizontal page overflow at ${viewport}`).toBe(true);
 }
 
 test.beforeAll(() => {
