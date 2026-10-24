@@ -83,10 +83,17 @@ jobs:
           alembic downgrade base
           alembic upgrade head
           alembic current
+      - name: Verify real isolated restore and anonymous-volume cleanup
+        env:
+          OPERATIONS_TEST_DOCKER_RESTORE: '1'
+          PYTHONPATH: .
+        run: |
+          docker pull postgres:16-alpine
+          python -m pytest tests/test_isolated_restore_docker.py -v
 
   production-npm-lockfile:
     # The VPS deployment runs its host npm, which may be newer than the
-    # Node 20/npm 10 toolchain used by the normal frontend checks.
+    # Node 22/npm 10 toolchain used by the normal frontend checks.
     # npm 11 caught a missing sharp optional-dependency lockfile entry that
     # npm 10 accepted, blocking an otherwise green production release.
     runs-on: ubuntu-latest

@@ -80,3 +80,10 @@ exceeds the default 2 GiB. It does **not** silently waive the limit.
 **Never** run `pg_restore --clean`, a database downgrade, source event replay,
 or a live production DB restore to pass this gate. The deployment script's
 rollback changes its application symlink only; it does not reverse migrations.
+
+CI separately performs a real Docker restore using synthetic tables/data and
+checks that the Docker volume inventory returns to its original set. This
+regression has no production archives or credentials. It runs only when
+`OPERATIONS_TEST_DOCKER_RESTORE=1` is explicitly set and the trusted local image
+is cached; normal backend tests skip it. Passing this synthetic CI check is not
+evidence that a particular production backup has been restored.
