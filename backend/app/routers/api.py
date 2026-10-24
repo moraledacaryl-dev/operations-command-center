@@ -21,6 +21,7 @@ from ..auth import (
     verify_password,
 )
 from ..clock import utc_now
+from ..capabilities import has_capability
 from ..authorization_policy import Action, authorize_action
 from ..database import get_db
 from .. import models
@@ -1335,6 +1336,6 @@ def review_queue(department_id: Optional[int] = Query(default=None), user: model
 
 @router.post("/auto-archive/run")
 def run_archive(user: models.User = Depends(require_user), db: Session = Depends(get_db)):
-    if not can_view_all(user):
-        raise HTTPException(status_code=403, detail="Manager access required")
-    return run_auto_archive(db)
+    if not has_capability(user.role, "manage_system"):
+        raise HTTPException(status_code=403, detail="Owner/Admin access required")
+    return run_auto_archive(db, actor_id=user.id)
