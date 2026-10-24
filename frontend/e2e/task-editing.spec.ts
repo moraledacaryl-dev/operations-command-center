@@ -115,7 +115,7 @@ test('new task can be assigned without a second save', async ({ page }) => {
   await page.getByRole('button', { name: 'Create task', exact: true }).click();
   await expect(page.getByRole('button', { name: /Assigned pool inspection/ })).toBeVisible();
   expect(writes).toHaveLength(1);
-  expect(writes[0]).toMatchObject({ title: 'Assigned pool inspection', assigned_to_id: 3, department_id: '1', status: 'To Do' });
+  expect(writes[0]).toMatchObject({ title: 'Assigned pool inspection', assigned_to_id: 3, department_id: 1, status: 'To Do' });
 });
 
 test('closing a task while saving does not reopen the drawer', async ({ page }) => {
