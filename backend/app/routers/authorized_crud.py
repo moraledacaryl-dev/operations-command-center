@@ -229,6 +229,7 @@ def create_resource_authorized(
     if derived_field and hasattr(obj, derived_field):
         clean[derived_field] = user.id
     _require_assignee_visibility(db, resource, clean.get("assigned_to_id"), clean.get("department_id"))
+    _require_assignee_visibility(db, resource, clean.get("owner_id"), clean.get("department_id"))
     _validate_linked_references(db, user, resource, clean)
     apply_payload(obj, clean)
     db.add(obj)
@@ -241,9 +242,9 @@ def create_resource_authorized(
             detail="The requested record conflicts with an existing record or database constraint.",
         ) from exc
     log_activity(db, resource, obj.id, "created", f"Created {resource}", actor_id=user.id)
-    assigned_to_id = getattr(obj, "assigned_to_id", None)
-    if assigned_to_id and int(assigned_to_id) != user.id:
-        notify_user(db, assigned_to_id, "assignment", f"Assigned: {getattr(obj, 'title', resource)}", source_type=resource, source_id=obj.id, action_url=RESOURCE_URLS.get(resource))
+    recipients = {getattr(obj, field, None) for field in ("assigned_to_id", "owner_id")} - {None, user.id}
+    for recipient in recipients:
+        notify_user(db, recipient, "assignment", f"Assigned: {getattr(obj, 'title', resource)}", source_type=resource, source_id=obj.id, action_url=f"/projects/{obj.id}" if resource == "projects" else RESOURCE_URLS.get(resource))
     _commit_or_conflict(db)
     db.refresh(obj)
     return model_to_dict(obj)
@@ -293,6 +294,7 @@ def update_resource_authorized(
     if obj is None:
         raise HTTPException(status_code=404, detail="Record not found")
     previous_assignee = getattr(obj, "assigned_to_id", None)
+    previous_owner = getattr(obj, "owner_id", None)
     # Do not consume the caller's request dictionary on a failed retry.
     clean_payload = dict(payload)
     expected_updated_at = clean_payload.pop("expected_updated_at", None)
@@ -321,6 +323,9 @@ def update_resource_authorized(
     next_assignee_id = clean.get("assigned_to_id", previous_assignee)
     if next_assignee_id != previous_assignee or next_department != getattr(obj, "department_id", None):
         _require_assignee_visibility(db, resource, next_assignee_id, next_department)
+    next_owner_id = clean.get("owner_id", previous_owner)
+    if next_owner_id != previous_owner or next_department != getattr(obj, "department_id", None):
+        _require_assignee_visibility(db, resource, next_owner_id, next_department)
     _validate_linked_references(
         db, user, resource, clean, original=obj,
         department_changed=next_department != getattr(obj, "department_id", None),
@@ -334,10 +339,20 @@ def update_resource_authorized(
             status_code=409,
             detail="The requested change conflicts with an existing record or database constraint.",
         ) from exc
-    log_activity(db, resource, obj.id, "updated", f"Updated {resource}", actor_id=user.id)
+    assignment_changes = {
+        field: {"previous_id": previous, "new_id": current}
+        for field, previous, current in (
+            ("assigned_to_id", previous_assignee, next_assignee_id),
+            ("owner_id", previous_owner, next_owner_id),
+        ) if previous != current
+    }
+    log_activity(db, resource, obj.id, "updated", f"Updated {resource}", actor_id=user.id,
+                 metadata={"assignment_changes": assignment_changes} if assignment_changes else None)
     next_assignee = getattr(obj, "assigned_to_id", None)
-    if next_assignee and next_assignee != previous_assignee and int(next_assignee) != user.id:
-        notify_user(db, next_assignee, "assignment", f"Assigned: {getattr(obj, 'title', resource)}", source_type=resource, source_id=obj.id, action_url=RESOURCE_URLS.get(resource))
+    recipients = {next_assignee if next_assignee != previous_assignee else None,
+                  next_owner_id if next_owner_id != previous_owner else None} - {None, user.id}
+    for recipient in recipients:
+        notify_user(db, recipient, "assignment", f"Assigned: {getattr(obj, 'title', resource)}", source_type=resource, source_id=obj.id, action_url=f"/projects/{obj.id}" if resource == "projects" else RESOURCE_URLS.get(resource))
     _commit_or_conflict(db)
     db.refresh(obj)
     return model_to_dict(obj)

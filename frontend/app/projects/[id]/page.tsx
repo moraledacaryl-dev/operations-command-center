@@ -9,6 +9,7 @@ import { Icon } from '@/components/Icon';
 import { Pill } from '@/components/Pill';
 import { Tabs } from '@/components/Tabs';
 import { Drawer } from '@/components/Drawer';
+import { ProjectDetailsEditor } from '@/components/ProjectDetailsEditor';
 
 const categories = ['Decorations', 'Food & drinks', 'Activities', 'Equipment', 'Marketing', 'Other'];
 const statuses = ['All', 'Suggested', 'Planned', 'Purchased', 'Declined'];
@@ -47,6 +48,8 @@ export default function ProjectWorkspace() {
   const [budgetExpanded, setBudgetExpanded] = useState(false);
   const [limit, setLimit] = useState('');
   const [budgetVersion, setBudgetVersion] = useState(0);
+  const [editingProject, setEditingProject] = useState<Entity | null>(null);
+  const [projectError, setProjectError] = useState('');
 
   const purchaseDialog = useMemo(() => editing ? {} : null, [editing]);
   const paymentDialog = useMemo(() => paying ? {} : null, [paying]);
@@ -57,7 +60,7 @@ export default function ProjectWorkspace() {
   useEffect(() => { let active = true; setData(null); setError(''); api.projectWorkspace(id).then(next => { if (active) setData(next); }).catch(err => { if (active) setError(err.message); }); return () => { active = false; }; }, [id]);
 
   useEffect(() => {
-    if (busy || editing || paying || budgetOpen) return;
+    if (busy || editing || paying || budgetOpen || editingProject) return;
     let active = true, pending = false;
     async function refresh() {
       if (document.visibilityState !== 'visible' || pending) return;
@@ -72,7 +75,7 @@ export default function ProjectWorkspace() {
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
     return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
-  }, [id, busy, editing, paying, budgetOpen]);
+  }, [id, busy, editing, paying, budgetOpen, editingProject]);
 
   const discussionLink = Number(search.get('discussion'));
   const purchaseLink = Number(search.get('purchase'));
@@ -138,6 +141,19 @@ export default function ProjectWorkspace() {
     finally { setBusy(false); }
   }
 
+  async function saveProject(payload: Entity) {
+    if (busy) return;
+    setBusy(true); setProjectError(''); setError('');
+    try {
+      const updated = await api.update('projects', id, payload);
+      setData(current => current ? { ...current, project: { ...current.project, ...updated } } : current);
+      setEditingProject(null);
+      try { await load(); }
+      catch { setError('Project saved. Refresh the page to reload collaboration details.'); }
+    } catch (err: any) { setProjectError(err.message || 'Project could not be saved. Your draft is kept.'); }
+    finally { setBusy(false); }
+  }
+
   if (!data) return <div className="ops-module"><Link href="/projects">← Projects</Link><Top title="Project" />{error ? <p role="alert">{error}</p> : <div className="empty">Loading project…</div>}</div>;
   const { project, budget, purchases, comments, tasks, can_manage: manage, can_contribute: contribute } = data;
   const roots: Entity[] = comments.filter((c: Entity) => !c.reply_to_id).sort((a: Entity, b: Entity) => sort === 'Top' ? b.vote_count - a.vote_count || b.id - a.id : b.id - a.id);
@@ -161,7 +177,10 @@ export default function ProjectWorkspace() {
 
   return <div className="ops-module event-workspace">
     <Link href="/projects" className="event-back">← Projects</Link>
-    <Top title={project.title} right={<div className="event-inline-actions"><button className="ops-icon-button" aria-label="Refresh project" disabled={busy} onClick={() => void run(async () => {})}><Icon name="refresh" /></button><Link className="btn secondary" href={`/projects?project=${id}`}>Project details</Link></div>} />
+    <Drawer item={editingProject} title="Edit project" showSupplemental={false} onClose={() => setEditingProject(null)}>
+      {editingProject ? <ProjectDetailsEditor project={editingProject} busy={busy} error={projectError} onSave={saveProject} onCancel={() => setEditingProject(null)} /> : null}
+    </Drawer>
+    <Top title={project.title} right={<div className="event-inline-actions">{manage ? <button className="btn secondary" disabled={busy} onClick={() => { setProjectError(''); setEditingProject({ ...project }); }}>Edit project</button> : null}<button className="ops-icon-button" aria-label="Refresh project" disabled={busy} onClick={() => void run(async () => {})}><Icon name="refresh" /></button><Link className="btn secondary" href={`/projects?project=${id}`}>Project details</Link></div>} />
     <div className="event-project-meta"><Pill value={project.status} />{project.due_date ? <span><Icon name="clock" />{new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(project.due_date))}</span> : null}<span>{tasks.length} tasks · {totalProgress}% done</span></div>
     {project.note ? <p className="event-project-note">{project.note}</p> : null}
     {error ? <div role="alert" className="event-error">{error}<button className="event-text-button" onClick={() => void run(async () => {})}>Refresh</button></div> : null}
