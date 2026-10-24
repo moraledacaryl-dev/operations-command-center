@@ -187,7 +187,10 @@ def restore_database(db_dump: Path, expected_migration: str) -> dict:
         if container is not None:
             # Only remove the exact ID returned by the freshly spawned
             # container. Do not delete containers by name or labels.
-            cleaned = safe_execute(["docker", "rm", "--force", container], timeout=60)
+            # Explicit forced removal does not reliably apply --rm's anonymous
+            # volume cleanup. Remove only anonymous volumes attached to this
+            # exact newly created container, never prune other Docker data.
+            cleaned = safe_execute(["docker", "rm", "--force", "--volumes", container], timeout=60)
             cleanup_ok = cleaned.returncode == 0
         if not cleanup_ok and container is not None:
             raise DrillFailure("Disposable container cleanup could not be confirmed")

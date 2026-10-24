@@ -173,7 +173,7 @@ def test_database_restore_runs_only_in_new_container_and_cleans_up(monkeypatch, 
     assert result["full_pg_restore_succeeded"] is True
     assert result["migration_matches_release_manifest"] is True
     assert result["restored_delivery_count"] == 4
-    assert commands[-1] == ("docker", "rm", "--force", container_id)
+    assert commands[-1] == ("docker", "rm", "--force", "--volumes", container_id)
     assert all("DATABASE_URL" not in str(command) for command in commands)
     assert any("--network=none" in command for command in commands)
     assert any("pg_restore" in command for command in commands)
@@ -208,7 +208,7 @@ def test_database_restore_error_still_removes_owned_container(monkeypatch, tmp_p
     monkeypatch.setattr(drill.secrets, "token_hex", lambda _: "123456789abc")
     with pytest.raises(drill.DrillFailure):
         drill.restore_database(source, "0011_project_collaboration")
-    assert commands[-1] == ("docker", "rm", "--force", container_id)
+    assert commands[-1] == ("docker", "rm", "--force", "--volumes", container_id)
 
 
 def test_remote_docker_host_is_rejected_before_any_dump_stream(monkeypatch):

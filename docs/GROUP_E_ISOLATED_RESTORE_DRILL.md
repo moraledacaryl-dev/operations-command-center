@@ -34,7 +34,9 @@ Production data must not be copied to a public CI artifact or committed to Git.
 - Uploads are extracted only to a private temporary directory, with
   strict traversal/link/device rejection and a bounded unpacked-size limit.
   Each file is reopened and its restored SHA-256 verified. Temporary data and
-  the disposable container are removed after success or failure.
+  the disposable container and its anonymous PostgreSQL volume are removed
+  after success or failure. Exact-container removal uses `--volumes`; it
+  never prunes other containers or volumes.
 - The report contains only aggregate counts/booleans and an error category.
   It does not disclose files, guest names, transactions, credentials, or
   individual source event IDs.
