@@ -194,3 +194,13 @@ def test_database_restore_error_still_removes_owned_container(monkeypatch, tmp_p
     with pytest.raises(drill.DrillFailure):
         drill.restore_database(source, "0011_project_collaboration")
     assert commands[-1] == ("docker", "rm", "--force", container_id)
+
+
+def test_remote_docker_host_is_rejected_before_any_dump_stream(monkeypatch):
+    monkeypatch.setenv("DOCKER_HOST", "tcp://remote.example:2375")
+    monkeypatch.setattr(
+        drill, "safe_execute",
+        lambda *args, **kwargs: pytest.fail("must not contact Docker"),
+    )
+    with pytest.raises(drill.DrillFailure, match="forbidden"):
+        drill.require_local_docker_engine()
