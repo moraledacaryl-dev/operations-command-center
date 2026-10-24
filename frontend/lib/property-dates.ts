@@ -28,3 +28,11 @@ export function isOverduePropertyDay(dueDate: string | null | undefined, now: Da
   const today = propertyDayKey(now);
   return due !== null && today !== null && due < today;
 }
+
+export function propertyDateInput(value: string | null | undefined): string {
+  if (!value) return '';
+  const key = propertyDayKey(value);
+  if (key === null) return '';
+  const text = String(key).padStart(8, '0');
+  return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
+}

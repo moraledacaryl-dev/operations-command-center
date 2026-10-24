@@ -74,8 +74,11 @@ def department_memberships(db: Session, user: models.User) -> list[DepartmentMem
     return rows
 
 
-def operational_user(db: Session, user: models.User) -> OperationalUserResponse:
-    departments = department_memberships(db, user)
+def operational_user(
+    db: Session, user: models.User,
+    *, memberships: list[DepartmentMembershipResponse] | None = None,
+) -> OperationalUserResponse:
+    departments = department_memberships(db, user) if memberships is None else memberships
     primary_department_id = next(
         (department.id for department in departments if department.is_primary),
         user.department_id,
