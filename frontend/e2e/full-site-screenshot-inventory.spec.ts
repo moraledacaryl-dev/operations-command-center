@@ -37,8 +37,8 @@ function capabilities(enabled: string[]) {
 
 const users: Record<RoleName, SessionUser> = {
   owner: { id: 1, name: 'Owner', email: 'owner@example.test', role: 'owner', primary_department_id: 1, departments, capabilities: capabilities([...capabilityKeys]) },
-  admin: { id: 2, name: 'Admin', email: 'admin@example.test', role: 'admin', primary_department_id: 1, departments, capabilities: capabilities(['view_all_operations', 'manage_department', 'manage_accounts', 'manage_system', 'view_system_health', 'manage_approvals', 'view_sensitive_user_metadata', 'view_integration_summary']) },
-  manager: { id: 3, name: 'Manager', email: 'manager@example.test', role: 'manager', primary_department_id: 1, departments, capabilities: capabilities(['view_all_operations', 'manage_department', 'make_decisions', 'manage_approvals', 'view_integration_summary']) },
+  admin: { id: 2, name: 'Admin', email: 'admin@example.test', role: 'admin', primary_department_id: 1, departments, capabilities: capabilities([...capabilityKeys]) },
+  manager: { id: 3, name: 'Manager', email: 'manager@example.test', role: 'manager', primary_department_id: 1, departments, capabilities: capabilities(['view_all_operations', 'manage_department', 'make_decisions', 'view_system_health', 'manage_approvals', 'view_integration_summary']) },
   supervisor: { id: 4, name: 'Supervisor', email: 'supervisor@example.test', role: 'supervisor', primary_department_id: 1, departments, capabilities: capabilities(['manage_department']) },
   staff: { id: 5, name: 'Staff', email: 'staff@example.test', role: 'staff', primary_department_id: 1, departments, capabilities: capabilities([]) },
 };
@@ -128,7 +128,7 @@ const ownerRoutes = [
 
 const roleRoutes: Record<Exclude<RoleName, 'owner'>, string[]> = {
   admin: ['/', '/account', '/admin/health', '/admin/users', '/approvals', '/departments', '/history', '/my-work', '/requests', '/review', '/tasks'],
-  manager: ['/', '/account', '/approvals', '/departments', '/history', '/my-work', '/requests', '/review', '/tasks'],
+  manager: ['/', '/account', '/admin/health', '/approvals', '/departments', '/history', '/my-work', '/requests', '/review', '/tasks'],
   supervisor: ['/', '/account', '/departments', '/fixes', '/guests', '/my-work', '/requests', '/shift', '/tasks'],
   staff: ['/', '/account', '/departments', '/my-work', '/requests', '/shift', '/tasks'],
 };
