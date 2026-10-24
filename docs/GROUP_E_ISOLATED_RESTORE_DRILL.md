@@ -34,7 +34,9 @@ Production data must not be copied to a public CI artifact or committed to Git.
 - Uploads are extracted only to a private temporary directory, with
   strict traversal/link/device rejection and a bounded unpacked-size limit.
   Each file is reopened and its restored SHA-256 verified. Temporary data and
-  the disposable container are removed after success or failure.
+  the disposable container and its anonymous PostgreSQL volume are removed
+  after success or failure. Exact-container removal uses `--volumes`; it
+  never prunes other containers or volumes.
 - The report contains only aggregate counts/booleans and an error category.
   It does not disclose files, guest names, transactions, credentials, or
   individual source event IDs.
@@ -78,3 +80,10 @@ exceeds the default 2 GiB. It does **not** silently waive the limit.
 **Never** run `pg_restore --clean`, a database downgrade, source event replay,
 or a live production DB restore to pass this gate. The deployment script's
 rollback changes its application symlink only; it does not reverse migrations.
+
+CI separately performs a real Docker restore using synthetic tables/data and
+checks that the Docker volume inventory returns to its original set. This
+regression has no production archives or credentials. It runs only when
+`OPERATIONS_TEST_DOCKER_RESTORE=1` is explicitly set and the trusted local image
+is cached; normal backend tests skip it. Passing this synthetic CI check is not
+evidence that a particular production backup has been restored.
