@@ -68,6 +68,33 @@ jobs:
               assert session.query(models.GuestNote).filter(models.GuestNote.linked_fix_id.isnot(None)).count() >= 2
               print('PASS: training model counts, private logins, and linked guest-fix scenarios')
           PY
+      - name: Verify login and role-restricted API on fictional accounts
+        env:
+          ENVIRONMENT: local
+          ALLOW_DEMO_SEED: 'false'
+          ALLOW_DEFAULT_ADMIN_BOOTSTRAP: 'false'
+          DATABASE_URL: sqlite:////tmp/operations_training_demo_ci.sqlite
+          SESSION_SECRET: ci-training-session-secret-please-never-use-outside-ci-392811
+          INTEGRATION_API_KEY: ci-training-only-do-not-use-this-in-deployment
+          ALLOWED_HOSTS: testserver,127.0.0.1
+          ALLOWED_ORIGINS: http://testserver
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from fastapi.testclient import TestClient
+          from app.main import app
+          data=json.loads(Path('/tmp/operations_training_demo_private_ci/PRIVATE_training_accounts.json').read_text())
+          with TestClient(app) as client:
+              assert client.get('/api/readyz').status_code==200
+              for email,role in [('reception-am@training.invalid','staff'),('frontdesk-lead@training.invalid','supervisor'),('manager@training.invalid','manager')]:
+                  creds=next(x for x in data['accounts'] if x['email']==email)
+                  result=client.post('/api/auth/login',json={'email':email,'password':creds['password']})
+                  assert result.status_code==200, (email,result.status_code,result.text[:200])
+                  assert result.json()['role']==role, (email,result.json())
+                  client.post('/api/auth/logout')
+              print('PASS: backend readiness and real role-specific login on synthetic accounts')
+          PY
       - name: Reject a second run against already populated data
         env:
           ENVIRONMENT: local
@@ -82,3 +109,30 @@ jobs:
           fi
           grep 'REFUSED' /tmp/training-retry-output.log
           echo 'PASS: refused to re-seed existing records'
+  compose-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate localhost-only isolated runtime configuration
+        env:
+          TRAINING_SESSION_SECRET: training-smoke-secret-do-not-use-as-real-credential-486932
+          TRAINING_INTEGRATION_API_KEY: training-only-example-integration-key-not-for-use-384719
+        run: |
+          docker compose -f docker-compose.training.yml config > /tmp/training-resolved.yaml
+          python - <<'PY'
+          import yaml
+          stack=yaml.safe_load(open('/tmp/training-resolved.yaml'))
+          assert stack['name']=='hidden-oasis-operations-training'
+          gate=stack['services']['training-gateway']
+          assert len(gate['ports'])==1 and gate['ports'][0].get('host_ip')=='127.0.0.1',gate['ports']
+          assert stack['networks']['training_internal']['internal'] is True
+          assert set(stack['volumes'])=={'training_data','training_uploads','training_private_credentials'}
+          backend=stack['services']['training-backend']
+          assert backend['environment']['ENVIRONMENT']=='local'
+          assert backend['environment']['ALLOW_DEMO_SEED']=='false'
+          assert backend['environment']['DATABASE_URL'].startswith('sqlite:////training/data/operations_training_demo_')
+          assert all('ports' not in stack['services'][x] for x in ['training-init','training-backend','training-frontend'])
+          assert not any('operations.hiddenoasis.app' in str(item) for item in [backend,gate])
+          print('PASS: localhost binding, private network, separate volumes and no production configuration')
+          PY
