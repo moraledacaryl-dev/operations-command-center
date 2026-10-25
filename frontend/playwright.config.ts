@@ -18,7 +18,7 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'], channel: process.env.PLAYWRIGHT_USE_SYSTEM_CHROME === 'true' ? 'chrome' : undefined } },
   ],
   webServer: {
-    command: `npm run build && PORT=${port} HOSTNAME=127.0.0.1 node .next/standalone/server.js`,
+    command: `NEXT_PUBLIC_TRAINING_MODE=true npm run build && PORT=${port} HOSTNAME=127.0.0.1 node .next/standalone/server.js`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 180_000,

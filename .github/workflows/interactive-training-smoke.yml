@@ -1,0 +1,51 @@
+name: Interactive Training Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/components/InteractiveTraining.tsx'
+      - 'frontend/lib/interactive-training.ts'
+      - 'frontend/app/interactive-training.css'
+      - 'frontend/app/layout.tsx'
+      - 'frontend/components/AppShell.tsx'
+      - 'frontend/e2e/interactive-training.spec.ts'
+      - 'frontend/app/tasks/page.tsx'
+      - 'frontend/app/requests/page.tsx'
+      - '.github/workflows/interactive-training-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guided-tour:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Install pinned browser test dependencies
+        run: npm install --no-save --package-lock=false @playwright/test@1.55.0 @axe-core/playwright@4.10.2
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run interactive walkthrough tests only
+        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts --reporter=line
+      - name: Publish guided walkthrough screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interactive-training-screenshots
+          path: |
+            frontend/test-results/ui-audit/interactive-training-*
+            frontend/test-results/**/test-failed-*.png
+            frontend/test-results/**/trace.zip
+          if-no-files-found: warn
+          retention-days: 7
