@@ -63,8 +63,8 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
       { path: '/tasks', selector: '[aria-label="Task view"]', title: 'Board versus List', body: 'Board groups tasks by status. List is a compact way to scan titles, due dates, and priorities.' },
       { path: '/tasks', selector: '[placeholder="Search team tasks"]', title: 'Search before creating', body: 'Check for an existing task first to avoid duplicates.' },
       { path: '/tasks', selector: '[data-testid="create-task"]', title: 'Open New task', body: 'Select New task to see the entry form. Opening the form does not create a record.', advanceOnClick: true },
-      { path: '/tasks', selector: '.form-grid, section.panel', title: 'Fill out the task', body: 'Try a specific title, a real due date, the correct urgency, and the appropriate assignee. EXAMPLE: Inspect Room 203 after checkout, assigned to the Housekeeping lead. Do not submit a live practice entry.' },
-      { path: '/tasks', selector: 'button.secondary, .task-controls', title: 'Close without saving', body: 'Choose Cancel to discard this training example. The interactive tutorial never presses Create task for you.', advanceOnClick: true },
+      { path: '/tasks', selector: '[data-testid="create-task-form"] .form-grid', title: 'Fill out the task', body: 'Try a specific title, a real due date, the correct urgency, and the appropriate assignee. EXAMPLE: Inspect Room 203 after checkout, assigned to the Housekeeping lead. Do not submit a live practice entry.' },
+      { path: '/tasks', selector: '[data-testid="create-task-form"] .toolbar button.secondary', title: 'Close without saving', body: 'Choose Cancel to discard this training example. The interactive tutorial never presses Create task for you.', advanceOnClick: true },
     ],
   },
   {
@@ -94,8 +94,8 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     steps: [
       { path: '/requests', selector: '[aria-label="Request status"]', title: 'Check the request queue', body: 'Use Open, Draft, Review, Approved, Planned, Done, and Rejected to see each stage.' },
       { path: '/requests', selector: '[data-testid="create-request"]', title: 'Open New request', body: 'Choose New request to draft an operational proposal.', advanceOnClick: true },
-      { path: '/requests', selector: '.form-grid, .ops-module section.panel', title: 'Write the reason', body: 'Give the request a useful name, type, priority, and a concrete business reason. Official supplier purchase requests must still go through Accounting.' },
-      { path: '/requests', selector: '.ops-module section.panel button.secondary', title: 'Close the sample request', body: 'Cancel without saving. In the separate demo you can create, submit, approve, and implement a complete fictional request.', advanceOnClick: true },
+      { path: '/requests', selector: '[data-testid="create-request-form"] .form-grid', title: 'Write the reason', body: 'Give the request a useful name, type, priority, and a concrete business reason. Official supplier purchase requests must still go through Accounting.' },
+      { path: '/requests', selector: '[data-testid="create-request-form"] .toolbar button.secondary', title: 'Close the sample request', body: 'Cancel without saving. In the separate demo you can create, submit, approve, and implement a complete fictional request.', advanceOnClick: true },
     ],
   },
   {
@@ -104,8 +104,8 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     steps: [
       { path: '/shift', selector: '[aria-label="Shift note filters"]', title: 'Review the unresolved notes', body: 'Read what is outstanding before publishing a new handover.' },
       { path: '/shift', selector: '[data-testid="create-shift"]', title: 'Open New handover', body: 'Select New handover to see the shift note form.', advanceOnClick: true },
-      { path: '/shift', selector: '.form-grid, .ops-module section.panel', title: 'Give the next shift enough context', body: 'Add title, AM/PM/Night, category, urgency, and the detailed action needed. EXAMPLE: Room 205 cooling complaint; maintenance assigned; call guest by 10 AM.' },
-      { path: '/shift', selector: '.ops-module section.panel button.secondary', title: 'Close the practice entry', body: 'Cancel rather than publishing fictional information to live operations.', advanceOnClick: true },
+      { path: '/shift', selector: '[data-testid="create-shift-form"] .form-grid', title: 'Give the next shift enough context', body: 'Add title, AM/PM/Night, category, urgency, and the detailed action needed. EXAMPLE: Room 205 cooling complaint; maintenance assigned; call guest by 10 AM.' },
+      { path: '/shift', selector: '[data-testid="create-shift-form"] .toolbar button.secondary', title: 'Close the practice entry', body: 'Cancel rather than publishing fictional information to live operations.', advanceOnClick: true },
     ],
   },
   {
@@ -114,8 +114,8 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     steps: [
       { path: '/projects', selector: '[aria-label="Project status"]', title: 'Choose a project stage', body: 'The portfolio shows planned, active, paused, and completed projects. Check existing projects before creating one.' },
       { path: '/projects', selector: '[data-testid="create-project"]', title: 'Open a project form', body: 'Select New project to see title, due date, priority, and notes.', advanceOnClick: true },
-      { path: '/projects', selector: '.ops-module section.panel', title: 'Define a good project', body: 'Example: Halloween activity preparation. State the outcome, deadline, responsible department, and next action. Do not save training entries in production.' },
-      { path: '/projects', selector: '.ops-module section.panel button.secondary', title: 'Discard the fictional project', body: 'Cancel to return to the portfolio. Training instances can be used for collaborative discussion and purchase suggestions.', advanceOnClick: true },
+      { path: '/projects', selector: '[data-testid="create-project-form"] .form-grid', title: 'Define a good project', body: 'Example: Halloween activity preparation. State the outcome, deadline, responsible department, and next action. Do not save training entries in production.' },
+      { path: '/projects', selector: '[data-testid="create-project-form"] .toolbar button.secondary', title: 'Discard the fictional project', body: 'Cancel to return to the portfolio. Training instances can be used for collaborative discussion and purchase suggestions.', advanceOnClick: true },
     ],
   },
   {
