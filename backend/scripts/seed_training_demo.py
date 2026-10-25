@@ -287,7 +287,7 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 start_at=now,end_at=now+timedelta(days=30)),"marketing_campaigns")
             concept=add(fm.ContentConcept(campaign_id=campaign.id,
                 content_pillar="Rooms",title=PREFIX+f"Training creative #{i+1}",
-                brief="Fictional concept.",status="Draft",
+                brief="Fictional concept.",status="Idea",
                 owner_id=users["marketing-assistant"].id),"content_concepts")
             add(fm.PlatformDeliverable(concept_id=concept.id, platform=["Instagram","Facebook","TikTok","Google Business"][i],
                 format="Static",caption="TRAINING ONLY.",status="Planned",
