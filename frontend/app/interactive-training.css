@@ -87,6 +87,15 @@
   box-shadow: 0 0 0 200vmax rgba(4, 21, 16, .64), 0 0 0 6px rgba(126, 236, 186, .4);
   transition: top .16s, left .16s, width .16s, height .16s;
 }
+.ops-guide-arrow {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 12045;
+  pointer-events: none;
+  overflow: visible;
+}
 .ops-guide-tip {
   position: fixed;
   z-index: 12050;
