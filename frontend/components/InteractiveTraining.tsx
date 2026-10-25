@@ -85,7 +85,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setPosition(null);
     setActive(null);
     setMenuOpen(true);
-    setHelpMessage('Lesson completed. Choose another lesson or close the training library.');
+    setHelpMessage('Tour viewed. Practise the steps in the isolated demo and complete the separate supervisor assessment before certification.');
   }, [storageKey]);
 
   const next = useCallback(() => {
@@ -241,12 +241,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <p className="ops-guide-safety"><strong>Safe practice:</strong> Lessons never save, approve, or publish automatically. Use only an isolated demo workspace to submit fictional practice records.</p>
         <div className="ops-guide-lesson-grid">
           {lessons.map(item => <button type="button" key={item.id} className="ops-guide-lesson" onClick={() => begin(item.id)}>
-            <span className="ops-guide-lesson-title">{item.title}{complete.includes(item.id) ? <span className="ops-guide-done">Completed</span> : null}</span>
+            <span className="ops-guide-lesson-title">{item.title}{complete.includes(item.id) ? <span className="ops-guide-done">Tour viewed</span> : null}</span>
             <span className="ops-guide-lesson-description">{item.summary}</span>
             <span className="ops-guide-lesson-meta">{item.steps.length} guided steps · Start lesson →</span>
           </button>)}
         </div>
-        <p className="ops-guide-footer-note">Progress is stored on this device for this account. Resetting the browser or changing devices may clear it.</p>
+        <p className="ops-guide-footer-note">Viewed-tour markers are not staff certification. Markers are stored on this device for this account; clearing browser data removes them.</p>
       </section>
     </div>}
 
