@@ -127,6 +127,10 @@ jobs:
           gate=stack['services']['training-gateway']
           assert len(gate['ports'])==1 and gate['ports'][0].get('host_ip')=='127.0.0.1',gate['ports']
           assert stack['networks']['training_internal']['internal'] is True
+          assert set(stack['services']['training-backend']['networks'])=={'training_internal'}
+          assert set(stack['services']['training-frontend']['networks'])=={'training_internal'}
+          assert set(stack['services']['training-init']['networks'])=={'training_internal'}
+          assert set(stack['services']['training-gateway']['networks'])=={'training_edge','training_internal'}
           assert set(stack['volumes'])=={'training_data','training_uploads','training_private_credentials'}
           backend=stack['services']['training-backend']
           assert backend['environment']['ENVIRONMENT']=='local'
