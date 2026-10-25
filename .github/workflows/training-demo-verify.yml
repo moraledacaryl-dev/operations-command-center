@@ -1,0 +1,84 @@
+name: Training Demo Seed Verification
+
+on:
+  pull_request:
+    paths:
+      - 'backend/scripts/seed_training_demo.py'
+      - 'backend/tests/test_training_seed_guards.py'
+      - '.github/workflows/training-demo-verify.yml'
+      - 'docker-compose.training.yml'
+      - 'deployment/training/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  training-seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-test.txt
+      - run: pip install -r requirements-test.txt
+      - name: Reject production, staging and existing databases
+        run: python -m pytest tests/test_training_seed_guards.py -v
+      - name: Migrate and seed new isolated SQLite database
+        env:
+          ENVIRONMENT: local
+          ALLOW_DEMO_SEED: 'false'
+          ALLOW_DEFAULT_ADMIN_BOOTSTRAP: 'false'
+          DATABASE_URL: sqlite:////tmp/operations_training_demo_ci.sqlite
+        run: |
+          set -euo pipefail
+          test ! -e /tmp/operations_training_demo_ci.sqlite
+          alembic upgrade head
+          python scripts/seed_training_demo.py --confirm ISOLATED_TRAINING_DATABASE_ONLY --private-output /tmp/operations_training_demo_private_ci
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from sqlalchemy import create_engine
+          from app.auth import verify_password
+          from app import models
+          from sqlalchemy.orm import Session
+          db = create_engine('sqlite:////tmp/operations_training_demo_ci.sqlite')
+          with Session(db) as session:
+              assert session.query(models.User).count() == 20
+              assert session.query(models.Department).count() == 9
+              assert session.query(models.Task).count() >= 50
+              assert session.query(models.GuestNote).count() >= 10
+              assert session.query(models.Fix).count() >= 10
+              assert session.query(models.Project).count() == 8
+              manager = session.query(models.User).filter_by(email='manager@training.invalid').one()
+              private = Path('/tmp/operations_training_demo_private_ci')
+              assert private.stat().st_mode & 0o077 == 0
+              roster = json.loads((private/'PRIVATE_training_accounts.json').read_text())
+              info = next(x for x in roster['accounts'] if x['email']=='manager@training.invalid')
+              assert verify_password(info['password'], manager.password_hash)
+              assert (private/'PRIVATE_training_accounts.json').stat().st_mode & 0o077 == 0
+              assert session.query(models.GuestNote).filter(models.GuestNote.linked_fix_id.isnot(None)).count() >= 2
+              print('PASS: training model counts, private logins, and linked guest-fix scenarios')
+          PY
+      - name: Reject a second run against already populated data
+        env:
+          ENVIRONMENT: local
+          ALLOW_DEMO_SEED: 'false'
+          ALLOW_DEFAULT_ADMIN_BOOTSTRAP: 'false'
+          DATABASE_URL: sqlite:////tmp/operations_training_demo_ci.sqlite
+        run: |
+          set -euo pipefail
+          if python scripts/seed_training_demo.py --confirm ISOLATED_TRAINING_DATABASE_ONLY --private-output /tmp/another_training_roster > /tmp/training-retry-output.log 2>&1; then
+            echo 'SECURITY ERROR: Seeder accepted a populated database.'
+            exit 1
+          fi
+          grep 'REFUSED' /tmp/training-retry-output.log
+          echo 'PASS: refused to re-seed existing records'
