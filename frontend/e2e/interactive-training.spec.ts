@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
+
+mkdirSync('test-results/ui-audit', { recursive: true });
 
 type TrainingRole = 'staff' | 'supervisor' | 'manager';
 const capabilitiesFor = (role: TrainingRole) => ({
@@ -41,11 +44,14 @@ test('staff have read-only lessons with guided spotlights', async ({ page }) => 
   await openMockWorkspace(page, 'staff');
   const library = page.getByRole('dialog', { name: 'Interactive staff training' });
   await expect(library).toContainText('Getting around Operations');
+  await page.screenshot({ path: 'test-results/ui-audit/interactive-training-staff-library.png' });
   await expect(library).not.toContainText('Creating and managing a task');
   await library.getByRole('button', { name: /Getting around Operations/ }).click();
   const step = page.getByRole('dialog', { name: /Training step/ });
   await expect(step).toContainText('Where you are');
   await expect(page.locator('.ops-guide-spotlight')).toBeVisible();
+  await expect(page.locator('.ops-guide-arrow')).toBeVisible();
+  await page.screenshot({ path: 'test-results/ui-audit/interactive-training-staff-spotlight.png' });
   await step.getByRole('button', { name: /Next/ }).click();
   await expect(step).toContainText('My Work');
   await step.getByRole('button', { name: /Exit/ }).click();
@@ -63,6 +69,7 @@ test('manager sees authorization-appropriate review lessons', async ({ page }) =
   await openMockWorkspace(page, 'manager');
   const library = page.getByRole('dialog', { name: 'Interactive staff training' });
   await expect(library).toContainText('Review and approval decisions');
+  await page.screenshot({ path: 'test-results/ui-audit/interactive-training-manager-library.png' });
   await expect(library).not.toContainText('People and access administration');
 });
 
@@ -70,6 +77,7 @@ test('mobile staff can open and close the training library', async ({ page }) =>
   await page.setViewportSize({ width: 390, height: 844 });
   await openMockWorkspace(page, 'staff');
   await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/ui-audit/interactive-training-mobile-library.png' });
   await page.getByRole('button', { name: 'Close training' }).click();
   await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toHaveCount(0);
 });
