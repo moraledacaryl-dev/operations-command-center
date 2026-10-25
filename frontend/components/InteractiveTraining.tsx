@@ -32,15 +32,35 @@ function closeEnough(a: Position | null, b: Position) {
     && Math.abs(a.width - b.width) < 2 && Math.abs(a.height - b.height) < 2);
 }
 
-function popupStyle(position: Position | null): React.CSSProperties {
+function popupStyle(position: Position | null, measuredTipHeight?: number): React.CSSProperties {
   if (!position || typeof window === 'undefined') return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-  const compact = window.innerWidth < 640;
-  if (compact) return { left: 12, right: 12, bottom: 80 };
-  const width = Math.min(360, window.innerWidth - 32);
-  const left = Math.max(16, Math.min(window.innerWidth - width - 16, position.left + position.width / 2 - width / 2));
-  const below = position.top + position.height + 18;
-  const top = below + 230 > window.innerHeight ? Math.max(16, position.top - 236) : below;
-  return { left, top, width };
+  if (window.innerWidth < 640) return { left: 12, right: 12, bottom: 80 };
+
+  const margin = 14;
+  const gap = 18;
+  const width = Math.min(420, window.innerWidth - 2 * margin);
+  const height = Math.max(190, measuredTipHeight || 290);
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+  const centeredLeft = Math.max(margin, Math.min(viewportWidth - width - margin, position.left + position.width / 2 - width / 2));
+  const spaceAbove = position.top - margin;
+  const spaceBelow = viewportHeight - (position.top + position.height) - margin;
+
+  // Prefer above/below without obscuring the highlighted element. Measure the
+  // actual popup height: a fixed estimate caused long instructions to cover forms.
+  if (spaceBelow >= height + gap) return { left: centeredLeft, top: position.top + position.height + gap, width };
+  if (spaceAbove >= height + gap) return { left: centeredLeft, top: position.top - height - gap, width };
+
+  // If the focused element is tall, first try an adjacent side.
+  const right = viewportWidth - (position.left + position.width) - margin;
+  const left = position.left - margin;
+  const centeredTop = Math.max(margin, Math.min(viewportHeight - height - margin, position.top + position.height / 2 - height / 2));
+  if (right >= width + gap) return { left: position.left + position.width + gap, top: centeredTop, width };
+  if (left >= width + gap) return { left: position.left - width - gap, top: centeredTop, width };
+
+  // In a constrained viewport, minimize rather than conceal overlap.
+  if (spaceAbove >= spaceBelow) return { left: centeredLeft, top: Math.max(margin, position.top - height - gap), width };
+  return { left: centeredLeft, top: Math.min(viewportHeight - height - margin, position.top + position.height + gap), width };
 }
 
 export function InteractiveTraining({ user, path }: { user: Entity; path: string }) {
@@ -258,7 +278,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <polygon points={arrow.head} fill="#21d395" stroke="#ffffff" strokeWidth="2" />
       </svg>}
       <section ref={tipRef} className="ops-guide-tip" role="dialog" aria-modal="false"
-        aria-label={`Training step ${stepIndex + 1} of ${lesson.steps.length}`} style={popupStyle(position)}>
+        aria-label={`Training step ${stepIndex + 1} of ${lesson.steps.length}`} style={popupStyle(position, tipPosition?.height)}>
         <div className="ops-guide-tip-top"><span>STEP {stepIndex + 1} / {lesson.steps.length}</span><button type="button" onClick={exit} aria-label="Exit walkthrough">Exit ×</button></div>
         <div className="ops-guide-progress" aria-hidden="true"><span style={{ width: `${(stepIndex + 1) / lesson.steps.length * 100}%` }} /></div>
         <h2>{step.title}</h2>
