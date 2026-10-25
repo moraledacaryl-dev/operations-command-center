@@ -58,6 +58,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [targetFound, setTargetFound] = useState(false);
   const [complete, setComplete] = useState<string[]>([]);
   const observedNode = useRef<HTMLElement | null>(null);
+  const tipRef = useRef<HTMLElement | null>(null);
+  const [tipPosition, setTipPosition] = useState<Position | null>(null);
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');
   const storageKey = COMPLETION_PREFIX + identity;
@@ -190,6 +192,32 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     return () => window.removeEventListener('keydown', keydown);
   }, [active, next, previous, exit]);
 
+  useEffect(() => {
+    if (!position || !step || path !== step.path) { setTipPosition(null); return; }
+    const frame = requestAnimationFrame(() => {
+      const node = tipRef.current;
+      if (!node) return;
+      const nextPosition = positionFor(node);
+      setTipPosition(current => closeEnough(current, nextPosition) ? current : nextPosition);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [active, position, step, path, targetFound]);
+
+  const arrow = position && tipPosition && typeof window !== 'undefined' ? (() => {
+    const tx = Math.min(window.innerWidth - 20, Math.max(20, position.left + position.width / 2));
+    const ty = Math.min(window.innerHeight - 20, Math.max(20, position.top + position.height / 2));
+    const cx = tipPosition.left + tipPosition.width / 2;
+    const cy = Math.abs(ty - tipPosition.top) < Math.abs(ty - tipPosition.top - tipPosition.height)
+      ? tipPosition.top : tipPosition.top + tipPosition.height;
+    const distance = Math.max(1, Math.hypot(tx - cx, ty - cy));
+    const dx = (tx - cx) / distance, dy = (ty - cy) / distance;
+    const endX = tx - dx * 14, endY = ty - dy * 14;
+    return {
+      line: `M ${cx} ${cy} L ${endX} ${endY}`,
+      head: `${tx},${ty} ${tx - dx * 19 - dy * 8},${ty - dy * 19 + dx * 8} ${tx - dx * 19 + dy * 8},${ty - dy * 19 - dx * 8}`,
+    };
+  })() : null;
+
   const spotlight = position && path === step?.path ? {
     top: Math.max(0, position.top - 6),
     left: Math.max(0, position.left - 6),
@@ -224,7 +252,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
     {active && step && lesson && <>
       {spotlight && <div className="ops-guide-spotlight" aria-hidden="true" style={spotlight}/>}
-      <section className="ops-guide-tip" role="dialog" aria-modal="false"
+      {arrow && <svg className="ops-guide-arrow" aria-hidden="true" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <path d={arrow.line} fill="none" stroke="#ffffff" strokeWidth="8" strokeLinecap="round" opacity=".75" />
+        <path d={arrow.line} fill="none" stroke="#21d395" strokeWidth="4" strokeLinecap="round" />
+        <polygon points={arrow.head} fill="#21d395" stroke="#ffffff" strokeWidth="2" />
+      </svg>}
+      <section ref={tipRef} className="ops-guide-tip" role="dialog" aria-modal="false"
         aria-label={`Training step ${stepIndex + 1} of ${lesson.steps.length}`} style={popupStyle(position)}>
         <div className="ops-guide-tip-top"><span>STEP {stepIndex + 1} / {lesson.steps.length}</span><button type="button" onClick={exit} aria-label="Exit walkthrough">Exit ×</button></div>
         <div className="ops-guide-progress" aria-hidden="true"><span style={{ width: `${(stepIndex + 1) / lesson.steps.length * 100}%` }} /></div>
