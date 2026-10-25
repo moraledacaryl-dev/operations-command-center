@@ -105,7 +105,7 @@ test('supervisor safely opens a task form and cancels without writing', async ({
   await step.getByRole('button', { name: /Next/ }).click();
   await expect(step).toContainText('Close without saving');
   await page.getByTestId('create-task-form').getByRole('button', { name: 'Cancel' }).click();
-  await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toContainText('Completed');
+  await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toContainText('Tour viewed');
   await expect(page.getByTestId('create-task-form')).toHaveCount(0);
   expect(writes.filter(w => /\/api\/(tasks|workflow|requests)/.test(w))).toEqual([]);
 });
