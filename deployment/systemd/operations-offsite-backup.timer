@@ -1,0 +1,13 @@
+[Unit]
+Description=Hourly encrypted Operations offsite backup after local snapshot
+
+[Timer]
+OnActiveSec=60s
+OnCalendar=*-*-* *:10:00
+AccuracySec=1s
+Persistent=true
+Unit=operations-offsite-backup.service
+
+[Install]
+WantedBy=timers.target
+

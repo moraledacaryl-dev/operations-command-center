@@ -1,0 +1,24 @@
+[Unit]
+Description=Encrypted copy of verified Operations snapshot to Backblaze
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/hiddenoasis/operations-offsite.json
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+Environment=PYTHONDONTWRITEBYTECODE=1
+CacheDirectory=operations-command-center-offsite
+CacheDirectoryMode=0700
+ExecStart=/opt/operations-command-center/current/backend/.venv/bin/python /opt/operations-command-center/current/scripts/offsite_backup.py
+TimeoutStartSec=35min
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/run/operations-command-center.deploy.lock /var/lib/operations-command-center-backup /var/cache/operations-command-center-offsite
+

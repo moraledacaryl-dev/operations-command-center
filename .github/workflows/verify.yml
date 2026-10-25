@@ -92,6 +92,12 @@ jobs:
           python -m pytest tests/test_isolated_restore_docker.py -v
       - name: Verify non-root backend image from private source permissions
         run: python ../scripts/verify_container_runtime.py backend
+      - name: Verify actual encrypted offsite backup and restore with synthetic data
+        env:
+          PYTHONPATH: .
+        run: |
+          python ../scripts/prepare_restic_binary.py "$RUNNER_TEMP/operations-restic"
+          OPERATIONS_TEST_RESTIC_BINARY="$RUNNER_TEMP/operations-restic/restic" python -m pytest tests/test_offsite_backup.py -v
 
   production-npm-lockfile:
     # The VPS deployment runs its host npm, which may be newer than the
