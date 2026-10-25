@@ -63,7 +63,7 @@ jobs:
           chmod 600 "$HOME/.ssh/id_training" "$HOME/.ssh/known_hosts"
           [[ "$TRAINING_SSH_HOST_KEY" == *" "* ]] || { echo 'Host-key pin is missing its key'; exit 1; }
           ssh -i "$HOME/.ssh/id_training" -p "$TRAINING_SSH_PORT" -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes "$TRAINING_SSH_USER@$TRAINING_SSH_HOST" \
-             'set -eu; test "$(cat /etc/hiddenoasis-training-only-id)" = "ISOLATED_TRAINING_HOST_V1"; test -d /opt/hiddenoasis-training; test -w /opt/hiddenoasis-training; docker compose version >/dev/null; command -v curl >/dev/null; echo "Dedicated training host verified"'
+             'set -eu; test "$(cat /etc/hiddenoasis-training-only-id)" = "ISOLATED_TRAINING_HOST_V1"; test "$(stat -c %u /etc/hiddenoasis-training-only-id)" = "0"; test -d /opt/hiddenoasis-training; test -w /opt/hiddenoasis-training; docker compose version >/dev/null; command -v curl >/dev/null; echo "Dedicated training host verified"'
 
       - name: Transfer application release without credentials
         shell: bash
@@ -82,8 +82,11 @@ jobs:
           test "$(cat /etc/hiddenoasis-training-only-id)" = "ISOLATED_TRAINING_HOST_V1"
           RELEASE="/opt/hiddenoasis-training/releases/$TRAINING_RELEASE"
           if [ ! -d "$RELEASE" ]; then
-            mkdir "$RELEASE"
-            tar -xzf "/opt/hiddenoasis-training/incoming/$TRAINING_RELEASE.tar.gz" -C "$RELEASE"
+            TEMP_RELEASE="$RELEASE.partial.$"
+            mkdir "$TEMP_RELEASE"
+            tar -xzf "/opt/hiddenoasis-training/incoming/$TRAINING_RELEASE.tar.gz" -C "$TEMP_RELEASE"
+            test -f "$TEMP_RELEASE/docker-compose.training.yml"
+            mv "$TEMP_RELEASE" "$RELEASE"
           fi
           test -f "$RELEASE/docker-compose.training.yml"
           echo "Isolated training release staged"
@@ -100,7 +103,7 @@ jobs:
           } | ssh -i "$HOME/.ssh/id_training" -p "$TRAINING_SSH_PORT" \
                -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes \
                "$TRAINING_SSH_USER@$TRAINING_SSH_HOST" \
-               'set -eu; test "$(cat /etc/hiddenoasis-training-only-id)" = "ISOLATED_TRAINING_HOST_V1"; umask 077; cat > /opt/hiddenoasis-training/shared/.env.training.private; chmod 600 /opt/hiddenoasis-training/shared/.env.training.private'
+               'set -eu; test "$(cat /etc/hiddenoasis-training-only-id)" = "ISOLATED_TRAINING_HOST_V1"; umask 077; FILE=$(mktemp /opt/hiddenoasis-training/shared/.env.training.private.XXXXXX); cat > "$FILE"; chmod 600 "$FILE"; mv "$FILE" /opt/hiddenoasis-training/shared/.env.training.private'
           echo 'Independent training secrets securely provisioned.'
 
       - name: Launch training Compose project and verify localhost health
