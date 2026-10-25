@@ -3,12 +3,12 @@ import { mkdirSync } from 'node:fs';
 
 mkdirSync('test-results/ui-audit', { recursive: true });
 
-type TrainingRole = 'staff' | 'supervisor' | 'manager';
+type TrainingRole = 'staff' | 'supervisor' | 'manager' | 'admin';
 const capabilitiesFor = (role: TrainingRole) => ({
   manage_department: role !== 'staff',
-  make_decisions: role === 'manager',
-  manage_accounts: false,
-  view_all_operations: role === 'manager',
+  make_decisions: role === 'manager' || role === 'admin',
+  manage_accounts: role === 'admin',
+  view_all_operations: role === 'manager' || role === 'admin',
 });
 
 async function openMockWorkspace(page: import('@playwright/test').Page, role: TrainingRole) {
@@ -80,4 +80,54 @@ test('mobile staff can open and close the training library', async ({ page }) =>
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-mobile-library.png' });
   await page.getByRole('button', { name: 'Close training' }).click();
   await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toHaveCount(0);
+});
+
+test('supervisor safely opens a task form and cancels without writing', async ({ page }) => {
+  const writes: string[] = [];
+  page.on('request', request => {
+    if (request.url().includes('/api/') && request.method() !== 'GET') writes.push(`${request.method()} ${request.url()}`);
+  });
+  await openMockWorkspace(page, 'supervisor');
+  const library = page.getByRole('dialog', { name: 'Interactive staff training' });
+  await library.getByRole('button', { name: /Creating and managing a task/ }).click();
+  const step = page.getByRole('dialog', { name: /Training step/ });
+  await expect(page).toHaveURL(/\/tasks$/);
+  await expect(step).toContainText('Board versus List');
+  await step.getByRole('button', { name: /Next/ }).click();
+  await expect(step).toContainText('Search before creating');
+  await step.getByRole('button', { name: /Next/ }).click();
+  await expect(step).toContainText('Open New task');
+  await page.getByTestId('create-task').click();
+  await expect(step).toContainText('Fill out the task');
+  await expect(page.getByTestId('create-task-form')).toBeVisible();
+  await expect(page.locator('.ops-guide-spotlight')).toBeVisible();
+  await page.screenshot({ path: 'test-results/ui-audit/interactive-training-task-form.png' });
+  await step.getByRole('button', { name: /Next/ }).click();
+  await expect(step).toContainText('Close without saving');
+  await page.getByTestId('create-task-form').getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toContainText('Completed');
+  await expect(page.getByTestId('create-task-form')).toHaveCount(0);
+  expect(writes.filter(w => /\/api\/(tasks|workflow|requests)/.test(w))).toEqual([]);
+});
+
+test('supervisor request walkthrough opens and cancels an unsaved proposal', async ({ page }) => {
+  await openMockWorkspace(page, 'supervisor');
+  await page.getByRole('dialog', { name: 'Interactive staff training' })
+    .getByRole('button', { name: /Operational request approval/ }).click();
+  const step = page.getByRole('dialog', { name: /Training step/ });
+  await expect(page).toHaveURL(/\/requests$/);
+  await step.getByRole('button', { name: /Next/ }).click();
+  await expect(step).toContainText('Open New request');
+  await page.getByTestId('create-request').click();
+  await expect(step).toContainText('Write the reason');
+  await expect(page.getByTestId('create-request-form')).toBeVisible();
+  await step.getByRole('button', { name: /Next/ }).click();
+  await expect(step).toContainText('Close the sample request');
+  await page.getByTestId('create-request-form').getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByTestId('create-request-form')).toHaveCount(0);
+});
+
+test('administrator sees people and access lessons', async ({ page }) => {
+  await openMockWorkspace(page, 'admin');
+  await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toContainText('People and access administration');
 });
