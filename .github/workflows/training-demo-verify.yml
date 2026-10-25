@@ -136,3 +136,57 @@ jobs:
           assert not any('operations.hiddenoasis.app' in str(item) for item in [backend,gate])
           print('PASS: localhost binding, private network, separate volumes and no production configuration')
           PY
+
+  training-stack-smoke:
+    needs: [training-seed, compose-safety]
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      TRAINING_SESSION_SECRET: ephemeral-integration-secret-only-for-ci-do-not-ever-reuse-482713
+      TRAINING_INTEGRATION_API_KEY: ephemeral-ci-integration-key-training-only-938271
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and launch actual localhost-only training stack
+        run: |
+          set -euo pipefail
+          docker compose -f docker-compose.training.yml up -d --build
+          docker compose -f docker-compose.training.yml ps
+          for attempt in $(seq 1 24); do
+            if curl -fsS http://127.0.0.1:3401/api/readyz > /tmp/training-readiness.json; then
+              break
+            fi
+            sleep 5
+          done
+          python - <<'PY'
+          import json
+          response=json.load(open('/tmp/training-readiness.json'))
+          assert response.get('ready') is True,response
+          print('PASS: isolated runtime readiness, migrations, uploads, and security')
+          PY
+          curl -fsS http://127.0.0.1:3401/login -o /tmp/training-login.html
+          grep -q 'Sign in to Operations' /tmp/training-login.html
+      - name: Sign in through real isolated gateway using fictional account
+        run: |
+          set -euo pipefail
+          umask 077
+          docker compose -f docker-compose.training.yml run --rm --no-deps --entrypoint cat training-init /training/private/accounts/PRIVATE_training_accounts.json > /tmp/ephemeral-training-login.json
+          python - <<'PY'
+          import http.cookiejar,json,urllib.request
+          data=json.load(open('/tmp/ephemeral-training-login.json'))
+          user=next(x for x in data['accounts'] if x['email']=='manager@training.invalid')
+          jar=http.cookiejar.CookieJar()
+          agent=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+          payload=json.dumps({'email':user['email'],'password':user['password']}).encode()
+          response=agent.open(urllib.request.Request('http://127.0.0.1:3401/api/auth/login', data=payload,
+              headers={'Content-Type':'application/json'},method='POST'), timeout=10)
+          body=json.load(response)
+          assert body['role']=='manager',body
+          assert agent.open('http://127.0.0.1:3401/api/readyz').status==200
+          print('PASS: complete training gateway login using randomly generated demo password')
+          PY
+      - name: Print training-only service diagnostics if a check fails
+        if: failure()
+        run: docker compose -f docker-compose.training.yml ps -a && docker compose -f docker-compose.training.yml logs --tail 80 --no-color training-init training-backend training-frontend training-gateway
+      - name: Delete ephemeral runner training volumes
+        if: always()
+        run: docker compose -f docker-compose.training.yml down -v --remove-orphans
