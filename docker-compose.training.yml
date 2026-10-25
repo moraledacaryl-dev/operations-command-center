@@ -83,6 +83,7 @@ services:
         condition: service_healthy
     networks:
       - training_internal
+      - training_edge
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/api/livez"]
       interval: 10s
@@ -93,6 +94,8 @@ services:
 networks:
   training_internal:
     internal: true
+  training_edge:  # Gateway-only bridge needed for Docker localhost port publication.
+    internal: false
 
 volumes:
   training_data:
