@@ -1,6 +1,6 @@
 # Interactive staff training: rollout and acceptance
 
-The Training button launches visual walkthroughs inside authenticated Operations pages. It shows a popup, highlights the relevant control, and draws an arrow. The user can navigate Back, Next, All lessons, or Exit.
+The Training button launches visual walkthroughs inside authenticated Operations pages **only when the frontend was explicitly built with NEXT_PUBLIC_TRAINING_MODE=true**. Normal production builds do not show the launcher. It shows a popup, highlights the relevant control, and draws an arrow. The user can navigate Back, Next, All lessons, or Exit.
 
 ## What it does, and does not do
 
