@@ -242,7 +242,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="ops-topbar"><div className="ops-breadcrumb"><button className="ops-icon-button ops-collapse" type="button" aria-label={compact ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!compact} aria-controls="mobile-sidebar" onClick={toggleCompact}><Icon name="panel" /></button><span>{workspaceName}</span><span aria-hidden="true">/</span><strong>{currentPage}</strong></div><Link className="ops-icon-button ops-notifications" href="/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}><Icon name="bell" />{unreadCount > 0 && <span className="ops-unread-dot" />}</Link></header>
         {process.env.NEXT_PUBLIC_DEMO_PREVIEW === 'true' && <div className="ops-demo-banner"><span>Demo workspace</span> Fictional sample data for design preview</div>}
         <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{children}</main>
-        <InteractiveTraining user={user} path={path} />
+        {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <InteractiveTraining user={user} path={path} /> : null}
       </div>
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         {[homeItems[0], homeItems[1], workItems[0], decisionItems[0]].map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
