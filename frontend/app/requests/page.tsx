@@ -115,7 +115,7 @@ export default function RequestsPage() {
       { label: 'Urgent', value: error ? null : urgent, icon: 'clock', attention: true },
     ]} />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
+    {canManageWork && showAdd ? <section data-testid="create-request-form" className="panel" style={{ marginBottom: 16 }}>
       <h2>New request</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Request<input className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
