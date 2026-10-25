@@ -1,0 +1,100 @@
+# Completely separate, localhost-only, fictional Operations training stack.
+# Never combine with production Compose, database volumes, or integration secrets.
+name: hidden-oasis-operations-training
+
+x-training-environment: &training_environment
+  ENVIRONMENT: local
+  ALLOW_DEMO_SEED: "false"
+  ALLOW_DEFAULT_ADMIN_BOOTSTRAP: "false"
+  DATABASE_URL: sqlite:////training/data/operations_training_demo_class1.sqlite
+  UPLOAD_DIR: /training/uploads
+  SESSION_SECRET: ${TRAINING_SESSION_SECRET:?Generate a unique 32-plus-character TRAINING_SESSION_SECRET}
+  INTEGRATION_API_KEY: ${TRAINING_INTEGRATION_API_KEY:?Generate a unique private training-only INTEGRATION_API_KEY}
+  ALLOWED_ORIGINS: http://127.0.0.1:${TRAINING_PORT:-3401},http://localhost:${TRAINING_PORT:-3401}
+  ALLOWED_HOSTS: 127.0.0.1,localhost
+  FORCE_HTTPS: "false"
+  EXPOSE_API_DOCS: "false"
+  TRUST_PROXY_HEADERS: "false"
+
+services:
+  training-init:
+    build:
+      context: ./backend
+      dockerfile: ../deployment/training/Dockerfile.backend
+    user: "0:0"
+    command: ["sh", "scripts/bootstrap_training.sh"]
+    environment: *training_environment
+    volumes:
+      - training_data:/training/data
+      - training_uploads:/training/uploads
+      - training_private_credentials:/training/private
+    networks:
+      - training_internal
+    restart: "no"
+
+  training-backend:
+    build:
+      context: ./backend
+      dockerfile: ../deployment/training/Dockerfile.backend
+    environment: *training_environment
+    volumes:
+      - training_data:/training/data
+      - training_uploads:/training/uploads
+    depends_on:
+      training-init:
+        condition: service_completed_successfully
+    networks:
+      - training_internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/readyz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    restart: unless-stopped
+
+  training-frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../deployment/training/Dockerfile.frontend
+    depends_on:
+      training-backend:
+        condition: service_healthy
+    networks:
+      - training_internal
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r => {if(!r.ok) process.exit(1)}).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+    restart: unless-stopped
+
+  training-gateway:
+    image: nginx:1.27-alpine
+    ports:
+      # Hardcoded loopback bind: no direct public or LAN exposure.
+      - "127.0.0.1:${TRAINING_PORT:-3401}:80"
+    volumes:
+      - ./deployment/training/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      training-backend:
+        condition: service_healthy
+      training-frontend:
+        condition: service_healthy
+    networks:
+      - training_internal
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/api/livez"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+networks:
+  training_internal:
+    internal: true
+
+volumes:
+  training_data:
+  training_uploads:
+  training_private_credentials:
