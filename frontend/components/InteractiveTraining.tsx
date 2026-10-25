@@ -79,6 +79,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [complete, setComplete] = useState<string[]>([]);
   const observedNode = useRef<HTMLElement | null>(null);
   const tipRef = useRef<HTMLElement | null>(null);
+  const libraryRef = useRef<HTMLElement | null>(null);
   const [tipPosition, setTipPosition] = useState<Position | null>(null);
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');
@@ -238,6 +239,29 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     };
   })() : null;
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const library = libraryRef.current;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusable = () => Array.from(library?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), [tabindex="0"]'
+    ) || []).filter(node => node.getClientRects().length > 0);
+    const controls = focusable();
+    (controls[0] || library)?.focus();
+
+    const trapTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const nodes = focusable();
+      if (!nodes.length) { event.preventDefault(); library?.focus(); return; }
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (!library?.contains(document.activeElement)) { event.preventDefault(); first.focus(); }
+      else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    window.addEventListener('keydown', trapTab);
+    return () => { window.removeEventListener('keydown', trapTab); previous?.focus(); };
+  }, [menuOpen]);
+
   const spotlight = position && path === step?.path ? {
     top: Math.max(0, position.top - 6),
     left: Math.max(0, position.left - 6),
@@ -252,7 +276,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     </button>
 
     {menuOpen && !active && <div className="ops-guide-library-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setMenuOpen(false); }}>
-      <section className="ops-guide-library" role="dialog" aria-modal="true" aria-label="Interactive staff training">
+      <section ref={libraryRef} className="ops-guide-library" role="dialog" aria-modal="true" aria-label="Interactive staff training" tabIndex={-1}>
         <header className="ops-guide-library-header">
           <div><span className="ops-guide-eyebrow">OPERATIONS LEARNING CENTER</span><h2>Interactive training</h2><p>Follow highlighted controls on the real app. Your available lessons match your system permissions.</p></div>
           <button type="button" className="ops-guide-close" aria-label="Close training" onClick={() => setMenuOpen(false)}>×</button>
