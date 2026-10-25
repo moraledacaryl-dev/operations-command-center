@@ -165,6 +165,8 @@ jobs:
           PY
           curl -fsS http://127.0.0.1:3401/login -o /tmp/training-login.html
           grep -q 'Sign in to Operations' /tmp/training-login.html
+          grep -q 'TRAINING ONLY' /tmp/training-login.html
+          curl -fsSI http://127.0.0.1:3401/login | grep -i 'x-training-environment: synthetic-isolated'
       - name: Sign in through real isolated gateway using fictional account
         run: |
           set -euo pipefail
