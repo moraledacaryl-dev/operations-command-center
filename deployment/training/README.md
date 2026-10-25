@@ -1,6 +1,6 @@
 # Hidden Oasis Operations — Isolated training website
 
-This is an **additional local training stack**, never a replacement for production. It starts a copy of the Operations frontend and backend, backed by a fresh SQLite database filled with fictional records. The entry point is restricted to **127.0.0.1**. The containers use an isolated Docker network that has no external egress.
+This is an **additional local training stack**, never a replacement for production. It starts a copy of the Operations frontend and backend, backed by a fresh SQLite database filled with fictional records. The entry point is restricted to **127.0.0.1**. The backend, initializer, and frontend are confined to an internal-only Docker network. The Nginx gateway also joins a separate edge bridge so its published **127.0.0.1** port works; it is the only container with that network attachment.
 
 The interactive popups/arrows are provided by **PR #213**. This training stack is **PR #214**; merge both features before staff use, or run this stack from a checkout containing both features.
 
@@ -16,7 +16,7 @@ From the fresh checkout root, create a **new local-only** secrets file named `.e
 
 Generate separate random values on your own computer with Python `secrets.token_urlsafe(48)`. Do not copy values from the production Operations, Payroll, POS, Inventory or Accounting apps. Keep this file private, with permissions 0600. Never commit it or paste it into a chat.
 
-**The training services do not connect to Accounting, POS, Payroll or Inventory.** The Docker runtime network has `internal: true`; the application is accessible only from the same host at the loopback address.
+**The training services do not connect to Accounting, POS, Payroll or Inventory.** The backend/frontend network has `internal: true` and cannot reach external services; the gateway uses a second bridge solely for loopback port publication. The website is accessible only from the same host at the loopback address.
 
 ## Verify the config and start
 
