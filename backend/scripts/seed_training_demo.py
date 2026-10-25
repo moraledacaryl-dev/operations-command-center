@@ -334,7 +334,7 @@ def main() -> None:
     if args.confirm != ACK: raise SystemExit("REFUSED: explicit isolated demo acknowledgement is required")
     db_path=guard()
     private=Path(args.private_output).expanduser().resolve()
-    if private.is_relative_to(db_path.parent): raise SystemExit("REFUSED: private credentials must use a separate directory")
+    if private == db_path.parent or db_path.is_relative_to(private): raise SystemExit("REFUSED: private credentials must use a separate directory")
     counts=seed(db_path,private)
     print("TRAINING DATA READY; no real data or external calls were used.")
     print("Synthetic record counts:",json.dumps(counts,sort_keys=True))
