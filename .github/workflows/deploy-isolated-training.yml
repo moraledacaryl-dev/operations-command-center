@@ -1,0 +1,133 @@
+name: Deploy Isolated Operations Training
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type DEPLOY_ISOLATED_TRAINING_ONLY'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: operations-isolated-training-only
+  cancel-in-progress: false
+
+jobs:
+  training-deploy:
+    if: ${{ inputs.confirmation == 'DEPLOY_ISOLATED_TRAINING_ONLY' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: training
+    env:
+      TRAINING_SSH_HOST: ${{ secrets.TRAINING_SSH_HOST }}
+      TRAINING_SSH_USER: ${{ secrets.TRAINING_SSH_USER }}
+      TRAINING_SSH_PORT: ${{ secrets.TRAINING_SSH_PORT }}
+      TRAINING_SSH_HOST_KEY: ${{ secrets.TRAINING_SSH_HOST_KEY }}
+      TRAINING_SSH_PRIVATE_KEY: ${{ secrets.TRAINING_SSH_PRIVATE_KEY }}
+      TRAINING_SESSION_SECRET: ${{ secrets.TRAINING_SESSION_SECRET }}
+      TRAINING_INTEGRATION_API_KEY: ${{ secrets.TRAINING_INTEGRATION_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate isolated deployment secrets and verify source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for var in TRAINING_SSH_HOST TRAINING_SSH_USER TRAINING_SSH_HOST_KEY TRAINING_SSH_PRIVATE_KEY TRAINING_SESSION_SECRET TRAINING_INTEGRATION_API_KEY; do
+            if [ -z "${!var}" ]; then echo "Missing required training-only secret: $var"; exit 1; fi
+          done
+          [ "${#TRAINING_SESSION_SECRET}" -ge 48 ] || { echo 'Training session secret too short'; exit 1; }
+          [ "${#TRAINING_INTEGRATION_API_KEY}" -ge 48 ] || { echo 'Training integration key too short'; exit 1; }
+          [[ "$TRAINING_SESSION_SECRET" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo 'Training session secret format must be URL-safe'; exit 1; }
+          [[ "$TRAINING_INTEGRATION_API_KEY" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo 'Training integration key must be URL-safe'; exit 1; }
+          [ -f docker-compose.training.yml ]
+          [ -f deployment/training/README.md ]
+          test "$(grep -c '127.0.0.1:' docker-compose.training.yml)" -ge 1
+          case "$TRAINING_SSH_PORT" in
+            '') TRAINING_SSH_PORT=22 ;;
+            *[!0-9]*) echo "Invalid training SSH port"; exit 1 ;;
+          esac
+          echo "TRAINING_SSH_PORT=$TRAINING_SSH_PORT" >> "$GITHUB_ENV"
+          echo "Training source and isolated-only credentials validated. Production credentials are not used."
+
+      - name: Install pinned training-host identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$TRAINING_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_training"
+          printf '%s\n' "$TRAINING_SSH_HOST_KEY" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_training" "$HOME/.ssh/known_hosts"
+          [[ "$TRAINING_SSH_HOST_KEY" == *" "* ]] || { echo 'Host-key pin is missing its key'; exit 1; }
+          ssh -i "$HOME/.ssh/id_training" -p "$TRAINING_SSH_PORT" -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes "$TRAINING_SSH_USER@$TRAINING_SSH_HOST" \
+             'set -eu; test "$(cat /etc/hiddenoasis-training-only-id)" = "ISOLATED_TRAINING_HOST_V1"; test -d /opt/hiddenoasis-training; test -w /opt/hiddenoasis-training; docker compose version >/dev/null; command -v curl >/dev/null; echo "Dedicated training host verified"'
+
+      - name: Transfer application release without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA="$GITHUB_SHA"
+          tar --exclude='./.git' --exclude='./.env*' --exclude='./node_modules' --exclude='./frontend/node_modules' \
+            -czf "/tmp/ops-training-$SHA.tar.gz" .
+          REMOTE="$TRAINING_SSH_USER@$TRAINING_SSH_HOST"
+          SSH=(ssh -i "$HOME/.ssh/id_training" -p "$TRAINING_SSH_PORT" -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes)
+          "${SSH[@]}" "$REMOTE" 'mkdir -p /opt/hiddenoasis-training/incoming /opt/hiddenoasis-training/releases /opt/hiddenoasis-training/shared'
+          scp -i "$HOME/.ssh/id_training" -P "$TRAINING_SSH_PORT" -o StrictHostKeyChecking=yes -o BatchMode=yes \
+             "/tmp/ops-training-$SHA.tar.gz" "$REMOTE:/opt/hiddenoasis-training/incoming/$SHA.tar.gz"
+          "${SSH[@]}" "$REMOTE" "TRAINING_RELEASE=$SHA sh -se" <<'REMOTE'
+          set -eu
+          test "$(cat /etc/hiddenoasis-training-only-id)" = "ISOLATED_TRAINING_HOST_V1"
+          RELEASE="/opt/hiddenoasis-training/releases/$TRAINING_RELEASE"
+          if [ ! -d "$RELEASE" ]; then
+            mkdir "$RELEASE"
+            tar -xzf "/opt/hiddenoasis-training/incoming/$TRAINING_RELEASE.tar.gz" -C "$RELEASE"
+          fi
+          test -f "$RELEASE/docker-compose.training.yml"
+          echo "Isolated training release staged"
+          REMOTE
+
+      - name: Install independent training secrets on dedicated host
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'TRAINING_PORT=3401\n'
+            printf 'TRAINING_SESSION_SECRET=%s\n' "$TRAINING_SESSION_SECRET"
+            printf 'TRAINING_INTEGRATION_API_KEY=%s\n' "$TRAINING_INTEGRATION_API_KEY"
+          } | ssh -i "$HOME/.ssh/id_training" -p "$TRAINING_SSH_PORT" \
+               -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes \
+               "$TRAINING_SSH_USER@$TRAINING_SSH_HOST" \
+               'set -eu; test "$(cat /etc/hiddenoasis-training-only-id)" = "ISOLATED_TRAINING_HOST_V1"; umask 077; cat > /opt/hiddenoasis-training/shared/.env.training.private; chmod 600 /opt/hiddenoasis-training/shared/.env.training.private'
+          echo 'Independent training secrets securely provisioned.'
+
+      - name: Launch training Compose project and verify localhost health
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH=(ssh -i "$HOME/.ssh/id_training" -p "$TRAINING_SSH_PORT" -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes)
+          "${SSH[@]}" "$TRAINING_SSH_USER@$TRAINING_SSH_HOST" "TRAINING_RELEASE=$GITHUB_SHA sh -se" <<'REMOTE'
+          set -eu
+          test "$(cat /etc/hiddenoasis-training-only-id)" = "ISOLATED_TRAINING_HOST_V1"
+          cd "/opt/hiddenoasis-training/releases/$TRAINING_RELEASE"
+          ENVFILE=/opt/hiddenoasis-training/shared/.env.training.private
+          test -r "$ENVFILE"
+          docker compose --env-file "$ENVFILE" -f docker-compose.training.yml config -q
+          docker compose --env-file "$ENVFILE" -f docker-compose.training.yml up -d --build
+          for attempt in $(seq 1 36); do
+            if curl -fsS http://127.0.0.1:3401/api/readyz > /tmp/hiddenoasis-training-readiness.json; then break; fi
+            sleep 5
+          done
+          python3 - <<'PY'
+          import json
+          with open('/tmp/hiddenoasis-training-readiness.json', encoding='utf-8') as handle:
+              data=json.load(handle)
+          assert data.get('ready') is True, data
+          print('PASS: training-only API readiness')
+          PY
+          curl -fsSI http://127.0.0.1:3401/login | grep -qi 'x-training-environment: synthetic-isolated'
+          printf '%s\n' "$TRAINING_RELEASE" > /opt/hiddenoasis-training/shared/active-release-sha
+          echo 'Isolated training release is running on host loopback only.'
+          REMOTE
