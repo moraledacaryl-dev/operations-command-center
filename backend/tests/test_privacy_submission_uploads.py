@@ -140,6 +140,50 @@ def test_post_version_number_is_unique_in_database(db):
     db.rollback()
 
 
+def test_missing_historical_version_is_visible_without_misleading_link_or_data_repair(db, tmp_path, monkeypatch):
+    import app.routers.uploads_hardened as hardened
+
+    first, _, owner, _, lead, other = seed(db)
+    post = models.Post(title="Historical creative", department_id=first.id)
+    db.add(post); db.flush()
+    version = models.PostVersion(post_id=post.id, version_no=1, filename="historic.png",
+                                 file_url="storage:historic.png", note="Original evidence", uploaded_by_id=owner.id)
+    db.add(version); db.commit()
+    monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
+
+    result = hardened.list_post_versions_hardened(post.id, user=lead, db=db)
+    assert len(result) == 1
+    assert result[0]["file_status"] == "unavailable"
+    assert result[0]["file_url"] is None
+    assert result[0]["note"] == "Original evidence"
+    with pytest.raises(HTTPException) as exc:
+        hardened.download_post_version(post.id, version.id, user=lead, db=db)
+    assert exc.value.status_code == 404
+    with pytest.raises(HTTPException) as exc:
+        hardened.list_post_versions_hardened(post.id, user=other, db=db)
+    assert exc.value.status_code == 403
+    db.expire_all()
+    assert db.get(models.PostVersion, version.id).file_url == "storage:historic.png"
+    assert db.query(models.PostVersion).count() == 1
+
+    # Restoring the authentic original later is reflected without altering history.
+    (tmp_path / "historic.png").write_bytes(b"original")
+    restored = hardened.list_post_versions_hardened(post.id, user=lead, db=db)[0]
+    assert restored["file_status"] == "available"
+    assert restored["file_url"] == f"/api/posts/{post.id}/versions/{version.id}/download"
+
+
+@pytest.mark.parametrize("url,status", [(None, "none"), ("https://example.test/creative.png", "external"), ("storage:../outside.png", "unavailable")])
+def test_historical_version_status_does_not_probe_external_urls_or_expose_storage_paths(url, status, monkeypatch, tmp_path):
+    import app.routers.uploads_hardened as hardened
+
+    monkeypatch.setattr(hardened, "UPLOAD_DIR", tmp_path)
+    version = models.PostVersion(id=7, post_id=3, version_no=1, filename="creative.png", file_url=url)
+    response = hardened._version_response(version)
+    assert response["file_status"] == status
+    assert response["file_url"] == ("/api/posts/3/versions/7/download" if status == "external" else None)
+
+
 def test_failed_attachment_commit_removes_stored_file(db, tmp_path, monkeypatch):
     import app.routers.uploads_hardened as hardened
 

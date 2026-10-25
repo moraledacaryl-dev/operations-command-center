@@ -31,6 +31,7 @@ function imageMime(filename: string, mimeType: string) {
   return '';
 }
 function objectId() { return `annotation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; }
+function isAvailableImage(row: Entity) { return row.file_status !== 'unavailable' && (Boolean(row.annotatable) || /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || ''))); }
 function cloneObjects(items: AnnotationObject[]) { return items.map(item => { if (item.type === 'pen' || item.type === 'highlighter') return { ...item, points: item.points.map(point => ({ ...point })) }; return { ...item }; }) as AnnotationObject[]; }
 function textBox(item: TextObject) { return { x: item.x, y: item.y, width: Math.max(48, item.text.length * item.fontSize * .62), height: item.fontSize * 1.25 }; }
 function bounds(item: AnnotationObject) {
@@ -85,7 +86,7 @@ export default function MarketingAnnotationStudio() {
   const canonicalMode = Boolean(conceptId && assetId);
   const selectedPost = useMemo(() => posts.find(item => String(item.id) === postId), [postId, posts]);
   const selectedVersion = useMemo(() => versions.find(item => String(item.id) === versionId), [versionId, versions]);
-  const imageVersions = useMemo(() => versions.filter(row => Boolean(row.annotatable) || /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || ''))), [versions]);
+  const imageVersions = useMemo(() => versions.filter(isAvailableImage), [versions]);
   const sourceTitle = canonicalConcept?.title || selectedPost?.title || 'creative';
   const selectedObject = useMemo(() => objects.find(item => item.id === selectedId) || null, [objects, selectedId]);
 
@@ -119,8 +120,8 @@ export default function MarketingAnnotationStudio() {
     if (!postId) { setVersions([]); setVersionId(''); return; }
     api.versions(Number(postId)).then(rows => {
       setVersions(rows);
-      const requested = rows.find(row => String(row.id) === requestedVersionRef.current && /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
-      const image = requested || rows.find(row => /\.(png|jpe?g|webp)$/i.test(String(row.filename || row.file_url || '')));
+      const requested = rows.find(row => String(row.id) === requestedVersionRef.current && isAvailableImage(row));
+      const image = requested || rows.find(isAvailableImage);
       setVersionId(image ? String(image.id) : ''); requestedVersionRef.current = '';
       if (requested && image) void openVersionRef.current(image, false, '', postId);
     }).catch(err => setError(err.message || 'Creative versions could not be loaded.'));
@@ -154,6 +155,7 @@ export default function MarketingAnnotationStudio() {
     image.onerror = () => { URL.revokeObjectURL(url); setError('This image could not be opened.'); }; image.src = url;
   }
   async function openVersion(version: Entity, isCanonical: boolean, currentAssetId: string, currentPostId: string) {
+    if (version.file_status === 'unavailable') { setError('File unavailable. Version history is preserved.'); return; }
     if (busy) return; setBusy(true); setError('');
     try {
       let baseVersionId = Number(version.id); let restoredObjects: AnnotationObject[] = [];
@@ -344,6 +346,7 @@ export default function MarketingAnnotationStudio() {
   return <main className={styles.page}>
     <header className={styles.hero}><div className={styles.heroCopy}><div className={styles.eyebrow}>Marketing · Creative review</div><h1>Annotation studio</h1><p>Select an annotation to edit it. Save to create a new version.</p></div><Link className={styles.back} href="/posts">← Back to Marketing</Link></header>
     {error ? <div className="pill urgent" role="alert">{error}</div> : null}
+    {versions.some(version => version.file_status === 'unavailable') ? <p className="muted" role="status">Some historical files are unavailable. Their version history is preserved.</p> : null}
     <div className={styles.shell}>
       <aside className={styles.rail} aria-label="Annotation controls">
         <section className={styles.section}><div className={styles.sectionTitle}>Creative source</div>{canonicalMode ? <div className={styles.saveState}>{canonicalConcept?.title || `Content concept #${conceptId}`}</div> : <select aria-label="Marketing post" className={styles.select} value={postId} onChange={e => setPostId(e.target.value)}><option value="">Choose marketing post</option>{posts.map(post => <option key={post.id} value={post.id}>{post.title}</option>)}</select>}<select aria-label="Creative image version" className={styles.select} value={versionId} onChange={e => setVersionId(e.target.value)} disabled={(!canonicalMode && !postId) || !imageVersions.length}><option value="">{!imageVersions.length ? 'No image versions yet' : 'Choose image version'}</option>{imageVersions.map(version => <option key={version.id} value={version.id}>v{version.version_no || version.id} · {version.filename || 'Image asset'}</option>)}</select><button className={styles.secondary} onClick={loadSelectedVersion} disabled={!versionId || busy}>{busy ? 'Opening…' : 'Open version'}</button><label className={`${styles.upload} ${!loaded ? styles.uploadDisabled : ''}`}>Add image overlay<input aria-label="Overlay image" type="file" accept="image/png,image/jpeg,image/webp" onChange={overlayUpload} disabled={!loaded} /></label><span className={styles.saveState}>{canonicalMode ? 'Canonical saves preserve editable overlays and review objects so they can be reopened later.' : 'Uploaded overlays stay editable in the current review session and never replace the base creative.'}</span></section>
