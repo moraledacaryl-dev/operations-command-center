@@ -3,6 +3,7 @@ from fastapi.responses import PlainTextResponse
 
 from .. import models
 from ..capabilities import has_capability
+from ..backup_status import OFFSITE_STATUS_PATH, backup_status
 from ..database import engine
 from ..observability import metrics
 from .api import require_user
@@ -10,6 +11,13 @@ from fastapi import HTTPException
 
 
 router = APIRouter(prefix="/api", tags=["observability"])
+
+
+@router.get("/recovery/offsite")
+def offsite_recovery_status(user: models.User = Depends(require_user)):
+    if not has_capability(user.role, "view_system_health"):
+        raise HTTPException(status_code=403, detail="System health access required")
+    return backup_status(OFFSITE_STATUS_PATH)
 
 
 @router.get("/metrics", response_class=PlainTextResponse)

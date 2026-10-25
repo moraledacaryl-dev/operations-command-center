@@ -22,7 +22,7 @@ for (const width of [1440, 1024, 768, 390, 320]) {
         await route.fulfill({ status: 200, json: body });
       });
       await page.goto('/admin/health');
-      const card = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Backups', exact: true }) });
+      const card = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Local backups', exact: true }) });
       await expect(card).toContainText(status);
       if (status === 'current') await expect(card).toContainText('backups are current');
       if (status === 'failed') await expect(card).toContainText('last backup attempt failed');

@@ -9,6 +9,9 @@ import { formatPropertyDateTime } from '@/lib/property-dates';
 export default function HealthPage() {
   const [archive, setArchive] = useState<Entity | null>(null);
   const [health, setHealth] = useState<Entity | null>(null);
+  const [offsite, setOffsite] = useState<Entity | null>(null);
+  const [offsiteLoading, setOffsiteLoading] = useState(true);
+  const [offsiteError, setOffsiteError] = useState('');
   const [error, setError] = useState('');
   const [archiving, setArchiving] = useState(false);
   const role = String(getStoredUser()?.role || '').toLowerCase();
@@ -16,6 +19,7 @@ export default function HealthPage() {
   const canArchive = owner || role === 'admin';
   useEffect(() => {
     api.health().then(setHealth).catch((err: any) => setError(err.message || 'Could not load health.'));
+    api.offsiteBackupStatus().then(setOffsite).catch(() => setOffsiteError('Offsite status could not be loaded. Refresh this page or ask the system operator.')).finally(() => setOffsiteLoading(false));
   }, []);
   async function runArchive() {
     if (!canArchive || archiving) return;
@@ -34,7 +38,14 @@ export default function HealthPage() {
     <Top title="Health" right={<div className="toolbar" style={{ margin: 0 }}>{owner ? <Link className="btn secondary" href="/admin/appearance">Appearance</Link> : null}{canArchive ? <button className="btn secondary" onClick={runArchive} disabled={archiving}>{archiving ? 'Archiving…' : 'Run archive'}</button> : null}</div>} />
     {error ? <div role="alert" className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
     <div className="health-overview">
-      <section className="health-status-row"><div className="health-status-label">Recovery</div><h2>Backups</h2><div className="card-line"><Pill value={health?.backups?.status || 'unknown'} /></div><p className="muted">Last verified snapshot: {health?.backups?.last_success_at ? formatPropertyDateTime(health.backups.last_success_at) : 'Not available'}</p><p className="muted">{health?.backups?.status === 'current' ? 'Hourly database and uploads backups are current.' : health?.backups?.status === 'failed' ? 'The last backup attempt failed. Ask the system operator to check the backup service and disk capacity.' : health?.backups?.status === 'stale' ? 'The hourly backup is overdue. Ask the system operator to check the hourly backup schedule.' : 'Backup status has not been verified. Ask the system operator to check the backup schedule.'}</p><p className="muted">Offsite copies and recovery exercises are checked separately.</p></section>
+      <section className="health-status-row"><div className="health-status-label">Recovery</div><h2>Local backups</h2><div className="card-line"><Pill value={health?.backups?.status || 'unknown'} /></div><p className="muted">Last verified snapshot: {health?.backups?.last_success_at ? formatPropertyDateTime(health.backups.last_success_at) : 'Not available'}</p><p className="muted">{health?.backups?.status === 'current' ? 'Hourly database and uploads backups are current.' : health?.backups?.status === 'failed' ? 'The last backup attempt failed. Ask the system operator to check the backup service and disk capacity.' : health?.backups?.status === 'stale' ? 'The hourly backup is overdue. Ask the system operator to check the hourly backup schedule.' : 'Backup status has not been verified. Ask the system operator to check the backup schedule.'}</p><p className="muted">These checks cover local database and uploads snapshots.</p></section>
+      <section className="health-status-row" aria-busy={offsiteLoading}>
+        <div className="health-status-label">Recovery</div><h2>Offsite backups</h2>
+        <div className="card-line"><Pill value={offsiteLoading ? 'loading' : offsite?.status || 'unknown'} /></div>
+        <p className="muted">Last verified offsite copy: {offsite?.last_success_at ? formatPropertyDateTime(offsite.last_success_at) : 'Not available'}</p>
+        {offsiteError ? <p className="muted" role="alert">{offsiteError}</p> : <p className="muted">{offsiteLoading ? 'Checking encrypted offsite backups…' : offsite?.status === 'current' ? 'Hourly encrypted offsite copies are current.' : offsite?.status === 'failed' ? 'The last offsite attempt failed. Ask the system operator to check the encrypted backup service, credentials and account limits.' : offsite?.status === 'stale' ? 'The offsite copy is overdue. Ask the system operator to check the encrypted backup schedule.' : 'Offsite status has not been verified. Ask the system operator to confirm the encrypted backup setup.'}</p>}
+        <p className="muted">Upload and repository checks are shown here. Actual recovery exercises are verified separately.</p>
+      </section>
       <section className="health-status-row">
         <div className="health-status-label">Authentication</div><h2>Readiness</h2>
         <div className="card-line">
