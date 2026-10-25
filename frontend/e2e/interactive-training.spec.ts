@@ -101,6 +101,14 @@ test('supervisor safely opens a task form and cancels without writing', async ({
   await expect(step).toContainText('Fill out the task');
   await expect(page.getByTestId('create-task-form')).toBeVisible();
   await expect(page.locator('.ops-guide-spotlight')).toBeVisible();
+  await expect.poll(async () => {
+    const focus = await page.locator('.ops-guide-spotlight').boundingBox();
+    const popup = await page.locator('.ops-guide-tip').boundingBox();
+    if (!focus || !popup) return 1;
+    const width = Math.max(0, Math.min(focus.x + focus.width, popup.x + popup.width) - Math.max(focus.x, popup.x));
+    const height = Math.max(0, Math.min(focus.y + focus.height, popup.y + popup.height) - Math.max(focus.y, popup.y));
+    return (width * height) / Math.max(1, focus.width * focus.height);
+  }).toBeLessThan(0.02);
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-task-form.png' });
   await step.getByRole('button', { name: /Next/ }).click();
   await expect(step).toContainText('Close without saving');
