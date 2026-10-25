@@ -231,7 +231,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <h2>{step.title}</h2>
         <p>{step.body}</p>
         {path !== step.path ? <p className="ops-guide-hint">Opening the correct page…</p>
-          : !targetFound ? <p className="ops-guide-hint">This control isn't visible yet. Check the page or continue to the next step.</p>
+          : !targetFound ? <p className="ops-guide-hint">This control is not visible yet. Check the page or continue to the next step.</p>
           : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted control, or select Next to continue.</p>
           : <p className="ops-guide-hint">↖ Look at the highlighted area, then select Next.</p>}
         <div className="ops-guide-actions">
