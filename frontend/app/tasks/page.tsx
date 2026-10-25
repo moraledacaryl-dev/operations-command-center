@@ -169,7 +169,7 @@ export default function TeamTasksPage() {
       { label: 'Overdue', value: overdue, icon: 'clock', attention: true },
     ]} />
     {error && !selected ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-    {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }}>
+    {canManageWork && showAdd ? <section data-testid="create-task-form" className="panel" style={{ marginBottom: 16 }}>
       <h2>Create team task</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Task title<input className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Icon, IconName } from '@/components/Icon';
+import { InteractiveTraining } from '@/components/InteractiveTraining';
 import { api, Entity } from '@/lib/api';
 import { Capability, hasCapability } from '@/lib/capabilities';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
@@ -241,6 +242,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="ops-topbar"><div className="ops-breadcrumb"><button className="ops-icon-button ops-collapse" type="button" aria-label={compact ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!compact} aria-controls="mobile-sidebar" onClick={toggleCompact}><Icon name="panel" /></button><span>{workspaceName}</span><span aria-hidden="true">/</span><strong>{currentPage}</strong></div><Link className="ops-icon-button ops-notifications" href="/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}><Icon name="bell" />{unreadCount > 0 && <span className="ops-unread-dot" />}</Link></header>
         {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <div className="ops-demo-banner" role="status" aria-label="Training environment — fictional data only"><strong>TRAINING ONLY</strong> · Fictional records · Not production · Do not enter real guest information</div> : process.env.NEXT_PUBLIC_DEMO_PREVIEW === 'true' ? <div className="ops-demo-banner"><span>Demo workspace</span> Fictional sample data for design preview</div> : null}
         <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{children}</main>
+        {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <InteractiveTraining user={user} path={path} /> : null}
       </div>
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         {[homeItems[0], homeItems[1], workItems[0], decisionItems[0]].map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
