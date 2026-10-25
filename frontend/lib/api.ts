@@ -171,6 +171,7 @@ export const api = {
   users: () => request<Entity[]>('/users'),
   usersPage: (params: Record<string, any> = {}) => { const qs = new URLSearchParams(); Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); }); return request<CursorPage>(`/users/page?${qs}`); },
   health: () => request<Entity>('/health'),
+  offsiteBackupStatus: () => request<Entity>('/recovery/offsite'),
   changePassword: (current_password: string, new_password: string) => request<Entity>('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
   adminCreateUser: (data: Entity) => request<Entity>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
   adminResetUserPassword: (id: number, new_password: string) => request<Entity>(`/admin/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ new_password }) }),

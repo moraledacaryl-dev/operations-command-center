@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 
 STATUS_PATH = Path('/var/lib/operations-command-center-backup/status.json')
+OFFSITE_STATUS_PATH = Path('/var/lib/operations-command-center-backup/offsite-status.json')
 
 
 def backup_status(path: Path = STATUS_PATH, *, now: datetime | None = None) -> dict:

@@ -83,8 +83,12 @@ restricted filesystem and sanitized status at
 `/var/lib/operations-command-center-backup/offsite-status.json`. Journal and status
 retain no key, business name, filename, bucket endpoint or private payload. Failed
 or busy jobs preserve last successful status; use `systemctl status`/the status
-file to investigate. Health's existing Backups card continues to represent the
-**local** backup job; it does not imply offsite success.
+file to investigate. System Health shows **Local backups** and **Offsite backups**
+separately. Owners, Admins and Managers can read the private offsite endpoint;
+Staff and Supervisors cannot. Only bounded status/timestamp fields are returned,
+never a repository, credential, filename or backup payload. An offsite request
+failure preserves the local health card and shows an actionable error.
+Both cards report job freshness and verification, not a recovery-time guarantee.
 
 ## Verification
 
