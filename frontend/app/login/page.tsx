@@ -47,7 +47,7 @@ export default function LoginPage() {
     </section>
     <section className="auth-form-panel" aria-labelledby="login-title">
       <div className="auth-mobile-brand"><span className="logo big" aria-hidden="true">HO</span><span><strong>Hidden Oasis</strong><small>Operations</small></span></div>
-      <div><h2 id="login-title">Sign in to Operations</h2></div>
+      <div><h2 id="login-title">Sign in to Operations</h2>{process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <p className="pill ok" role="status">TRAINING ONLY · Fictional employees and guests · Not the real Operations system</p> : null}</div>
       <form className="form" onSubmit={event => { event.preventDefault(); void login(); }}>
         {searchParams.get('password') === 'changed' ? <p className="pill ok" role="status">Password updated. Sign in with your new password.</p> : null}
         <label className="label" htmlFor="login-email">Email<input id="login-email" className="input" type="email" inputMode="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="username" required aria-describedby={errorId} autoFocus /></label>
