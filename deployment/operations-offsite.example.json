@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "free_account_caps_verified": false,
+  "recovery_key_custody_confirmed": false,
+  "repository": "s3:https://s3.us-west-004.backblazeb2.com/ENTER_PRIVATE_BUCKET_NAME/operations",
+  "password_file": "/etc/hiddenoasis/operations-offsite.password",
+  "credentials_file": "/etc/hiddenoasis/operations-offsite.credentials.json"
+}
