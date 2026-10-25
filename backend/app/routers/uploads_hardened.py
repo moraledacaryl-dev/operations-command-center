@@ -143,7 +143,18 @@ def _attachment_response(attachment: models.Attachment) -> dict:
 
 def _version_response(version: models.PostVersion) -> dict:
     data = model_to_dict(version)
-    data["file_url"] = f"/api/posts/{version.post_id}/versions/{version.id}/download" if version.file_url else None
+    # Report a missing historical upload without rewriting its stored locator.
+    # External URLs are not fetched here and therefore remain unverified.
+    status = "none"
+    if version.file_url:
+        try:
+            status = "available" if _local_path(version.file_url) is not None else "external"
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
+            status = "unavailable"
+    data["file_status"] = status
+    data["file_url"] = f"/api/posts/{version.post_id}/versions/{version.id}/download" if status in {"available", "external"} else None
     return data
 
 

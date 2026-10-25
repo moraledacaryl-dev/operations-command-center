@@ -28,7 +28,7 @@ function assetHref(url?: string) {
 }
 
 function isAnnotatableAsset(item: Entity) {
-  return /\.(png|jpe?g|webp)$/i.test(String(item.filename || item.file_url || ''));
+  return item.file_status !== 'unavailable' && /\.(png|jpe?g|webp)$/i.test(String(item.filename || item.file_url || ''));
 }
 
 function formatDate(value?: string) {
@@ -317,7 +317,7 @@ export default function MarketingPage() {
             <label className="label">Version note<textarea className="textarea" value={version.note} onChange={event => setVersion({ ...version, note: event.target.value })} /></label>
             <button className="btn secondary" disabled={busy} onClick={addVersion}>Add version</button>
           </div>
-          <div className="grid" style={{ marginTop: 12 }}>{versions.map(item => <div className="card" key={item.id}><strong>V{item.version_no}{item.is_current ? ' · Current' : ''}</strong><span>{item.filename || 'Creative asset'}</span><div className="toolbar">{item.file_url ? <a className="btn small secondary" href={assetHref(item.file_url)} target="_blank" rel="noreferrer">Open asset</a> : null}{isAnnotatableAsset(item) ? <Link className="btn small" href={`/posts/editor?postId=${selected.id}&versionId=${item.id}`}>Annotate</Link> : null}</div><span className="muted">{item.note}</span></div>)}{!versions.length ? <div className="empty">No creative versions uploaded.</div> : null}</div>
+          <div className="grid" style={{ marginTop: 12 }}>{versions.map(item => <div className="card" key={item.id}><strong>V{item.version_no}{item.is_current ? ' · Current' : ''}</strong><span>{item.filename || 'Creative asset'}</span>{item.file_status === 'unavailable' ? <p className="muted" role="status">File unavailable. Version history is preserved.</p> : <div className="toolbar">{item.file_url ? <a className="btn small secondary" href={assetHref(item.file_url)} target="_blank" rel="noreferrer">Open asset</a> : null}{isAnnotatableAsset(item) ? <Link className="btn small" href={`/posts/editor?postId=${selected.id}&versionId=${item.id}`}>Annotate</Link> : null}</div>}<span className="muted">{item.note}</span></div>)}{!versions.length ? <div className="empty">No creative versions uploaded.</div> : null}</div>
         </section>
         <section className="panel">
           <h2>Review conversation</h2>
