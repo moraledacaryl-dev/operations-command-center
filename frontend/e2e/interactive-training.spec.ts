@@ -139,3 +139,15 @@ test('administrator sees people and access lessons', async ({ page }) => {
   await openMockWorkspace(page, 'admin');
   await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toContainText('People and access administration');
 });
+
+test('lesson library keeps keyboard focus within dialog and restores it on close', async ({ page }) => {
+  await openMockWorkspace(page, 'staff');
+  const dialog = page.getByRole('dialog', { name: 'Interactive staff training' });
+  await expect(dialog.getByRole('button', { name: 'Close training' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(dialog.locator(':focus')).toHaveCount(1);
+  await expect(page.locator('body')).toContainText('Interactive training');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByTestId('interactive-training-open')).toBeFocused();
+});
