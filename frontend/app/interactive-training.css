@@ -1,0 +1,127 @@
+/* Interactive training: intentionally independent of operational form styles. */
+.ops-guide-launch {
+  position: fixed;
+  right: 18px;
+  bottom: 22px;
+  z-index: 10020;
+  border: 1px solid #b0d8c5;
+  border-radius: 999px;
+  padding: 10px 17px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 800;
+  background: #143e32;
+  color: #fff;
+  box-shadow: 0 14px 36px rgba(0, 25, 18, .28);
+  cursor: pointer;
+}
+.ops-guide-launch span {
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #cdeada;
+  color: #143e32;
+  font-weight: 900;
+}
+.ops-guide-launch:focus-visible, .ops-guide-tip button:focus-visible,
+.ops-guide-library button:focus-visible { outline: 3px solid #4c9e82; outline-offset: 3px; }
+.ops-guide-library-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12030;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(6, 27, 20, .6);
+  backdrop-filter: blur(6px);
+}
+.ops-guide-library {
+  background: #fdfefd;
+  color: #16382d;
+  width: min(890px, 100%);
+  max-height: min(88vh, 820px);
+  overflow-y: auto;
+  padding: clamp(18px, 3vw, 30px);
+  border: 1px solid #bbd7c8;
+  border-radius: 22px;
+  box-shadow: 0 22px 90px rgba(0, 0, 0, .26);
+}
+.ops-guide-library-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+.ops-guide-eyebrow { color: #3b8267; letter-spacing: .12em; font-size: 10px; font-weight: 900; }
+.ops-guide-library h2 { font-size: clamp(21px, 3vw, 29px); margin: 5px 0 9px; }
+.ops-guide-library-header p { max-width: 625px; margin-bottom: 6px; color: #45665a; }
+.ops-guide-close { background: #e6f1eb; color: #174c3c; border: 0; border-radius: 10px; width: 35px; height: 35px; font-size: 24px; cursor: pointer; }
+.ops-guide-safety { background: #f5f8e9; border-left: 4px solid #a8bb6d; border-radius: 6px; padding: 11px 13px; margin: 13px 0 17px; color: #536039; font-size: 13px; }
+.ops-guide-success { border-left: 4px solid #40a77d; background: #ecfbf4; padding: 10px 14px; border-radius: 6px; color: #176140; }
+.ops-guide-lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 11px; }
+.ops-guide-lesson {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid #dae8df;
+  border-radius: 13px;
+  background: #fff;
+  padding: 16px;
+  color: #183e31;
+  cursor: pointer;
+  min-height: 128px;
+}
+.ops-guide-lesson:hover { background: #f0f8f3; border-color: #8fbda5; }
+.ops-guide-lesson-title { font-size: 15px; font-weight: 850; line-height: 1.35; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ops-guide-done { font-size: 10px; color: #16623f; background: #dff7e9; border-radius: 999px; padding: 3px 8px; }
+.ops-guide-lesson-description { color: #4a6759; font-size: 12px; flex: 1; }
+.ops-guide-lesson-meta { color: #176f51; font-size: 11px; font-weight: 800; }
+.ops-guide-footer-note { margin: 16px 0 0; color: #687e70; font-size: 11px; }
+.ops-guide-spotlight {
+  position: fixed;
+  z-index: 12040;
+  border: 3px solid #3dd9a3;
+  border-radius: 11px;
+  pointer-events: none;
+  box-shadow: 0 0 0 200vmax rgba(4, 21, 16, .64), 0 0 0 6px rgba(126, 236, 186, .4);
+  transition: top .16s, left .16s, width .16s, height .16s;
+}
+.ops-guide-tip {
+  position: fixed;
+  z-index: 12050;
+  background: #fff;
+  color: #14392c;
+  border: 1px solid #a7d8bb;
+  box-shadow: 0 14px 60px rgba(0, 26, 17, .3);
+  border-radius: 15px;
+  padding: 16px 19px 13px;
+  max-height: min(76vh, 520px);
+  overflow-y: auto;
+  max-width: calc(100vw - 24px);
+}
+.ops-guide-tip-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; color: #497e67; font-size: 10px; font-weight: 850; letter-spacing: .09em; }
+.ops-guide-tip-top button { border: 0; background: transparent; color: #5b7565; cursor: pointer; font-weight: 700; padding: 5px; letter-spacing: 0; }
+.ops-guide-progress { height: 5px; background: #e3f0e9; border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+.ops-guide-progress span { display: block; height: 100%; background: #25976d; transition: width .2s; }
+.ops-guide-tip h2 { color: #153e30; font-size: 19px; font-weight: 850; margin-bottom: 7px; line-height: 1.27; }
+.ops-guide-tip p { color: #365448; font-size: 13px; line-height: 1.55; margin-bottom: 9px; }
+.ops-guide-tip .ops-guide-hint { background: #f1faf4; color: #225e43; padding: 9px; font-size: 11px; border-radius: 8px; margin-bottom: 13px; }
+.ops-guide-actions { display: flex; justify-content: flex-end; gap: 9px; }
+.ops-guide-actions button { border-radius: 9px; padding: 9px 14px; cursor: pointer; font-weight: 800; font-size: 12px; }
+.ops-guide-button-primary { background: #175b46; color: white; border: 1px solid #175b46; }
+.ops-guide-button-secondary { background: white; color: #24624c; border: 1px solid #bad6c8; }
+.ops-guide-button-secondary:disabled { opacity: .4; cursor: not-allowed; }
+.ops-guide-more { display: block; margin: 10px auto 0; padding: 5px; border: 0; background: transparent; color: #2b7957; font-size: 11px; font-weight: 800; cursor: pointer; }
+@media (max-width: 639px) {
+  .ops-guide-launch { bottom: 86px; right: 12px; padding: 9px 13px; }
+  .ops-guide-library-backdrop { padding: 10px; }
+  .ops-guide-library { max-height: 93vh; border-radius: 16px; }
+  .ops-guide-lesson-grid { grid-template-columns: minmax(0, 1fr); }
+  .ops-guide-tip { border-radius: 13px; padding: 13px 15px; width: auto; }
+  .ops-guide-tip h2 { font-size: 17px; }
+  .ops-guide-tip p { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ops-guide-spotlight, .ops-guide-progress span { transition: none; }
+}
