@@ -1,0 +1,120 @@
+name: Build Mac Standalone Operations Training
+
+on:
+  pull_request:
+    paths:
+      - "deployment/training-desktop-mac/**"
+      - ".github/workflows/build-mac-training.yml"
+      - "backend/scripts/seed_training_demo.py"
+      - "frontend/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac-training:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_TRAINING_MODE: "true"
+      NEXT_PUBLIC_DEMO_PREVIEW: "true"
+      OPERATIONS_API_ORIGIN: http://127.0.0.1:8401
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: ${{ matrix.arch }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+          architecture: ${{ matrix.arch }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Mac backend and freeze training-only runtime
+        run: |
+          python3 -m pip install -r backend/requirements.txt pyinstaller==6.16.0 tzdata==2025.3
+          python3 -m pip check
+          python3 -c 'import sys;sys.path.insert(0,"backend");from scripts.seed_training_demo import PEOPLE;assert len(PEOPLE)==20'
+          python3 -m PyInstaller --noconfirm --clean --onedir --name training-api --paths backend \
+            --collect-submodules app --collect-all alembic --collect-all sqlalchemy --collect-all tzdata \
+            --collect-all pydantic --collect-all fastapi --collect-all uvicorn \
+            --hidden-import psycopg2 --hidden-import pydantic_core \
+            --add-data "backend/alembic:alembic" \
+            --add-data "backend/alembic.ini:." \
+            --add-data "backend/scripts/seed_training_demo.py:scripts" \
+            deployment/training-desktop-mac/training_api.py
+          test -x dist/training-api/training-api
+
+      - name: Build guided role-based Next.js frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run build
+          test -f .next/standalone/server.js
+          test -d .next/standalone/.next/static
+
+      - name: Compile native Mac GUI launcher and assemble .app
+        run: |
+          set -euo pipefail
+          APP="dist/Hidden Oasis Training.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/backend" "$APP/Contents/Resources/frontend" "$APP/Contents/Resources/runtime"
+          xcrun swiftc -swift-version 5 -O -parse-as-library \
+            -framework SwiftUI -framework AppKit \
+            deployment/training-desktop-mac/TrainingApp.swift \
+            -o "$APP/Contents/MacOS/HiddenOasisTraining"
+          cp -R dist/training-api "$APP/Contents/Resources/backend/training-api"
+          cp -R frontend/.next/standalone "$APP/Contents/Resources/frontend/standalone"
+          cp "$(command -v node)" "$APP/Contents/Resources/runtime/node"
+          chmod 755 "$APP/Contents/MacOS/HiddenOasisTraining" "$APP/Contents/Resources/runtime/node" "$APP/Contents/Resources/backend/training-api/training-api"
+          python3 - <<'PY'
+          from pathlib import Path
+          import plistlib
+          app=Path("dist/Hidden Oasis Training.app/Contents")
+          config={
+            "CFBundleExecutable":"HiddenOasisTraining",
+            "CFBundleIdentifier":"app.hiddenoasis.operations.training",
+            "CFBundleName":"Hidden Oasis Training",
+            "CFBundleDisplayName":"Hidden Oasis Training",
+            "CFBundlePackageType":"APPL",
+            "CFBundleShortVersionString":"1.0.0",
+            "CFBundleVersion":"1",
+            "LSMinimumSystemVersion":"13.0",
+            "NSHighResolutionCapable":True,
+          }
+          with (app / "Info.plist").open("wb") as file: plistlib.dump(config,file)
+          PY
+          file "$APP/Contents/MacOS/HiddenOasisTraining"
+          file "$APP/Contents/Resources/runtime/node"
+          du -sh "$APP"
+
+      - name: Exercise real packaged Mac servers and fictional role logins
+        run: |
+          python3 deployment/training-desktop-mac/smoke_mac.py "dist/Hidden Oasis Training.app"
+
+      - name: Bundle double-click Mac app for owner testing
+        run: |
+          set -euo pipefail
+          ditto -c -k --keepParent "dist/Hidden Oasis Training.app" "dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip"
+          shasum -a 256 "dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip"
+          unzip -t "dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip" | tail -n 2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Mac-${{ matrix.arch }}
+          path: dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip
+          retention-days: 14
+          if-no-files-found: error
