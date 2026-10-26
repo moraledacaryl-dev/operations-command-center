@@ -1,0 +1,136 @@
+name: Build Native Operations Training Release
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'deployment/training-native/**'
+      - '.github/workflows/build-native-training.yml'
+      - 'backend/scripts/seed_training_demo.py'
+      - 'frontend/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Validate installer syntax and safety boundaries
+        run: |
+          set -euo pipefail
+          bash -n deployment/training-native/install-first.sh
+          bash -n deployment/training-native/verify-only.sh
+          python3 deployment/training-native/check_release.py --self-test
+      - name: Build training-only standalone frontend on runner, not on production VPS
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_TRAINING_MODE: 'true'
+          NEXT_PUBLIC_DEMO_PREVIEW: 'true'
+          OPERATIONS_API_ORIGIN: http://127.0.0.1:8401
+          NODE_OPTIONS: --max-old-space-size=1536
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run build
+          test -f .next/standalone/server.js
+          test -d .next/standalone/.next/static
+      - name: Download pinned Linux Python wheels on runner
+        run: |
+          mkdir -p /tmp/operations-training-wheelhouse
+          python3 -m pip download --only-binary=:all: --dest /tmp/operations-training-wheelhouse -r backend/requirements.txt
+      - name: Package a versioned training-only artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse HEAD)"
+          mkdir -p /tmp/operations-training-release/{backend,frontend/standalone,wheelhouse,deployment/training-native}
+          cp -a backend/app backend/alembic backend/scripts /tmp/operations-training-release/backend/
+          cp backend/alembic.ini backend/requirements.txt /tmp/operations-training-release/backend/
+          cp -a frontend/.next/standalone/. /tmp/operations-training-release/frontend/standalone/
+          cp -a /tmp/operations-training-wheelhouse/. /tmp/operations-training-release/wheelhouse/
+          cp deployment/training-native/install-first.sh deployment/training-native/verify-only.sh deployment/training-native/check_release.py deployment/training-native/operations-training-backend.service deployment/training-native/operations-training-frontend.service /tmp/operations-training-release/deployment/training-native/
+          printf '%s\n' "$SHA" > /tmp/operations-training-release/commit.sha
+          python3 deployment/training-native/check_release.py --directory /tmp/operations-training-release
+          mkdir -p dist
+          tar -C /tmp/operations-training-release -czf "dist/operations-training-native-$SHA.tar.gz" .
+          (cd dist && sha256sum "operations-training-native-$SHA.tar.gz" > "operations-training-native-$SHA.tar.gz.sha256")
+          ls -lh dist/*.tar.gz
+      - name: Smoke test packaged native frontend, API and private training seed
+        shell: bash
+        env:
+          ENVIRONMENT: local
+          ALLOW_DEMO_SEED: 'false'
+          ALLOW_DEFAULT_ADMIN_BOOTSTRAP: 'false'
+          ALLOWED_HOSTS: 127.0.0.1,localhost
+          ALLOWED_ORIGINS: http://127.0.0.1:3401
+          SESSION_SECRET: ci-synthetic-training-only-session-secret-unique-for-qa-48617
+          INTEGRATION_API_KEY: ci-synthetic-training-only-api-key-not-used-in-production
+          DATABASE_URL: sqlite:////tmp/operations_training_demo_nativeci.sqlite
+          UPLOAD_DIR: /tmp/operations-training-native-ci-uploads
+          HOSTNAME: 127.0.0.1
+          PORT: '3401'
+        run: |
+          set -euo pipefail
+          trap 'kill ${API_PID:-0} ${UI_PID:-0} >/dev/null 2>&1 || true' EXIT
+          mkdir -p "$UPLOAD_DIR"
+          ROOT=/tmp/operations-training-release
+          python3 -m venv "$ROOT/backend/.venv"
+          "$ROOT/backend/.venv/bin/python" -m pip install --no-index --find-links "$ROOT/wheelhouse" -r "$ROOT/backend/requirements.txt"
+          cd "$ROOT/backend"
+          "$ROOT/backend/.venv/bin/python" -m alembic upgrade head
+          "$ROOT/backend/.venv/bin/python" scripts/seed_training_demo.py --confirm ISOLATED_TRAINING_DATABASE_ONLY --private-output /tmp/operations-training-native-ci-private
+          "$ROOT/backend/.venv/bin/python" -m uvicorn app.main:app --host 127.0.0.1 --port 8401 > /tmp/operations-training-native-ci-api.log 2>&1 &
+          API_PID=$!
+          cd "$ROOT/frontend/standalone"
+          node server.js > /tmp/operations-training-native-ci-ui.log 2>&1 &
+          UI_PID=$!
+          READY=0
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 3 http://127.0.0.1:8401/api/readyz > /tmp/ops-native-ci-ready.json &&
+               curl -fsS --max-time 3 http://127.0.0.1:3401/login > /tmp/ops-native-ci-login.html; then
+              READY=1; break
+            fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/operations-training-native-ci-api.log
+            cat /tmp/operations-training-native-ci-ui.log
+            exit 1
+          fi
+          grep -q 'TRAINING ONLY' /tmp/ops-native-ci-login.html
+          curl -fsS --max-time 4 http://127.0.0.1:3401/api/readyz > /tmp/ops-native-ci-proxy.json
+          python3 - <<'PY'
+          import json,urllib.request
+          from pathlib import Path
+          ready=json.load(open('/tmp/ops-native-ci-proxy.json'))
+          assert ready['ready'] is True,ready
+          roster=json.loads(Path('/tmp/operations-training-native-ci-private/PRIVATE_training_accounts.json').read_text())
+          manager=next(a for a in roster['accounts'] if a['email']=='manager@training.invalid')
+          payload=json.dumps({'email':manager['email'],'password':manager['password']}).encode()
+          req=urllib.request.Request('http://127.0.0.1:3401/api/auth/login',data=payload,
+                                    headers={'Content-Type':'application/json'},method='POST')
+          with urllib.request.urlopen(req,timeout=10) as resp:
+              data=json.load(resp)
+          assert data['role']=='manager',data
+          print('PASS: portable native release, fictional DB, real login through Next proxy, training-only UI')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: operations-training-native-${{ github.sha }}
+          path: dist/
+          retention-days: 14
+          if-no-files-found: error
