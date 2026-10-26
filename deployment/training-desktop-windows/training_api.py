@@ -79,12 +79,16 @@ def init() -> None:
 
 
 def serve() -> None:
+    print("TRAINING API: validating local fictional database", flush=True)
     path, state = validate()
     if not (state / "data" / ".initialized").is_file() or not path.is_file():
         abort("Initialize fictional training data before serving")
+    print("TRAINING API: loading command center modules", flush=True)
     from app.main import app
+    print("TRAINING API: loading local ASGI server", flush=True)
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8401, workers=1, access_log=False, log_level="warning")
+    print("TRAINING API: listening on localhost:8401", flush=True)
+    uvicorn.run(app, host="127.0.0.1", port=8401, workers=1, access_log=False, log_level="info")
 
 
 if __name__ == "__main__":
