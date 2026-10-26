@@ -58,7 +58,7 @@ def main() -> None:
         state = home / "Library" / "Application Support" / "HiddenOasis" / "OperationsTraining"
         for part in ("private", "data", "uploads"):
             (state / part).mkdir(parents=True)
-        db = state / "data" / "operations_training_demo_macdesktop.sqlite"
+        db = (state / "data" / "operations_training_demo_macdesktop.sqlite").resolve()
         env = {
             "HOME": str(home), "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
             "TMPDIR": "/tmp", "LANG": "en_US.UTF-8",
