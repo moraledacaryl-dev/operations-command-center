@@ -138,10 +138,12 @@ jobs:
                 if (Test-Path $apiStdErr) { Get-Content $apiStdErr -Tail 8 }
               }
               try {
-                $r = Invoke-RestMethod -Uri http://127.0.0.1:8401/api/readyz -TimeoutSec 2
-                if ($r.ready -eq $true) {
-                  $proxied = Invoke-RestMethod -Uri http://127.0.0.1:3401/api/readyz -TimeoutSec 2
-                  if ($proxied.ready -eq $true) { $ready=$true; break }
+                $direct = Invoke-WebRequest -Uri http://127.0.0.1:8401/api/readyz -TimeoutSec 2 -SkipHttpErrorCheck
+                if ($try % 20 -eq 0) { Write-Host "Direct training readiness HTTP $($direct.StatusCode): $($direct.Content)" }
+                if ($direct.StatusCode -eq 200) {
+                  $proxied = Invoke-WebRequest -Uri http://127.0.0.1:3401/api/readyz -TimeoutSec 2 -SkipHttpErrorCheck
+                  if ($try % 20 -eq 0) { Write-Host "Proxy readiness HTTP $($proxied.StatusCode)" }
+                  if ($proxied.StatusCode -eq 200) { $ready=$true; break }
                 }
               } catch {}
             }
