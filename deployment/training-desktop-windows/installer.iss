@@ -10,7 +10,7 @@ AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
 DefaultDirName={localappdata}\Programs\Hidden Oasis Operations Training
 DefaultGroupName=Hidden Oasis Training
-OutputDir=..\..\..\dist\installer
+OutputDir=..\..\dist\installer
 OutputBaseFilename=Hidden_Oasis_Operations_Training_Windows_Standalone_Setup
 Compression=lzma2
 SolidCompression=yes
@@ -26,7 +26,7 @@ RestartApplications=no
 DisableWelcomePage=no
 
 [Files]
-Source: "..\..\..\dist\desktop\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\dist\desktop\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Hidden Oasis Training"; Filename: "{app}\{#AppExecutable}"
