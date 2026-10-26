@@ -301,7 +301,10 @@ p { margin-top: 0; }
 .auth-brand small, .auth-mobile-brand small { display: block; margin-top: 2px; color: inherit; opacity: .72; }
 .auth-signals { display: flex; flex-wrap: wrap; gap: 8px; }
 .auth-signals span { padding: 8px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; color: #dce9e1; font-size: 12px; font-weight: 700; }
-.auth-form-panel { width: min(500px, 100%); align-self: center; justify-self: center; padding: clamp(28px, 6vw, 64px); display: grid; gap: 26px; }
+.auth-form-panel { width: min(500px, 100%); min-width: 0; align-self: center; justify-self: center; padding: clamp(28px, 6vw, 64px); display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; }
+.auth-form-panel > *, .auth-form-panel .form, .auth-form-panel .label { min-width: 0; max-width: 100%; }
+.auth-form-panel .pill { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.auth-form-panel .input, .auth-form-panel .auth-submit { min-width: 0; width: 100%; }
 .auth-form-panel h2 { margin-top: 6px; font-size: 30px; }
 .auth-mobile-brand { display: none; }
 .auth-submit { width: 100%; margin-top: 4px; }
