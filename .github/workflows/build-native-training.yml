@@ -69,6 +69,65 @@ jobs:
           tar -C /tmp/operations-training-release -czf "dist/operations-training-native-$SHA.tar.gz" .
           (cd dist && sha256sum "operations-training-native-$SHA.tar.gz" > "operations-training-native-$SHA.tar.gz.sha256")
           ls -lh dist/*.tar.gz
+      - name: Smoke test packaged native frontend, API and private training seed
+        shell: bash
+        env:
+          ENVIRONMENT: local
+          ALLOW_DEMO_SEED: 'false'
+          ALLOW_DEFAULT_ADMIN_BOOTSTRAP: 'false'
+          ALLOWED_HOSTS: 127.0.0.1,localhost
+          ALLOWED_ORIGINS: http://127.0.0.1:3401
+          SESSION_SECRET: ci-synthetic-training-only-session-secret-unique-for-qa-48617
+          INTEGRATION_API_KEY: ci-synthetic-training-only-api-key-not-used-in-production
+          DATABASE_URL: sqlite:////tmp/operations_training_demo_nativeci.sqlite
+          UPLOAD_DIR: /tmp/operations-training-native-ci-uploads
+          HOSTNAME: 127.0.0.1
+          PORT: '3401'
+        run: |
+          set -euo pipefail
+          trap 'kill ${API_PID:-0} ${UI_PID:-0} >/dev/null 2>&1 || true' EXIT
+          mkdir -p "$UPLOAD_DIR"
+          ROOT=/tmp/operations-training-release
+          python3 -m venv "$ROOT/backend/.venv"
+          "$ROOT/backend/.venv/bin/python" -m pip install --no-index --find-links "$ROOT/wheelhouse" -r "$ROOT/backend/requirements.txt"
+          cd "$ROOT/backend"
+          "$ROOT/backend/.venv/bin/python" -m alembic upgrade head
+          "$ROOT/backend/.venv/bin/python" scripts/seed_training_demo.py --confirm ISOLATED_TRAINING_DATABASE_ONLY --private-output /tmp/operations-training-native-ci-private
+          "$ROOT/backend/.venv/bin/python" -m uvicorn app.main:app --host 127.0.0.1 --port 8401 > /tmp/operations-training-native-ci-api.log 2>&1 &
+          API_PID=$!
+          cd "$ROOT/frontend/standalone"
+          node server.js > /tmp/operations-training-native-ci-ui.log 2>&1 &
+          UI_PID=$!
+          READY=0
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 3 http://127.0.0.1:8401/api/readyz > /tmp/ops-native-ci-ready.json &&
+               curl -fsS --max-time 3 http://127.0.0.1:3401/login > /tmp/ops-native-ci-login.html; then
+              READY=1; break
+            fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/operations-training-native-ci-api.log
+            cat /tmp/operations-training-native-ci-ui.log
+            exit 1
+          fi
+          grep -q 'TRAINING ONLY' /tmp/ops-native-ci-login.html
+          curl -fsS --max-time 4 http://127.0.0.1:3401/api/readyz > /tmp/ops-native-ci-proxy.json
+          python3 - <<'PY'
+          import json,urllib.request
+          from pathlib import Path
+          ready=json.load(open('/tmp/ops-native-ci-proxy.json'))
+          assert ready['ready'] is True,ready
+          roster=json.loads(Path('/tmp/operations-training-native-ci-private/PRIVATE_training_accounts.json').read_text())
+          manager=next(a for a in roster['accounts'] if a['email']=='manager@training.invalid')
+          payload=json.dumps({'email':manager['email'],'password':manager['password']}).encode()
+          req=urllib.request.Request('http://127.0.0.1:3401/api/auth/login',data=payload,
+                                    headers={'Content-Type':'application/json'},method='POST')
+          with urllib.request.urlopen(req,timeout=10) as resp:
+              data=json.load(resp)
+          assert data['role']=='manager',data
+          print('PASS: portable native release, fictional DB, real login through Next proxy, training-only UI')
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: operations-training-native-${{ github.sha }}
