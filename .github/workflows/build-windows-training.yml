@@ -122,8 +122,12 @@ jobs:
           $apiPath = (Resolve-Path dist/desktop/backend/training-api/training-api.exe).Path
           $nodePath = (Resolve-Path dist/desktop/runtime/node.exe).Path
           $frontendPath = (Resolve-Path dist/desktop/frontend/standalone).Path
-          $backend = Start-Process -PassThru -NoNewWindow -FilePath $apiPath -ArgumentList 'serve'
-          $ui = Start-Process -PassThru -NoNewWindow -FilePath $nodePath -ArgumentList 'server.js' -WorkingDirectory $frontendPath
+          $apiStdOut = Join-Path $env:RUNNER_TEMP 'training-api-stdout.log'
+          $apiStdErr = Join-Path $env:RUNNER_TEMP 'training-api-stderr.log'
+          $uiStdOut = Join-Path $env:RUNNER_TEMP 'training-ui-stdout.log'
+          $uiStdErr = Join-Path $env:RUNNER_TEMP 'training-ui-stderr.log'
+          $backend = Start-Process -PassThru -NoNewWindow -FilePath $apiPath -ArgumentList 'serve' -RedirectStandardOutput $apiStdOut -RedirectStandardError $apiStdErr
+          $ui = Start-Process -PassThru -NoNewWindow -FilePath $nodePath -ArgumentList 'server.js' -WorkingDirectory $frontendPath -RedirectStandardOutput $uiStdOut -RedirectStandardError $uiStdErr
           try {
             $ready = $false
             for ($try = 0; $try -lt 65; $try++) {
@@ -133,7 +137,14 @@ jobs:
                 if ($r.ready -eq $true) { $ready=$true; break }
               } catch {}
             }
-            if (!$ready) { throw "Packaged Windows Next proxy/backend did not become ready" }
+            if (!$ready) {
+              Write-Host "API HasExited=$($backend.HasExited); UI HasExited=$($ui.HasExited)"
+              foreach ($log in @($apiStdOut,$apiStdErr,$uiStdOut,$uiStdErr)) {
+                Write-Host "=== $log ==="
+                if (Test-Path $log) { Get-Content $log -Tail 140 }
+              }
+              throw "Packaged Windows Next proxy/backend did not become ready"
+            }
             $login = Invoke-WebRequest -Uri http://127.0.0.1:3401/login -UseBasicParsing
             if ($login.Content -notmatch 'TRAINING ONLY') { throw "Missing training-only warning" }
             $accounts = Get-Content (Join-Path $state 'private/accounts/PRIVATE_training_accounts.json') -Raw | ConvertFrom-Json
