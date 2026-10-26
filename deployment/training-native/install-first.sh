@@ -14,10 +14,12 @@ die() { printf 'REFUSED | %s\n' "$*" >&2; exit 1; }
 [[ "${EUID:-$(id -u)}" == 0 ]] || die "Run as root through sudo"
 [[ "$ACK" == "INSTALL_NEW_ISOLATED_TRAINING_ONLY" ]] || die "Explicit training-only acknowledgement required"
 [[ -f "$ARCHIVE" && -s "$ARCHIVE" ]] || die "Provide a downloaded training-native tar.gz artifact"
-for command in python3 tar ss systemctl df awk free node runuser; do
+for command in python3 tar ss systemctl df awk free node runuser curl useradd install; do
   command -v "$command" >/dev/null || die "Missing prerequisite $command"
 done
 [[ "$(node --version)" == v24.* ]] || die "Requires the validated Node.js 24 runtime"
+[[ "$(python3 --version)" == Python\ 3.12.* ]] || die "Requires Ubuntu Python 3.12"
+python3 -c 'import venv, ensurepip' >/dev/null 2>&1 || die "Python venv/ensurepip missing; install python3.12-venv separately before attempting training installation"
 
 # First deployment must never overlap any existing listener or training deployment.
 [[ ! -e "$APP/current" && ! -d "$STATE/data" && ! -e "$CONFIG/training.env" ]] || die "Existing training install detected; first-install script cannot overwrite it"
