@@ -13,13 +13,15 @@ for port in 3401 8401; do
   }
 done
 
+READINESS_FILE="$(mktemp /tmp/ops-training-readiness.XXXXXX)"
+trap 'rm -f "$READINESS_FILE"' EXIT
 for attempt in $(seq 1 25); do
-  if curl -fsS --max-time 4 http://127.0.0.1:8401/api/readyz -o /tmp/ops-training-native-readiness.json 2>/dev/null; then break; fi
+  if curl -fsS --max-time 4 http://127.0.0.1:8401/api/readyz -o "$READINESS_FILE" 2>/dev/null; then break; fi
   sleep 1
 done
-python3 - <<'PY'
-import json
-with open("/tmp/ops-training-native-readiness.json",encoding="utf-8") as stream:
+python3 - "$READINESS_FILE" <<'PY'
+import json, sys
+with open(sys.argv[1],encoding="utf-8") as stream:
     result=json.load(stream)
 assert result.get("ready") is True, "Synthetic database or API not ready"
 print("PASS | training backend DB/migration/storage readiness")
