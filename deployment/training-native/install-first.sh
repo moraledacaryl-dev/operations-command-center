@@ -17,7 +17,10 @@ die() { printf 'REFUSED | %s\n' "$*" >&2; exit 1; }
 for command in python3 tar ss systemctl df awk free node runuser curl useradd install; do
   command -v "$command" >/dev/null || die "Missing prerequisite $command"
 done
-[[ "$(node --version)" == v24.* ]] || die "Requires the validated Node.js 24 runtime"
+[[ "$(uname -m)" == "x86_64" ]] || die "GitHub training wheelhouse supports x86_64 only"
+[[ -x /usr/bin/node ]] || die "The frontend systemd unit expects /usr/bin/node; an NVM-only Node installation is not supported"
+[[ "$(/usr/bin/node --version)" == v24.* ]] || die "The frontend systemd unit requires /usr/bin/node to be Node.js 24"
+[[ "$(node --version)" == v24.* ]] || die "The SSH shell must have a validated Node.js 24 runtime"
 [[ "$(python3 --version)" == Python\ 3.12.* ]] || die "Requires Ubuntu Python 3.12"
 python3 -c 'import venv, ensurepip' >/dev/null 2>&1 || die "Python venv/ensurepip missing; install python3.12-venv separately before attempting training installation"
 
