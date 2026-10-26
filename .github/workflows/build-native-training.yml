@@ -62,7 +62,7 @@ jobs:
           cp backend/alembic.ini backend/requirements.txt /tmp/operations-training-release/backend/
           cp -a frontend/.next/standalone/. /tmp/operations-training-release/frontend/standalone/
           cp -a /tmp/operations-training-wheelhouse/. /tmp/operations-training-release/wheelhouse/
-          cp deployment/training-native/install-first.sh deployment/training-native/verify-only.sh deployment/training-native/check_release.py /tmp/operations-training-release/deployment/training-native/
+          cp deployment/training-native/install-first.sh deployment/training-native/verify-only.sh deployment/training-native/check_release.py deployment/training-native/operations-training-backend.service deployment/training-native/operations-training-frontend.service /tmp/operations-training-release/deployment/training-native/
           printf '%s\n' "$SHA" > /tmp/operations-training-release/commit.sha
           python3 deployment/training-native/check_release.py --directory /tmp/operations-training-release
           mkdir -p dist
