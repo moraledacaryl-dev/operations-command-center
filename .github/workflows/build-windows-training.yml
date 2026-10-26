@@ -41,7 +41,7 @@ jobs:
       - name: Install Python dependencies and verify role dataset
         shell: pwsh
         run: |
-          python -m pip install -r backend/requirements.txt pyinstaller==6.16.0
+          python -m pip install -r backend/requirements.txt pyinstaller==6.16.0 tzdata==2025.3
           python -m pip check
           python -c "import os,sys;sys.path.insert(0,'backend');from scripts.seed_training_demo import PEOPLE;assert len(PEOPLE)==20;print('PASS: twenty fictional role accounts')"
 
@@ -49,7 +49,7 @@ jobs:
         shell: pwsh
         run: |
           pyinstaller --noconfirm --clean --onedir --name training-api --paths backend `
-            --collect-submodules app --collect-all alembic --collect-all sqlalchemy `
+            --collect-submodules app --collect-all alembic --collect-all sqlalchemy --collect-all tzdata `
             --collect-all pydantic --collect-all fastapi --collect-all uvicorn `
             --hidden-import psycopg2 --hidden-import pydantic_core `
             --add-data "backend/alembic;alembic" `
