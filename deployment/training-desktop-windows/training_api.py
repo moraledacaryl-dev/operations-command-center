@@ -83,6 +83,9 @@ def serve() -> None:
     path, state = validate()
     if not (state / "data" / ".initialized").is_file() or not path.is_file():
         abort("Initialize fictional training data before serving")
+    # Alembic's script_location is relative. Set the frozen code directory
+    # as the working directory for readiness migration-head validation.
+    os.chdir(resources())
     print("TRAINING API: loading command center modules", flush=True)
     from app.main import app
     print("TRAINING API: loading local ASGI server", flush=True)
