@@ -1,0 +1,191 @@
+name: Build Windows Standalone Training Installer
+
+on:
+  pull_request:
+    paths:
+      - "deployment/training-desktop-windows/**"
+      - ".github/workflows/build-windows-training.yml"
+      - "backend/scripts/seed_training_demo.py"
+      - "frontend/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-training:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    env:
+      PYTHONUTF8: "1"
+      NEXT_PUBLIC_TRAINING_MODE: "true"
+      NEXT_PUBLIC_DEMO_PREVIEW: "true"
+      OPERATIONS_API_ORIGIN: http://127.0.0.1:8401
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: "x64"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+          architecture: "x64"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install Python dependencies and verify role dataset
+        shell: pwsh
+        run: |
+          python -m pip install -r backend/requirements.txt pyinstaller==6.16.0 tzdata==2025.3
+          python -m pip check
+          python -c "import os,sys;sys.path.insert(0,'backend');from scripts.seed_training_demo import PEOPLE;assert len(PEOPLE)==20;print('PASS: twenty fictional role accounts')"
+
+      - name: Freeze Python runtime into Windows executable
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onedir --name training-api --paths backend `
+            --collect-submodules app --collect-all alembic --collect-all sqlalchemy --collect-all tzdata `
+            --collect-all pydantic --collect-all fastapi --collect-all uvicorn `
+            --hidden-import psycopg2 --hidden-import pydantic_core `
+            --add-data "backend/alembic;alembic" `
+            --add-data "backend/alembic.ini;." `
+            --add-data "backend/scripts/seed_training_demo.py;scripts" `
+            deployment/training-desktop-windows/training_api.py
+          if (!(Test-Path dist/training-api/training-api.exe)) { throw "Frozen API missing" }
+
+      - name: Build training frontend with interactive role walkthroughs
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run build
+          if (!(Test-Path .next/standalone/server.js)) { throw "Standalone Next.js missing" }
+          if (!(Test-Path .next/standalone/.next/static)) { throw "Next.js static assets missing" }
+
+      - name: Publish self-contained Windows graphical launcher
+        shell: pwsh
+        run: |
+          dotnet publish deployment/training-desktop-windows/launcher/HiddenOasisTraining.csproj `
+            -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None -p:DebugSymbols=false `
+            -o dist/controller
+          if (!(Test-Path dist/controller/HiddenOasisTraining.exe)) { throw "Desktop application missing" }
+
+      - name: Assemble offline application bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/desktop/backend,dist/desktop/frontend,dist/desktop/runtime | Out-Null
+          Copy-Item -Recurse dist/training-api dist/desktop/backend/training-api
+          Copy-Item -Recurse frontend/.next/standalone dist/desktop/frontend/standalone
+          $nodePath = (Get-Command node).Source
+          Copy-Item $nodePath dist/desktop/runtime/node.exe
+          Copy-Item dist/controller/HiddenOasisTraining.exe dist/desktop/HiddenOasisTraining.exe
+          if ((Get-Item dist/desktop/runtime/node.exe).Length -lt 20000000) { throw "Node runtime unexpectedly small" }
+          Write-Host "PASS: self-contained desktop application, no end-user Docker, Python or Node install"
+
+      - name: Smoke real Windows API, proxy and staff/manager login
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $state = Join-Path $env:RUNNER_TEMP 'HiddenOasisTrainingNativeTest'
+          $data = Join-Path $state 'data'
+          $env:TRAINING_STATE_DIR = $state
+          New-Item -ItemType Directory -Force $data,(Join-Path $state 'private'),(Join-Path $state 'uploads') | Out-Null
+          $db = (Join-Path $data 'operations_training_demo_desktop.sqlite').Replace('\','/')
+          $env:DATABASE_URL = 'sqlite:///' + $db
+          $env:ENVIRONMENT = 'local'
+          $env:ALLOW_DEMO_SEED = 'false'
+          $env:ALLOW_DEFAULT_ADMIN_BOOTSTRAP = 'false'
+          $env:SESSION_SECRET = 'ci-desktop-training-only-session-secret-not-for-production-123'
+          $env:INTEGRATION_API_KEY = 'ci-desktop-training-api-key-not-for-production-123'
+          $env:ALLOWED_HOSTS = '127.0.0.1,localhost'
+          $env:ALLOWED_ORIGINS = 'http://127.0.0.1:3401'
+          $env:UPLOAD_DIR = Join-Path $state 'uploads'
+          $env:EXPOSE_API_DOCS = 'false'
+          $env:FORCE_HTTPS = 'false'
+          $env:TRUST_PROXY_HEADERS = 'false'
+          & dist/desktop/backend/training-api/training-api.exe init
+          if ($LASTEXITCODE -ne 0) { throw "Synthetic seed failed on frozen Windows backend" }
+          & dist/desktop/backend/training-api/training-api.exe init
+          if ($LASTEXITCODE -ne 0) { throw "Frozen runtime did not preserve training data" }
+          $env:HOSTNAME = '127.0.0.1'
+          $env:PORT = '3401'
+          $env:NODE_ENV = 'production'
+          $apiPath = (Resolve-Path dist/desktop/backend/training-api/training-api.exe).Path
+          $nodePath = (Resolve-Path dist/desktop/runtime/node.exe).Path
+          $frontendPath = (Resolve-Path dist/desktop/frontend/standalone).Path
+          $apiStdOut = Join-Path $env:RUNNER_TEMP 'training-api-stdout.log'
+          $apiStdErr = Join-Path $env:RUNNER_TEMP 'training-api-stderr.log'
+          $uiStdOut = Join-Path $env:RUNNER_TEMP 'training-ui-stdout.log'
+          $uiStdErr = Join-Path $env:RUNNER_TEMP 'training-ui-stderr.log'
+          $backend = Start-Process -PassThru -NoNewWindow -FilePath $apiPath -ArgumentList 'serve' -RedirectStandardOutput $apiStdOut -RedirectStandardError $apiStdErr
+          $ui = Start-Process -PassThru -NoNewWindow -FilePath $nodePath -ArgumentList 'server.js' -WorkingDirectory $frontendPath -RedirectStandardOutput $uiStdOut -RedirectStandardError $uiStdErr
+          try {
+            $ready = $false
+            for ($try = 0; $try -lt 150; $try++) {
+              Start-Sleep -Seconds 1
+              if ($try % 20 -eq 0) {
+                Write-Host "Training readiness attempt $try; backend-exited=$($backend.HasExited); frontend-exited=$($ui.HasExited)"
+                if (Test-Path $apiStdOut) { Get-Content $apiStdOut -Tail 8 }
+                if (Test-Path $apiStdErr) { Get-Content $apiStdErr -Tail 8 }
+              }
+              try {
+                $direct = Invoke-WebRequest -Uri http://127.0.0.1:8401/api/readyz -TimeoutSec 2 -SkipHttpErrorCheck
+                if ($try % 20 -eq 0) { Write-Host "Direct training readiness HTTP $($direct.StatusCode): $($direct.Content)" }
+                if ($direct.StatusCode -eq 200) {
+                  $proxied = Invoke-WebRequest -Uri http://127.0.0.1:3401/api/readyz -TimeoutSec 2 -SkipHttpErrorCheck
+                  if ($try % 20 -eq 0) { Write-Host "Proxy readiness HTTP $($proxied.StatusCode)" }
+                  if ($proxied.StatusCode -eq 200) { $ready=$true; break }
+                }
+              } catch {}
+            }
+            if (!$ready) {
+              Write-Host "API HasExited=$($backend.HasExited); UI HasExited=$($ui.HasExited)"
+              foreach ($log in @($apiStdOut,$apiStdErr,$uiStdOut,$uiStdErr)) {
+                Write-Host "=== $log ==="
+                if (Test-Path $log) { Get-Content $log -Tail 140 }
+              }
+              throw "Packaged Windows Next proxy/backend did not become ready"
+            }
+            $login = Invoke-WebRequest -Uri http://127.0.0.1:3401/login -UseBasicParsing
+            if ($login.Content -notmatch 'TRAINING ONLY') { throw "Missing training-only warning" }
+            $accounts = Get-Content (Join-Path $state 'private/accounts/PRIVATE_training_accounts.json') -Raw | ConvertFrom-Json
+            if ($accounts.accounts.Count -ne 20) { throw "Fictional roster incorrect" }
+            foreach ($role in @('manager','staff')) {
+              $email = if ($role -eq 'manager') {'manager@training.invalid'} else {'reception-am@training.invalid'}
+              $account = $accounts.accounts | Where-Object { $_.email -eq $email }
+              $payload = @{email=$account.email;password=$account.password} | ConvertTo-Json
+              $auth = Invoke-RestMethod -Uri http://127.0.0.1:3401/api/auth/login -Method Post -Body $payload -ContentType 'application/json'
+              if ($auth.role -ne $role) { throw "Incorrect role for $email" }
+            }
+            Write-Host "PASS: Windows frozen API + Next frontend + real manager/staff sign-ins"
+          } finally {
+            Stop-Process -Id $ui.Id,$backend.Id -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Compile ordinary Windows setup EXE with Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress --limit-output
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { throw "Inno Setup compiler missing" }
+          & $iscc "deployment/training-desktop-windows/installer.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno setup build failed" }
+          $setup = @(Get-ChildItem dist/installer/*.exe)
+          if ($setup.Count -ne 1) { throw "Expected one Windows installer" }
+          Get-FileHash $setup[0].FullName -Algorithm SHA256 | Format-List
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Windows-Standalone-Installer
+          path: dist/installer/*.exe
+          retention-days: 14
+          if-no-files-found: error

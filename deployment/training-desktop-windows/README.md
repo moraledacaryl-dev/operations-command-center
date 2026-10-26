@@ -1,0 +1,43 @@
+# Hidden Oasis Operations Training — Standalone Windows edition
+
+**Goal:** Trainer/staff uses an ordinary Windows x64 installer and the **Hidden Oasis Training** desktop shortcut. No Docker, Python, Node, WSL, or .NET installation is needed by the end user. The installer bundles private native runtimes and the training-only Next.js app.
+
+## Roles and isolation
+
+- **One installation serves every role.** The same launcher runs the entire command center, and each fictional login (Reception, Housekeeping, Café, Kitchen, Maintenance, Security, Marketing, Supervisors, Management) determines the user's view and permission boundaries.
+- Exactly 20 randomized fictional accounts are generated at **first launch** on the local device. Neither passwords nor a seeded database are shipped inside the installer.
+- Fictional guest, task, project, shift, approval, and request data is independently seeded on each Windows computer. Desktop training never reads the live Operations PostgreSQL database.
+- Trainer credentials are at `%LOCALAPPDATA%\HiddenOasis\OperationsTraining\private\accounts\PRIVATE_training_accounts.json`. The shortcut's **Trainer accounts** button can open that file. Give staff only the demo credentials intended for their role.
+- Practice records persist after stopping and restarting the desktop launcher and across program updates. **Uninstall does not delete practice records.**
+- Uses localhost only (`127.0.0.1:3401` web UI and `127.0.0.1:8401` backend). Does not expose training on LAN or the Internet.
+- Independent randomly generated session/integration keys; no production credentials or connections.
+
+## Staff operation
+
+1. Install `Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe` by double-clicking the installer.
+2. Launch **Hidden Oasis Training** from the desktop shortcut. The app initializes itself and opens the fictional training login automatically.
+3. Sign in with the assigned fictional training account. Lessons and permissions follow the role.
+4. When finished, click **Stop** or close the launcher. Practice records are preserved.
+
+**Do not share the full trainer roster with staff.** No real guest data should be entered in this installation.
+
+## Installation caveats
+
+- Windows 10/11 x64 (modern supported builds), normal user install; sufficient free disk (allow at least 2 GiB).
+- Unsigned custom installer. Windows SmartScreen may warn; do not bypass organizational endpoint security policies. Code-signing before general staff distribution is recommended.
+- Test on an actual Windows PC before broad staff rollout. The GitHub CI runs a real Windows packager and functional manager/staff API login, but cannot simulate all staff endpoint security policies or desktop interactions.
+- Since the program is localhost-only, installing on one receptionist's PC does **not** create a central website accessible to everyone. To support multiple PCs simultaneously with shared training progress, deploy a separately secured shared training server.
+- A separate installer is needed for Windows ARM64, macOS, or Linux.
+
+## Source/build
+
+GitHub Actions workflow: `.github/workflows/build-windows-training.yml`
+
+1. Build the training-enabled standalone Next.js frontend on a Windows runner.
+2. Freeze Python 3.12 application into native Windows executable with PyInstaller.
+3. Bundle Node 24 from GitHub Actions, not from end-user machine.
+4. Compile a self-contained .NET 8 WinForms controller with Start, Stop, Open, and trainer account actions.
+5. Create a per-user Inno Setup executable installer.
+6. Run real Windows backend migrations, data seeding, frontend health checks and sample role logins before releasing artifact.
+
+The entire app is synthetic-data-only; it does not modify the online production application.
