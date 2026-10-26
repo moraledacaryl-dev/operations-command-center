@@ -64,7 +64,10 @@ def guard() -> Path:
     if os.environ.get("ALLOW_DEFAULT_ADMIN_BOOTSTRAP", "false").lower() != "false":
         raise SystemExit("REFUSED: default admin bootstrap is not permitted")
     url = os.environ.get("DATABASE_URL", "")
-    if not url.startswith("sqlite:////") or "?" in url or "#" in url:
+    # Windows SQLAlchemy uses sqlite:///C:/absolute/path, while POSIX uses
+    # sqlite:////absolute/path. Require native absolute paths on both platforms.
+    prefix = "sqlite:///" if os.name == "nt" else "sqlite:////"
+    if not url.startswith(prefix) or "?" in url or "#" in url:
         raise SystemExit("REFUSED: only an absolute training SQLite URL is allowed")
     path = Path(url[len("sqlite:///"):])
     if not path.is_absolute() or not path.name.startswith("operations_training_demo_") or path.suffix != ".sqlite":
