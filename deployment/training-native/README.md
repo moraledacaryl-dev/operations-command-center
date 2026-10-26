@@ -1,5 +1,7 @@
 # Co-hosted Operations training on the existing Hidden Oasis VPS (Docker-free)
 
+**Pre-install runtime check:** The bundled wheelhouse is built for `x86_64`, and the frontend systemd unit explicitly runs `/usr/bin/node`. Confirm `uname -m` reports `x86_64` and `/usr/bin/node --version` reports `v24.x`. The installer refuses mismatches before creating training directories or units. Do not install a different global Node version or change production Node binaries just to bypass this prerequisite.
+
 **Why this path exists:** The current VPS already hosts Operations, Accounting, POS, Staff, Inventory, PostgreSQL and Nginx through systemd; it has 2 CPUs, ~3.7 GiB RAM with ~1.9 GiB available, and ~18 GiB free on its 75 GiB root disk. It has **no Docker and no swap**. Building Next.js on the VPS could disrupt production, so the [Build Native Operations Training Release] GitHub workflow builds the entire frontend on a **GitHub runner** and packages pinned Python wheels. The VPS only installs offline runtime dependencies.
 
 ## Safety boundaries
