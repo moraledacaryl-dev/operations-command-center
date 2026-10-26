@@ -39,9 +39,13 @@ On the VPS, in the directory containing the archive and checksum:
 
 ## 3. First installation only
 
-The installer is included inside the verified package, but should be reviewed in the repo before running. As root, after confirming the server is healthy:
+The installer is included inside the verified tarball. On the VPS, extract **only its installer script** into a new temporary directory, then execute it against the same checksum-verified archive:
 
-    sudo bash /path/to/extracted/deployment/training-native/install-first.sh \
+    mkdir -p /tmp/operations-training-native-installer
+    tar -xzf /tmp/operations-training-native-<SHA>.tar.gz \
+      -C /tmp/operations-training-native-installer ./deployment/training-native/install-first.sh
+
+    sudo bash /tmp/operations-training-native-installer/deployment/training-native/install-first.sh \
       /tmp/operations-training-native-<SHA>.tar.gz INSTALL_NEW_ISOLATED_TRAINING_ONLY
 
 **Do not run this yet** until the native build PR passes and the operator has verified the artifact and application preflight. The installer checks `operations-backend` and `operations-frontend` are active, RAM, disk, free ports, and that no previous training install exists. It creates the private service identity, filesystem paths, separately seeded training DB, and two new systemd units. It never changes Nginx or starts/restarts any existing production service.
