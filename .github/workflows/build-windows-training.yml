@@ -130,11 +130,19 @@ jobs:
           $ui = Start-Process -PassThru -NoNewWindow -FilePath $nodePath -ArgumentList 'server.js' -WorkingDirectory $frontendPath -RedirectStandardOutput $uiStdOut -RedirectStandardError $uiStdErr
           try {
             $ready = $false
-            for ($try = 0; $try -lt 65; $try++) {
+            for ($try = 0; $try -lt 150; $try++) {
               Start-Sleep -Seconds 1
+              if ($try % 20 -eq 0) {
+                Write-Host "Training readiness attempt $try; backend-exited=$($backend.HasExited); frontend-exited=$($ui.HasExited)"
+                if (Test-Path $apiStdOut) { Get-Content $apiStdOut -Tail 8 }
+                if (Test-Path $apiStdErr) { Get-Content $apiStdErr -Tail 8 }
+              }
               try {
-                $r = Invoke-RestMethod -Uri http://127.0.0.1:3401/api/readyz -TimeoutSec 2
-                if ($r.ready -eq $true) { $ready=$true; break }
+                $r = Invoke-RestMethod -Uri http://127.0.0.1:8401/api/readyz -TimeoutSec 2
+                if ($r.ready -eq $true) {
+                  $proxied = Invoke-RestMethod -Uri http://127.0.0.1:3401/api/readyz -TimeoutSec 2
+                  if ($proxied.ready -eq $true) { $ready=$true; break }
+                }
               } catch {}
             }
             if (!$ready) {
