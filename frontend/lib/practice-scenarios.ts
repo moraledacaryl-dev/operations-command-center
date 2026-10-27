@@ -1,3 +1,5 @@
+import { EXTENDED_PRACTICE_SCENARIOS } from './extended-practice-scenarios';
+
 export type TrainingPriority = 'Routine' | 'High' | 'Critical';
 export type TrainingDepartment =
   'Front Desk' | 'Housekeeping' | 'Café' | 'Kitchen' | 'Maintenance' |
@@ -21,6 +23,11 @@ export type PracticeScenario = {
   why: string;
   supervisorOnly?: boolean;
   managerOnly?: boolean;
+  /** 1 orientation, 2 normal work, 3 exceptions, 4 escalation, 5 independent judgment. */
+  level?: 1 | 2 | 3 | 4 | 5;
+  skill?: string;
+  /** Independent, scenario-specific checks for actionable written handover details. */
+  noteChecks?: readonly { label: string; alternatives: readonly string[] }[];
 };
 
 export const PRIORITIES: readonly TrainingPriority[] = ['Routine', 'High', 'Critical'];
@@ -165,6 +172,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     example: 'DEMO-GUEST-012: review prior attempts, assign a named lead, confirm the remedy with the guest and track documented verification before closure.',
     why: 'Repeated service failure needs management ownership, a recovery action, and an evidence-backed follow-up.',
   },
+  ...EXTENDED_PRACTICE_SCENARIOS,
 ];
 
 export function practiceScenariosFor(user: { role?: string; departments?: { name?: string }[] }): PracticeScenario[] {
@@ -204,10 +212,20 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
   if (answers.decision !== scenario.decision) {
     errors.decision = 'Choose an action supported by the situation and available evidence.';
   }
-  if (answers.note.trim().length < 45) {
-    errors.note = 'Write at least 45 characters: what happened, the next action and who will follow up.';
-  } else if (!answers.note.toLowerCase().includes(scenario.reference.toLowerCase())) {
+  const note = answers.note.toLowerCase().replace(/\\s+/g, ' ').trim();
+  const uniqueWords = new Set(note.match(/[a-z]{2,}/g) || []);
+  if (note.length < 45 || uniqueWords.size < 8) {
+    errors.note = 'Write a meaningful handover with several distinct facts, an action, and a follow-up owner. Repeated or generic filler does not count.';
+  } else if (!note.includes(scenario.reference.toLowerCase())) {
     errors.note = 'Include the fictional case reference so the next shift can locate this concern.';
+  } else if (scenario.noteChecks?.length) {
+    const missing = scenario.noteChecks.filter(check =>
+      !check.alternatives.some(term => note.includes(term.toLowerCase()))
+    );
+    if (missing.length) {
+      errors.note = 'Your note does not clearly explain ' + missing.map(check => check.label).join(' and ') +
+        '. Add a specific, actionable explanation using your own words.';
+    }
   }
   return { passed: Object.keys(errors).length === 0, errors, score: 4 - Object.keys(errors).length };
 }
