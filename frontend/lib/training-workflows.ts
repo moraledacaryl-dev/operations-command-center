@@ -4,7 +4,7 @@
  * records; a click, a filled form, or a mock completion flag cannot pass.
  * Completion is learning evidence, NOT a credential or staff certification.
  */
-export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner' | 'shift-unresolved' | 'mt-light-fault' | 'manager-evidence';
+export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner' | 'shift-unresolved' | 'mt-light-fault' | 'manager-evidence' | 'fd-broken-shower';
 export type TrainingWorkflowSession = {
   kind: TrainingWorkflowKind;
   ownerId: string;
@@ -12,10 +12,12 @@ export type TrainingWorkflowSession = {
   createdAt: string;
   step: number;
   recordId?: number;
+  relatedRecordId?: number;
 };
 export type TrainingWorkflowEvidence = {
   reference: string;
   recordId: number;
+  relatedRecordId?: number;
   completedAt: string;
   steps: string[];
 };
@@ -56,12 +58,19 @@ export const WORKFLOW_DEFINITIONS = {
     resource: 'requests',
     stages: ['Create a defensible equipment request', 'Submit for authorized review'],
   },
+  'fd-broken-shower': {
+    name: 'Guest report linked to actual maintenance work',
+    path: '/guests',
+    resource: 'guests',
+    stages: ['Log the shower issue with guest follow-up', 'Create the linked maintenance work order',
+      'Start linked maintenance', 'Record maintenance as done', 'Verify the fictional work order'],
+  },
 } as const;
 
 export const isTrainingWorkflowKind = (value: unknown): value is TrainingWorkflowKind =>
   value === 'guest-ac' || value === 'shared-no-owner' ||
     value === 'shift-unresolved' || value === 'mt-light-fault' ||
-    value === 'manager-evidence';
+    value === 'manager-evidence' || value === 'fd-broken-shower';
 
 export function workflowOwnerId(user: { id?: string | number; email?: string }): string {
   return String(user.id || user.email || '');
@@ -82,7 +91,7 @@ export function makeTrainingReference(kind: TrainingWorkflowKind): string {
     : (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
   const prefix = {
     'guest-ac': 'TRN-GUEST-', 'shared-no-owner': 'TRN-TASK-',
-    'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-', 'manager-evidence': 'TRN-REQ-',
+    'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-', 'manager-evidence': 'TRN-REQ-', 'fd-broken-shower': 'TRN-LINK-',
   }[kind];
   return prefix + suffix;
 }
@@ -95,11 +104,12 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
     const value = decoded as Record<string, unknown>;
     if (!isTrainingWorkflowKind(value.kind) || value.ownerId !== ownerId ||
       typeof value.reference !== 'string' ||
-      !/^TRN-(GUEST|TASK|SHIFT|FIX|REQ)-[A-Z0-9]{8,20}$/.test(value.reference) ||
+      !/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(value.reference) ||
       typeof value.step !== 'number' || !Number.isInteger(value.step) || value.step < 0 ||
       value.step > WORKFLOW_DEFINITIONS[value.kind].stages.length ||
       typeof value.createdAt !== 'string') return null;
     const recordId = positiveId(value.recordId);
+    const relatedRecordId = positiveId(value.relatedRecordId);
     return {
       kind: value.kind,
       ownerId,
@@ -107,13 +117,19 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
       createdAt: value.createdAt,
       step: value.step,
       ...(recordId ? { recordId } : {}),
+      ...(relatedRecordId ? { relatedRecordId } : {}),
     };
   } catch {
     return null;
   }
 }
 
-export type WorkflowCheck = { passed: boolean; error: string; recordId?: number; stepName?: string };
+export type WorkflowCheck = { passed: boolean; error: string; recordId?: number; relatedRecordId?: number; stepName?: string };
+/** Linked Guest↔Fix exercises move across actual Operations modules. */
+export function workflowStagePath(session: TrainingWorkflowSession): string {
+  return session.kind === 'fd-broken-shower' && session.step >= 2
+    ? '/fixes' : WORKFLOW_DEFINITIONS[session.kind].path;
+}
 type OperationalRecord = Record<string, unknown>;
 
 function readable(value: unknown) { return String(value || '').trim().toLowerCase(); }
@@ -127,12 +143,21 @@ export function verifyWorkflowStep(
   session: TrainingWorkflowSession,
   candidates: OperationalRecord[],
   detail?: OperationalRecord | null,
+  relatedDetail?: OperationalRecord | null,
 ): WorkflowCheck {
   const definition = WORKFLOW_DEFINITIONS[session.kind];
   const matched = candidates.filter(item => readable(item.title).includes(session.reference.toLowerCase()));
   if (session.step === 0) {
     const valid = matched.find(item => {
       if (!positiveId(item.id)) return false;
+      if (session.kind === 'fd-broken-shower') {
+        const note = readable(item.note);
+        return readable(item.urgency) === 'high' &&
+          ['room', 'complaint'].includes(readable(item.issue_type)) &&
+          /shower|hot water/.test(note) &&
+          /maintenance|inspect|repair/.test(note) &&
+          /guest|call|update|callback/.test(note);
+      }
       if (session.kind === 'guest-ac') {
         const note = readable(item.note);
         return readable(item.urgency) === 'high' &&
@@ -170,6 +195,8 @@ export function verifyWorkflowStep(
     return { passed: false, error: matched.length
       ? session.kind === 'guest-ac'
         ? 'A matching case exists, but its saved record must have High urgency, Room or Complaint type, and a note describing the AC fault, Maintenance action, and guest follow-up. Correct the case according to authorized controls, or create a corrected fictional one with the same reference.'
+        : session.kind === 'fd-broken-shower'
+          ? 'The saved guest report must have High urgency, Room or Complaint type, and a note about the faulty shower, maintenance inspection, and Front Desk guest callback.'
         : session.kind === 'shared-no-owner'
           ? 'A matching task exists, but its saved record must be High priority and have an actual assigned person. Open the task, edit it, and save those fields.'
           : session.kind === 'shift-unresolved'
@@ -184,6 +211,34 @@ export function verifyWorkflowStep(
     return { passed: false, error: 'The original training record could not be verified. Refresh the correct record and retry; do not create a different unlinked case.' };
   }
   const status = readable(detail.status);
+  if (session.kind === 'fd-broken-shower') {
+    const linkedId = positiveId(detail.linked_fix_id);
+    if (!linkedId || !relatedDetail ||
+      positiveId(relatedDetail.id) !== linkedId ||
+      positiveId(relatedDetail.linked_guest_note_id) !== session.recordId ||
+      !readable(relatedDetail.title).includes(session.reference.toLowerCase())) {
+      return { passed: false, error: 'The original Guest Matter is not yet linked to a reciprocal Maintenance work order. Open the Guest Matter and select Create maintenance. An unrelated ticket does not count.' };
+    }
+    if (status !== 'follow') {
+      return { passed: false, error: 'The Guest Matter must remain in Follow while Maintenance handles the issue.' };
+    }
+    if (session.relatedRecordId && linkedId !== session.relatedRecordId) {
+      return { passed: false, error: 'The linked maintenance ticket has changed. Do not substitute a different work order for the original handoff.' };
+    }
+    if (session.step === 1) {
+      return { passed: true, error: '', recordId: session.recordId, relatedRecordId: linkedId, stepName: definition.stages[1] };
+    }
+    const wanted = session.step === 2 ? 'working' : session.step === 3 ? 'done' : 'verified';
+    if (readable(relatedDetail.status) !== wanted) {
+      return { passed: false, error: session.step === 2
+        ? 'The linked Maintenance work order has not been started. Open that same work order and select Start work.'
+        : session.step === 3
+          ? 'The linked work order is not Done. Mark the fictional maintenance work ready for independent verification first.'
+          : 'The original linked Maintenance work order needs a verification note and Verified status in the training database.' };
+    }
+    return { passed: true, error: '', recordId: session.recordId, relatedRecordId: linkedId,
+      stepName: definition.stages[session.step] };
+  }
   if (session.kind === 'guest-ac') {
     return status === 'follow'
       ? { passed: true, error: '', recordId: session.recordId, stepName: definition.stages[1] }
@@ -220,6 +275,30 @@ export function verifyWorkflowStep(
 }
 
 export function workflowInstructions(session: TrainingWorkflowSession): string[] {
+  if (session.kind === 'fd-broken-shower') {
+    if (session.step === 0) return [
+      'Open Guest Matters. Select New guest matter and place the unique training reference in Matter title.',
+      'Choose Room or Complaint and High urgency. Describe a shower without hot water, the Maintenance inspection, and the Front Desk guest callback in the context note.',
+      'Click Save matter. Close any details drawer, then Check saved work.',
+    ];
+    if (session.step === 1) return [
+      'Open the original Guest Matter by its reference, select Create maintenance, and let the Operations system link the two records automatically.',
+      'Close the details drawer. Select Check saved work to verify BOTH saved links and the guest follow-up status. Do not create a second, unrelated work order.',
+    ];
+    if (session.step === 2) return [
+      'Open Maintenance. The original linked work order has the same title/reference as the Guest Matter.',
+      'If the current department filter hides it, select the original reporting department in the normal Operations department selector.',
+      'Open that exact ticket, click Start work and close the drawer. Then Check saved work.',
+    ];
+    if (session.step === 3) return [
+      'In Maintenance, reopen the linked ticket and choose Mark done for this entirely fictional repair.',
+      'Close details and Check saved work. This does not prove any physical shower was repaired.',
+    ];
+    return [
+      'Open that same Done maintenance ticket. In Verification note record the fictional tests performed.',
+      'Click Verify work, close details and Check saved work. Do not resolve the Guest Matter until its separate guest callback occurs.',
+    ];
+  }
   if (session.kind === 'guest-ac') {
     return session.step === 0
       ? ['Open Guest Matters and click New guest matter.', 'Include the exact training reference in the Matter title.', 'Select Room or Complaint, choose High urgency, and use Room 205 if it appears in the fictional room list.', 'In the context note, describe the AC blowing warm air, the Maintenance inspection request, and when Front Desk will update the guest.', 'Click Save matter. Only then click Check saved work.']
