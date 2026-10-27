@@ -4,7 +4,7 @@ import Foundation
 import Security
 import SwiftUI
 
-private let trainingURL = URL(string: "http://127.0.0.1:3401/login")!
+private let trainingURL = URL(string: "http://127.0.0.1:3401/training")!
 
 final class TrainingRuntime {
     private let lock = NSLock()

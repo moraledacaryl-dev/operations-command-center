@@ -1,4 +1,5 @@
 import './globals.css';
+import './practice-training.css';
 import './interactive-training.css';
 import './resources.css';
 import './mobile.css';
