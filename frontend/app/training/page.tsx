@@ -106,7 +106,7 @@ export default function PracticeTrainingPage() {
         <p className="practice-eyebrow">HIDDEN OASIS / OPERATIONS TRAINING</p>
         <h1>Practice real decisions in a safe simulation</h1>
         <p>Read the situation, choose what you would do, write the handover and submit your response. The training checks your decisions and gives feedback.</p>
-        <p className="practice-safe"><strong>FICTIONAL EXERCISES ONLY.</strong> Responses stay on this device and are not sent to the resort's production systems.</p>
+        <p className="practice-safe"><strong>FICTIONAL EXERCISES ONLY.</strong> Responses stay on this device and are not sent to the resort&apos;s production systems.</p>
       </div>
       <div className="practice-progress" aria-label={completedCount + ' of ' + scenarios.length + ' scenarios complete'}>
         <strong>{completedCount} / {scenarios.length}</strong>
