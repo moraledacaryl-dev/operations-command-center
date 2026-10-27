@@ -5,6 +5,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/session';
 import { Entity } from '@/lib/api';
+import { hasCapability } from '@/lib/capabilities';
+import {
+  makeTrainingReference, workflowOwnerId, workflowSessionKey, workflowResultsKey,
+  WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS,
+} from '@/lib/training-workflows';
+import type { TrainingWorkflowKind, TrainingWorkflowSession, TrainingWorkflowResults } from '@/lib/training-workflows';
 import {
   assessPractice, DECISIONS, DEPARTMENTS, PRIORITIES,
   practiceScenariosFor,
@@ -27,6 +33,7 @@ export default function PracticeTrainingPage() {
   const [progress, setProgress] = useState<SavedProgress>({});
   const [showTip, setShowTip] = useState(false);
   const [ready, setReady] = useState(false);
+  const [verifiedWorkflows, setVerifiedWorkflows] = useState<TrainingWorkflowResults>({});
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [levelFilter, setLevelFilter] = useState('All');
@@ -52,6 +59,23 @@ export default function PracticeTrainingPage() {
     setReady(true);
   }, [router]);
 
+  useEffect(() => {
+    if (!user || process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return;
+    const load = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}');
+        setVerifiedWorkflows(saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {});
+      } catch { setVerifiedWorkflows({}); }
+    };
+    load();
+    window.addEventListener(WORKFLOW_CHANGED, load);
+    window.addEventListener('storage', load);
+    return () => {
+      window.removeEventListener(WORKFLOW_CHANGED, load);
+      window.removeEventListener('storage', load);
+    };
+  }, [user]);
+
   const scenarios = useMemo(() => practiceScenariosFor(user || {}), [user]);
   const filteredScenarios = useMemo(() => scenarios.filter(s => {
     if (departmentFilter !== 'All' && s.department !== departmentFilter) return false;
@@ -66,6 +90,10 @@ export default function PracticeTrainingPage() {
   const completedCount = scenarios.filter(s => progress[s.id]).length;
   const percent = scenarios.length ? Math.round(completedCount / scenarios.length * 100) : 0;
   const trainer = ['owner', 'admin', 'manager'].includes(String(user?.role || '').toLowerCase());
+  const canCreateRecords = hasCapability(user, 'manage_department');
+  const workflowKind: TrainingWorkflowKind | null = selected?.id === 'guest-ac' ||
+    selected?.id === 'shared-no-owner' ? selected.id : null;
+  const verifiedCount = Object.values(verifiedWorkflows).filter(result => result?.completedAt).length;
 
   function switchScenario(id: string) {
     if (!scenarios.some(s => s.id === id)) return;
@@ -121,6 +149,28 @@ export default function PracticeTrainingPage() {
     try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* practice remains in memory */ }
     setPhase('complete');
   }
+  function startWorkflow(kind: TrainingWorkflowKind) {
+    // A normal staff identity must never get management privileges to satisfy a lesson.
+    if (!user || !canCreateRecords || selected?.id !== kind) return;
+    const session: TrainingWorkflowSession = {
+      kind,
+      ownerId: workflowOwnerId(user),
+      createdAt: new Date().toISOString(),
+      reference: makeTrainingReference(kind),
+      step: 0,
+    };
+    try {
+      localStorage.setItem(workflowSessionKey(user), JSON.stringify(session));
+      window.dispatchEvent(new Event(WORKFLOW_CHANGED));
+      router.push(WORKFLOW_DEFINITIONS[kind].path);
+    } catch {
+      setResult({
+        passed: false, score: 0,
+        errors: { note: 'This computer cannot save a training session. Make sure local storage is available and retry.' },
+      });
+    }
+  }
+
   function exportResults() {
     if (!user) return;
     const fields = ['case_id', 'department', 'level', 'completed_at', 'attempts', 'hints', 'mistakes', 'unassisted'];
@@ -165,6 +215,7 @@ export default function PracticeTrainingPage() {
         <div className="practice-progress-bar"><span style={{ width: percent + '%' }} /></div>
         <small>{percent}% of your available practice cases</small>
         <small>{totalErrors} corrections recorded in completed cases</small>
+        <small>{verifiedCount} real-workflow practice exercise{verifiedCount === 1 ? '' : 's'} verified</small>
         <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount}>Export my results (CSV)</button>
       </div>
     </header>
@@ -224,6 +275,24 @@ export default function PracticeTrainingPage() {
         <h2>{selected.title}</h2>
         <p className="practice-situation">{selected.situation}</p>
         <p className="practice-skill"><strong>Skill:</strong> {selected.skill || 'Basic operational judgment'} · {selected.level === 5 ? 'Advanced scenario' : 'Practice lesson'}</p>
+        {workflowKind && <section className="practice-real-workflow" data-testid="real-workflow-invite">
+          <strong>Practice this inside the real fictional Operations screens</strong>
+          <p>Unlike the decision quiz, this exercise requires you to open the actual
+            {workflowKind === 'guest-ac' ? ' Guest Matters' : ' Tasks'} module, create a real fictional record,
+            change its status, and pass a read-back check of the saved data.</p>
+          {verifiedWorkflows[workflowKind]
+            ? <p className="practice-real-workflow-verified" role="status">
+              ✓ Workflow verified on {new Date(verifiedWorkflows[workflowKind]?.completedAt || '').toLocaleDateString('en-PH')}. You can repeat it.
+            </p> : null}
+          {canCreateRecords
+            ? <button type="button" className="practice-primary" data-testid="start-real-workflow"
+                onClick={() => startWorkflow(workflowKind)}>
+                {verifiedWorkflows[workflowKind] ? 'Repeat actual workflow practice' : 'Start actual workflow practice'}</button>
+            : <p className="practice-real-workflow-restricted">
+                This fictional account can read and respond to scenarios, but cannot create operational records.
+                An assigned supervisor/manager training account is required for this workflow. Your role permissions will not be bypassed.
+              </p>}
+        </section>}
         <div className="practice-case">
           <h3>Situation brief</h3>
           <ul>{selected.context.map(fact => <li key={fact}>{fact}</li>)}</ul>
