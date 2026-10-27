@@ -176,15 +176,36 @@ export default function PracticeTrainingPage() {
 
   function exportResults() {
     if (!user) return;
-    const fields = ['case_id', 'department', 'level', 'completed_at', 'attempts', 'hints', 'mistakes', 'unassisted'];
-    const csv = [fields.join(',')];
-    for (const s of scenarios) {
-      const p = progress[s.id];
-      if (!p) continue;
-      csv.push([s.id, s.department, String(s.level || 1), p.completedAt, String(p.attempts),
-        String(p.hints || 0), String(p.mistakes || 0), String(Boolean(p.firstTry))].join(','));
+    // Each row is a self-reported, device-local learning result, not a signed
+    // certification. Protect CSV readers from spreadsheet-formula injection.
+    const cell = (value: string | number | boolean | null | undefined) => {
+      let cleaned = String(value ?? '').replace(/\r|\n/g, ' ');
+      if (/^[=+@-]/.test(cleaned.trimStart())) cleaned = "'" + cleaned;
+      return '"' + cleaned.replace(/"/g, '""') + '"';
+    };
+    const rows: Array<Array<string | number | boolean>> = [[
+      'record_type', 'case_id', 'department', 'level', 'completed_at',
+      'attempts', 'hints', 'mistakes', 'unassisted', 'record_id',
+      'related_record_id', 'verified_stages',
+    ]];
+    for (const scenario of scenarios) {
+      const saved = progress[scenario.id];
+      if (!saved) continue;
+      rows.push(['scenario', scenario.id, scenario.department, scenario.level || 1,
+        saved.completedAt, saved.attempts, saved.hints || 0, saved.mistakes || 0,
+        Boolean(saved.firstTry), '', '', '']);
     }
-    const objectUrl = URL.createObjectURL(new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8' }));
+    for (const [kind, evidence] of Object.entries(verifiedWorkflows)) {
+      if (!Object.prototype.hasOwnProperty.call(WORKFLOW_DEFINITIONS, kind) ||
+        !evidence || typeof evidence !== 'object' ||
+        typeof evidence.completedAt !== 'string' ||
+        !Number.isSafeInteger(evidence.recordId) || evidence.recordId <= 0) continue;
+      rows.push(['hands-on-workflow', kind, 'Training', 0, evidence.completedAt,
+        '', '', '', '', evidence.recordId, evidence.relatedRecordId || '',
+        Array.isArray(evidence.steps) ? evidence.steps.join(' / ') : '']);
+    }
+    const csv = rows.map(row => row.map(cell).join(',')).join('\n');
+    const objectUrl = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = objectUrl;
     link.download = 'hidden-oasis-fictional-training-progress.csv';
@@ -219,7 +240,7 @@ export default function PracticeTrainingPage() {
         <small>{percent}% of your available practice cases</small>
         <small>{totalErrors} corrections recorded in completed cases</small>
         <small>{verifiedCount} real-workflow practice exercise{verifiedCount === 1 ? '' : 's'} verified</small>
-        <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount}>Export my results (CSV)</button>
+        <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount && !verifiedCount}>Export my results (CSV)</button>
       </div>
     </header>
 
