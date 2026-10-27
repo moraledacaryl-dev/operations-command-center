@@ -63,10 +63,10 @@ test('reception must click choices, type a case note and correct mistakes before
   );
   await page.getByRole('button', { name: 'Submit practice response' }).click();
   await expect(page.getByTestId('scenario-complete')).toContainText('Scenario completed');
-  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \\d+$/);
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \d+$/);
 
   await page.reload();
-  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \\d+$/);
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \d+$/);
   await expect(page.getByTestId('scenario-shift-unresolved')).toContainText('Completed');
   await page.getByTestId('scenario-guest-ac').click();
   await expect(page.getByTestId('scenario-triage')).toBeVisible();
@@ -117,7 +117,7 @@ test('complex incident must include concrete response, accountable owner and ver
   );
   await page.getByRole('button', { name: 'Submit practice response' }).click();
   await expect(page.getByTestId('scenario-complete')).toBeVisible();
-  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \\d+$/);
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \d+$/);
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
   const download = await downloadPromise;
