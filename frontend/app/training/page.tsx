@@ -91,8 +91,10 @@ export default function PracticeTrainingPage() {
   const percent = scenarios.length ? Math.round(completedCount / scenarios.length * 100) : 0;
   const trainer = ['owner', 'admin', 'manager'].includes(String(user?.role || '').toLowerCase());
   const canCreateRecords = hasCapability(user, 'manage_department');
-  const workflowKind: TrainingWorkflowKind | null = selected?.id === 'guest-ac' ||
-    selected?.id === 'shared-no-owner' ? selected.id : null;
+  const workflowKind: TrainingWorkflowKind | null =
+    selected?.id === 'guest-ac' || selected?.id === 'shared-no-owner' ||
+    selected?.id === 'shift-unresolved' || selected?.id === 'mt-light-fault'
+      ? selected.id : null;
   const verifiedCount = Object.values(verifiedWorkflows).filter(result => result?.completedAt).length;
 
   function switchScenario(id: string) {
@@ -278,7 +280,8 @@ export default function PracticeTrainingPage() {
         {workflowKind && <section className="practice-real-workflow" data-testid="real-workflow-invite">
           <strong>Practice this inside the real fictional Operations screens</strong>
           <p>Unlike the decision quiz, this exercise requires you to open the actual
-            {workflowKind === 'guest-ac' ? ' Guest Matters' : ' Tasks'} module, create a real fictional record,
+            {({ 'guest-ac': ' Guest Matters', 'shared-no-owner': ' Tasks',
+              'shift-unresolved': ' Shift Handover', 'mt-light-fault': ' Maintenance' } as const)[workflowKind]} module, create a real fictional record,
             change its status, and pass a read-back check of the saved data.</p>
           {verifiedWorkflows[workflowKind]
             ? <p className="practice-real-workflow-verified" role="status">
