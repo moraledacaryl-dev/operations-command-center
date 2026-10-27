@@ -138,7 +138,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       </ol>
       <div className="training-workflow-buttons">
         {!onModule ? <Link className="btn" data-testid="training-open-module" href={definition.path}>
-          Open {definition.resource === 'guests' ? 'Guest Matters' : 'Tasks'}</Link> : null}
+          Open {({ guests: 'Guest Matters', tasks: 'Tasks', 'shift-notes': 'Shift Handover', fixes: 'Maintenance' } as const)[definition.resource]}</Link> : null}
         <button type="button" className="btn" data-testid="training-check-work" disabled={busy}
           onClick={() => void checkSavedWork()}>{busy ? 'Checking saved records…' : 'Check saved work'}</button>
       </div>
