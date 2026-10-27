@@ -11,8 +11,8 @@ const account = {
 
 /** All backend responses here are test-only in-memory fictional records. */
 async function prepare(page: Page) {
-  const database: { guests: FictionalCase[]; tasks: FictionalCase[]; fixes: FictionalCase[]; shiftNotes: FictionalCase[] } =
-    { guests: [], tasks: [], fixes: [], shiftNotes: [] };
+  const database: { guests: FictionalCase[]; tasks: FictionalCase[]; fixes: FictionalCase[]; shiftNotes: FictionalCase[]; requests: FictionalCase[] } =
+    { guests: [], tasks: [], fixes: [], shiftNotes: [], requests: [] };
   await page.addInitScript(user => {
     localStorage.setItem('cc_user', JSON.stringify(user));
     localStorage.setItem('cc_department_id', '41');
@@ -52,17 +52,24 @@ async function prepare(page: Page) {
       database.shiftNotes.push(row);
       return respond(row, 201);
     }
+    if (path === '/requests' && method === 'GET') return respond(database.requests);
+    if (path === '/requests' && method === 'POST') {
+      const input = route.request().postDataJSON();
+      const row = { ...input, id: 901, status: 'Draft' };
+      database.requests.push(row);
+      return respond(row, 201);
+    }
     if (path === '/rooms' && method === 'GET') return respond([]);
     if (path === '/meta' && method === 'GET') {
       return respond({ users: [{ id: 77, name: 'Fictional Team Lead',
         role: 'manager', departments: [{ id: 41, name: 'Front Desk' }] }] });
     }
-    const detail = /^\/(guests|tasks|fixes|shift-notes)\/(\d+)$/.exec(path);
+    const detail = /^\/(guests|tasks|fixes|shift-notes|requests)\/(\d+)$/.exec(path);
     if (detail && method === 'GET') {
-      const record = database[detail[1] === 'shift-notes' ? 'shiftNotes' : detail[1] as 'guests' | 'tasks' | 'fixes'].find(r => r.id === Number(detail[2]));
+      const record = database[detail[1] === 'shift-notes' ? 'shiftNotes' : detail[1] as 'guests' | 'tasks' | 'fixes' | 'requests'].find(r => r.id === Number(detail[2]));
       return respond(record || { detail: 'Not found' }, record ? 200 : 404);
     }
-    const action = /^\/workflow\/(guests|tasks|fixes|shift-notes)\/(\d+)\/([^/]+)$/.exec(path);
+    const action = /^\/workflow\/(guests|tasks|fixes|shift-notes|requests)\/(\d+)\/([^/]+)$/.exec(path);
     if (action && method === 'POST') {
       const record = database[action[1] === 'shift-notes' ? 'shiftNotes' : action[1] as 'guests' | 'tasks' | 'fixes'].find(r => r.id === Number(action[2]));
       if (!record) return respond({ detail: 'Not found' }, 404);
@@ -84,6 +91,8 @@ async function prepare(page: Page) {
         record.status = 'Done';
       } else if (action[1] === 'fixes' && action[3] === 'verify') {
         record.status = 'Verified';
+      } else if (action[1] === 'requests' && action[3] === 'submit-approval') {
+        record.status = 'Review';
       } else return respond({ detail: 'Unsupported state transition' }, 409);
       return respond(record);
     }
@@ -240,4 +249,35 @@ test('Maintenance exercise checks saved technician, urgency and all four workflo
   await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+});
+
+test('Manager equipment request exercise checks documentary controls and only Review status, not approval', async ({ page }) => {
+  const database = await prepare(page);
+  await page.goto('/training');
+  await page.getByTestId('scenario-manager-evidence').click();
+  await page.getByTestId('start-real-workflow').click();
+  await expect(page).toHaveURL(/\/requests/);
+  const ref = (await page.getByTestId('training-workflow-reference').textContent())!.trim();
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-message')).toContainText('No saved record');
+
+  await page.getByTestId('create-request').click();
+  const form = page.getByTestId('create-request-form');
+  await form.getByLabel('Request').fill('Repair equipment replacement ' + ref);
+  await form.getByLabel('Type').selectOption('Equipment');
+  await form.getByLabel('Priority').selectOption('Urgent');
+  await form.getByLabel('Business reason').fill(
+    'Emergency kitchen equipment is operationally necessary. Estimated cost PHP 12000; supplier quotation pending confirmation. No quotation is attached yet.',
+  );
+  await form.getByRole('button', { name: 'Create draft' }).click();
+  await expect.poll(() => database.requests.length).toBe(1);
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 2 of 2');
+
+  await page.getByText('Repair equipment replacement ' + ref).first().click();
+  await page.getByRole('button', { name: 'Send for review' }).click();
+  await expect.poll(() => database.requests[0]?.status).toBe('Review');
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+  expect(database.requests[0].status).not.toBe('Approved');
 });
