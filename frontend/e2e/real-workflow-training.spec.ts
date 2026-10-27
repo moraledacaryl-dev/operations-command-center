@@ -11,7 +11,8 @@ const account = {
 
 /** All backend responses here are test-only in-memory fictional records. */
 async function prepare(page: Page) {
-  const database: { guests: FictionalCase[]; tasks: FictionalCase[] } = { guests: [], tasks: [] };
+  const database: { guests: FictionalCase[]; tasks: FictionalCase[]; fixes: FictionalCase[]; shiftNotes: FictionalCase[] } =
+    { guests: [], tasks: [], fixes: [], shiftNotes: [] };
   await page.addInitScript(user => {
     localStorage.setItem('cc_user', JSON.stringify(user));
     localStorage.setItem('cc_department_id', '41');
@@ -37,19 +38,33 @@ async function prepare(page: Page) {
       database.tasks.push(row);
       return respond(row, 201);
     }
+    if (path === '/fixes' && method === 'GET') return respond(database.fixes);
+    if (path === '/fixes' && method === 'POST') {
+      const input = route.request().postDataJSON();
+      const row = { ...input, id: 701, status: 'Open' };
+      database.fixes.push(row);
+      return respond(row, 201);
+    }
+    if (path === '/shift-notes' && method === 'GET') return respond(database.shiftNotes);
+    if (path === '/shift-notes' && method === 'POST') {
+      const input = route.request().postDataJSON();
+      const row = { ...input, id: 801, status: 'New', allowed_actions: ['acknowledge', 'follow-up-new'] };
+      database.shiftNotes.push(row);
+      return respond(row, 201);
+    }
     if (path === '/rooms' && method === 'GET') return respond([]);
     if (path === '/meta' && method === 'GET') {
       return respond({ users: [{ id: 77, name: 'Fictional Team Lead',
         role: 'manager', departments: [{ id: 41, name: 'Front Desk' }] }] });
     }
-    const detail = /^\/(guests|tasks)\/(\d+)$/.exec(path);
+    const detail = /^\/(guests|tasks|fixes|shift-notes)\/(\d+)$/.exec(path);
     if (detail && method === 'GET') {
-      const record = database[detail[1] as 'guests' | 'tasks'].find(r => r.id === Number(detail[2]));
+      const record = database[detail[1] === 'shift-notes' ? 'shiftNotes' : detail[1] as 'guests' | 'tasks' | 'fixes'].find(r => r.id === Number(detail[2]));
       return respond(record || { detail: 'Not found' }, record ? 200 : 404);
     }
-    const action = /^\/workflow\/(guests|tasks)\/(\d+)\/([^/]+)$/.exec(path);
+    const action = /^\/workflow\/(guests|tasks|fixes|shift-notes)\/(\d+)\/([^/]+)$/.exec(path);
     if (action && method === 'POST') {
-      const record = database[action[1] as 'guests' | 'tasks'].find(r => r.id === Number(action[2]));
+      const record = database[action[1] === 'shift-notes' ? 'shiftNotes' : action[1] as 'guests' | 'tasks' | 'fixes'].find(r => r.id === Number(action[2]));
       if (!record) return respond({ detail: 'Not found' }, 404);
       if (action[1] === 'guests' && action[3] === 'follow-up') {
         record.status = 'Follow';
@@ -60,6 +75,15 @@ async function prepare(page: Page) {
       } else if (action[1] === 'tasks' && action[3] === 'submit-review') {
         record.status = 'Review';
         record.allowed_actions = ['request-changes', 'complete'];
+      } else if (action[1] === 'shift-notes' && action[3] === 'follow-up-new') {
+        record.status = 'Follow';
+        record.allowed_actions = ['resolve-follow'];
+      } else if (action[1] === 'fixes' && action[3] === 'start') {
+        record.status = 'Working';
+      } else if (action[1] === 'fixes' && action[3] === 'done') {
+        record.status = 'Done';
+      } else if (action[1] === 'fixes' && action[3] === 'verify') {
+        record.status = 'Verified';
       } else return respond({ detail: 'Unsupported state transition' }, 409);
       return respond(record);
     }
@@ -141,4 +165,70 @@ test('Task exercise verifies High/assigned, then Doing, then Review via actual s
   const result = await page.evaluate(() => JSON.parse(localStorage.getItem('ho-ops-workflow-results-v1:9701') || '{}'));
   expect(result['shared-no-owner'].recordId).toBe(601);
   expect(result['shared-no-owner'].steps).toHaveLength(3);
+});
+
+
+test('Shift Handover requires published record and actual Carry forward transition', async ({ page }) => {
+  const database = await prepare(page);
+  await page.goto('/training');
+  await page.getByTestId('scenario-shift-unresolved').click();
+  await page.getByTestId('start-real-workflow').click();
+  await expect(page).toHaveURL(/\/shift/);
+  const ref = (await page.getByTestId('training-workflow-reference').textContent())!.trim();
+  await page.getByTestId('create-shift').click();
+  const form = page.getByTestId('create-shift-form');
+  await form.getByLabel('Title').fill('Unresolved guest promise ' + ref);
+  await form.getByLabel('Category').selectOption('Guest');
+  await form.getByLabel('Priority').selectOption('Urgent');
+  await form.getByLabel('Handover detail').fill(
+    'The guest is waiting for a call; the on-duty Front Desk lead is the responsible owner and will update the guest after checking progress.',
+  );
+  await form.getByRole('button', { name: 'Publish handover' }).click();
+  await expect.poll(() => database.shiftNotes.length).toBe(1);
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 2 of 2');
+  await page.getByText('Unresolved guest promise ' + ref).first().click();
+  await page.getByRole('button', { name: 'Carry forward' }).click();
+  await expect.poll(() => database.shiftNotes[0]?.status).toBe('Follow');
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+});
+
+test('Maintenance exercise checks saved technician, urgency and all four workflow stages', async ({ page }) => {
+  const database = await prepare(page);
+  await page.goto('/training');
+  await page.getByTestId('scenario-mt-light-fault').click();
+  await page.getByTestId('start-real-workflow').click();
+  await expect(page).toHaveURL(/\/fixes/);
+  const ref = (await page.getByTestId('training-workflow-reference').textContent())!.trim();
+
+  await page.getByTestId('create-fix').click();
+  const form = page.getByTestId('create-fix-form');
+  await form.getByLabel('Work item').fill('Repair corridor light ' + ref);
+  await form.getByLabel('Urgency').selectOption('High');
+  await form.getByLabel('Assigned technician').selectOption('77');
+  await form.getByLabel('Problem / scope').fill('The corridor light is not turning on and leaves the hallway too dark.');
+  await form.getByRole('button', { name: 'Create work item' }).click();
+  await expect.poll(() => database.fixes.length).toBe(1);
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 2 of 4');
+
+  await page.getByText('Repair corridor light ' + ref).first().click();
+  await page.getByRole('button', { name: 'Start work' }).click();
+  await expect.poll(() => database.fixes[0]?.status).toBe('Working');
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 3 of 4');
+
+  await page.getByRole('button', { name: 'Mark done' }).click();
+  await expect.poll(() => database.fixes[0]?.status).toBe('Done');
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 4 of 4');
+
+  await page.getByPlaceholder('Verification note').fill(
+    'Fictional hallway lamp inspected and switch cycle confirmed, no exposed wires observed. Training data only.',
+  );
+  await page.getByRole('button', { name: 'Verify work' }).click();
+  await expect.poll(() => database.fixes[0]?.status).toBe('Verified');
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
 });
