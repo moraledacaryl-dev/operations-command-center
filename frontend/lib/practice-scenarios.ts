@@ -212,7 +212,7 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
   if (answers.decision !== scenario.decision) {
     errors.decision = 'Choose an action supported by the situation and available evidence.';
   }
-  const note = answers.note.toLowerCase().replace(/\\s+/g, ' ').trim();
+  const note = answers.note.toLowerCase().replace(/\s+/g, ' ').trim();
   const uniqueWords = new Set(note.match(/[a-z]{2,}/g) || []);
   if (note.length < 45 || uniqueWords.size < 8) {
     errors.note = 'Write a meaningful handover with several distinct facts, an action, and a follow-up owner. Repeated or generic filler does not count.';
