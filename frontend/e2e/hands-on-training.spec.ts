@@ -63,10 +63,10 @@ test('reception must click choices, type a case note and correct mistakes before
   );
   await page.getByRole('button', { name: 'Submit practice response' }).click();
   await expect(page.getByTestId('scenario-complete')).toContainText('Scenario completed');
-  await expect(page.getByText('1 / 3')).toBeVisible();
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \\d+$/);
 
   await page.reload();
-  await expect(page.getByText('1 / 3')).toBeVisible();
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \\d+$/);
   await expect(page.getByTestId('scenario-shift-unresolved')).toContainText('Completed');
   await page.getByTestId('scenario-guest-ac').click();
   await expect(page.getByTestId('scenario-triage')).toBeVisible();
@@ -80,4 +80,46 @@ test('manager has management decision scenarios while staff cannot see them', as
   await page.getByTestId('scenario-manager-evidence').click();
   await expect(page.getByRole('heading', { name: 'Approval request without supporting evidence' })).toBeVisible();
   await expect(page.getByText('DEMO-REQ-088').first()).toBeVisible();
+});
+
+
+test('large role-aware catalog can be searched by issue and difficulty', async ({ page }) => {
+  await signInToFictionalWorkspace(page, 'staff');
+  await expect(page.getByTestId('scenario-shared-wrong-room')).toBeVisible();
+  await expect(page.getByTestId('scenario-fd-payment-unverified')).toBeVisible();
+  await expect(page.getByTestId('scenario-kt-raw-contact')).toHaveCount(0);
+  await expect(page.getByTestId('scenario-mgr-approval-delegation')).toHaveCount(0);
+  await page.getByTestId('scenario-search').fill('wrong room');
+  await expect(page.getByTestId('scenario-shared-wrong-room')).toBeVisible();
+  await expect(page.getByTestId('scenario-fd-payment-unverified')).toHaveCount(0);
+  await page.getByTestId('scenario-search').clear();
+  await page.locator('#practice-level-filter').selectOption('5');
+  await expect(page.getByTestId('scenario-fd-repeat-failure')).toBeVisible();
+  await expect(page.getByTestId('scenario-shared-wrong-room')).toHaveCount(0);
+});
+
+test('complex incident must include concrete response, accountable owner and verification', async ({ page }) => {
+  await signInToFictionalWorkspace(page, 'staff');
+  await page.getByTestId('scenario-shared-wrong-room').click();
+  await page.getByTestId('scenario-priority').selectOption('High');
+  await page.getByTestId('scenario-department').selectOption('Front Desk');
+  await page.getByRole('button', { name: 'Check my assessment' }).click();
+  await page.getByTestId('scenario-decision').selectOption('Return for changes');
+  await page.getByTestId('scenario-note').fill('DEMO-SHARED-WRONG-ROOM: There is an issue; someone will take care of it eventually. Please just follow up.');
+  await page.getByRole('button', { name: 'Submit practice response' }).click();
+  await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
+  await expect(page.getByText('Who is accountable for the next action?')).toBeVisible();
+  await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
+  await page.getByTestId('scenario-owner').fill('On-duty Front Desk lead');
+  await page.getByTestId('scenario-follow-up').fill('The lead confirms the correct room on the booking record and updates the receiving shift.');
+  await page.getByTestId('scenario-note').fill(
+    'DEMO-SHARED-WRONG-ROOM: Verify whether Room 102 or Room 201 is correct by checking the source report, correct the record, and notify the receiving shift.',
+  );
+  await page.getByRole('button', { name: 'Submit practice response' }).click();
+  await expect(page.getByTestId('scenario-complete')).toBeVisible();
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \\d+$/);
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toContain('training-progress.csv');
 });
