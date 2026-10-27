@@ -73,6 +73,18 @@ async function prepare(page: Page) {
     if (action && method === 'POST') {
       const record = database[action[1] === 'shift-notes' ? 'shiftNotes' : action[1] as 'guests' | 'tasks' | 'fixes'].find(r => r.id === Number(action[2]));
       if (!record) return respond({ detail: 'Not found' }, 404);
+      if (action[1] === 'guests' && action[3] === 'create-fix') {
+        // Simulate the backend's reciprocal GuestNote↔Fix integrity contract.
+        const fix: FictionalCase = {
+          id: 702, title: record.title, department_id: record.department_id,
+          room_area_id: record.room_area_id, problem: record.note, urgency: record.urgency,
+          status: 'Open', linked_guest_note_id: record.id,
+        };
+        database.fixes.push(fix);
+        record.linked_fix_id = fix.id;
+        record.status = 'Follow';
+        return respond({ guest: record, fix });
+      }
       if (action[1] === 'guests' && action[3] === 'follow-up') {
         record.status = 'Follow';
         record.allowed_actions = ['resolve-follow'];
@@ -280,4 +292,63 @@ test('Manager equipment request exercise checks documentary controls and only Re
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
   expect(database.requests[0].status).not.toBe('Approved');
+});
+
+test('real linked Guest-to-Maintenance handoff requires both reciprocal links and all fix transitions', async ({ page }) => {
+  const database = await prepare(page);
+  await page.goto('/training');
+  await page.getByTestId('scenario-fd-broken-shower').click();
+  await page.getByTestId('start-real-workflow').click();
+  await expect(page).toHaveURL(/\/guests/);
+  const ref = (await page.getByTestId('training-workflow-reference').textContent())!.trim();
+  await page.getByTestId('create-guest').click();
+  const form = page.getByTestId('create-guest-form');
+  await form.getByLabel('Matter').fill('Room 210 shower fault ' + ref);
+  await form.getByLabel('Type').selectOption('Room');
+  await form.getByLabel('Urgency').selectOption('High');
+  await form.getByLabel('Recovery action / context').fill(
+    'Room 210 shower has no hot water. Maintenance must inspect before Front Desk calls the guest with an update.',
+  );
+  await form.getByRole('button', { name: 'Save matter' }).click();
+  await expect.poll(() => database.guests.length).toBe(1);
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 2 of 5');
+
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-message')).toContainText('not yet linked');
+  await page.getByText('Room 210 shower fault ' + ref).first().click();
+  await page.getByRole('button', { name: 'Create maintenance' }).click();
+  await expect.poll(() => database.guests[0]?.linked_fix_id).toBe(702);
+  await expect.poll(() => database.fixes[0]?.linked_guest_note_id).toBe(501);
+  await page.getByRole('button', { name: 'Close details' }).click();
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 3 of 5');
+
+  await page.getByTestId('training-open-module').click();
+  await expect(page).toHaveURL(/\/fixes/);
+  await page.getByText('Room 210 shower fault ' + ref).first().click();
+  await page.getByRole('button', { name: 'Start work' }).click();
+  await page.getByRole('button', { name: 'Close details' }).click();
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 4 of 5');
+
+  await page.getByText('Room 210 shower fault ' + ref).first().click();
+  await page.getByRole('button', { name: 'Mark done' }).click();
+  await page.getByRole('button', { name: 'Close details' }).click();
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 5 of 5');
+
+  await page.getByText('Room 210 shower fault ' + ref).first().click();
+  await page.getByPlaceholder('Verification note').fill(
+    'Training only: fictional shower water supply and temperature controls tested. Guest callback remains separately open.',
+  );
+  await page.getByRole('button', { name: 'Verify work' }).click();
+  await page.getByRole('button', { name: 'Close details' }).click();
+  await page.getByTestId('training-check-work').click();
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+  expect(database.guests[0].status).toBe('Follow');
+  expect(database.fixes[0].status).toBe('Verified');
+  const result = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('ho-ops-workflow-results-v1:9701') || '{}'));
+  expect(result['fd-broken-shower']).toMatchObject({ recordId: 501, relatedRecordId: 702 });
 });
