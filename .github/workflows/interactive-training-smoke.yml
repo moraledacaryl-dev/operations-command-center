@@ -7,6 +7,13 @@ on:
       - 'frontend/app/training/page.tsx'
       - 'frontend/app/practice-training.css'
       - 'frontend/lib/practice-scenarios.ts'
+      - 'frontend/lib/extended-practice-scenarios.ts'
+      - 'frontend/lib/training-workflows.ts'
+      - 'frontend/components/TrainingWorkflowCoach.tsx'
+      - 'frontend/e2e/real-workflow-training.spec.ts'
+      - 'frontend/app/guests/page.tsx'
+      - 'frontend/app/shift/page.tsx'
+      - 'frontend/app/fixes/page.tsx'
       - 'frontend/e2e/hands-on-training.spec.ts'
       - 'frontend/app/login/page.tsx'
       - 'frontend/lib/interactive-training.ts'
@@ -41,8 +48,8 @@ jobs:
         run: npm install --no-save --package-lock=false @playwright/test@1.55.0 @axe-core/playwright@4.10.2
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run guided tours and hands-on role-scoped scenario assessments
-        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts --reporter=line
+      - name: Run guided tours, role-scoped scenarios and API-verified real workflows
+        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts e2e/real-workflow-training.spec.ts --reporter=line
       - name: Publish guided walkthrough screenshots
         if: always()
         uses: actions/upload-artifact@v4
