@@ -59,7 +59,10 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
     try {
       const departmentId = getCurrentDepartmentId(user);
       const records = session.step === 0
-        ? await api.listAll(definition.resource, { active: true, department_id: departmentId || '' })
+        ? await api.listAll(definition.resource, {
+            active: definition.resource === 'requests' ? false : true,
+            department_id: departmentId || '',
+          })
         : [];
       const detail = session.step > 0 && session.recordId
         ? await api.get(definition.resource, session.recordId)
