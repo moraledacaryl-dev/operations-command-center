@@ -164,28 +164,66 @@ export default function PracticeTrainingPage() {
         <span>Situations completed</span>
         <div className="practice-progress-bar"><span style={{ width: percent + '%' }} /></div>
         <small>{percent}% of your available practice cases</small>
+        <small>{totalErrors} corrections recorded in completed cases</small>
+        <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount}>Export my results (CSV)</button>
       </div>
     </header>
 
     <div className="practice-layout">
       <aside className="practice-catalog" aria-label="Choose a training scenario">
         <div className="practice-side-title"><h2>Your practice cases</h2><span>{user.name || 'Trainee'}</span></div>
+        <div className="practice-filters">
+          <label htmlFor="practice-search">Find a situation
+            <input id="practice-search" data-testid="scenario-search" type="search"
+              placeholder="Search a problem, room or topic…" value={search} onChange={event => setSearch(event.target.value)} />
+          </label>
+          <label htmlFor="practice-department-filter">Department
+            <select id="practice-department-filter" value={departmentFilter} onChange={event => setDepartmentFilter(event.target.value)}>
+              <option value="All">All departments</option>
+              {availableDepartments.map(d => <option value={d} key={d}>{d}</option>)}
+            </select>
+          </label>
+          <label htmlFor="practice-level-filter">Difficulty
+            <select id="practice-level-filter" value={levelFilter} onChange={event => setLevelFilter(event.target.value)}>
+              <option value="All">All levels</option>
+              {[1, 2, 3, 4, 5].map(n => <option value={String(n)} key={n}>Level {n}</option>)}
+            </select>
+          </label>
+          <small>{filteredScenarios.length} situations shown · {scenarios.length} assigned to this role</small>
+        </div>
         <div className="practice-scenarios">
-          {scenarios.map((scenario, index) => <button key={scenario.id} type="button"
+          {filteredScenarios.length === 0 && <p className="practice-empty">No matching cases. Clear the search or choose All departments and All levels.</p>}
+          {filteredScenarios.map((scenario, index) => <button key={scenario.id} type="button"
             data-testid={'scenario-' + scenario.id}
             aria-current={scenario.id === selectedId ? 'step' : undefined}
             className={'practice-scenario' + (scenario.id === selectedId ? ' selected' : '')}
             onClick={() => switchScenario(scenario.id)}>
             <span className="practice-scenario-number">{progress[scenario.id] ? '✓' : String(index + 1).padStart(2, '0')}</span>
-            <span><strong>{scenario.title}</strong><small>{scenario.department} · {progress[scenario.id] ? 'Completed' : 'Try this situation'}</small></span>
+            <span><strong>{scenario.title}</strong><small>{scenario.department} · Level {scenario.level || 1} · {progress[scenario.id] ? 'Completed' : 'Not completed'}</small></span>
           </button>)}
         </div>
       </aside>
 
       <section className="practice-workspace" aria-live="polite" aria-label="Active training exercise">
-        <div className="practice-topline"><span className="practice-department">{selected.department}</span><span>Fictional case · {selected.reference}</span></div>
+        <div className="practice-topline"><span className="practice-department">{selected.department} · Level {selected.level || 1}</span><span>Fictional case · {selected.reference}</span></div>
+        <div className="practice-help">
+          <details>
+            <summary>New here? How to complete this lesson</summary>
+            <ol>
+              <li>Read the fictional situation, including what has <strong>not</strong> been confirmed.</li>
+              <li>Choose its urgency and the department responsible for the next action.</li>
+              <li>Choose an appropriate response and write what really needs to happen, not simply “done.”</li>
+              <li>For harder cases, assign an owner and specify what must be checked next.</li>
+              <li>Read any correction, try again, and continue after passing.</li>
+            </ol>
+            <p><strong>Urgency:</strong> Routine = normal planned work; High = prompt action or significant impact; Critical = immediate danger or escalation.</p>
+            <p>Only fictional cases are used. Nothing you enter here changes production records.</p>
+          </details>
+          <label className="practice-mode"><input type="checkbox" checked={guided} onChange={event => { setGuided(event.target.checked); setShowTip(false); }} /> Guided practice (allow hints)</label>
+        </div>
         <h2>{selected.title}</h2>
         <p className="practice-situation">{selected.situation}</p>
+        <p className="practice-skill"><strong>Skill:</strong> {selected.skill || 'Basic operational judgment'} · {selected.level === 5 ? 'Advanced scenario' : 'Practice lesson'}</p>
         <div className="practice-case">
           <h3>Situation brief</h3>
           <ul>{selected.context.map(fact => <li key={fact}>{fact}</li>)}</ul>
@@ -214,8 +252,11 @@ export default function PracticeTrainingPage() {
           </label>
           {result && !result.passed && <p className="practice-notice" role="status">Not quite. Re-read the situation, adjust your choices and check again. Mistakes are part of practice.</p>}
           <div className="practice-actions"><button type="submit" className="practice-primary">Check my assessment →</button>
-            <button type="button" className="practice-secondary" onClick={() => setShowTip(value => !value)}>{showTip ? 'Hide hint' : 'Need a hint?'}</button></div>
-          {showTip && <p className="practice-hint">Think about risk to the guest, operational impact and who can take the next concrete action. You can try as many times as needed.</p>}
+            {guided && <button type="button" className="practice-secondary" onClick={() => {
+              if (!showTip) setHintsUsed(n => n + 1);
+              setShowTip(value => !value);
+            }}>{showTip ? 'Hide hint' : 'Need a hint?'}</button>}</div>
+          {guided && showTip && <p className="practice-hint">Think about danger to a person, urgency of guest impact, and which team can actually perform the next step. A report is not finished until someone is responsible for follow-up.</p>}
         </form>}
 
         {phase === 'document' && <form className="practice-form" onSubmit={submit} data-testid="scenario-document">
@@ -226,11 +267,27 @@ export default function PracticeTrainingPage() {
             </select>
             {result?.errors.decision && <small className="practice-error" role="alert">{result.errors.decision}</small>}
           </label>
+          {(selected.level || 1) >= 3 && <>
+            <label>Who is accountable for the next action?
+              <input type="text" data-testid="scenario-owner" value={answers.owner || ''}
+                placeholder="e.g., On-duty Maintenance lead"
+                onChange={event => update('owner', event.target.value)} />
+              <small>Write a fictional role or responsible position—not a real staff member’s personal details.</small>
+              {result?.errors.owner && <small className="practice-error" role="alert">{result.errors.owner}</small>}
+            </label>
+            <label>What must be checked next, and how will the outcome be confirmed?
+              <textarea data-testid="scenario-follow-up" value={answers.followUp || ''} rows={2}
+                placeholder="e.g., Maintenance lead will inspect the fault and report verified repair status to Front Desk before room release."
+                onChange={event => update('followUp', event.target.value)} />
+              {result?.errors.followUp && <small className="practice-error" role="alert">{result.errors.followUp}</small>}
+            </label>
+          </>}
           <label>Write your fictional handover / incident note
             <textarea data-testid="scenario-note" value={answers.note} rows={5} required minLength={45}
               placeholder={'Include ' + selected.reference + ', what happened, the next action and follow-up owner.'}
               onChange={e => update('note', e.target.value)} />
-            <small>Include reference <strong>{selected.reference}</strong>. Use at least 45 characters. Do not enter real guest names or contact details.</small>
+            <small>Include <strong>{selected.reference}</strong>, what happened, the necessary intervention, and who verifies the outcome. Do not enter real guest details.</small>
+            {selected.noteChecks && <small>In this exercise, your note needs to cover {selected.noteChecks.map(rule => rule.label).join(' and ')}. Explain concretely; general filler will not pass.</small>}
             {result?.errors.note && <small className="practice-error" role="alert">{result.errors.note}</small>}
           </label>
           {result && !result.passed && <p className="practice-notice" role="status">Your response needs changes. Review the highlighted guidance and submit again.</p>}
@@ -244,9 +301,10 @@ export default function PracticeTrainingPage() {
           <p className="practice-success-mark" aria-hidden="true">✓</p>
           <h3>Scenario completed</h3>
           <p>Your triage, ownership, action and fictional handover met the practice rubric.</p>
+          <p><strong>Attempts:</strong> {attempts + 1} · <strong>Corrections:</strong> {mistakesMade} · <strong>Hints:</strong> {hintsUsed}</p>
           <p><strong>Why this response works:</strong> {selected.why}</p>
           <div className="practice-example"><strong>Example of a useful handover:</strong><p>{selected.example}</p></div>
-          <p className="practice-disclaimer">This is a learning milestone—not an official skill certification. No real Operations record was created or approved.</p>
+          <p className="practice-disclaimer">This is a decision and documentation drill, not an official skill certification. Completing it does not demonstrate actual Operations record creation or approval. Real end-to-end application workflows still require separate hands-on assessment.</p>
           <div className="practice-actions">
             <button type="button" className="practice-primary" onClick={nextScenario}>Next situation →</button>
             <button type="button" className="practice-secondary" onClick={() => switchScenario(selected.id)}>Repeat this situation</button>
