@@ -122,6 +122,7 @@ test('Guest Matters exercise cannot pass until a real fictional case is saved an
   await page.getByText('Room 205 warm AC ' + reference).first().click();
   await page.getByRole('button', { name: 'Needs follow-up' }).click();
   await expect.poll(() => database.guests[0]?.status).toBe('Follow');
+  await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
   const result = await page.evaluate(() => {
@@ -155,11 +156,14 @@ test('Task exercise verifies High/assigned, then Doing, then Review via actual s
   await page.getByText('Arrange guest follow-up ' + reference).first().click();
   await page.getByRole('button', { name: 'Start work' }).click();
   await expect.poll(() => database.tasks[0]?.status).toBe('Doing');
+  await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 3 of 3');
 
+  await page.getByText('Arrange guest follow-up ' + reference).first().click();
   await page.getByRole('button', { name: 'Submit for review' }).click();
   await expect.poll(() => database.tasks[0]?.status).toBe('Review');
+  await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
   const result = await page.evaluate(() => JSON.parse(localStorage.getItem('ho-ops-workflow-results-v1:9701') || '{}'));
@@ -216,19 +220,24 @@ test('Maintenance exercise checks saved technician, urgency and all four workflo
   await page.getByText('Repair corridor light ' + ref).first().click();
   await page.getByRole('button', { name: 'Start work' }).click();
   await expect.poll(() => database.fixes[0]?.status).toBe('Working');
+  await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 3 of 4');
 
+  await page.getByText('Repair corridor light ' + ref).first().click();
   await page.getByRole('button', { name: 'Mark done' }).click();
   await expect.poll(() => database.fixes[0]?.status).toBe('Done');
+  await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 4 of 4');
 
+  await page.getByText('Repair corridor light ' + ref).first().click();
   await page.getByPlaceholder('Verification note').fill(
     'Fictional hallway lamp inspected and switch cycle confirmed, no exposed wires observed. Training data only.',
   );
   await page.getByRole('button', { name: 'Verify work' }).click();
   await expect.poll(() => database.fixes[0]?.status).toBe('Verified');
+  await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
 });
