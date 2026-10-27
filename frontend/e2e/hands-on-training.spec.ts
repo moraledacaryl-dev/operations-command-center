@@ -68,7 +68,6 @@ test('reception must click choices, type a case note and correct mistakes before
   await page.reload();
   await expect(page.getByText('1 / 3')).toBeVisible();
   await expect(page.getByTestId('scenario-shift-unresolved')).toContainText('Completed');
-  await page.getByRole('button', { name: 'Next situation' }).click().catch(() => undefined);
   await page.getByTestId('scenario-guest-ac').click();
   await expect(page.getByTestId('scenario-triage')).toBeVisible();
 });
