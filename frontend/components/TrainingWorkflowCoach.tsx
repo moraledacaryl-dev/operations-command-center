@@ -136,6 +136,11 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       <ol className="training-workflow-instructions">
         {instructions.map(item => <li key={item}>{item}</li>)}
       </ol>
+      <p className="training-workflow-modal-help">
+        After saving or updating an open record, select <strong>Close</strong> in its details panel.
+        Then use <strong>Check saved work</strong> here. Closing a details panel does not
+        undo your saved action.
+      </p>
       <div className="training-workflow-buttons">
         {!onModule ? <Link className="btn" data-testid="training-open-module" href={definition.path}>
           Open {({ guests: 'Guest Matters', tasks: 'Tasks', 'shift-notes': 'Shift Handover', fixes: 'Maintenance' } as const)[definition.resource]}</Link> : null}
