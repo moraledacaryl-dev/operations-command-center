@@ -1,0 +1,72 @@
+.practice-shell { width: 100%; max-width: 1320px; margin: 0 auto; color: var(--text); }
+.practice-hero { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 28px; align-items: center; padding: 24px; border-radius: 20px; border: 1px solid #cee0d5; background: linear-gradient(115deg, #fff, #e9f5ee); margin-bottom: 18px; }
+.practice-eyebrow { color: #17634f; font-size: 11px; font-weight: 850; letter-spacing: .13em; }
+.practice-hero h1 { font-size: clamp(25px, 2.5vw, 34px); line-height: 1.15; max-width: 780px; margin: 7px 0 12px; }
+.practice-hero p { max-width: 760px; margin-bottom: 10px; font-size: 14px; line-height: 1.55; }
+.practice-hero .practice-safe { background: #e1f4e9; border: 1px solid #b0d4c0; padding: 10px 12px; border-radius: 10px; font-size: 12px; color: #164f3c; margin-bottom: 0; }
+.practice-progress { background: #fff; border: 1px solid #bdd4c6; border-radius: 15px; display: grid; gap: 6px; padding: 16px; }
+.practice-progress strong { font-size: 30px; letter-spacing: -.04em; color: #174936; }
+.practice-progress span, .practice-progress small { color: #435b4f; font-size: 12px; }
+.practice-progress-bar { height: 9px; background: #e5f0e9; border-radius: 100px; overflow: hidden; }
+.practice-progress-bar > span { display: block; height: 100%; background: #147052; border-radius: inherit; transition: width .3s ease; }
+.practice-layout { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 1fr); align-items: start; gap: 18px; }
+.practice-catalog { background: #fff; border: 1px solid #d8e2da; border-radius: 16px; overflow: hidden; }
+.practice-side-title { padding: 16px; border-bottom: 1px solid #e2e8e3; display: grid; gap: 3px; }
+.practice-side-title h2 { font-size: 15px; }
+.practice-side-title span { color: #506456; font-size: 12px; }
+.practice-scenarios { padding: 6px; max-height: 70vh; overflow: auto; display: grid; gap: 3px; }
+.practice-scenario { min-height: 68px; border: 1px solid transparent; border-radius: 11px; width: 100%; display: flex; align-items: start; gap: 11px; padding: 10px; text-align: left; background: #fff; color: #244435; cursor: pointer; }
+.practice-scenario:hover, .practice-scenario.selected { background: #eaf5ee; border-color: #a8cdb7; }
+.practice-scenario-number { display: grid; place-items: center; flex: 0 0 30px; min-height: 30px; border-radius: 9px; background: #dbece2; font-size: 11px; color: #13523b; font-weight: 800; }
+.practice-scenario strong { display: block; line-height: 1.3; font-size: 13px; margin-bottom: 4px; }
+.practice-scenario small { color: #4f6457; font-size: 11px; }
+.practice-workspace { min-width: 0; border: 1px solid #d5dfd8; background: #fff; border-radius: 17px; padding: clamp(18px, 3vw, 30px); box-shadow: var(--shadow-xs); }
+.practice-workspace > h2 { font-size: clamp(21px, 2.5vw, 29px); margin: 6px 0 10px; }
+.practice-topline { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; color: #4d6054; font-size: 12px; }
+.practice-department { background: #e2f2e9; border-radius: 999px; color: #175f47; font-weight: 800; padding: 4px 9px; }
+.practice-situation { font-size: 15px; line-height: 1.6; color: #22372c; }
+.practice-case { background: #f7f9f6; border: 1px solid #dce7dc; padding: 16px; border-radius: 12px; }
+.practice-case h3 { font-size: 14px; margin: 0 0 10px; }
+.practice-case ul { display: grid; gap: 6px; margin: 0 0 12px; padding-left: 23px; }
+.practice-case li, .practice-case p { font-size: 13px; line-height: 1.5; }
+.practice-case p { margin: 0; }
+.practice-steps { display: flex; flex-wrap: wrap; gap: 7px; margin: 22px 0 18px; }
+.practice-steps span { background: #eef2ee; color: #52675a; border-radius: 8px; padding: 8px 11px; font-size: 12px; font-weight: 750; }
+.practice-steps span.current { background: #176d5d; color: white; }
+.practice-form { max-width: 710px; display: grid; gap: 18px; }
+.practice-instruction { margin: 0; line-height: 1.5; color: #405247; font-size: 13px; }
+.practice-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 750; color: #263a2d; }
+.practice-form select, .practice-form textarea { width: 100%; min-width: 0; border-radius: 10px; border: 1px solid #afc7b6; background: #fff; color: #20392c; padding: 12px; font-size: 14px; line-height: 1.5; font-weight: 500; }
+.practice-form select:focus-visible, .practice-form textarea:focus-visible { outline: 3px solid #9ac8b1; outline-offset: 2px; }
+.practice-form label small { font-size: 11px; font-weight: 500; color: #4c5f51; }
+.practice-form label .practice-error { font-size: 12px; font-weight: 700; color: #a02f27; }
+.practice-notice { border: 1px solid #f0cda9; background: #fff4e7; color: #784718; padding: 11px 13px; border-radius: 9px; margin: 0; }
+.practice-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 4px; }
+.practice-primary, .practice-secondary { cursor: pointer; border: 1px solid #166a55; padding: 12px 16px; min-height: 43px; border-radius: 9px; font-weight: 760; font-size: 13px; }
+.practice-primary { color: white; background: #176d5d; }
+.practice-primary:hover { background: #0f5547; }
+.practice-secondary { color: #22533e; background: #fff; }
+.practice-secondary:hover { background: #eef5ef; }
+.practice-hint { border-left: 3px solid #176d5d; padding: 9px 13px; color: #2b4b3d; background: #f0f8f3; }
+.practice-success { display: grid; gap: 12px; max-width: 770px; }
+.practice-success-mark { width: 42px; height: 42px; border-radius: 100px; background: #dcefe3; display: grid; place-items: center; font-size: 24px; font-weight: 900; color: #126a41; margin: 0; }
+.practice-success h3 { font-size: 22px; margin: 0; }
+.practice-success p { margin: 0; line-height: 1.55; }
+.practice-example { padding: 15px; border: 1px solid #c5dccb; border-radius: 10px; background: #f0f8f2; }
+.practice-example p { margin-top: 9px; }
+.practice-disclaimer { font-size: 12px; color: #536457; }
+.practice-footer { display: flex; flex-wrap: wrap; gap: 10px 15px; margin-top: 26px; border-top: 1px solid #e4e9e4; padding-top: 18px; font-size: 12px; color: #536458; }
+.practice-footer span { flex: 1 0 100%; }
+.practice-footer a { font-weight: 800; color: #176d5d; text-decoration: underline; }
+@media (max-width: 1050px) {
+  .practice-layout { grid-template-columns: 1fr; }
+  .practice-scenarios { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; }
+}
+@media (max-width: 650px) {
+  .practice-hero { grid-template-columns: 1fr; padding: 18px; }
+  .practice-layout { gap: 12px; }
+  .practice-scenarios { grid-template-columns: 1fr; }
+  .practice-catalog { max-height: 230px; overflow: auto; }
+  .practice-workspace { padding: 17px; }
+  .practice-actions > button { flex: 1 1 100%; }
+}
