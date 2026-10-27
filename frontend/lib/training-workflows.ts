@@ -4,7 +4,7 @@
  * records; a click, a filled form, or a mock completion flag cannot pass.
  * Completion is learning evidence, NOT a credential or staff certification.
  */
-export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner' | 'shift-unresolved' | 'mt-light-fault';
+export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner' | 'shift-unresolved' | 'mt-light-fault' | 'manager-evidence';
 export type TrainingWorkflowSession = {
   kind: TrainingWorkflowKind;
   ownerId: string;
@@ -50,11 +50,18 @@ export const WORKFLOW_DEFINITIONS = {
     resource: 'fixes',
     stages: ['Report and assign the maintenance issue', 'Start the work order', 'Mark the work ready for verification', 'Verify the finished work'],
   },
+  'manager-evidence': {
+    name: 'Prepare and submit a documented purchase request',
+    path: '/requests',
+    resource: 'requests',
+    stages: ['Create a defensible equipment request', 'Submit for authorized review'],
+  },
 } as const;
 
 export const isTrainingWorkflowKind = (value: unknown): value is TrainingWorkflowKind =>
   value === 'guest-ac' || value === 'shared-no-owner' ||
-    value === 'shift-unresolved' || value === 'mt-light-fault';
+    value === 'shift-unresolved' || value === 'mt-light-fault' ||
+    value === 'manager-evidence';
 
 export function workflowOwnerId(user: { id?: string | number; email?: string }): string {
   return String(user.id || user.email || '');
@@ -75,7 +82,7 @@ export function makeTrainingReference(kind: TrainingWorkflowKind): string {
     : (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
   const prefix = {
     'guest-ac': 'TRN-GUEST-', 'shared-no-owner': 'TRN-TASK-',
-    'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-',
+    'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-', 'manager-evidence': 'TRN-REQ-',
   }[kind];
   return prefix + suffix;
 }
@@ -88,7 +95,7 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
     const value = decoded as Record<string, unknown>;
     if (!isTrainingWorkflowKind(value.kind) || value.ownerId !== ownerId ||
       typeof value.reference !== 'string' ||
-      !/^TRN-(GUEST|TASK|SHIFT|FIX)-[A-Z0-9]{8,20}$/.test(value.reference) ||
+      !/^TRN-(GUEST|TASK|SHIFT|FIX|REQ)-[A-Z0-9]{8,20}$/.test(value.reference) ||
       typeof value.step !== 'number' || !Number.isInteger(value.step) || value.step < 0 ||
       value.step > WORKFLOW_DEFINITIONS[value.kind].stages.length ||
       typeof value.createdAt !== 'string') return null;
@@ -137,6 +144,14 @@ export function verifyWorkflowStep(
       if (session.kind === 'shared-no-owner') {
         return readable(item.priority) === 'high' && positiveId(item.assigned_to_id) !== undefined;
       }
+      if (session.kind === 'manager-evidence') {
+        const reason = readable(item.reason);
+        return readable(item.request_type) === 'equipment' &&
+          readable(item.urgency) === 'urgent' &&
+          /quotation|quote|supplier/.test(reason) &&
+          /amount|cost|price|budget/.test(reason) &&
+          /necessary|need|critical|justif|urgent/.test(reason);
+      }
       if (session.kind === 'shift-unresolved') {
         const note = readable(item.note);
         return readable(item.urgency) === 'urgent' &&
@@ -159,7 +174,9 @@ export function verifyWorkflowStep(
           ? 'A matching task exists, but its saved record must be High priority and have an actual assigned person. Open the task, edit it, and save those fields.'
           : session.kind === 'shift-unresolved'
             ? 'Your published handover must use Urgent priority, Guest category, and specify the guest concern, a responsible follow-up owner, and the next guest update.'
-            : 'Your maintenance report must use High urgency, name a fictional technician, and describe the failed corridor lighting in Problem / scope.'
+            : session.kind === 'manager-evidence'
+              ? 'The saved request must use Equipment type, Urgent priority, and a business reason documenting quotation status, cost/budget and the operational justification. Never invent an attached quotation.'
+              : 'Your maintenance report must use High urgency, name a fictional technician, and describe the failed corridor lighting in Problem / scope.'
       : 'No saved record with your unique training reference was found yet. Open the correct module, use the actual New button, fill in the details, and save before checking again.' };
   }
   if (!session.recordId || !detail || positiveId(detail.id) !== session.recordId ||
@@ -171,6 +188,11 @@ export function verifyWorkflowStep(
     return status === 'follow'
       ? { passed: true, error: '', recordId: session.recordId, stepName: definition.stages[1] }
       : { passed: false, error: 'The saved guest matter is not in Needs follow-up yet. Open the original matter, choose Needs follow-up, and save that real status transition.' };
+  }
+  if (session.kind === 'manager-evidence') {
+    return status === 'review'
+      ? { passed: true, error: '', recordId: session.recordId, stepName: definition.stages[1] }
+      : { passed: false, error: 'The original request is not in Review. Open the Draft and choose Send for review. Submission is not approval.' };
   }
   if (session.kind === 'shift-unresolved') {
     return status === 'follow'
@@ -202,6 +224,14 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
     return session.step === 0
       ? ['Open Guest Matters and click New guest matter.', 'Include the exact training reference in the Matter title.', 'Select Room or Complaint, choose High urgency, and use Room 205 if it appears in the fictional room list.', 'In the context note, describe the AC blowing warm air, the Maintenance inspection request, and when Front Desk will update the guest.', 'Click Save matter. Only then click Check saved work.']
       : ['Find the saved matter with your reference in the Active list.', 'Open it, choose Needs follow-up, and confirm the updated record.', 'Click Check saved work to verify the saved status. Do not resolve an uninspected AC fault.'];
+  }
+  if (session.kind === 'manager-evidence') {
+    return session.step === 0
+      ? ['Open Requests and click New request.', 'Include the unique training reference in Request title.',
+        'Choose Equipment type and Urgent priority.', 'In Business reason, explain the fictional estimated amount, quotation status (if missing, say so), and why the item is operationally needed.',
+        'Click Create draft, then Check saved work. This is not an authorized purchase or approval.']
+      : ['Locate the same saved Draft request and open it.', 'Check that the reason is accurate and does not claim a quotation is attached when it is not.',
+        'Choose Send for review.', 'Close the details panel, then Check saved work. The workflow stops in Review: do NOT self-approve.'];
   }
   if (session.kind === 'shift-unresolved') {
     return session.step === 0
