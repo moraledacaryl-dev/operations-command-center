@@ -29,7 +29,7 @@ export default function LoginPage() {
     try {
       const user = await api.login(email.trim(), password);
       setStoredUser(user);
-      router.replace(landingPathForUser(user));
+      router.replace(process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? '/training' : landingPathForUser(user));
     } catch (err: unknown) {
       setError(loginErrorMessage(err));
     } finally {
