@@ -193,6 +193,8 @@ export type PracticeAnswers = {
   department: TrainingDepartment | '';
   decision: TrainingDecision | '';
   note: string;
+  owner?: string;
+  followUp?: string;
 };
 export type PracticeField = keyof PracticeAnswers;
 export type PracticeAssessment = {
@@ -227,5 +229,15 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
         '. Add a specific, actionable explanation using your own words.';
     }
   }
-  return { passed: Object.keys(errors).length === 0, errors, score: 4 - Object.keys(errors).length };
+  if ((scenario.level || 1) >= 3) {
+    const owner = (answers.owner || '').trim();
+    const nextCheck = (answers.followUp || '').trim();
+    if (owner.length < 4 || /^(anyone|someone|unknown|nobody|n\/a)$/i.test(owner)) {
+      errors.owner = 'Name a responsible role or person, such as the on-duty Front Desk lead. Do not invent a real guest or employee identity.';
+    }
+    if (nextCheck.length < 20 || new Set(nextCheck.toLowerCase().match(/[a-z]{2,}/g) || []).size < 4) {
+      errors.followUp = 'Specify what must be checked next, by whom or when, and how the result will be confirmed.';
+    }
+  }
+  return { passed: Object.keys(errors).length === 0, errors, score: 6 - Object.keys(errors).length };
 }
