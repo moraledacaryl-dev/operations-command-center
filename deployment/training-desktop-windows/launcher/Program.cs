@@ -38,7 +38,7 @@ internal sealed class TrainingWindow : Form
     bool starting;
     bool closing;
 
-    string BrowserUrl => "http://127.0.0.1:3401/login";
+    string BrowserUrl => "http://127.0.0.1:3401/training";
 
     public TrainingWindow()
     {
