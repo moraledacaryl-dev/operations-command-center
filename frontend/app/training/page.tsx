@@ -29,6 +29,7 @@ export default function PracticeTrainingPage() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return;
     const stored = getStoredUser();
     if (!stored) {
       router.replace('/login?next=/training');
@@ -97,6 +98,7 @@ export default function PracticeTrainingPage() {
     switchScenario(next.id);
   }
 
+  if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return <p>Hands-on training is available only inside the isolated fictional training application.</p>;
   if (!ready || !user || !selected) return <section className="practice-shell" aria-live="polite">Opening your fictional training exercises…</section>;
   return <div className="practice-shell" data-testid="scenario-training">
     <header className="practice-hero">
