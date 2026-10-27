@@ -18,31 +18,31 @@
 .practice-scenario { min-height: 68px; border: 1px solid transparent; border-radius: 11px; width: 100%; display: flex; align-items: start; gap: 11px; padding: 10px; text-align: left; background: #fff; color: #244435; cursor: pointer; }
 .practice-scenario:hover, .practice-scenario.selected { background: #eaf5ee; border-color: #a8cdb7; }
 .practice-scenario-number { display: grid; place-items: center; flex: 0 0 30px; min-height: 30px; border-radius: 9px; background: #dbece2; font-size: 11px; color: #13523b; font-weight: 800; }
-.practice-scenario strong { display: block; line-height: 1.3; font-size: 13px; margin-bottom: 4px; }
-.practice-scenario small { color: #4f6457; font-size: 11px; }
+.practice-scenario strong { display: block; line-height: 1.35; font-size: 15px; margin-bottom: 4px; }
+.practice-scenario small { color: #4f6457; font-size: 12px; }
 .practice-workspace { min-width: 0; border: 1px solid #d5dfd8; background: #fff; border-radius: 17px; padding: clamp(18px, 3vw, 30px); box-shadow: var(--shadow-xs); }
 .practice-workspace > h2 { font-size: clamp(21px, 2.5vw, 29px); margin: 6px 0 10px; }
 .practice-topline { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; color: #4d6054; font-size: 12px; }
 .practice-department { background: #e2f2e9; border-radius: 999px; color: #175f47; font-weight: 800; padding: 4px 9px; }
-.practice-situation { font-size: 15px; line-height: 1.6; color: #22372c; }
+.practice-situation { font-size: 16px; line-height: 1.6; color: #22372c; }
 .practice-case { background: #f7f9f6; border: 1px solid #dce7dc; padding: 16px; border-radius: 12px; }
 .practice-case h3 { font-size: 14px; margin: 0 0 10px; }
 .practice-case ul { display: grid; gap: 6px; margin: 0 0 12px; padding-left: 23px; }
-.practice-case li, .practice-case p { font-size: 13px; line-height: 1.5; }
+.practice-case li, .practice-case p { font-size: 14px; line-height: 1.5; }
 .practice-case p { margin: 0; }
 .practice-steps { display: flex; flex-wrap: wrap; gap: 7px; margin: 22px 0 18px; }
-.practice-steps span { background: #eef2ee; color: #52675a; border-radius: 8px; padding: 8px 11px; font-size: 12px; font-weight: 750; }
+.practice-steps span { background: #eef2ee; color: #52675a; border-radius: 8px; padding: 9px 12px; font-size: 13px; font-weight: 750; }
 .practice-steps span.current { background: #176d5d; color: white; }
 .practice-form { max-width: 710px; display: grid; gap: 18px; }
-.practice-instruction { margin: 0; line-height: 1.5; color: #405247; font-size: 13px; }
-.practice-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 750; color: #263a2d; }
-.practice-form select, .practice-form textarea, .practice-form input[type="text"] { width: 100%; min-width: 0; border-radius: 10px; border: 1px solid #afc7b6; background: #fff; color: #20392c; padding: 12px; font-size: 14px; line-height: 1.5; font-weight: 500; }
+.practice-instruction { margin: 0; line-height: 1.5; color: #405247; font-size: 15px; }
+.practice-form label { display: grid; gap: 7px; font-size: 15px; font-weight: 750; color: #263a2d; }
+.practice-form select, .practice-form textarea, .practice-form input[type="text"] { width: 100%; min-width: 0; border-radius: 10px; border: 1px solid #afc7b6; background: #fff; color: #20392c; padding: 12px; font-size: 16px; line-height: 1.5; font-weight: 500; }
 .practice-form select:focus-visible, .practice-form textarea:focus-visible { outline: 3px solid #9ac8b1; outline-offset: 2px; }
 .practice-form label small { font-size: 11px; font-weight: 500; color: #4c5f51; }
 .practice-form label .practice-error { font-size: 12px; font-weight: 700; color: #a02f27; }
 .practice-notice { border: 1px solid #f0cda9; background: #fff4e7; color: #784718; padding: 11px 13px; border-radius: 9px; margin: 0; }
 .practice-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 4px; }
-.practice-primary, .practice-secondary { cursor: pointer; border: 1px solid #166a55; padding: 12px 16px; min-height: 43px; border-radius: 9px; font-weight: 760; font-size: 13px; }
+.practice-primary, .practice-secondary { cursor: pointer; border: 1px solid #166a55; padding: 12px 16px; min-height: 48px; border-radius: 9px; font-weight: 760; font-size: 14px; }
 .practice-primary { color: white; background: #176d5d; }
 .practice-primary:hover { background: #0f5547; }
 .practice-secondary { color: #22533e; background: #fff; }
@@ -84,7 +84,7 @@
 .practice-export { width: 100%; text-align: center; font-size: 12px; margin-top: 6px; padding: 9px; }
 .practice-export:disabled { cursor: not-allowed; opacity: .5; }
 .practice-help { display: flex; flex-wrap: wrap; align-items: start; gap: 12px 16px; margin: 13px 0; }
-.practice-help details { flex: 1 1 360px; background: #f2f8f3; border: 1px solid #cbded0; padding: 13px; border-radius: 12px; font-size: 13px; line-height: 1.6; }
+.practice-help details { flex: 1 1 360px; background: #f2f8f3; border: 1px solid #cbded0; padding: 13px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
 .practice-help summary { cursor: pointer; font-weight: 790; color: #12583c; }
 .practice-help ol { padding-left: 21px; margin: 12px 0; }
 .practice-help p { margin: 10px 0 0; }
