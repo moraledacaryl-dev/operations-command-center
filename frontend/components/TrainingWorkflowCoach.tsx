@@ -6,7 +6,7 @@ import { api, Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { getCurrentDepartmentId } from '@/lib/session';
 import {
-  parseWorkflowSession, verifyWorkflowStep, workflowInstructions,
+  parseWorkflowSession, verifyWorkflowStep, workflowInstructions, workflowStagePath,
   workflowOwnerId, workflowSessionKey, workflowResultsKey,
   WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS,
 } from '@/lib/training-workflows';
@@ -48,7 +48,8 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
 
   const definition = WORKFLOW_DEFINITIONS[session.kind];
   const finished = session.step >= definition.stages.length;
-  const onModule = path === definition.path;
+  const expectedPath = workflowStagePath(session);
+  const onModule = path === expectedPath;
   const currentStage = definition.stages[session.step];
   const instructions = finished ? [] : workflowInstructions(session);
 
@@ -67,7 +68,13 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       const detail = session.step > 0 && session.recordId
         ? await api.get(definition.resource, session.recordId)
         : null;
-      const outcome = verifyWorkflowStep(session, records, detail);
+      const linkedId = session.kind === 'fd-broken-shower' && detail
+        ? Number(detail.linked_fix_id)
+        : 0;
+      const relatedDetail = Number.isSafeInteger(linkedId) && linkedId > 0
+        ? await api.get('fixes', linkedId)
+        : null;
+      const outcome = verifyWorkflowStep(session, records, detail, relatedDetail);
       if (!outcome.passed) {
         setMessage(outcome.error);
         return;
@@ -75,6 +82,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       const next = {
         ...session,
         recordId: outcome.recordId || session.recordId,
+        relatedRecordId: outcome.relatedRecordId || session.relatedRecordId,
         step: session.step + 1,
       };
       // Persist stage advancement only after the authenticated training API
@@ -87,6 +95,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         saved[session.kind] = {
           reference: session.reference,
           recordId: next.recordId,
+          ...(next.relatedRecordId ? { relatedRecordId: next.relatedRecordId } : {}),
           completedAt: new Date().toISOString(),
           steps: [...definition.stages],
         };
@@ -145,8 +154,11 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         undo your saved action.
       </p>
       <div className="training-workflow-buttons">
-        {!onModule ? <Link className="btn" data-testid="training-open-module" href={definition.path}>
-          Open {({ guests: 'Guest Matters', tasks: 'Tasks', 'shift-notes': 'Shift Handover', fixes: 'Maintenance', requests: 'Requests' } as const)[definition.resource]}</Link> : null}
+        {!onModule ? <Link className="btn" data-testid="training-open-module" href={expectedPath}>
+          Open {session.kind === 'fd-broken-shower' && session.step >= 2
+            ? 'Maintenance'
+            : ({ guests: 'Guest Matters', tasks: 'Tasks', 'shift-notes': 'Shift Handover',
+                fixes: 'Maintenance', requests: 'Requests' } as const)[definition.resource]}</Link> : null}
         <button type="button" className="btn" data-testid="training-check-work" disabled={busy}
           onClick={() => void checkSavedWork()}>{busy ? 'Checking saved records…' : 'Check saved work'}</button>
       </div>
