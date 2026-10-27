@@ -98,3 +98,31 @@
   .practice-hero h1 { line-height: 1.2; }
   .practice-form select, .practice-form textarea, .practice-form input[type="text"] { font-size: 16px; }
 }
+
+
+/* Training-only real Operations workflow coach: never injected in production. */
+.practice-real-workflow { background: #eff7f3; border: 1px solid #afcdbd; border-radius: 13px; padding: 16px; margin: 14px 0; }
+.practice-real-workflow > strong { color: #14583e; font-size: 16px; }
+.practice-real-workflow p { margin: 8px 0 12px; font-size: 14px; line-height: 1.6; }
+.practice-real-workflow .practice-real-workflow-verified { color: #16563c; font-weight: 750; }
+.practice-real-workflow .practice-real-workflow-restricted { color: #684a21; background: #fff7e8; padding: 12px; border-radius: 8px; }
+.training-workflow-coach { margin: 12px clamp(12px, 2.3vw, 28px) 0; padding: 18px; border: 2px solid #6b9c80; border-radius: 16px; background: #f7fcf9; color: #183527; box-shadow: 0 6px 20px rgba(23, 66, 42, .05); }
+.training-workflow-header { display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 12px; }
+.training-workflow-header h2 { font-size: 19px; margin: 4px 0 5px; line-height: 1.3; }
+.training-workflow-header p { font-size: 15px; margin: 0; }
+.training-workflow-kicker { font-size: 11px; letter-spacing: .09em; font-weight: 800; color: #0e684b; }
+.training-workflow-header-actions, .training-workflow-buttons { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.training-workflow-header-actions > *, .training-workflow-buttons > * { min-height: 42px; }
+.training-workflow-reference { background: white; border: 1px solid #b8d5c1; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px; border-radius: 9px; margin: 14px 0; font-size: 14px; }
+.training-workflow-reference code { font-size: 16px; font-weight: 780; color: #124732; white-space: normal; overflow-wrap: anywhere; }
+.training-workflow-instructions { margin: 0 0 12px; padding-left: 24px; display: grid; gap: 8px; font-size: 15px; line-height: 1.65; }
+.training-workflow-instructions li { padding-left: 3px; }
+.training-workflow-message { margin: 12px 0; border: 1px solid #dfb777; background: #fff7eb; padding: 11px 13px; border-radius: 9px; font-size: 14px; line-height: 1.5; }
+.training-workflow-finished { color: #155d3f; font-size: 15px; font-weight: 760; }
+.training-workflow-safe { color: #466356; font-size: 12px; line-height: 1.55; margin: 10px 0 0; }
+@media(max-width: 650px) {
+  .training-workflow-coach { margin: 10px; padding: 13px; }
+  .training-workflow-header-actions, .training-workflow-buttons { width: 100%; }
+  .training-workflow-header-actions > *, .training-workflow-buttons > * { flex: 1 1 140px; text-align: center; }
+  .training-workflow-reference { font-size: 13px; }
+}
