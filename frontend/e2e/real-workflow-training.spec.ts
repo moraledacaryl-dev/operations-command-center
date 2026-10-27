@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
@@ -351,4 +352,15 @@ test('real linked Guest-to-Maintenance handoff requires both reciprocal links an
   const result = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('ho-ops-workflow-results-v1:9701') || '{}'));
   expect(result['fd-broken-shower']).toMatchObject({ recordId: 501, relatedRecordId: 702 });
+
+  await page.goto('/training');
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  const exported = await downloadEvent;
+  expect(exported.suggestedFilename()).toContain('training-progress.csv');
+  const csvPath = await exported.path();
+  expect(csvPath).toBeTruthy();
+  const csv = readFileSync(csvPath!, 'utf8');
+  expect(csv).toContain('"hands-on-workflow","fd-broken-shower"');
+  expect(csv).toContain('"501","702"');
 });
