@@ -83,13 +83,24 @@ export function makeTrainingReference(kind: TrainingWorkflowKind): string {
 export function parseWorkflowSession(raw: string | null, ownerId: string): TrainingWorkflowSession | null {
   if (!raw) return null;
   try {
-    const value = JSON.parse(raw);
-    if (!value || !isTrainingWorkflowKind(value.kind) || value.ownerId !== ownerId ||
-      typeof value.reference !== 'string' || !/^TRN-(GUEST|TASK|SHIFT|FIX)-[A-Z0-9]{8,20}$/.test(value.reference) ||
-      !Number.isInteger(value.step) || value.step < 0 ||
+    const decoded: unknown = JSON.parse(raw);
+    if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) return null;
+    const value = decoded as Record<string, unknown>;
+    if (!isTrainingWorkflowKind(value.kind) || value.ownerId !== ownerId ||
+      typeof value.reference !== 'string' ||
+      !/^TRN-(GUEST|TASK|SHIFT|FIX)-[A-Z0-9]{8,20}$/.test(value.reference) ||
+      typeof value.step !== 'number' || !Number.isInteger(value.step) || value.step < 0 ||
       value.step > WORKFLOW_DEFINITIONS[value.kind].stages.length ||
       typeof value.createdAt !== 'string') return null;
-    return value;
+    const recordId = positiveId(value.recordId);
+    return {
+      kind: value.kind,
+      ownerId,
+      reference: value.reference,
+      createdAt: value.createdAt,
+      step: value.step,
+      ...(recordId ? { recordId } : {}),
+    };
   } catch {
     return null;
   }
