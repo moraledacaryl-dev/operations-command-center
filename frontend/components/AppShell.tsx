@@ -103,14 +103,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => { try { setCompact(localStorage.getItem('ops-sidebar-compact') === 'true'); } catch { /* Storage is optional. */ } }, []);
   const isLogin = path === '/login';
-  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/admin'].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
+  const trainingMode = process.env.NEXT_PUBLIC_TRAINING_MODE === 'true';
+  const homeNavigationItems: NavItem[] = trainingMode ? [{ href: '/training', label: 'Hands-on Training', icon: 'check' }, ...homeItems] : homeItems;
+  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/admin', ...(trainingMode ? ['/training'] : [])].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
 
   useEffect(() => {
     const stored = getStoredUser();
+    if (path === '/training' && trainingMode && !stored) router.replace('/login?next=/training');
     setUser(stored);
     setDeptId(getCurrentDepartmentId(stored));
     setMobileOpen(false);
-  }, [path]);
+  }, [path, router, trainingMode]);
 
   useEffect(() => {
     if (!user) { setUnreadCount(0); return; }
@@ -201,7 +204,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!isKnownRoute) return <>{children}</>;
   if (!user) return <SignInRequired />;
 
-  const allNavItems = [...homeItems, ...workItems, ...operationsItems, ...decisionItems, ...contentItems, ...peopleItems, ...activityItems, ...visibleAdminItems];
+  const allNavItems = [...homeNavigationItems, ...workItems, ...operationsItems, ...decisionItems, ...contentItems, ...peopleItems, ...activityItems, ...visibleAdminItems];
   const currentPage = [...allNavItems].sort((a, b) => b.href.length - a.href.length).find(item => isActivePath(path, item.href))?.label || 'Account';
   function toggleCompact() {
     const next = !compact;
@@ -224,7 +227,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {fixedMarketingWorkspace ? <span><span className="ops-status-dot" />Marketing workspace</span> : deptOptions.length > 1 ? <label><span>Workspace</span><select value={currentDept?.id || ''} onChange={e => changeDept(e.target.value)}>{deptOptions.map((dept: Entity) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}</select></label> : <span><span className="ops-status-dot" />{workspaceName}</span>}
         </div>
         <nav className="ops-nav" aria-label="Main navigation">
-          {homeItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
+          {homeNavigationItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
           <NavLink item={decisionItems[0]} path={path} onNavigate={closeMobile} />
           <span className="ops-nav-label">Workspace</span>
           {workItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
@@ -245,7 +248,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <InteractiveTraining user={user} path={path} /> : null}
       </div>
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
-        {[homeItems[0], homeItems[1], workItems[0], decisionItems[0]].map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
+        {[homeNavigationItems[0], homeNavigationItems[1], workItems[0], decisionItems[0]].map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
         <button type="button" aria-label="Open all navigation" onClick={() => setMobileOpen(true)}><Icon name="menu" /><small>More</small></button>
       </nav>
     </div>
