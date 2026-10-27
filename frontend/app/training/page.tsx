@@ -93,7 +93,8 @@ export default function PracticeTrainingPage() {
   const canCreateRecords = hasCapability(user, 'manage_department');
   const workflowKind: TrainingWorkflowKind | null =
     selected?.id === 'guest-ac' || selected?.id === 'shared-no-owner' ||
-    selected?.id === 'shift-unresolved' || selected?.id === 'mt-light-fault'
+    selected?.id === 'shift-unresolved' || selected?.id === 'mt-light-fault' ||
+    selected?.id === 'manager-evidence'
       ? selected.id : null;
   const verifiedCount = Object.values(verifiedWorkflows).filter(result => result?.completedAt).length;
 
@@ -281,7 +282,8 @@ export default function PracticeTrainingPage() {
           <strong>Practice this inside the real fictional Operations screens</strong>
           <p>Unlike the decision quiz, this exercise requires you to open the actual
             {({ 'guest-ac': ' Guest Matters', 'shared-no-owner': ' Tasks',
-              'shift-unresolved': ' Shift Handover', 'mt-light-fault': ' Maintenance' } as const)[workflowKind]} module, create a real fictional record,
+              'shift-unresolved': ' Shift Handover', 'mt-light-fault': ' Maintenance',
+              'manager-evidence': ' Requests' } as const)[workflowKind]} module, create a real fictional record,
             change its status, and pass a read-back check of the saved data.</p>
           {verifiedWorkflows[workflowKind]
             ? <p className="practice-real-workflow-verified" role="status">
