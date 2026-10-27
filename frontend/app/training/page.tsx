@@ -12,9 +12,9 @@ import {
 import type { PracticeAnswers, PracticeAssessment, PracticeField } from '@/lib/practice-scenarios';
 
 type Phase = 'assess' | 'document' | 'complete';
-type SavedProgress = Record<string, { attempts: number; completedAt: string }>;
+type SavedProgress = Record<string, { attempts: number; completedAt: string; hints?: number; mistakes?: number; firstTry?: boolean }>;
 const STORAGE_PREFIX = 'ho-ops-scenario-practice-v1:';
-const emptyAnswers: PracticeAnswers = { priority: '', department: '', decision: '', note: '' };
+const emptyAnswers: PracticeAnswers = { priority: '', department: '', decision: '', note: '', owner: '', followUp: '' };
 
 export default function PracticeTrainingPage() {
   const router = useRouter();
@@ -27,6 +27,12 @@ export default function PracticeTrainingPage() {
   const [progress, setProgress] = useState<SavedProgress>({});
   const [showTip, setShowTip] = useState(false);
   const [ready, setReady] = useState(false);
+  const [search, setSearch] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('All');
+  const [levelFilter, setLevelFilter] = useState('All');
+  const [guided, setGuided] = useState(true);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [mistakesMade, setMistakesMade] = useState(0);
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return;
@@ -38,6 +44,8 @@ export default function PracticeTrainingPage() {
     setUser(stored);
     const key = STORAGE_PREFIX + String(stored.id || stored.email);
     try {
+      const lastCase = localStorage.getItem(key + ':last');
+      if (lastCase) setActiveId(lastCase);
       const saved = JSON.parse(localStorage.getItem(key) || '{}');
       if (saved && typeof saved === 'object' && !Array.isArray(saved)) setProgress(saved);
     } catch { setProgress({}); }
@@ -45,6 +53,14 @@ export default function PracticeTrainingPage() {
   }, [router]);
 
   const scenarios = useMemo(() => practiceScenariosFor(user || {}), [user]);
+  const filteredScenarios = useMemo(() => scenarios.filter(s => {
+    if (departmentFilter !== 'All' && s.department !== departmentFilter) return false;
+    if (levelFilter !== 'All' && String(s.level || 1) !== levelFilter) return false;
+    const query = search.trim().toLowerCase();
+    return !query || [s.title, s.situation, s.reference, s.skill || ''].some(v => v.toLowerCase().includes(query));
+  }), [scenarios, departmentFilter, levelFilter, search]);
+  const availableDepartments = useMemo(() => Array.from(new Set(scenarios.map(s => s.department))), [scenarios]);
+  const totalErrors = scenarios.reduce((count, s) => count + (progress[s.id]?.mistakes || 0), 0);
   const selected = scenarios.find(s => s.id === activeId) || scenarios[0];
   const selectedId = selected?.id || '';
   const completedCount = scenarios.filter(s => progress[s.id]).length;
@@ -59,6 +75,11 @@ export default function PracticeTrainingPage() {
     setResult(null);
     setAttempts(0);
     setShowTip(false);
+    setHintsUsed(0);
+    setMistakesMade(0);
+    if (user) {
+      try { localStorage.setItem(STORAGE_PREFIX + String(user.id || user.email) + ':last', id); } catch { /* offline memory only */ }
+    }
   }
   function update<K extends PracticeField>(field: K, value: PracticeAnswers[K]) {
     setAnswers(current => ({ ...current, [field]: value }));
@@ -70,6 +91,7 @@ export default function PracticeTrainingPage() {
     setAttempts(n => n + 1);
     const report = assessPractice(selected, { ...answers, decision: selected.decision, note: selected.example });
     if (report.errors.priority || report.errors.department) {
+      setMistakesMade(n => n + 1);
       setResult(report);
       return;
     }
@@ -82,12 +104,41 @@ export default function PracticeTrainingPage() {
     setAttempts(n => n + 1);
     const report = assessPractice(selected, answers);
     setResult(report);
-    if (!report.passed) return;
+    if (!report.passed) {
+      setMistakesMade(n => n + 1);
+      return;
+    }
     const key = STORAGE_PREFIX + String(user?.id || user?.email);
-    const next = { ...progress, [selected.id]: { attempts: attempts + 1, completedAt: new Date().toISOString() } };
+    const previous = progress[selected.id];
+    const next = { ...progress, [selected.id]: {
+      attempts: (previous?.attempts || 0) + attempts + 1,
+      completedAt: new Date().toISOString(),
+      hints: hintsUsed,
+      mistakes: mistakesMade,
+      firstTry: mistakesMade === 0 && hintsUsed === 0,
+    } };
     setProgress(next);
     try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* practice remains in memory */ }
     setPhase('complete');
+  }
+  function exportResults() {
+    if (!user) return;
+    const fields = ['case_id', 'department', 'level', 'completed_at', 'attempts', 'hints', 'mistakes', 'unassisted'];
+    const csv = [fields.join(',')];
+    for (const s of scenarios) {
+      const p = progress[s.id];
+      if (!p) continue;
+      csv.push([s.id, s.department, String(s.level || 1), p.completedAt, String(p.attempts),
+        String(p.hints || 0), String(p.mistakes || 0), String(Boolean(p.firstTry))].join(','));
+    }
+    const objectUrl = URL.createObjectURL(new Blob([csv.join('\\n')], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = 'hidden-oasis-fictional-training-progress.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
   function nextScenario() {
     if (!scenarios.length) return;
