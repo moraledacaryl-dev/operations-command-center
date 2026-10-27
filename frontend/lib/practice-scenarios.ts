@@ -43,7 +43,7 @@ export const DECISIONS: readonly TrainingDecision[] = [
 /** Entirely fictional learning cases. No external services or real guest details. */
 export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
-    id: 'shift-unresolved', department: 'Everyone',
+    id: 'shift-unresolved', level: 2, department: 'Everyone',
     title: 'Unresolved concern at shift change',
     situation: 'The previous shift left an unresolved request without an owner. Your shift starts in five minutes.',
     goal: 'Keep the issue visible and make accountability clear.',
@@ -53,7 +53,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Reading a note does not resolve it. Assign an owner and record what the next shift must do.',
   },
   {
-    id: 'guest-ac', department: 'Front Desk',
+    id: 'guest-ac', level: 3, department: 'Front Desk',
     title: 'Guest says air-conditioning is not cooling',
     situation: 'A fictional guest in Room 205 calls to report that the air-conditioning is blowing warm air.',
     goal: 'Record a clear guest matter and route a technical issue promptly.',
@@ -63,7 +63,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Do not mark the room fixed without evidence. Front Desk owns the guest update while Maintenance inspects the AC.',
   },
   {
-    id: 'arrival-room', department: 'Front Desk',
+    id: 'arrival-room', level: 2, department: 'Front Desk',
     title: 'Early arrival for an unready room',
     situation: 'A fictional guest arrives early for Room 203, but Housekeeping has not marked the room ready.',
     goal: 'Avoid promising room readiness without confirmation.',
@@ -73,7 +73,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Confirm operational facts rather than making a guest-facing promise based on assumption.',
   },
   {
-    id: 'housekeeping-turnover', department: 'Housekeeping',
+    id: 'housekeeping-turnover', level: 2, department: 'Housekeeping',
     title: 'Missing room item during turnover',
     situation: 'During fictional Room 204 turnover, the standard towels are missing and an incoming guest is expected.',
     goal: 'Document the missing item and communicate room readiness accurately.',
@@ -83,7 +83,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Readiness is a verified state, not a target. The handover must say what is missing and who will address it.',
   },
   {
-    id: 'housekeeping-lost-found', department: 'Housekeeping',
+    id: 'housekeeping-lost-found', level: 3, department: 'Housekeeping',
     title: 'Found property after checkout',
     situation: 'A housekeeping employee finds a wallet in fictional Room 207 after checkout.',
     goal: 'Secure and document found property with an accountable handoff.',
@@ -93,7 +93,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Never copy private payment information into a training note. Record the handoff and responsible custodian.',
   },
   {
-    id: 'cafe-delay', department: 'Café',
+    id: 'cafe-delay', level: 3, department: 'Café',
     title: 'Café order delayed during a rush',
     situation: 'A fictional table has been waiting 35 minutes for order DEMO-CAFE-118.',
     goal: 'Communicate the delay, check kitchen status and avoid losing the request.',
@@ -103,7 +103,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'A service delay requires an owner and an accurate guest update, not just a status change.',
   },
   {
-    id: 'kitchen-allergy', department: 'Kitchen',
+    id: 'kitchen-allergy', level: 4, department: 'Kitchen',
     title: 'Possible allergen cross-contact',
     situation: 'A fictional order DEMO-KITCHEN-052 may have been prepared with an ingredient the guest declared as an allergen.',
     goal: 'Prioritize guest safety over speed and notify the correct personnel.',
@@ -113,7 +113,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Do not serve an unverified allergen risk. Immediate escalation prevents an avoidable guest safety incident.',
   },
   {
-    id: 'security-access', department: 'Security',
+    id: 'security-access', level: 4, department: 'Security',
     title: 'Unverified visitor at the property gate',
     situation: 'A fictional visitor requests entry to a restricted maintenance area without a verified appointment.',
     goal: 'Maintain site access control and create a traceable escalation.',
@@ -123,7 +123,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Permission must be verified before access. Never rely on claimed authority alone.',
   },
   {
-    id: 'maintenance-leak', department: 'Maintenance',
+    id: 'maintenance-leak', level: 4, department: 'Maintenance',
     title: 'Water leak near an electrical outlet',
     situation: 'A fictional maintenance report places water close to an electrical outlet in Room 209.',
     goal: 'Recognize the combined water and electrical hazard, prevent exposure and escalate.',
@@ -133,7 +133,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Potential electrical hazards require immediate control by qualified personnel, not routine work completion.',
   },
   {
-    id: 'marketing-wrong-date', department: 'Marketing',
+    id: 'marketing-wrong-date', level: 3, department: 'Marketing',
     title: 'Incorrect event date in a scheduled post',
     situation: 'A fictional Halloween poster DEMO-POST-031 shows the wrong event date but has not been published.',
     goal: 'Stop incorrect content from going live and request a corrected version.',
@@ -143,7 +143,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Content should be returned with a concrete correction request rather than approved with a known error.',
   },
   {
-    id: 'supervisor-cover', department: 'Management', supervisorOnly: true,
+    id: 'supervisor-cover', level: 3, department: 'Management', supervisorOnly: true,
     title: 'A staff member misses an assigned shift',
     situation: 'Your team reports that the staff member scheduled for fictional shift DEMO-SHIFT-064 has not arrived.',
     goal: 'Maintain coverage and document the handover without inventing attendance data.',
@@ -153,7 +153,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Maintain service coverage, but do not fabricate biometric, attendance or payroll records.',
   },
   {
-    id: 'manager-evidence', department: 'Management', managerOnly: true,
+    id: 'manager-evidence', level: 4, department: 'Management', managerOnly: true,
     title: 'Approval request without supporting evidence',
     situation: 'A fictional repair purchase DEMO-REQ-088 requires approval, but it lacks a quotation and clear justification.',
     goal: 'Make a defensible decision based on evidence and document what is missing.',
@@ -163,7 +163,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Approval should be evidence-based. Missing information is a reason to request changes, not to bypass controls.',
   },
   {
-    id: 'manager-guest-recovery', department: 'Management', managerOnly: true,
+    id: 'manager-guest-recovery', level: 5, department: 'Management', managerOnly: true,
     title: 'Repeated unresolved guest complaint',
     situation: 'The same fictional guest has reported the DEMO-GUEST-012 service failure twice after a promised resolution.',
     goal: 'Own the escalation and verify actual resolution before closing.',
