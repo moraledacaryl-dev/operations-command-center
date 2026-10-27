@@ -4,7 +4,7 @@
  * records; a click, a filled form, or a mock completion flag cannot pass.
  * Completion is learning evidence, NOT a credential or staff certification.
  */
-export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner';
+export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner' | 'shift-unresolved' | 'mt-light-fault';
 export type TrainingWorkflowSession = {
   kind: TrainingWorkflowKind;
   ownerId: string;
@@ -38,10 +38,23 @@ export const WORKFLOW_DEFINITIONS = {
     resource: 'tasks',
     stages: ['Create and assign a task', 'Start the assigned task', 'Submit the task for review'],
   },
+  'shift-unresolved': {
+    name: 'Record and carry forward a shift handover',
+    path: '/shift',
+    resource: 'shift-notes',
+    stages: ['Publish a usable handover', 'Carry the unresolved matter forward'],
+  },
+  'mt-light-fault': {
+    name: 'Maintain and verify a hallway lighting work order',
+    path: '/fixes',
+    resource: 'fixes',
+    stages: ['Report and assign the maintenance issue', 'Start the work order', 'Mark the work ready for verification', 'Verify the finished work'],
+  },
 } as const;
 
 export const isTrainingWorkflowKind = (value: unknown): value is TrainingWorkflowKind =>
-  value === 'guest-ac' || value === 'shared-no-owner';
+  value === 'guest-ac' || value === 'shared-no-owner' ||
+    value === 'shift-unresolved' || value === 'mt-light-fault';
 
 export function workflowOwnerId(user: { id?: string | number; email?: string }): string {
   return String(user.id || user.email || '');
@@ -60,7 +73,11 @@ export function makeTrainingReference(kind: TrainingWorkflowKind): string {
   const suffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID().slice(0, 8).toUpperCase()
     : (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
-  return (kind === 'guest-ac' ? 'TRN-GUEST-' : 'TRN-TASK-') + suffix;
+  const prefix = {
+    'guest-ac': 'TRN-GUEST-', 'shared-no-owner': 'TRN-TASK-',
+    'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-',
+  }[kind];
+  return prefix + suffix;
 }
 
 export function parseWorkflowSession(raw: string | null, ownerId: string): TrainingWorkflowSession | null {
@@ -68,7 +85,7 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
   try {
     const value = JSON.parse(raw);
     if (!value || !isTrainingWorkflowKind(value.kind) || value.ownerId !== ownerId ||
-      typeof value.reference !== 'string' || !/^TRN-(GUEST|TASK)-[A-Z0-9]{8,20}$/.test(value.reference) ||
+      typeof value.reference !== 'string' || !/^TRN-(GUEST|TASK|SHIFT|FIX)-[A-Z0-9]{8,20}$/.test(value.reference) ||
       !Number.isInteger(value.step) || value.step < 0 ||
       value.step > WORKFLOW_DEFINITIONS[value.kind].stages.length ||
       typeof value.createdAt !== 'string') return null;
@@ -106,14 +123,32 @@ export function verifyWorkflowStep(
           /\b(maintenance|inspect|technician|repair)\b/.test(note) &&
           /\b(update|call|follow.up|notify)\b/.test(note);
       }
-      return readable(item.priority) === 'high' &&
-        positiveId(item.assigned_to_id) !== undefined;
+      if (session.kind === 'shared-no-owner') {
+        return readable(item.priority) === 'high' && positiveId(item.assigned_to_id) !== undefined;
+      }
+      if (session.kind === 'shift-unresolved') {
+        const note = readable(item.note);
+        return readable(item.urgency) === 'urgent' &&
+          readable(item.category) === 'guest' &&
+          /guest/.test(note) &&
+          /owner|responsib|assign/.test(note) &&
+          /follow|call|update/.test(note);
+      }
+      const problem = readable(item.problem);
+      return readable(item.urgency) === 'high' &&
+        positiveId(item.assigned_to_id) !== undefined &&
+        /light|lamp/.test(problem) &&
+        /hall|corridor|passage/.test(problem);
     });
     if (valid) return { passed: true, error: '', recordId: positiveId(valid.id), stepName: definition.stages[0] };
     return { passed: false, error: matched.length
       ? session.kind === 'guest-ac'
         ? 'A matching case exists, but its saved record must have High urgency, Room or Complaint type, and a note describing the AC fault, Maintenance action, and guest follow-up. Correct the case according to authorized controls, or create a corrected fictional one with the same reference.'
-        : 'A matching task exists, but its saved record must be High priority and have an actual assigned person. Open the task, edit it, and save those fields.'
+        : session.kind === 'shared-no-owner'
+          ? 'A matching task exists, but its saved record must be High priority and have an actual assigned person. Open the task, edit it, and save those fields.'
+          : session.kind === 'shift-unresolved'
+            ? 'Your published handover must use Urgent priority, Guest category, and specify the guest concern, a responsible follow-up owner, and the next guest update.'
+            : 'Your maintenance report must use High urgency, name a fictional technician, and describe the failed corridor lighting in Problem / scope.'
       : 'No saved record with your unique training reference was found yet. Open the correct module, use the actual New button, fill in the details, and save before checking again.' };
   }
   if (!session.recordId || !detail || positiveId(detail.id) !== session.recordId ||
@@ -125,6 +160,21 @@ export function verifyWorkflowStep(
     return status === 'follow'
       ? { passed: true, error: '', recordId: session.recordId, stepName: definition.stages[1] }
       : { passed: false, error: 'The saved guest matter is not in Needs follow-up yet. Open the original matter, choose Needs follow-up, and save that real status transition.' };
+  }
+  if (session.kind === 'shift-unresolved') {
+    return status === 'follow'
+      ? { passed: true, error: '', recordId: session.recordId, stepName: definition.stages[1] }
+      : { passed: false, error: 'The unresolved handover must be carried forward. Open the saved handover and use Carry forward, then check again.' };
+  }
+  if (session.kind === 'mt-light-fault') {
+    const wanted = session.step === 1 ? 'working' : session.step === 2 ? 'done' : 'verified';
+    return status === wanted
+      ? { passed: true, error: '', recordId: session.recordId, stepName: definition.stages[session.step] }
+      : { passed: false, error: session.step === 1
+          ? 'Open the saved lighting work item and choose Start work before checking.'
+          : session.step === 2
+            ? 'Complete the actual fictional repair workflow with Mark done, but do not claim real building work is finished.'
+            : 'Open the original Done item and provide a verification note before clicking Verify work. A status change alone cannot substitute for a genuine real-world inspection.' };
   }
   if (session.step === 1) {
     return status === 'doing'
@@ -141,6 +191,23 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
     return session.step === 0
       ? ['Open Guest Matters and click New guest matter.', 'Include the exact training reference in the Matter title.', 'Select Room or Complaint, choose High urgency, and use Room 205 if it appears in the fictional room list.', 'In the context note, describe the AC blowing warm air, the Maintenance inspection request, and when Front Desk will update the guest.', 'Click Save matter. Only then click Check saved work.']
       : ['Find the saved matter with your reference in the Active list.', 'Open it, choose Needs follow-up, and confirm the updated record.', 'Click Check saved work to verify the saved status. Do not resolve an uninspected AC fault.'];
+  }
+  if (session.kind === 'shift-unresolved') {
+    return session.step === 0
+      ? ['Open Shift Handover and click New handover.', 'Add the unique reference to the Title.',
+        'Choose Guest category and Urgent priority.', 'In Handover detail, describe the unresolved guest concern, the responsible owner, and the guest update or follow-up needed.',
+        'Publish handover, then Check saved work.']
+      : ['Open the original unresolved handover in the list.', 'Choose Carry forward to leave an actionable follow-up for the next shift.',
+        'Check saved work to prove that its persisted status is Follow.'];
+  }
+  if (session.kind === 'mt-light-fault') {
+    if (session.step === 0) return ['Open Maintenance and click Report issue.',
+      'Include your unique training reference in Work item.', 'Set urgency to High and choose a fictional assigned technician.',
+      'Describe the nonfunctioning corridor light and its impact in Problem / scope.', 'Click Create work item, then Check saved work.'];
+    if (session.step === 1) return ['Find and open the saved lighting work item.', 'Click Start work; wait for its status to become Working.', 'Click Check saved work.'];
+    if (session.step === 2) return ['For this synthetic repair only, click Mark done after the practice inspection.', 'Check saved work to prove the record is ready for verification.'];
+    return ['Reopen the saved work order in the To verify column.', 'Enter a meaningful fictional verification note explaining what was tested.',
+      'Click Verify work, then Check saved work. Never use these training steps as evidence of an actual electrical repair.'];
   }
   if (session.step === 0) return [
     'Open Tasks and click New task.',
