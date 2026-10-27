@@ -131,7 +131,7 @@ export default function PracticeTrainingPage() {
       csv.push([s.id, s.department, String(s.level || 1), p.completedAt, String(p.attempts),
         String(p.hints || 0), String(p.mistakes || 0), String(Boolean(p.firstTry))].join(','));
     }
-    const objectUrl = URL.createObjectURL(new Blob([csv.join('\\n')], { type: 'text/csv;charset=utf-8' }));
+    const objectUrl = URL.createObjectURL(new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = objectUrl;
     link.download = 'hidden-oasis-fictional-training-progress.csv';
