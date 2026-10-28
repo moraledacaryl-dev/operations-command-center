@@ -205,6 +205,14 @@ def main() -> None:
                         conn.commit()
             roster = json.loads((state / "private" / "accounts" / "PRIVATE_training_accounts.json").read_text())
             assert len(roster["accounts"]) == 20
+            guide = state / "private" / "accounts" / "PRIVATE_TRAINER_ACCOUNTS.txt"
+            assert guide.is_file(), "Trainer's human-readable accounts guide was not generated"
+            assert guide.stat().st_mode & 0o077 == 0, "Trainer guide must be private (0600)"
+            guide_text = guide.read_text(encoding="utf-8")
+            assert "TRAINER ONLY" in guide_text and "=== FRONT DESK ===" in guide_text
+            for account in roster["accounts"]:
+                assert account["email"] in guide_text
+                assert account["password"] in guide_text
             assert db.is_file()
 
             with (Path(temp) / "api.log").open("w+") as alog, (Path(temp) / "ui.log").open("w+") as ulog:
