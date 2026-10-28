@@ -16,7 +16,7 @@ test('ordinary staff inspect an actual saved fictional task without mutation per
     localStorage.setItem('cc_user', JSON.stringify(account));
     localStorage.setItem('cc_department_id', '41');
   }, employee);
-  await page.route('**/api/**', route => {
+  await page.context().route('**/api/**', route => {
     const path = new URL(route.request().url()).pathname.replace(/^\/api/, '');
     const method = route.request().method();
     const respond = (value: unknown, code = 200) =>
@@ -35,6 +35,14 @@ test('ordinary staff inspect an actual saved fictional task without mutation per
   await expect(page.getByTestId('record-lookup-title')).toHaveText(saved.title);
   await expect(page.getByRole('link', { name: 'Tasks in a separate tab' })).toHaveAttribute('href', '/tasks');
   await expect(page.getByRole('link', { name: 'Tasks in a separate tab' })).toHaveAttribute('target', '_blank');
+  const popupPending = page.waitForEvent('popup');
+  await page.getByRole('link', { name: 'Tasks in a separate tab' }).click();
+  const taskTab = await popupPending;
+  await expect(taskTab.getByTestId('tasks-board')).toBeVisible();
+  await expect(taskTab.getByText(saved.title).first()).toBeVisible();
+  await taskTab.getByText(saved.title).first().click();
+  await expect(taskTab.getByText('No task transition is available for your role and this state.')).toBeVisible();
+  await taskTab.close();
 
   await page.getByTestId('record-lookup-status').selectOption('To Do');
   await page.getByTestId('record-lookup-priority').selectOption('Normal');
