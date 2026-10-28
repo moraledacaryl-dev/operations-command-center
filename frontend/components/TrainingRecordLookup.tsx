@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
-import { getCurrentDepartmentId } from '@/lib/session';
+import { DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId } from '@/lib/session';
 import { TASK_INSPECTION_CHANGED, taskInspectionKey } from '@/lib/training-observations';
 
 /**
@@ -33,26 +33,44 @@ export function TrainingRecordLookup({ user }: { user: Entity }) {
   const [completedAt, setCompletedAt] = useState('');
 
   useEffect(() => {
-    const dept = getCurrentDepartmentId(user);
-    setDepartmentId(dept);
-    if (!dept) return;
-    const storageKey = taskInspectionKey(user, dept);
-    const sessionKey = storageKey + ':task';
-    try {
-      const previous = localStorage.getItem(storageKey);
-      if (previous) {
-        const decoded = JSON.parse(previous);
-        if (decoded && typeof decoded.completedAt === 'string') setCompletedAt(decoded.completedAt);
-      }
-      const priorId = Number(sessionStorage.getItem(sessionKey));
-      if (Number.isSafeInteger(priorId) && priorId > 0) {
-        // The local storage identifier is only a bookmark, never evidence.
-        void api.get('tasks', priorId).then(saved => {
-          if (validPracticeTask(saved, dept)) setTask(saved);
-          else sessionStorage.removeItem(sessionKey);
-        }).catch(() => sessionStorage.removeItem(sessionKey));
-      }
-    } catch { /* Device storage is optional for reading the task. */ }
+    let revision = 0;
+    const loadForDepartment = () => {
+      const current = ++revision;
+      const dept = getCurrentDepartmentId(user);
+      setDepartmentId(dept);
+      setTask(null);
+      setStatus('');
+      setPriority('');
+      setFeedback('');
+      setCompletedAt('');
+      if (!dept) return;
+      const storageKey = taskInspectionKey(user, dept);
+      const sessionKey = storageKey + ':task';
+      try {
+        const previous = localStorage.getItem(storageKey);
+        if (previous) {
+          const decoded = JSON.parse(previous);
+          if (decoded && typeof decoded.completedAt === 'string') setCompletedAt(decoded.completedAt);
+        }
+        const priorId = Number(sessionStorage.getItem(sessionKey));
+        if (Number.isSafeInteger(priorId) && priorId > 0) {
+          // Reject late GETs from a previously selected department.
+          void api.get('tasks', priorId).then(saved => {
+            if (current !== revision) return;
+            if (validPracticeTask(saved, dept)) setTask(saved);
+            else sessionStorage.removeItem(sessionKey);
+          }).catch(() => {
+            if (current === revision) sessionStorage.removeItem(sessionKey);
+          });
+        }
+      } catch { /* Device storage is optional for reading the task. */ }
+    };
+    loadForDepartment();
+    window.addEventListener(DEPARTMENT_CHANGE_EVENT, loadForDepartment);
+    return () => {
+      revision += 1;
+      window.removeEventListener(DEPARTMENT_CHANGE_EVENT, loadForDepartment);
+    };
   }, [user]);
 
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return null;
@@ -65,6 +83,10 @@ export function TrainingRecordLookup({ user }: { user: Entity }) {
     setFeedback('');
     try {
       const records = await api.listAll('tasks', { active: true, department_id: departmentId });
+      if (getCurrentDepartmentId(user) !== departmentId) {
+        setFeedback('Department changed during the lookup. Start again in the selected workspace.');
+        return;
+      }
       const available = records.filter(record => validPracticeTask(record, departmentId));
       if (!available.length) {
         setFeedback('No accessible fictional training task was found for this department. Confirm the selected workspace or ask the trainer.');
@@ -90,6 +112,10 @@ export function TrainingRecordLookup({ user }: { user: Entity }) {
       // Compare against an authenticated, current backend read, not the cached
       // task or a local quiz answer key.
       const saved = await api.get('tasks', task.id);
+      if (getCurrentDepartmentId(user) !== departmentId) {
+        setFeedback('The workspace changed while checking. Reopen the exercise in the selected department.');
+        return;
+      }
       if (!validPracticeTask(saved, departmentId) || String(saved.title) !== String(task.title)) {
         setFeedback('This task is no longer accessible or its details changed. Start a new investigation.');
         return;
