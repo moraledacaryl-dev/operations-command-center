@@ -8,7 +8,7 @@
 - Exactly 20 randomized fictional accounts are generated at **first launch** on the local device. Neither passwords nor a seeded database are shipped inside the installer.
 - Fictional guest, task, project, shift, approval, and request data is independently seeded on each Windows computer. Desktop training never reads the live Operations PostgreSQL database.
 - Trainer credentials are at `%LOCALAPPDATA%\HiddenOasis\OperationsTraining\private\accounts\PRIVATE_training_accounts.json`. The shortcut's **Trainer accounts** button can open that file. Give staff only the demo credentials intended for their role.
-- Practice records persist after stopping and restarting the desktop launcher and across program updates. **Uninstall does not delete practice records.**
+- Practice records persist after stopping and restarting the desktop launcher and across program updates. The trainer-only credentials guide is regenerated from the existing private roster if needed; it does not reset passwords. **Uninstall does not delete practice records.**
 - Uses localhost only (`127.0.0.1:3401` web UI and `127.0.0.1:8401` backend). Does not expose training on LAN or the Internet.
 - Independent randomly generated session/integration keys; no production credentials or connections.
 
