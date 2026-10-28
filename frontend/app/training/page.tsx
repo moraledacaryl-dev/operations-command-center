@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/session';
+import { TrainingRecordLookup } from '@/components/TrainingRecordLookup';
 import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import {
@@ -247,6 +248,8 @@ export default function PracticeTrainingPage() {
         <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount && !verifiedCount}>Export my results (CSV)</button>
       </div>
     </header>
+
+    <TrainingRecordLookup user={user} />
 
     <div className="practice-layout">
       <aside className="practice-catalog" aria-label="Choose a training scenario">
