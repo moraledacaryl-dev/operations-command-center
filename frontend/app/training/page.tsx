@@ -271,8 +271,10 @@ export default function PracticeTrainingPage() {
       </div>
     </header>
 
-    <TrainingRecordLookup user={user} kind="task" />
-    <TrainingRecordLookup user={user} kind="handover" />
+    <div className="practice-observation-grid" aria-label="Staff practical record-reading exercises">
+      <TrainingRecordLookup user={user} kind="task" />
+      <TrainingRecordLookup user={user} kind="handover" />
+    </div>
 
     <div className="practice-layout">
       <aside className="practice-catalog" aria-label="Choose a training scenario">
