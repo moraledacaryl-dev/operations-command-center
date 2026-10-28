@@ -142,7 +142,7 @@ jobs:
           set -euo pipefail
           ditto -c -k --keepParent "dist/Hidden Oasis Training.app" "dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip"
           PACKAGE="dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip"
-          shasum -a 256 "$PACKAGE" | sed 's|^\\([^ ]*\\)  dist/|\\1  |' > "$PACKAGE.sha256"
+          (cd dist && shasum -a 256 "Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip" > "Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip.sha256")
           cat "$PACKAGE.sha256"
           unzip -t "$PACKAGE" | tail -n 2
 
