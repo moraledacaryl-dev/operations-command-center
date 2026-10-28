@@ -159,6 +159,15 @@ jobs:
             if ($login.Content -notmatch 'TRAINING ONLY') { throw "Missing training-only warning" }
             $accounts = Get-Content (Join-Path $state 'private/accounts/PRIVATE_training_accounts.json') -Raw | ConvertFrom-Json
             if ($accounts.accounts.Count -ne 20) { throw "Fictional roster incorrect" }
+            $guidePath = Join-Path $state 'private/accounts/PRIVATE_TRAINER_ACCOUNTS.txt'
+            if (!(Test-Path $guidePath)) { throw "Readable trainer account guide missing" }
+            $guide = Get-Content $guidePath -Raw
+            if ($guide -notmatch 'TRAINER ONLY' -or $guide -notmatch 'FRONT DESK') { throw "Invalid trainer account guide" }
+            foreach ($account in $accounts.accounts) {
+              if (!$guide.Contains($account.email) -or !$guide.Contains($account.password)) {
+                throw "Trainer guide is missing a fictional account"
+              }
+            }
             foreach ($role in @('manager','staff')) {
               $email = if ($role -eq 'manager') {'manager@training.invalid'} else {'reception-am@training.invalid'}
               $account = $accounts.accounts | Where-Object { $_.email -eq $email }
