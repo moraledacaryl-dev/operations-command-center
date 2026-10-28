@@ -11,6 +11,8 @@ on:
       - 'frontend/lib/training-workflows.ts'
       - 'frontend/components/TrainingWorkflowCoach.tsx'
       - 'frontend/e2e/real-workflow-training.spec.ts'
+      - 'frontend/e2e/read-only-task-training.spec.ts'
+      - 'frontend/components/TrainingRecordLookup.tsx'
       - 'frontend/e2e/training-workflow-integrity.spec.ts'
       - 'frontend/app/guests/page.tsx'
       - 'frontend/app/shift/page.tsx'
@@ -77,7 +79,7 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Run guided tours, role-scoped scenarios and API-verified real workflows
-        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts e2e/real-workflow-training.spec.ts e2e/training-workflow-integrity.spec.ts --reporter=line
+        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts e2e/real-workflow-training.spec.ts e2e/training-workflow-integrity.spec.ts e2e/read-only-task-training.spec.ts --reporter=line
       - name: Publish guided walkthrough screenshots
         if: always()
         uses: actions/upload-artifact@v4
