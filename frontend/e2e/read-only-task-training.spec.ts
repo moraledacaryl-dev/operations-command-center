@@ -131,3 +131,60 @@ test('switching the selected department discards stale task details and restores
   });
   await expect(page.getByTestId('record-lookup-title')).toHaveText(first.title);
 });
+
+
+test('staff inspect saved shift handovers in the real interface and export read-only evidence', async ({ page }) => {
+  const handover = { id: 902, title: '[TRAINING] Night shift unresolved guest update',
+    department_id: 41, shift: 'Night', category: 'Guest', urgency: 'Urgent',
+    status: 'Follow', note: 'Fictional guest needs a callback from the receiving shift.' };
+  let detailReads = 0;
+  let writes = 0;
+  await page.addInitScript(account => {
+    localStorage.setItem('cc_user', JSON.stringify(account));
+    localStorage.setItem('cc_department_id', '41');
+  }, employee);
+  await page.context().route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname.replace(/^\/api/, '');
+    const respond = (value: unknown, code = 200) =>
+      route.fulfill({ status: code, contentType: 'application/json', body: JSON.stringify(value) });
+    if (route.request().method() !== 'GET') {
+      writes++;
+      return respond({ detail: 'Staff cannot write' }, 403);
+    }
+    if (path === '/shift-notes') return respond([handover]);
+    if (path === '/shift-notes/902') { detailReads++; return respond(handover); }
+    if (path === '/tasks') return respond([]);
+    return respond({ counts: {}, items: [], unread_count: 0 });
+  });
+  await page.goto('/training');
+  await expect(page.getByTestId('training-handover-lookup')).toBeVisible();
+  await page.getByTestId('handover-lookup-start').click();
+  await expect(page.getByTestId('handover-lookup-title')).toHaveText(handover.title);
+  const popup = page.waitForEvent('popup');
+  await page.getByRole('link', { name: 'Shift Handover in a separate tab' }).click();
+  const shiftTab = await popup;
+  await expect(shiftTab.getByText(handover.title).first()).toBeVisible();
+  await shiftTab.getByText(handover.title).first().click();
+  await expect(shiftTab.getByText('No handover transition is available for your role and this state.')).toBeVisible();
+  await shiftTab.close();
+
+  await page.getByTestId('handover-lookup-status').selectOption('Seen');
+  await page.getByTestId('handover-lookup-priority').selectOption('Normal');
+  await page.getByTestId('handover-lookup-check').click();
+  await expect(page.getByTestId('handover-lookup-feedback')).toContainText('do not match');
+  await page.getByTestId('handover-lookup-status').selectOption('Follow');
+  await page.getByTestId('handover-lookup-priority').selectOption('Urgent');
+  await page.getByTestId('handover-lookup-check').click();
+  await expect(page.getByTestId('handover-lookup-feedback')).toContainText('both answers match');
+  expect(detailReads).toBeGreaterThanOrEqual(2);
+  expect(writes).toBe(0);
+
+  const pending = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  const file = await (await pending).path();
+  const csv = readFileSync(file!, 'utf8');
+  expect(csv).toContain('"read-only-handover-inspection","handover-status-urgency","41"');
+  expect(csv).toContain('"902"');
+  await page.reload();
+  await expect(page.getByTestId('training-handover-lookup')).toContainText('Previously completed');
+});
