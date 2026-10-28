@@ -370,7 +370,10 @@ def ensure_notification_practice_data(db_path: Path, state: Path) -> int:
         # Require a fully synthetic, isolated population rather than relying
         # only on a file name that could be forged.
         all_emails = {row[0] for row in db.query(models.User.email).all()}
-        if all_emails != expected_emails:
+        if not expected_emails.issubset(all_emails) or any(
+            not isinstance(email, str) or not email.endswith("@training.invalid")
+            for email in all_emails
+        ):
             raise SystemExit("REFUSED: unexpected user identities in training notification database")
         users = {row.email: row for row in db.query(models.User).all()}
         for email, user in users.items():
