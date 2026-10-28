@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/session';
 import { TrainingRecordLookup } from '@/components/TrainingRecordLookup';
-import { readTaskInspections, TASK_INSPECTION_CHANGED } from '@/lib/training-observations';
-import type { TaskInspectionEvidence } from '@/lib/training-observations';
+import { readTrainingInspections, TASK_INSPECTION_CHANGED } from '@/lib/training-observations';
+import type { TrainingInspectionEvidence } from '@/lib/training-observations';
 import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import {
@@ -37,7 +37,7 @@ export default function PracticeTrainingPage() {
   const [showTip, setShowTip] = useState(false);
   const [ready, setReady] = useState(false);
   const [verifiedWorkflows, setVerifiedWorkflows] = useState<TrainingWorkflowResults>({});
-  const [taskInspections, setTaskInspections] = useState<TaskInspectionEvidence[]>([]);
+  const [recordInspections, setRecordInspections] = useState<TrainingInspectionEvidence[]>([]);
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [levelFilter, setLevelFilter] = useState('All');
@@ -82,7 +82,7 @@ export default function PracticeTrainingPage() {
 
   useEffect(() => {
     if (!user || process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return;
-    const refresh = () => setTaskInspections(readTaskInspections(user));
+    const refresh = () => setRecordInspections(readTrainingInspections(user));
     refresh();
     window.addEventListener(TASK_INSPECTION_CHANGED, refresh);
     window.addEventListener('storage', refresh);
@@ -215,9 +215,11 @@ export default function PracticeTrainingPage() {
         saved.completedAt, saved.attempts, saved.hints || 0, saved.mistakes || 0,
         Boolean(saved.firstTry), '', '', '']);
     }
-    for (const record of taskInspections) {
-      rows.push(['read-only-task-inspection', 'task-status-priority', String(record.departmentId), 1,
-        record.completedAt, '', '', '', '', record.taskId, '', 'status / priority (backend read)']);
+    for (const record of recordInspections) {
+      rows.push([record.kind === 'task' ? 'read-only-task-inspection' : 'read-only-handover-inspection',
+        record.kind === 'task' ? 'task-status-priority' : 'handover-status-urgency', String(record.departmentId), 1,
+        record.completedAt, '', '', '', '', record.recordId, '',
+        record.kind === 'task' ? 'status / priority (backend read)' : 'status / urgency (backend read)']);
     }
     for (const [kind, evidence] of Object.entries(verifiedWorkflows)) {
       if (!Object.prototype.hasOwnProperty.call(WORKFLOW_DEFINITIONS, kind) ||
@@ -264,12 +266,13 @@ export default function PracticeTrainingPage() {
         <small>{percent}% of your available practice cases</small>
         <small>{totalErrors} corrections recorded in completed cases</small>
         <small>{verifiedCount} real-workflow practice exercise{verifiedCount === 1 ? '' : 's'} verified</small>
-        <small>{taskInspections.length} read-only task investigation{taskInspections.length === 1 ? '' : 's'} completed</small>
-        <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount && !verifiedCount && !taskInspections.length}>Export my results (CSV)</button>
+        <small>{recordInspections.length} read-only record investigation{recordInspections.length === 1 ? '' : 's'} completed</small>
+        <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount && !verifiedCount && !recordInspections.length}>Export my results (CSV)</button>
       </div>
     </header>
 
-    <TrainingRecordLookup user={user} />
+    <TrainingRecordLookup user={user} kind="task" />
+    <TrainingRecordLookup user={user} kind="handover" />
 
     <div className="practice-layout">
       <aside className="practice-catalog" aria-label="Choose a training scenario">
