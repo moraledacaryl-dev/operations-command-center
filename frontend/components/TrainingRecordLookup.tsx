@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId } from '@/lib/session';
-import { TASK_INSPECTION_CHANGED, taskInspectionKey } from '@/lib/training-observations';
+import { TASK_INSPECTION_CHANGED, taskInspectionKey, readTaskInspections } from '@/lib/training-observations';
 
 /**
  * Read-only operational-record literacy drill. All staff, including those
@@ -47,11 +47,8 @@ export function TrainingRecordLookup({ user }: { user: Entity }) {
       const storageKey = taskInspectionKey(user, dept);
       const sessionKey = storageKey + ':task';
       try {
-        const previous = localStorage.getItem(storageKey);
-        if (previous) {
-          const decoded = JSON.parse(previous);
-          if (decoded && typeof decoded.completedAt === 'string') setCompletedAt(decoded.completedAt);
-        }
+        const previous = readTaskInspections(user).find(row => row.departmentId === dept);
+        if (previous) setCompletedAt(previous.completedAt);
         const priorId = Number(sessionStorage.getItem(sessionKey));
         if (Number.isSafeInteger(priorId) && priorId > 0) {
           // Reject late GETs from a previously selected department.
