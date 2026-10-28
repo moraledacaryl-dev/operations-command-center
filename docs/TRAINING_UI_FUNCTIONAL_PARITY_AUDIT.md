@@ -13,7 +13,7 @@
 | Maintenance | Actual Fix workflow Open → Working → Done → Verified | Verified status + source/link readback; transactional SQLite real service tests | **Final Verify is Manager/Owner (make_decisions), not a Lead/Supervisor action** |
 | Requests | Actual Draft → Review backend | Checks linked source Approval with Pending status and correct department | Training stops before authorized Approval decision/planning |
 | Guest ↔ Fix | Reciprocal canonical links and auto-closure match backend | Real SQLite test creates linked fix, starts, finishes, verifies; UI trainer expects guest **Done** after verification | Current Guest UI creates Fix in **same guest department**; does not automatically transfer to Maintenance |
-| Staff | Same permission-backed module visibility | Read-only tours and scenario assessments | Ordinary staff do not have authority to write work items; do not grant fictitious production permissions |
+| Staff | Same permission-backed module visibility | Read-only tours, 117 situation assessments, and authenticated task inspection: find a fictional task in the real Tasks screen, enter its status/priority, verify both against a fresh scoped backend read | Ordinary staff still cannot create/edit/transition records; inspection is learning evidence, not proof of opening a card or a signed certification |
 | 117 situation cards | Fictional problem-solving and text/decision rubric | Choice, notes, owner and follow-up validation | Only six cards have complete saved-record workflow checkpoints; scenario text checks are not proof of real execution |
 
 ## Important parity corrections
@@ -22,6 +22,12 @@
 2. The backend requires `make_decisions` to verify. Full maintenance verification exercises now require that permission before starting and resuming; Leads/Supervisors may still use their authorized training tours.
 3. `submit_request()` creates a source-linked `Approval(status=Pending)` scoped to the same department. The training checker now verifies this related record, not just `Request.status=Review`.
 4. A linked Fix inherits the guest's department through the current Guest Matters button; only authorized callers using the underlying API and appropriate memberships may explicitly target another department. **Do not describe same-department linkage as a completed cross-department handoff.**
+
+## Staff-safe authenticated record investigation
+
+- A new training-only exercise is visible to ordinary staff and supervisory roles. It chooses a fictional task from the trainee's **current authorized department**, asks the trainee to inspect it using the actual Tasks screen, and checks the reported **status and priority** using a fresh authenticated backend GET. It never writes or changes the task.
+- A wrong answer does not earn completion. The backend still denies staff edits and cross-department reads; the SQLite service permission test covers that invariant. The browser test proves the drill does not submit any write request.
+- The exercise remembers its task across navigation and retains a local completion timestamp. This is **read-only record literacy**, not a seventh saved-record mutation workflow, and does not prove that a card was clicked in the UI.
 
 ## Evidence and acceptance gates
 
