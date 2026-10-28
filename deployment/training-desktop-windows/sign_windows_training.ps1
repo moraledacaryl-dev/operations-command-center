@@ -19,7 +19,7 @@ foreach ($key in @('WINDOWS_CODESIGN_PFX_BASE64', 'WINDOWS_CODESIGN_PFX_PASSWORD
         throw "REFUSED: missing Windows signing credential $key (configure the protected training-distribution environment)."
     }
 }
-$thumbprint = ($env:WINDOWS_CODESIGN_THUMBPRINT -replace '\\s', '').ToUpperInvariant()
+$thumbprint = ($env:WINDOWS_CODESIGN_THUMBPRINT -replace '\s', '').ToUpperInvariant()
 if ($thumbprint -notmatch '^[0-9A-F]{40}$') {
     throw 'REFUSED: expected a 40-character SHA-1 certificate thumbprint.'
 }
@@ -75,7 +75,7 @@ try {
     [Array]::Clear($bytes, 0, $bytes.Length)
     $pass = ConvertTo-SecureString -String $env:WINDOWS_CODESIGN_PFX_PASSWORD -AsPlainText -Force
     $imported = @(Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pass -ErrorAction Stop)
-    if (-not ($imported | Where-Object { ($_.Thumbprint -replace '\\s', '').ToUpperInvariant() -eq $thumbprint -and $_.HasPrivateKey })) {
+    if (-not ($imported | Where-Object { ($_.Thumbprint -replace '\s', '').ToUpperInvariant() -eq $thumbprint -and $_.HasPrivateKey })) {
         throw 'REFUSED: the imported Windows code-signing certificate does not match the approved thumbprint/private key.'
     }
     # Sign the two locally generated entry points. Keep trusted third-party
@@ -85,7 +85,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "REFUSED: Authenticode signing failed for $(Split-Path $file -Leaf)." }
         $signature = Get-AuthenticodeSignature -FilePath $file
         if ($signature.Status -ne 'Valid' -or
-            ($signature.SignerCertificate.Thumbprint -replace '\\s', '').ToUpperInvariant() -ne $thumbprint -or
+            ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant() -ne $thumbprint -or
             -not $signature.TimeStamperCertificate) {
             throw "REFUSED: Windows runtime signing or timestamp verification failed for $(Split-Path $file -Leaf)."
         }
@@ -115,7 +115,7 @@ try {
     if (-not (Test-Path $output -PathType Leaf)) { throw 'REFUSED: signed installer output not produced.' }
     $signed = Get-AuthenticodeSignature -FilePath $output
     if ($signed.Status -ne 'Valid' -or
-        ($signed.SignerCertificate.Thumbprint -replace '\\s', '').ToUpperInvariant() -ne $thumbprint -or
+        ($signed.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant() -ne $thumbprint -or
         -not $signed.TimeStamperCertificate) {
         throw 'REFUSED: Windows setup Authenticode signature, identity or RFC3161 timestamp is invalid.'
     }
@@ -126,7 +126,7 @@ try {
 } finally {
     if (Test-Path $pfx) { Remove-Item -LiteralPath $pfx -Force }
     foreach ($cert in $imported) {
-        if (($cert.Thumbprint -replace '\\s', '').ToUpperInvariant() -eq $thumbprint) {
+        if (($cert.Thumbprint -replace '\s', '').ToUpperInvariant() -eq $thumbprint) {
             Remove-Item -LiteralPath ('Cert:\CurrentUser\My\' + $cert.Thumbprint) -Force -ErrorAction SilentlyContinue
         }
     }
