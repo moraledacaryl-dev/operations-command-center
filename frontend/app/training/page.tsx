@@ -91,6 +91,10 @@ export default function PracticeTrainingPage() {
   const percent = scenarios.length ? Math.round(completedCount / scenarios.length * 100) : 0;
   const trainer = ['owner', 'admin', 'manager'].includes(String(user?.role || '').toLowerCase());
   const canCreateRecords = hasCapability(user, 'manage_department');
+  // The real Fix verification endpoint requires decision authority.
+  const canRunWorkflow = (kind: TrainingWorkflowKind) =>
+    canCreateRecords && (!['mt-light-fault', 'fd-broken-shower'].includes(kind) ||
+      hasCapability(user, 'make_decisions'));
   const workflowKind: TrainingWorkflowKind | null =
     selected?.id === 'guest-ac' || selected?.id === 'shared-no-owner' ||
     selected?.id === 'shift-unresolved' || selected?.id === 'mt-light-fault' ||
@@ -154,7 +158,7 @@ export default function PracticeTrainingPage() {
   }
   function startWorkflow(kind: TrainingWorkflowKind) {
     // A normal staff identity must never get management privileges to satisfy a lesson.
-    if (!user || !canCreateRecords || selected?.id !== kind) return;
+    if (!user || !canRunWorkflow(kind) || selected?.id !== kind) return;
     const session: TrainingWorkflowSession = {
       kind,
       ownerId: workflowOwnerId(user),
@@ -310,13 +314,15 @@ export default function PracticeTrainingPage() {
             ? <p className="practice-real-workflow-verified" role="status">
               ✓ Workflow verified on {new Date(verifiedWorkflows[workflowKind]?.completedAt || '').toLocaleDateString('en-PH')}. You can repeat it.
             </p> : null}
-          {canCreateRecords
+          {canRunWorkflow(workflowKind)
             ? <button type="button" className="practice-primary" data-testid="start-real-workflow"
                 onClick={() => startWorkflow(workflowKind)}>
                 {verifiedWorkflows[workflowKind] ? 'Repeat actual workflow practice' : 'Start actual workflow practice'}</button>
             : <p className="practice-real-workflow-restricted">
                 This fictional account can read and respond to scenarios, but cannot create operational records.
-                An assigned supervisor/manager training account is required for this workflow. Your role permissions will not be bypassed.
+                {['mt-light-fault', 'fd-broken-shower'].includes(workflowKind)
+                  ? 'The final verification requires a Manager/Owner account with decision authority. Supervisors and Leads can still practise reporting and handover lessons.'
+                  : 'A Supervisor, Lead, or Manager training account with department-edit authority is required. Your role permissions will not be bypassed.'}
               </p>}
         </section>}
         <div className="practice-case">
