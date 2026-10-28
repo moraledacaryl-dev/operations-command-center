@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { getCurrentDepartmentId } from '@/lib/session';
+import { TASK_INSPECTION_CHANGED, taskInspectionKey } from '@/lib/training-observations';
 
 /**
  * Read-only operational-record literacy drill. All staff, including those
@@ -35,8 +36,7 @@ export function TrainingRecordLookup({ user }: { user: Entity }) {
     const dept = getCurrentDepartmentId(user);
     setDepartmentId(dept);
     if (!dept) return;
-    const identity = String(user.id || user.email);
-    const storageKey = 'ho-ops-task-inspection-v1:' + identity + ':' + dept;
+    const storageKey = taskInspectionKey(user, dept);
     const sessionKey = storageKey + ':task';
     try {
       const previous = localStorage.getItem(storageKey);
@@ -57,8 +57,7 @@ export function TrainingRecordLookup({ user }: { user: Entity }) {
 
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return null;
 
-  const identity = String(user.id || user.email);
-  const key = 'ho-ops-task-inspection-v1:' + identity + ':' + departmentId;
+  const key = taskInspectionKey(user, departmentId || 0);
 
   async function start() {
     if (!departmentId || busy) return;
@@ -102,7 +101,10 @@ export function TrainingRecordLookup({ user }: { user: Entity }) {
       const now = new Date().toISOString();
       setCompletedAt(now);
       setFeedback('Correct: both answers match the actual saved fictional task. You inspected operational data without changing it.');
-      try { localStorage.setItem(key, JSON.stringify({ completedAt: now, taskId: saved.id })); } catch { /* progress stays visible in session */ }
+      try {
+        localStorage.setItem(key, JSON.stringify({ completedAt: now, taskId: saved.id }));
+        window.dispatchEvent(new Event(TASK_INSPECTION_CHANGED));
+      } catch { /* progress stays visible in session */ }
     } catch {
       setFeedback('Verification could not reach the local training database. Retry after confirming the service is running.');
     } finally {
