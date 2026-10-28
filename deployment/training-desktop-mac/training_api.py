@@ -52,6 +52,7 @@ def refresh_fictional_notices(path: Path, state: Path) -> None:
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     count = module.ensure_notification_practice_data(path, state)
+    module.ensure_private_trainer_guide(state / "private" / "accounts")
     print(f"PASS: fictional per-user notification drills ready ({count} newly added)", flush=True)
 
 
