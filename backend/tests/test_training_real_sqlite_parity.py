@@ -261,3 +261,42 @@ def test_staff_can_read_and_acknowledge_only_their_own_fictional_notification(tr
     with pytest.raises(HTTPException) as denied:
         mark_read(another.id, user=staff, db=db)
     assert denied.value.status_code == 404
+
+
+def test_staff_can_inspect_only_authorized_guest_and_fix_records(training_database):
+    db, front, maintenance, _, _, _, staff, _ = training_database
+    from app.authorization_policy import scope_query
+
+    guest = models.GuestNote(
+        title="[TRAINING] Guest AC concern",
+        department_id=front.id, status="Follow",
+        issue_type="Room", urgency="Urgent",
+        note="Fictional room needs inspection and guest update",
+    )
+    fix = models.Fix(
+        title="[TRAINING] Maintenance light inspection",
+        department_id=maintenance.id, status="Working",
+        urgency="High", problem="Fictional wiring problem",
+    )
+    db.add_all([guest, fix])
+    db.commit()
+    authorize_action(db, staff, "guests", Action.VIEW, obj=guest)
+    assert guest in scope_query(db, staff, models.GuestNote, db.query(models.GuestNote)).all()
+    assert fix not in scope_query(db, staff, models.Fix, db.query(models.Fix)).all()
+    for resource, action, item in (
+        ("guests", Action.EDIT, guest),
+        ("fixes", Action.VIEW, fix),
+    ):
+        with pytest.raises(HTTPException) as denied:
+            authorize_action(db, staff, resource, action, obj=item)
+        assert denied.value.status_code == 403
+
+    db.add(models.UserDepartment(
+        user_id=staff.id, department_id=maintenance.id, is_primary=False,
+    ))
+    db.commit()
+    authorize_action(db, staff, "fixes", Action.VIEW, obj=fix)
+    assert fix in scope_query(db, staff, models.Fix, db.query(models.Fix)).all()
+    with pytest.raises(HTTPException) as denied:
+        authorize_action(db, staff, "fixes", Action.EDIT, obj=fix)
+    assert denied.value.status_code == 403
