@@ -284,6 +284,40 @@ jobs:
           ./deployment/training-desktop-windows/sign_windows_training.ps1 `
             -PayloadDir dist/desktop `
             -InstallerScript deployment/training-desktop-windows/installer.iss
+      - name: Install, verify signed uninstaller and uninstall on isolated Windows runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Resolve-Path 'dist/installer/Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe').Path
+          $install = Join-Path $env:RUNNER_TEMP 'HiddenOasisTrainingSignedInstall'
+          if (Test-Path $install) { throw 'Refusing to overwrite an existing installation folder' }
+          $signature = Get-AuthenticodeSignature -FilePath $setup
+          if ($signature.Status -ne 'Valid' -or -not $signature.TimeStamperCertificate) {
+            throw 'Protected Windows setup is not signed and timestamped'
+          }
+          $setupProcess = Start-Process -FilePath $setup -PassThru -Wait -NoNewWindow -ArgumentList @(
+            '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',("/DIR=" + $install)
+          )
+          if ($setupProcess.ExitCode -ne 0) { throw "Signed Windows silent install failed with exit $($setupProcess.ExitCode)" }
+          foreach ($relative in @('HiddenOasisTraining.exe','backend/training-api/training-api.exe','frontend/standalone/server.js')) {
+            if (!(Test-Path (Join-Path $install $relative))) { throw "Signed installer omitted $relative" }
+          }
+          $uninstaller = @(Get-ChildItem -Path $install -File -Filter 'unins*.exe')
+          if ($uninstaller.Count -ne 1) { throw 'Signed Inno uninstaller was not installed' }
+          $uninstallerSignature = Get-AuthenticodeSignature -FilePath $uninstaller[0].FullName
+          if ($uninstallerSignature.Status -ne 'Valid' -or
+              $uninstallerSignature.SignerCertificate.Thumbprint -ne $signature.SignerCertificate.Thumbprint -or
+              -not $uninstallerSignature.TimeStamperCertificate) {
+            throw 'Installed training uninstaller has an invalid publisher signature or timestamp'
+          }
+          $uninstall = Start-Process -FilePath $uninstaller[0].FullName -PassThru -Wait -NoNewWindow -ArgumentList @(
+            '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART'
+          )
+          if ($uninstall.ExitCode -ne 0) { throw "Signed Windows uninstaller failed with exit $($uninstall.ExitCode)" }
+          if (Test-Path (Join-Path $install 'HiddenOasisTraining.exe')) {
+            throw 'Signed Windows uninstall left the executable installed'
+          }
+          Write-Host 'PASS: signed installer, runtime files and Authenticode-signed uninstaller work without developer tools'
       - uses: actions/upload-artifact@v4
         with:
           name: Hidden-Oasis-Operations-Training-Windows-SIGNED-Installer
