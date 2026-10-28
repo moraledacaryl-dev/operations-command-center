@@ -104,6 +104,11 @@ async function prepare(page: Page) {
         record.status = 'Done';
       } else if (action[1] === 'fixes' && action[3] === 'verify') {
         record.status = 'Verified';
+        // Mirror the real backend: verified linked fixes atomically close the guest.
+        if (record.linked_guest_note_id) {
+          const linkedGuest = database.guests.find(g => g.id === record.linked_guest_note_id);
+          if (linkedGuest) linkedGuest.status = 'Done';
+        }
       } else if (action[1] === 'requests' && action[3] === 'submit-approval') {
         record.status = 'Review';
       } else return respond({ detail: 'Unsupported state transition' }, 409);
@@ -347,7 +352,7 @@ test('real linked Guest-to-Maintenance handoff requires both reciprocal links an
   await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
-  expect(database.guests[0].status).toBe('Follow');
+  expect(database.guests[0].status).toBe('Done');
   expect(database.fixes[0].status).toBe('Verified');
   const result = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('ho-ops-workflow-results-v1:9701') || '{}'));
