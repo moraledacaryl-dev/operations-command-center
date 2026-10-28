@@ -29,6 +29,14 @@
 - A wrong answer does not earn completion. The backend still denies staff edits and cross-department reads for both Tasks and Shift Handover; separate SQLite service permission tests cover these invariants. The browser test proves the drill does not submit any write request.
 - The exercise remembers its task across navigation, resets safely when the workspace department changes, and retains a local completion timestamp. Completed task/handover inspection rows appear in the same export as scenario and saved-record exercises, with separate **read-only-task-inspection** and **read-only-handover-inspection** record types. This is **read-only record literacy**, not a seventh saved-record mutation workflow, and does not certify that the trainee actually clicked the card; the UI test explicitly opens the real Tasks page.
 
+## Staff-scope notification actions and upgrade preservation
+
+- Every first-time fictional training account now receives **two personal unread notices** (`training_practice_read`) without a cross-department source reference. The earlier 12 arbitrary source-linked notifications could be hidden from their recipients by correct source authorization checks. The new samples retain normal privacy boundaries: only the recipient may see or mark each one read.
+- The real Notifications page's **Mark read** action is the first deliberate staff-permitted saved-state exercise: the trainee must locate the exact notice, mark it read, and have the guide confirm its current `read_at` through an authenticated local API GET. The notice remains readable; the lesson explicitly distinguishes acknowledgement from approval or completion of underlying work.
+- Startup on **Mac and Windows** idempotently ensures missing fictional notice drills exist in an already initialized local training installation, without deleting the SQLite database, changing credentials, or wiping completed exercises. The repair is restricted to this launcher-validated local training directory, a private fictional roster, and training-only user identities.
+- The report exports this evidence as `staff-notification-read`, separate from read-only record investigation and the six manager/lead workflow exercises. This is still **device-local learning evidence**, not an identity-attested certification.
+- Automated gates: a browser test uses the real Notifications UI controls and API reads; the packaged Mac and Windows backend smoke calls authenticated read/write/read-back as a staff account; Mac tests reinitialize after removing one synthetic sample to verify idempotent recovery; a SQLite permission test denies another employee's alert and hides cross-department linked source data.
+
 ## Evidence and acceptance gates
 
 - Existing `frontend/e2e/real-workflow-training.spec.ts` exercises the actual UI components with a mocked API (fast UI regression). It is **not sufficient by itself** to establish backend parity.
