@@ -14,6 +14,7 @@ from app.services.guest_workflow import create_fix_from_guest
 from app.services.fix_workflow import start_fix, finish_fix, verify_fix
 from app.services.request_workflow import submit_request
 from app.services.operational_workflow import transition_operational
+from app.authorization_policy import authorize_action, Action
 
 
 @pytest.fixture()
@@ -167,3 +168,26 @@ def test_real_shift_and_task_transitions_respect_saved_states(training_database)
     assert transition_operational(db, lead, "tasks", task.id, "start").status == "Doing"
     assert transition_operational(db, lead, "tasks", task.id, "submit-review").status == "Review"
     assert transition_operational(db, manager, "shift-notes", handover.id, "follow-up-new").status == "Follow"
+
+
+def test_staff_can_read_their_department_task_but_cannot_modify_it(training_database):
+    db, front, maintenance, _, _, _, staff, _ = training_database
+    own = models.Task(title="[TRAINING] Fictional room inspection",
+                      department_id=front.id, status="To Do", priority="High")
+    other = models.Task(title="[TRAINING] Fictional restricted maintenance",
+                        department_id=maintenance.id, status="Review", priority="Urgent")
+    db.add_all([own, other])
+    db.commit()
+
+    # The practical reading drill must work using a real staff account, not
+    # elevated trainer credentials or a fake API response.
+    authorize_action(db, staff, "tasks", Action.VIEW, obj=own)
+    from app.authorization_policy import scope_query
+    visible = scope_query(db, staff, models.Task, db.query(models.Task)).all()
+    assert own in visible and other not in visible
+    with pytest.raises(HTTPException) as denied:
+        authorize_action(db, staff, "tasks", Action.VIEW, obj=other)
+    assert denied.value.status_code == 403
+    with pytest.raises(HTTPException) as denied:
+        authorize_action(db, staff, "tasks", Action.EDIT, obj=own)
+    assert denied.value.status_code == 403
