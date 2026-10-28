@@ -93,6 +93,22 @@ def exercise_real_local_workflows(base: str, roster: dict) -> None:
     guest_id = int(guest["id"])
     staff = accounts["reception-am@training.invalid"]
     _, staff_cookie = login_with_cookie(base, staff["email"], staff["password"])
+    notices = actual_api(base, "/notifications?limit=100", staff_cookie)
+    candidate = next((
+        item for item in notices["items"]
+        if item.get("kind") == "training_practice_read"
+        and item.get("title", "").startswith("[TRAINING] Daily notice practice")
+        and not item.get("read_at")
+    ), None)
+    assert candidate is not None, "Staff should see their own unread fictional training notice"
+    before_unread = int(notices["unread_count"])
+    read = actual_api(base, f"/notifications/{candidate['id']}/read", staff_cookie, {})
+    assert read.get("read_at"), "Staff must be able to acknowledge their own notification"
+    updated = actual_api(base, "/notifications?limit=100", staff_cookie)
+    saved = next((row for row in updated["items"] if row["id"] == candidate["id"]), None)
+    assert saved is not None and saved.get("read_at"), "Read status must persist in the packaged backend"
+    assert int(updated["unread_count"]) == before_unread - 1, "Unread count must update"
+    print("PASS: ordinary staff can read and acknowledge a persisted, personally scoped notice")
     try:
         actual_api(base, f"/workflow/guests/{guest_id}/create-fix", staff_cookie, {
             "department_id": front_id, "note": "Unauthorized fictional repair request",
