@@ -44,7 +44,9 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   useEffect(() => { setMessage(''); }, [path, session?.reference, session?.step]);
 
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true' ||
-    !session || !hasCapability(user, 'manage_department')) return null;
+    !session || !hasCapability(user, 'manage_department') ||
+    (['mt-light-fault', 'fd-broken-shower'].includes(session.kind) &&
+      !hasCapability(user, 'make_decisions'))) return null;
 
   const definition = WORKFLOW_DEFINITIONS[session.kind];
   const finished = session.step >= definition.stages.length;
