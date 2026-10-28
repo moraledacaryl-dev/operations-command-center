@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from http.cookies import SimpleCookie
 import os
 from pathlib import Path
 import subprocess
@@ -40,6 +41,98 @@ def login(base: str, email: str, password: str) -> dict:
         if response.status != 200:
             raise RuntimeError(f"Demo login HTTP {response.status}")
         return json.load(response)
+
+
+
+def login_with_cookie(base: str, email: str, password: str) -> tuple[dict, str]:
+    """Exercise the actual HTTP-only local cookie session (not a browser mock)."""
+    request = urllib.request.Request(
+        base + "/api/auth/login",
+        data=json.dumps({"email": email, "password": password}).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=12) as response:
+        payload = json.load(response)
+        cookies = SimpleCookie()
+        cookies.load(response.headers.get("Set-Cookie") or "")
+        token = cookies.get("operations_session")
+        assert token is not None and token.value, "Local login did not issue its secure session cookie"
+        assert "token" not in payload, "Session bearer leaked into browser response JSON"
+        return payload, f"operations_session={token.value}"
+
+
+def actual_api(base: str, path: str, cookie: str, data: dict | None = None) -> dict:
+    headers = {"Cookie": cookie, "Origin": base, "Accept": "application/json"}
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(
+        base + "/api" + path,
+        data=json.dumps(data).encode() if data is not None else None,
+        headers=headers,
+        method="POST" if data is not None else "GET",
+    )
+    with urllib.request.urlopen(request, timeout=15) as response:
+        assert 200 <= response.status < 300, f"{path}: HTTP {response.status}"
+        return json.load(response)
+
+
+def exercise_real_local_workflows(base: str, roster: dict) -> None:
+    """Smoke the packaged backend with actual authenticated HTTP and SQLite."""
+    accounts = {row["email"]: row for row in roster["accounts"]}
+    manager = accounts["manager@training.invalid"]
+    actor, manager_cookie = login_with_cookie(base, manager["email"], manager["password"])
+    front = next(dept for dept in actor["departments"] if dept["name"] == "Front Desk")
+    front_id = int(front["id"])
+    guest = actual_api(base, "/guests", manager_cookie, {
+        "title": "TRAINING SMOKE Room 210 shower no hot water TRN-LINK-MACSMOKE",
+        "department_id": front_id, "status": "Open",
+        "issue_type": "Room", "urgency": "High",
+        "note": "Shower cold. Maintenance inspection then Front Desk guest callback.",
+    })
+    guest_id = int(guest["id"])
+    staff = accounts["reception-am@training.invalid"]
+    _, staff_cookie = login_with_cookie(base, staff["email"], staff["password"])
+    try:
+        actual_api(base, f"/workflow/guests/{guest_id}/create-fix", staff_cookie, {
+            "department_id": front_id, "note": "Unauthorized fictional repair request",
+        })
+    except urllib.error.HTTPError as error:
+        assert error.code == 403, f"Staff should be denied, got {error.code}"
+    else:
+        raise AssertionError("Staff unexpectedly created a protected Fix")
+
+    result = actual_api(base, f"/workflow/guests/{guest_id}/create-fix", manager_cookie, {
+        "department_id": front_id, "note": "Fictional shower inspection and repair",
+    })
+    fix_id = int(result["fix"]["id"])
+    assert result["guest"]["status"] == "Follow"
+    assert result["guest"]["linked_fix_id"] == fix_id
+    assert result["fix"]["linked_guest_note_id"] == guest_id
+    assert result["fix"]["department_id"] == front_id
+    for action, expected in (("start", "Working"), ("done", "Done"),
+                             ("verify", "Verified")):
+        payload = {"note": "Fictional water supply and temperature verified"} if action == "verify" else {}
+        fixed = actual_api(base, f"/workflow/fixes/{fix_id}/{action}", manager_cookie, payload)
+        assert fixed["status"] == expected, (action, fixed)
+    closed_guest = actual_api(base, f"/guests/{guest_id}", manager_cookie)
+    assert closed_guest["status"] == "Done", "Real backend must close linked Guest on Fix verification"
+    assert closed_guest["linked_fix_id"] == fix_id
+
+    req = actual_api(base, "/requests", manager_cookie, {
+        "title": "Training equipment request TRN-REQ-MACSMOKE",
+        "department_id": front_id, "request_type": "Equipment",
+        "urgency": "Urgent",
+        "reason": "Necessary for service; budget cost PHP 12000, quotation pending.",
+    })
+    submitted = actual_api(base, f"/workflow/requests/{req['id']}/submit-approval", manager_cookie, {})
+    approval = submitted["approval"]
+    assert submitted["request"]["status"] == "Review"
+    assert approval["status"] == "Pending"
+    assert approval["source_type"] == "ops_need"
+    assert approval["source_id"] == req["id"]
+    assert approval["department_id"] == front_id
+    print("PASS: packaged local HTTP, cookie session, staff 403, reciprocal Guest↔Fix, auto-close and linked Pending Approval")
 
 
 def main() -> None:
@@ -101,6 +194,7 @@ def main() -> None:
                         account = next(row for row in roster["accounts"] if row["email"] == email)
                         result = login("http://127.0.0.1:3401", email, account["password"])
                         assert result["role"] == role, (email, result.get("role"))
+                    exercise_real_local_workflows("http://127.0.0.1:3401", roster)
                     print("PASS: native Mac app bundle, synthetic SQLite + 20 demo accounts, real manager/staff logins")
                 finally:
                     for p in (ui, api):
