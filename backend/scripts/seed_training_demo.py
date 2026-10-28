@@ -393,11 +393,17 @@ def ensure_private_trainer_guide(private_dir: Path) -> Path:
             "",
         ])
     lines.extend(["Keep this file in the trainer's private application-data folder.", ""])
+    rendered = "\n".join(lines)
+    if guide.is_file() and guide.read_text(encoding="utf-8") == rendered:
+        # Windows Notepad may hold the file open. Do not replace it on every
+        # restart when the randomized roster has not changed.
+        guide.chmod(0o600)
+        return guide
     tmp = private_dir / ("." + guide.name + "." + secrets.token_hex(8) + ".tmp")
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            stream.write("\n".join(lines))
+            stream.write(rendered)
         if guide.is_symlink():
             raise SystemExit("REFUSED: private trainer guide target changed")
         os.replace(tmp, guide)
