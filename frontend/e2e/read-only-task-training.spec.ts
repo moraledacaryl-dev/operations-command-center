@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 const employee = {
@@ -56,6 +57,14 @@ test('ordinary staff inspect an actual saved fictional task without mutation per
   await expect(page.getByTestId('record-lookup-feedback')).toContainText('both answers match');
   expect(detailReads).toBeGreaterThanOrEqual(2);
   expect(writes).toBe(0);
+  const downloadPending = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  const exported = await downloadPending;
+  const file = await exported.path();
+  expect(file).toBeTruthy();
+  const csv = readFileSync(file!, 'utf8');
+  expect(csv).toContain('"read-only-task-inspection","task-status-priority","41"');
+  expect(csv).toContain('"501"');
 
   await page.reload();
   await expect(page.getByTestId('training-record-lookup')).toContainText('Previously completed');
