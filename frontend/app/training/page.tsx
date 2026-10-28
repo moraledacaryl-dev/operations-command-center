@@ -236,8 +236,13 @@ export default function PracticeTrainingPage() {
         '', 'saved read_at (backend read)']);
     }
     for (const record of recordInspections) {
-      rows.push([record.kind === 'task' ? 'read-only-task-inspection' : 'read-only-handover-inspection',
-        record.kind === 'task' ? 'task-status-priority' : 'handover-status-urgency', String(record.departmentId), 1,
+      const category = {
+        task: ['read-only-task-inspection', 'task-status-priority'],
+        handover: ['read-only-handover-inspection', 'handover-status-urgency'],
+        guest: ['read-only-guest-inspection', 'guest-status-urgency'],
+        fix: ['read-only-fix-inspection', 'fix-status-urgency'],
+      }[record.kind];
+      rows.push([category[0], category[1], String(record.departmentId), 1,
         record.completedAt, '', '', '', '', record.recordId, '',
         record.kind === 'task' ? 'status / priority (backend read)' : 'status / urgency (backend read)']);
     }
@@ -295,6 +300,8 @@ export default function PracticeTrainingPage() {
     <div className="practice-observation-grid" aria-label="Staff practical record-reading exercises">
       <TrainingRecordLookup user={user} kind="task" />
       <TrainingRecordLookup user={user} kind="handover" />
+      <TrainingRecordLookup user={user} kind="guest" />
+      <TrainingRecordLookup user={user} kind="fix" />
       <TrainingNotificationPractice user={user} />
     </div>
 
