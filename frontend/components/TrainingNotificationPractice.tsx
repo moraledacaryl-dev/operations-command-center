@@ -21,7 +21,7 @@ export function readNotificationTraining(user: Entity): NotificationTrainingEvid
     const item: unknown = JSON.parse(raw);
     if (!item || typeof item !== 'object') return null;
     const obj = item as Record<string, unknown>;
-    if (!Number.isSafeInteger(obj.notificationId) || Number(obj.notificationId) <= 0 ||
+    if (!Number.isSafeInteger(Number(obj.notificationId)) || Number(obj.notificationId) <= 0 ||
       typeof obj.completedAt !== 'string' || !Number.isFinite(Date.parse(obj.completedAt))) return null;
     return { notificationId: Number(obj.notificationId), completedAt: obj.completedAt };
   } catch { return null; }
