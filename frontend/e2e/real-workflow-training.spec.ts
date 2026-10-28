@@ -403,6 +403,7 @@ test('actual Maintenance UI hides Verify/Reopen controls without decision permis
   await page.getByRole('button', { name: 'Close details' }).click();
   db.fixes[0].status = 'Verified';
   await page.reload();
+  await page.getByRole('tab', { name: 'All' }).click();
   await page.getByText('Fictional light test').first().click();
   await expect(page.getByRole('button', { name: 'Reopen' })).toHaveCount(0);
 });
