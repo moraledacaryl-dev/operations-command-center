@@ -231,6 +231,47 @@ jobs:
           if ($setup.Count -ne 1) { throw "Expected one Windows installer" }
           Get-FileHash $setup[0].FullName -Algorithm SHA256 | Format-List
 
+      - name: Install and uninstall actual unsigned Windows setup in a private test location
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Resolve-Path 'dist/installer/Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe').Path
+          $install = Join-Path $env:RUNNER_TEMP 'HiddenOasisUnsignedInstallTest'
+          if (Test-Path $install) { throw 'REFUSED: installer smoke cannot overwrite an existing app' }
+          $state = Join-Path $env:LOCALAPPDATA 'HiddenOasis/OperationsTraining'
+          New-Item -ItemType Directory -Force $state | Out-Null
+          $sentinel = Join-Path $state 'CI_DO_NOT_DELETE_TRAINING_DATA.txt'
+          if (Test-Path $sentinel) { throw 'REFUSED: installer smoke cannot reuse a prior user-state marker' }
+          Set-Content -LiteralPath $sentinel -Value 'local-training-state-must-survive-uninstall' -NoNewline -Encoding utf8
+          try {
+            $process = Start-Process -FilePath $setup -PassThru -Wait -NoNewWindow -ArgumentList @(
+              '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/DIR=`"$install`""
+            )
+            if ($process.ExitCode -ne 0) { throw "Unsigned setup failed: $($process.ExitCode)" }
+            foreach ($relative in @('HiddenOasisTraining.exe', 'backend/training-api/training-api.exe',
+                                    'runtime/node.exe', 'frontend/standalone/server.js')) {
+              if (!(Test-Path (Join-Path $install $relative) -PathType Leaf)) {
+                throw "Installed standalone app is missing $relative"
+              }
+            }
+            $uninstaller = @(Get-ChildItem -LiteralPath $install -Filter 'unins*.exe' -File)
+            if ($uninstaller.Count -ne 1) { throw 'Inno uninstaller not installed' }
+            $removed = Start-Process -FilePath $uninstaller[0].FullName -PassThru -Wait -NoNewWindow -ArgumentList @(
+              '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+            )
+            if ($removed.ExitCode -ne 0) { throw "Uninstall failed: $($removed.ExitCode)" }
+            if (Test-Path (Join-Path $install 'HiddenOasisTraining.exe')) {
+              throw 'Uninstaller did not remove its desktop launcher'
+            }
+            if (!(Test-Path $sentinel -PathType Leaf) -or
+                (Get-Content -LiteralPath $sentinel -Raw) -ne 'local-training-state-must-survive-uninstall') {
+              throw 'Uninstall unexpectedly deleted or changed private training records'
+            }
+            Write-Host 'PASS: ordinary unsigned Windows installer installs and uninstalls without deleting user training state'
+          } finally {
+            Remove-Item -LiteralPath $sentinel -Force -ErrorAction SilentlyContinue
+          }
+
       - uses: actions/upload-artifact@v4
         with:
           name: Hidden-Oasis-Operations-Training-Windows-Standalone-Installer
