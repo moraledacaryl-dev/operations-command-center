@@ -65,6 +65,11 @@ jobs:
               info = next(x for x in roster['accounts'] if x['email']=='manager@training.invalid')
               assert verify_password(info['password'], manager.password_hash)
               assert (private/'PRIVATE_training_accounts.json').stat().st_mode & 0o077 == 0
+              guide = private/'PRIVATE_TRAINER_ACCOUNTS.txt'
+              assert guide.is_file() and guide.stat().st_mode & 0o077 == 0
+              guide_text = guide.read_text(encoding='utf-8')
+              assert 'TRAINER ONLY' in guide_text
+              assert all(item['email'] in guide_text and item['password'] in guide_text for item in roster['accounts'])
               assert session.query(models.GuestNote).filter(models.GuestNote.linked_fix_id.isnot(None)).count() >= 2
               print('PASS: training model counts, private logins, and linked guest-fix scenarios')
           PY
