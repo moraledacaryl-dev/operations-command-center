@@ -91,7 +91,18 @@ UNSTAPLED="$WORK/Hidden_Oasis_Training_for_notarization.zip"
 ditto -c -k --keepParent "$APP" "$UNSTAPLED"
 xcrun notarytool submit "$UNSTAPLED" \
   --key "$WORK/AuthKey.p8" --key-id "$APPLE_NOTARY_KEY_ID" \
-  --issuer "$APPLE_NOTARY_ISSUER_ID" --wait
+  --issuer "$APPLE_NOTARY_ISSUER_ID" --wait --output-format json > "$WORK/notarization-result.json"
+# Explicitly require Apple's Accepted verdict; a successful CLI invocation
+# alone is not the distribution acceptance decision.
+python3 - "$WORK/notarization-result.json" <<'PY'
+import json
+import sys
+with open(sys.argv[1], encoding="utf-8") as stream:
+    outcome = json.load(stream)
+if outcome.get("status") != "Accepted":
+    raise SystemExit("REFUSED: Apple notarization status was not Accepted")
+print("PASS: Apple notarization Accepted")
+PY
 xcrun stapler staple "$APP"
 xcrun stapler validate "$APP"
 codesign --verify --strict --deep --verbose=2 "$APP"
