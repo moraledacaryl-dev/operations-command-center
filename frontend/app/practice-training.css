@@ -126,3 +126,21 @@
   .training-workflow-header-actions > *, .training-workflow-buttons > * { flex: 1 1 140px; text-align: center; }
   .training-workflow-reference { font-size: 13px; }
 }
+
+
+/* Authenticated, read-only task observation for ordinary staff accounts. */
+.practice-record-lookup { display: grid; gap: 10px; padding: 20px; margin: 18px 0; border: 1px solid #bbd3c4; border-radius: 14px; background: #f5faf7; color: #203f2d; }
+.practice-record-lookup h2 { margin: 4px 0 6px; font-size: 20px; }
+.practice-record-lookup p { margin: 5px 0; line-height: 1.55; font-size: 14px; }
+.practice-record-lookup > small { color: #496452; line-height: 1.5; }
+.practice-record-lookup code { font-weight: 800; overflow-wrap: anywhere; }
+.practice-record-lookup a { color: #176d5d; text-decoration: underline; font-weight: 750; }
+.practice-record-lookup button { justify-self: start; }
+.practice-record-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 720px; }
+.practice-record-answers label { display: grid; gap: 6px; font-size: 14px; font-weight: 750; }
+.practice-record-answers select { min-width: 0; width: 100%; padding: 10px 11px; border: 1px solid #9cbaa6; border-radius: 9px; background: white; color: #20392c; font: inherit; }
+.practice-record-result { padding: 12px; border: 1px solid #b4d1be; background: white; border-radius: 9px; }
+@media (max-width: 650px) {
+  .practice-record-lookup { padding: 15px; }
+  .practice-record-answers { grid-template-columns: 1fr; }
+}
