@@ -44,6 +44,9 @@ jobs:
       - name: Verify training uses the exact current Operations module UI and workflow source
         shell: bash
         run: |
+          # This job's default working-directory is frontend/. Git pathspecs
+          # are relative to cwd, so run source-parity checks at repository root.
+          cd "$GITHUB_WORKSPACE"
           git fetch origin main --depth=1
           git diff --exit-code origin/main -- \
             frontend/app/guests/page.tsx \
