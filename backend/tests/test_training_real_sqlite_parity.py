@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app import models
+from app import foundation_models as fm
 from app.services.guest_workflow import create_fix_from_guest
 from app.services.fix_workflow import start_fix, finish_fix, verify_fix
 from app.services.request_workflow import submit_request
@@ -214,3 +215,49 @@ def test_staff_can_inspect_only_own_shift_handovers_without_write_authority(trai
         with pytest.raises(HTTPException) as denied:
             authorize_action(db, staff, "shift-notes", action, obj=item)
         assert denied.value.status_code == 403
+
+
+def test_staff_can_read_and_acknowledge_only_their_own_fictional_notification(training_database):
+    db, front, _, _, manager, _, staff, _ = training_database
+    from app.routers.notifications import list_notifications, mark_read
+    mine = fm.Notification(
+        user_id=staff.id, kind="training_practice_read",
+        title="[TRAINING] Daily notice practice 1/2",
+        body="Fictional staff notice", source_type=None, source_id=None,
+        action_url=None,
+    )
+    another = fm.Notification(
+        user_id=manager.id, kind="training_practice_read",
+        title="[TRAINING] Daily notice practice 1/2",
+        body="Fictional manager notice", source_type=None, source_id=None,
+        action_url=None,
+    )
+    restricted = models.Task(
+        title="[TRAINING] Private other-department task",
+        department_id=front.id + 1, status="To Do", priority="Normal",
+    )
+    db.add_all([mine, another, restricted])
+    db.flush()
+    hidden = fm.Notification(
+        user_id=staff.id, kind="training",
+        title="[TRAINING] Hidden cross-department notice",
+        source_type="tasks", source_id=str(restricted.id),
+    )
+    db.add(hidden)
+    db.commit()
+    listing = list_notifications(unread_only=False, limit=100, cursor=None, user=staff, db=db)
+    ids = {item["id"] for item in listing["items"]}
+    assert mine.id in ids
+    assert another.id not in ids
+    assert hidden.id not in ids
+    assert listing["unread_count"] == 1
+
+    saved = mark_read(mine.id, user=staff, db=db)
+    assert saved["read_at"] is not None
+    db.refresh(mine)
+    assert mine.read_at is not None
+    listing = list_notifications(unread_only=False, limit=100, cursor=None, user=staff, db=db)
+    assert listing["unread_count"] == 0
+    with pytest.raises(HTTPException) as denied:
+        mark_read(another.id, user=staff, db=db)
+    assert denied.value.status_code == 404
