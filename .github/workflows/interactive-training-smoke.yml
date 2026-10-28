@@ -9,6 +9,7 @@ on:
       - 'frontend/lib/practice-scenarios.ts'
       - 'frontend/lib/extended-practice-scenarios.ts'
       - 'frontend/lib/training-workflows.ts'
+      - 'frontend/lib/training-observations.ts'
       - 'frontend/components/TrainingWorkflowCoach.tsx'
       - 'frontend/e2e/real-workflow-training.spec.ts'
       - 'frontend/e2e/read-only-task-training.spec.ts'
