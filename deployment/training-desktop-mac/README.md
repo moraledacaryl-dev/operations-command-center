@@ -10,7 +10,7 @@
 4. The local browser opens `http://127.0.0.1:3401/login` only after the service reports readiness.
 5. Click **Trainer accounts** to open a **private, readable list grouped by department and role**. Copy only the assigned fictional email and password for the trainee. Do not distribute the complete list.
 
-**The app is unsigned and not notarized.** macOS Gatekeeper may prevent opening it, especially immediately after an internet download. For owner testing, only after confirming the app came from this project's trusted GitHub run, use Finder → Control-click the app → Open, or follow System Settings → Privacy & Security guidance. Do not disable Gatekeeper globally or instruct staff to defeat an organization’s endpoint controls. A code-signed/notarized release is needed before broad distribution.
+**Ordinary PR build artifacts are unsigned and not notarized.** macOS Gatekeeper may prevent opening them, especially immediately after an internet download. A separately protected, manual main-branch release workflow can Developer-ID-sign, Apple-notarize and staple both architectures once the owner configures Apple signing credentials; see [Signed Mac Distribution](../../docs/TRAINING_MAC_SIGNED_DISTRIBUTION.md). This signing stage is not active during PR testing and must pass before general staff distribution. For owner testing, only after confirming the app came from this project's trusted GitHub run, use Finder → Control-click the app → Open, or follow System Settings → Privacy & Security guidance. Do not disable Gatekeeper globally or instruct staff to defeat an organization’s endpoint controls. A code-signed/notarized release is needed before broad distribution.
 
 ### Security, scope, and persistence
 
