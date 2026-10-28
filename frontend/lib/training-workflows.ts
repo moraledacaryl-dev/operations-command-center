@@ -144,6 +144,7 @@ export function verifyWorkflowStep(
   candidates: OperationalRecord[],
   detail?: OperationalRecord | null,
   relatedDetail?: OperationalRecord | null,
+  relatedApprovals: OperationalRecord[] = [],
 ): WorkflowCheck {
   const definition = WORKFLOW_DEFINITIONS[session.kind];
   const matched = candidates.filter(item => readable(item.title).includes(session.reference.toLowerCase()));
@@ -250,9 +251,19 @@ export function verifyWorkflowStep(
       : { passed: false, error: 'The saved guest matter is not in Needs follow-up yet. Open the original matter, choose Needs follow-up, and save that real status transition.' };
   }
   if (session.kind === 'manager-evidence') {
-    return status === 'review'
-      ? { passed: true, error: '', recordId: session.recordId, stepName: definition.stages[1] }
-      : { passed: false, error: 'The original request is not in Review. Open the Draft and choose Send for review. Submission is not approval.' };
+    if (status !== 'review') {
+      return { passed: false, error: 'The original request is not in Review. Open the Draft and choose Send for review. Submission is not approval.' };
+    }
+    // submit_request() creates exactly one pending Approval tied to this
+    // request and department. Do not count a status-only fake submission.
+    const linked = relatedApprovals.filter(approval =>
+      readable(approval.source_type) === 'ops_need' &&
+      positiveId(approval.source_id) === session.recordId &&
+      positiveId(approval.department_id) === positiveId(detail.department_id) &&
+      readable(approval.status) === 'pending');
+    return linked.length === 1 && positiveId(linked[0].id)
+      ? { passed: true, error: '', recordId: session.recordId, relatedRecordId: positiveId(linked[0].id), stepName: definition.stages[1] }
+      : { passed: false, error: 'Submitting for review must create one Pending Approval linked to this same request and department. Refresh and check the Approval queue; a Request status alone does not pass.' };
   }
   if (session.kind === 'shift-unresolved') {
     return status === 'follow'
