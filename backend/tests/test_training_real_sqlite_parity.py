@@ -191,3 +191,26 @@ def test_staff_can_read_their_department_task_but_cannot_modify_it(training_data
     with pytest.raises(HTTPException) as denied:
         authorize_action(db, staff, "tasks", Action.EDIT, obj=own)
     assert denied.value.status_code == 403
+
+
+def test_staff_can_inspect_only_own_shift_handovers_without_write_authority(training_database):
+    db, front, maintenance, _, _, _, staff, _ = training_database
+    own = models.ShiftNote(title="[TRAINING] Front Desk AM guest callback",
+                           department_id=front.id, shift="AM", category="Guest",
+                           status="Follow", urgency="Urgent", note="Fictional guest update pending.")
+    other = models.ShiftNote(title="[TRAINING] Restricted Maintenance handover",
+                             department_id=maintenance.id, shift="Night", category="Fix",
+                             status="New", urgency="Normal", note="Fictional private team details.")
+    db.add_all([own, other])
+    db.commit()
+
+    from app.authorization_policy import scope_query
+    authorize_action(db, staff, "shift-notes", Action.VIEW, obj=own)
+    visible = scope_query(db, staff, models.ShiftNote, db.query(models.ShiftNote)).all()
+    assert own in visible
+    assert other not in visible
+    for action, item in ((Action.VIEW, other), (Action.EDIT, own),
+                         (Action.TRANSITION, own)):
+        with pytest.raises(HTTPException) as denied:
+            authorize_action(db, staff, "shift-notes", action, obj=item)
+        assert denied.value.status_code == 403
