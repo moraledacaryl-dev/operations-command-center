@@ -35,16 +35,13 @@ jobs:
         run: |
           set -euo pipefail
           bash -n deployment/training-desktop-mac/sign_notarize_mac.sh
-          if GITHUB_EVENT_NAME=pull_request GITHUB_REF=refs/pull/222/merge \\
-              bash deployment/training-desktop-mac/sign_notarize_mac.sh \\
-              "/nonexistent/Hidden Oasis Training.app" arm64 > /tmp/training-sign-guard.txt 2>&1; then
+          SCRIPT=deployment/training-desktop-mac/sign_notarize_mac.sh
+          if GITHUB_EVENT_NAME=pull_request GITHUB_REF=refs/pull/222/merge bash "$SCRIPT" "/nonexistent/Hidden Oasis Training.app" arm64 > /tmp/training-sign-guard.txt 2>&1; then
             echo "ERROR: Apple signing guard accepted a pull request"
             exit 1
           fi
           grep -q "REFUSED: only manual main-branch distribution" /tmp/training-sign-guard.txt
-          if GITHUB_EVENT_NAME=workflow_dispatch GITHUB_REF=refs/heads/main \\
-              bash deployment/training-desktop-mac/sign_notarize_mac.sh \\
-              "/nonexistent/Hidden Oasis Training.app" arm64 > /tmp/training-sign-missing.txt 2>&1; then
+          if GITHUB_EVENT_NAME=workflow_dispatch GITHUB_REF=refs/heads/main bash "$SCRIPT" "/nonexistent/Hidden Oasis Training.app" arm64 > /tmp/training-sign-missing.txt 2>&1; then
             echo "ERROR: Apple signing guard accepted missing credentials"
             exit 1
           fi
