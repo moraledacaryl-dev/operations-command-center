@@ -144,3 +144,10 @@
   .practice-record-lookup { padding: 15px; }
   .practice-record-answers { grid-template-columns: 1fr; }
 }
+
+/* Two staff observation drills should not bury the main scenario catalog. */
+.practice-observation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; margin: 16px 0; }
+.practice-observation-grid > .practice-record-lookup { min-width: 0; margin: 0; }
+@media (max-width: 760px) {
+  .practice-observation-grid { grid-template-columns: 1fr; }
+}
