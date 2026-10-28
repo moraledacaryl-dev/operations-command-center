@@ -59,11 +59,11 @@ export const WORKFLOW_DEFINITIONS = {
     stages: ['Create a defensible equipment request', 'Submit for authorized review'],
   },
   'fd-broken-shower': {
-    name: 'Guest report linked to actual maintenance work',
+    name: 'Guest report linked to same-department maintenance work',
     path: '/guests',
     resource: 'guests',
     stages: ['Log the shower issue with guest follow-up', 'Create the linked maintenance work order',
-      'Start linked maintenance', 'Record maintenance as done', 'Verify the fictional work order'],
+      'Start linked maintenance', 'Record maintenance as done', 'Verify work and auto-close the guest case'],
   },
 } as const;
 
@@ -298,12 +298,12 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
       'Click Save matter. Close any details drawer, then Check saved work.',
     ];
     if (session.step === 1) return [
-      'Open the original Guest Matter by its reference, select Create maintenance, and let the Operations system link the two records automatically.',
+      'Open the original Guest Matter by its reference, select Create maintenance, and let Operations link the records automatically. The current UI creates the Fix in the Guest Matter’s department; it does NOT automatically transfer it to the Maintenance department.',
       'Close the details drawer. Select Check saved work to verify BOTH saved links and the guest follow-up status. Do not create a second, unrelated work order.',
     ];
     if (session.step === 2) return [
-      'Open Maintenance. The original linked work order has the same title/reference as the Guest Matter.',
-      'If the current department filter hides it, select the original reporting department in the normal Operations department selector.',
+      'Open Maintenance. The linked work order has the same reference as the Guest Matter and remains in its originating department unless an authorized handoff is arranged separately.',
+      'Select the original reporting department in the Operations workspace selector if authorized. A Maintenance-only staff account cannot act on a Front Desk work order without department access.',
       'Open that exact ticket, click Start work and close the drawer. Then Check saved work.',
     ];
     if (session.step === 3) return [
@@ -328,7 +328,7 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
         'Choose Equipment type and Urgent priority.', 'In Business reason, explain the fictional estimated amount, quotation status (if missing, say so), and why the item is operationally needed.',
         'Click Create draft, then Check saved work. This is not an authorized purchase or approval.']
       : ['Locate the same saved Draft request and open it.', 'Check that the reason is accurate and does not claim a quotation is attached when it is not.',
-        'Choose Send for review.', 'Close the details panel, then Check saved work. The workflow stops in Review: do NOT self-approve.'];
+        'Choose Send for review.', 'Close details, then Check saved work. The app must create a Pending Approval tied to the same request and department. Do NOT self-approve.'];
   }
   if (session.kind === 'shift-unresolved') {
     return session.step === 0
