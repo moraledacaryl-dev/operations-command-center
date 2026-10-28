@@ -333,7 +333,79 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
             json.dump({"dataset_version":DATASET_VERSION,"synthetic":True,
                        "generated_at":now.isoformat(),"counts":dict(counts)},stream,indent=2)
         db.commit()
+    ensure_private_trainer_guide(private_dir)
     return dict(counts)
+
+def ensure_private_trainer_guide(private_dir: Path) -> Path:
+    """Present the already-private fictional JSON credentials in a readable trainer-only format.
+
+    No credentials enter the frontend bundle, API, logs or source control. The
+    guide is an additional private file beside the existing randomized roster.
+    Rewriting it on restart preserves login passwords and all practice data.
+    """
+    roster = private_dir / "PRIVATE_training_accounts.json"
+    guide = private_dir / "PRIVATE_TRAINER_ACCOUNTS.txt"
+    if private_dir.is_symlink() or roster.is_symlink() or guide.is_symlink():
+        raise SystemExit("REFUSED: training credential paths must not be symlinks")
+    if not private_dir.is_dir() or not roster.is_file():
+        raise SystemExit("REFUSED: private fictional roster is missing")
+    obj = json.loads(roster.read_text(encoding="utf-8"))
+    accounts = obj.get("accounts") if isinstance(obj, dict) and obj.get("synthetic") is True else None
+    if not isinstance(accounts, list) or len(accounts) < len(PEOPLE):
+        raise SystemExit("REFUSED: incomplete private fictional trainer roster")
+    names = {slug + "@training.invalid" for _, _, slug, _ in PEOPLE}
+    rows = []
+    for item in accounts:
+        if not isinstance(item, dict) or any(
+            not isinstance(item.get(field), str) or not item[field].strip()
+            for field in ("name", "role", "email", "department", "password")
+        ) or not item["email"].endswith("@training.invalid"):
+            raise SystemExit("REFUSED: invalid fictional account entry")
+        rows.append(item)
+    if not names.issubset({item["email"] for item in rows}):
+        raise SystemExit("REFUSED: required fictional staff accounts are missing")
+
+    grouped = sorted(rows, key=lambda item: (
+        item["department"].casefold(),
+        {"owner": 0, "admin": 1, "manager": 2, "supervisor": 3, "lead": 4, "staff": 5}
+            .get(item["role"], 6),
+        item["name"].casefold(),
+    ))
+    lines = [
+        "HIDDEN OASIS OPERATIONS — FICTIONAL TRAINING ACCOUNTS",
+        "TRAINER ONLY. Not for staff distribution or production sign-in.",
+        "",
+        "Open the desktop app, then sign in at the automatically opened training login.",
+        "Share only the designated employee's EMAIL and PASSWORD with that trainee.",
+        "The role and department decide which lessons, records and actions are available.",
+        "These are random, local-only passwords. Never use real employee credentials.",
+        "",
+    ]
+    current = ""
+    for item in grouped:
+        if item["department"] != current:
+            current = item["department"]
+            lines.extend([f"=== {current.upper()} ===", ""])
+        lines.extend([
+            f"{item['name']}  ({item['role'].title()})",
+            f"  Email:     {item['email']}",
+            f"  Password:  {item['password']}",
+            "",
+        ])
+    lines.extend(["Keep this file in the trainer's private application-data folder.", ""])
+    tmp = private_dir / ("." + guide.name + "." + secrets.token_hex(8) + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write("\n".join(lines))
+        if guide.is_symlink():
+            raise SystemExit("REFUSED: private trainer guide target changed")
+        os.replace(tmp, guide)
+        guide.chmod(0o600)
+    finally:
+        tmp.unlink(missing_ok=True)
+    return guide
+
 
 def ensure_notification_practice_data(db_path: Path, state: Path) -> int:
     """Idempotently add only missing fictional notice drills to an existing training install.
