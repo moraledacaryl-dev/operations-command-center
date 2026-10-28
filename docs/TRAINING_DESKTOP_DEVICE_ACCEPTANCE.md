@@ -45,8 +45,8 @@ For an Intel Mac, replace `arm64` with `x64`. On Windows PowerShell, put the
 `.exe` and `.exe.sha256` together and run:
 
 ```powershell
-$installer = ".\\Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe"
-$expected = ((Get-Content "$installer.sha256" -Raw).Trim() -split '\\s+')[0]
+$installer = ".\Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe"
+$expected = ((Get-Content "$installer.sha256" -Raw).Trim() -split '\s+')[0]
 $actual = (Get-FileHash $installer -Algorithm SHA256).Hash
 if ($actual -ine $expected) { throw "Installer checksum mismatch: do not install" }
 "PASS: installer checksum matches the verified GitHub run"
