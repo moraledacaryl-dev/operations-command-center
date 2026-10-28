@@ -215,7 +215,7 @@ final class TrainingRuntime {
     }
 
     func trainerRosterURL() -> URL {
-        state.appendingPathComponent("private/accounts/PRIVATE_training_accounts.json")
+        state.appendingPathComponent("private/accounts/PRIVATE_TRAINER_ACCOUNTS.txt")
     }
 
     func logsURL() -> URL {
