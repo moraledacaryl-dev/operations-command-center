@@ -219,8 +219,13 @@ export function verifyWorkflowStep(
       !readable(relatedDetail.title).includes(session.reference.toLowerCase())) {
       return { passed: false, error: 'The original Guest Matter is not yet linked to a reciprocal Maintenance work order. Open the Guest Matter and select Create maintenance. An unrelated ticket does not count.' };
     }
-    if (status !== 'follow') {
-      return { passed: false, error: 'The Guest Matter must remain in Follow while Maintenance handles the issue.' };
+    // Actual fix_workflow.verify_fix() atomically resolves a linked GuestNote:
+    // during repair the Guest Matter is Follow; after verification it is Done.
+    const expectedGuestStatus = session.step === 4 ? 'done' : 'follow';
+    if (status !== expectedGuestStatus) {
+      return { passed: false, error: session.step === 4
+        ? 'Verifying the linked work order must also close the original Guest Matter as Done. Check the same guest and maintenance records.'
+        : 'The Guest Matter must remain in Follow while Maintenance handles the issue.' };
     }
     if (session.relatedRecordId && linkedId !== session.relatedRecordId) {
       return { passed: false, error: 'The linked maintenance ticket has changed. Do not substitute a different work order for the original handoff.' };
@@ -295,8 +300,10 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
       'Close details and Check saved work. This does not prove any physical shower was repaired.',
     ];
     return [
-      'Open that same Done maintenance ticket. In Verification note record the fictional tests performed.',
-      'Click Verify work, close details and Check saved work. Do not resolve the Guest Matter until its separate guest callback occurs.',
+      'A Management/Owner account with decision authority must perform the final verification. The server will reject verification from a Supervisor or Lead.',
+      'Open that same Done maintenance ticket. In Verification note describe the fictional inspection, and select Verify work.',
+      'The REAL backend automatically marks the linked Guest Matter Done when the Fix is Verified. Close details, then Check saved work to verify BOTH saved statuses.',
+      'Any actual guest callback must be documented separately; this exercise does not independently prove guest communication.',
     ];
   }
   if (session.kind === 'guest-ac') {
