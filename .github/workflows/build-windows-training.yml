@@ -29,14 +29,14 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $script = 'deployment/training-desktop-windows/sign_windows_training.ps1'
-          $args = @{ PayloadDir = 'dist/desktop'; InstallerScript = 'deployment/training-desktop-windows/installer.iss' }
+          $guardParams = @{ PayloadDir = 'dist/desktop'; InstallerScript = 'deployment/training-desktop-windows/installer.iss' }
           $oldEvent = $env:GITHUB_EVENT_NAME
           $oldRef = $env:GITHUB_REF
           try {
             $env:GITHUB_EVENT_NAME = 'pull_request'
             $env:GITHUB_REF = 'refs/pull/222/merge'
             $refused = $false
-            try { & $script @args } catch {
+            try { & $script @guardParams } catch {
               if ($_.Exception.Message -match 'REFUSED: Windows distribution signing only permits') { $refused = $true } else { throw }
             }
             if (!$refused) { throw 'Signing script unexpectedly accepted PR execution' }
@@ -46,7 +46,7 @@ jobs:
             $env:WINDOWS_CODESIGN_PFX_PASSWORD = ''
             $env:WINDOWS_CODESIGN_THUMBPRINT = ''
             $refused = $false
-            try { & $script @args } catch {
+            try { & $script @guardParams } catch {
               if ($_.Exception.Message -match 'REFUSED: missing Windows signing credential') { $refused = $true } else { throw }
             }
             if (!$refused) { throw 'Signing script unexpectedly accepted missing credentials' }
