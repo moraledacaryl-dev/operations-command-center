@@ -27,7 +27,7 @@
 
 - A new training-only exercise is visible to ordinary staff and supervisory roles. It chooses a fictional task from the trainee's **current authorized department**, asks the trainee to inspect it using the actual Tasks screen, and checks the reported **status and priority** using a fresh authenticated backend GET. It never writes or changes the task.
 - A wrong answer does not earn completion. The backend still denies staff edits and cross-department reads; the SQLite service permission test covers that invariant. The browser test proves the drill does not submit any write request.
-- The exercise remembers its task across navigation and retains a local completion timestamp. This is **read-only record literacy**, not a seventh saved-record mutation workflow, and does not prove that a card was clicked in the UI.
+- The exercise remembers its task across navigation, resets safely when the workspace department changes, and retains a local completion timestamp. Completed task-inspection rows appear in the same export as scenario and saved-record exercises, with a distinct **read-only-task-inspection** record type. This is **read-only record literacy**, not a seventh saved-record mutation workflow, and does not certify that the trainee actually clicked the card; the UI test explicitly opens the real Tasks page.
 
 ## Evidence and acceptance gates
 
