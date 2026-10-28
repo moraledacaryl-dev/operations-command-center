@@ -86,3 +86,48 @@ test('staff task inspection handles missing department records without fake comp
   await expect(page.getByTestId('record-lookup-feedback')).toContainText('No accessible fictional training task');
   await expect(page.getByTestId('record-lookup-title')).toHaveCount(0);
 });
+
+
+test('switching the selected department discards stale task details and restores the correct bookmark', async ({ page }) => {
+  const manager = { ...employee, id: 7102, role: 'manager',
+    email: 'manager@training.invalid',
+    capabilities: { manage_department: true, make_decisions: true },
+    departments: [
+      { id: 41, name: 'Housekeeping', is_primary: true },
+      { id: 42, name: 'Maintenance', is_primary: false },
+    ],
+  };
+  const first = { id: 501, title: '[TRAINING] Housekeeping checklist', department_id: 41,
+    status: 'To Do', priority: 'Normal' };
+  const second = { id: 502, title: '[TRAINING] Maintenance inspection', department_id: 42,
+    status: 'Review', priority: 'Urgent' };
+  await page.addInitScript(account => {
+    localStorage.setItem('cc_user', JSON.stringify(account));
+    localStorage.setItem('cc_department_id', '41');
+  }, manager);
+  await page.route('**/api/**', route => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace(/^\/api/, '');
+    const body = path === '/tasks'
+      ? [url.searchParams.get('department_id') === '42' ? second : first]
+      : path === '/tasks/501' ? first
+      : path === '/tasks/502' ? second
+      : { counts: {}, items: [] };
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.goto('/training');
+  await page.getByTestId('record-lookup-start').click();
+  await expect(page.getByTestId('record-lookup-title')).toHaveText(first.title);
+  await page.evaluate(() => {
+    localStorage.setItem('cc_department_id', '42');
+    window.dispatchEvent(new CustomEvent('cc:department-change', { detail: { departmentId: 42 } }));
+  });
+  await expect(page.getByTestId('record-lookup-title')).toHaveCount(0);
+  await page.getByTestId('record-lookup-start').click();
+  await expect(page.getByTestId('record-lookup-title')).toHaveText(second.title);
+  await page.evaluate(() => {
+    localStorage.setItem('cc_department_id', '41');
+    window.dispatchEvent(new CustomEvent('cc:department-change', { detail: { departmentId: 41 } }));
+  });
+  await expect(page.getByTestId('record-lookup-title')).toHaveText(first.title);
+});
