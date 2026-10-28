@@ -165,7 +165,8 @@ test('staff inspect saved shift handovers in the real interface and export read-
   const shiftTab = await popup;
   await expect(shiftTab.getByText(handover.title).first()).toBeVisible();
   await shiftTab.getByText(handover.title).first().click();
-  await expect(shiftTab.getByText('No handover transition is available for your role and this state.')).toBeVisible();
+  await expect(shiftTab.getByRole('heading', { name: 'Handover action' })).toBeVisible();
+  await expect(shiftTab.getByRole('button', { name: /^(Acknowledge|Carry forward|Resolve|Reopen)$/ })).toHaveCount(0);
   await shiftTab.close();
 
   await page.getByTestId('handover-lookup-status').selectOption('Seen');
