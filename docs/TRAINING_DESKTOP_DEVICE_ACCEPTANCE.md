@@ -111,9 +111,15 @@ notarization, and stapling followed by a fresh-device acceptance test.
 
 **Windows 10/11 x64:** The per-user installer and shortcut should work without
 Docker/WSL/Python/Node. Record SmartScreen/Defender or organizational
-installation restrictions. The current custom installer is unsigned; do not
-instruct nontechnical staff to bypass managed-machine security. A signed
-installer and real staff-PC acceptance are still required for broad rollout.
+installation restrictions. **Regular PR output remains unsigned.** An optional
+main-branch/manual/protected Windows Authenticode stage is documented at
+[Signed Windows Distribution](TRAINING_WINDOWS_SIGNED_DISTRIBUTION.md).
+When testing its independently named signed installer, inspect
+**Properties → Digital Signatures** to confirm a valid trusted Hidden Oasis
+publisher identity and timestamp, and test the install/uninstall on a clean
+device. **Even a valid signature does not guarantee SmartScreen reputation**,
+so do not instruct staff to bypass managed-machine security. A real staff-PC
+acceptance check is still required for broad rollout.
 
 ## Failure record and release decision
 
