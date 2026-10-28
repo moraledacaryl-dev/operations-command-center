@@ -31,6 +31,22 @@ const DRILLS = {
     field: 'urgency', valueLabel: 'Recorded urgency',
     keyLabel: 'handover-status-urgency',
   },
+  guest: {
+    resource: 'guests', path: '/guests', screen: 'Guest Matters',
+    title: 'Inspect a real fictional guest concern', subject: 'guest matter',
+    statuses: ['Open', 'Follow', 'Done'],
+    values: ['Low', 'Normal', 'High', 'Urgent'],
+    field: 'urgency', valueLabel: 'Recorded urgency',
+    keyLabel: 'guest-status-urgency',
+  },
+  fix: {
+    resource: 'fixes', path: '/fixes', screen: 'Maintenance',
+    title: 'Inspect a saved maintenance work order', subject: 'maintenance work order',
+    statuses: ['Open', 'Working', 'Done', 'Verified'],
+    values: ['Low', 'Normal', 'High', 'Urgent'],
+    field: 'urgency', valueLabel: 'Recorded urgency',
+    keyLabel: 'fix-status-urgency',
+  },
 } as const;
 
 function permittedTrainingRecord(record: Entity, departmentId: number, kind: TrainingInspectionKind): boolean {
@@ -46,7 +62,12 @@ export function TrainingRecordLookup({
   user, kind = 'task',
 }: { user: Entity; kind?: TrainingInspectionKind }) {
   const drill = DRILLS[kind];
-  const prefix = kind === 'task' ? 'record-lookup' : 'handover-lookup';
+  const prefix = {
+    task: 'record-lookup',
+    handover: 'handover-lookup',
+    guest: 'guest-lookup',
+    fix: 'fix-lookup',
+  }[kind];
   const [departmentId, setDepartmentId] = useState<number | null>(null);
   const [record, setRecord] = useState<Entity | null>(null);
   const [status, setStatus] = useState('');
@@ -94,6 +115,14 @@ export function TrainingRecordLookup({
   }, [user, kind, drill.resource]);
 
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return null;
+  const selectedDepartment = Array.isArray(user.departments)
+    ? user.departments.find((item: Entity) => Number(item.id) === departmentId)
+    : null;
+  const departmentName = String(selectedDepartment?.name || '').toLowerCase();
+  const relevantDepartment = kind === 'guest'
+    ? ['front desk', 'café', 'cafe'].includes(departmentName)
+    : kind === 'fix' ? departmentName === 'maintenance' : true;
+  if (!relevantDepartment) return null;
   const key = trainingInspectionKey(user, departmentId || 0, kind);
 
   async function start() {
@@ -159,7 +188,7 @@ export function TrainingRecordLookup({
     }
   }
 
-  return <section className="practice-record-lookup" data-testid={kind === 'task' ? 'training-record-lookup' : 'training-handover-lookup'} aria-label={'Read-only ' + drill.subject + ' investigation'}>
+  return <section className="practice-record-lookup" data-testid={'training-' + (kind === 'task' ? 'record' : kind) + '-lookup'} aria-label={'Read-only ' + drill.subject + ' investigation'}>
     <div>
       <p className="practice-eyebrow">STAFF-SAFE PRACTICAL EXERCISE</p>
       <h2>{drill.title}</h2>
@@ -170,7 +199,7 @@ export function TrainingRecordLookup({
       {busy ? 'Finding a ' + drill.subject + '…' : 'Start ' + drill.subject + ' investigation'}
     </button> : <>
       <p><strong>Find this exact fictional {drill.subject}:</strong> <code data-testid={prefix + '-title'}>{String(record.title)}</code></p>
-      <p>1. Open <Link href={drill.path} target="_blank" rel="noopener noreferrer">{drill.screen} in a separate tab</Link> and find this title in the selected department. Open its card to inspect the record.</p>
+      <p>1. Open <Link href={drill.path} target="_blank" rel="noopener noreferrer">{drill.screen} in a separate tab</Link> and find this title in the selected department. Open its card to inspect the record. If the item is completed or verified, choose the screen&apos;s All filter.</p>
       <p>2. Return here. Choose the saved details, not what you think the values should be.</p>
       <div className="practice-record-answers">
         <label>Current {drill.subject} status
