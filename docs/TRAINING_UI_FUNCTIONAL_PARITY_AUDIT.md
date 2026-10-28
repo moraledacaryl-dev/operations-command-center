@@ -29,6 +29,13 @@
 - A wrong answer does not earn completion. The backend still denies staff edits and cross-department reads for both Tasks and Shift Handover; separate SQLite service permission tests cover these invariants. The browser test proves the drill does not submit any write request.
 - The exercise remembers its task across navigation, resets safely when the workspace department changes, and retains a local completion timestamp. Completed task/handover inspection rows appear in the same export as scenario and saved-record exercises, with separate **read-only-task-inspection** and **read-only-handover-inspection** record types. This is **read-only record literacy**, not a seventh saved-record mutation workflow, and does not certify that the trainee actually clicked the card; the UI test explicitly opens the real Tasks page.
 
+## Guest Matters and Maintenance staff reading practice
+
+- Added **Guest Matter** status/urgency investigation for the fictional **Front Desk and Café** workspaces and **Maintenance work order** status/urgency investigation for the **Maintenance** workspace. Other departments do not see irrelevant exercises.
+- Employees inspect saved training records in the existing real Operations `/guests` and `/fixes` interfaces and return to select the observed saved values; verification uses a fresh authenticated GET and rejects changed, missing, inaccessible or cross-department records. Existing Operations UIs, backend permissions and live workflows remain unchanged.
+- Four distinct read-only observation exercises are available where relevant: **Tasks, Shift Handover, Guest Matters and Maintenance**. The completion export distinguishes `read-only-task-inspection`, `read-only-handover-inspection`, `read-only-guest-inspection` and `read-only-fix-inspection`; these are evidence of matching saved data, **not proof the trainee opened the other tab** or actually performed any operational work.
+- UI tests exercise the actual saved Guest Matters and Maintenance screens, reject incorrect status and urgency choices, assert staff cannot mutate, and confirm separate CSV evidence. SQLite permission tests verify own-department reads, denied edits and denied cross-department reads.
+
 ## Staff-scope notification actions and upgrade preservation
 
 - Every first-time fictional training account now receives **two personal unread notices** (`training_practice_read`) without a cross-department source reference. The earlier 12 arbitrary source-linked notifications could be hidden from their recipients by correct source authorization checks. The new samples retain normal privacy boundaries: only the recipient may see or mark each one read.
