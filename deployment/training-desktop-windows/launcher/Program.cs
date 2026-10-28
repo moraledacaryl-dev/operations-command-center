@@ -258,7 +258,7 @@ internal sealed class TrainingWindow : Form
 
     void OpenAccounts()
     {
-        var path = Path.Combine(dataRoot, "private", "accounts", "PRIVATE_training_accounts.json");
+        var path = Path.Combine(dataRoot, "private", "accounts", "PRIVATE_TRAINER_ACCOUNTS.txt");
         if (!File.Exists(path))
         {
             MessageBox.Show("Training accounts are not ready yet.");
