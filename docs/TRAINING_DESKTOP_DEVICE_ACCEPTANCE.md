@@ -28,6 +28,36 @@ use **arm64** for Apple Silicon and **x64** for Intel. For Windows, use the
 **Windows Standalone Installer**. Do **not** install Docker, Node, Python, a
 database server, or developer tools on a staff computer.
 
+## Verify the exact downloaded archive
+
+Every new unsigned Mac or Windows CI artifact and every authorized signed-release
+artifact includes a `.sha256` companion file. Download the **installer and its
+matching checksum file from the same successful GitHub Actions run** before
+testing; do not confuse PR unsigned archives with signed-release archives.
+
+On Mac, put the downloaded `.zip` and its `.zip.sha256` together, then run:
+
+```bash
+shasum -a 256 -c Hidden_Oasis_Operations_Training_Mac_arm64.zip.sha256
+```
+
+For an Intel Mac, replace `arm64` with `x64`. On Windows PowerShell, put the
+`.exe` and `.exe.sha256` together and run:
+
+```powershell
+$installer = ".\\Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe"
+$expected = ((Get-Content "$installer.sha256" -Raw).Trim() -split '\\s+')[0]
+$actual = (Get-FileHash $installer -Algorithm SHA256).Hash
+if ($actual -ine $expected) { throw "Installer checksum mismatch: do not install" }
+"PASS: installer checksum matches the verified GitHub run"
+```
+
+The filename must match the downloaded artifact and the expected hexadecimal
+hash must match. **Stop if the checksum fails.** A checksum detects a changed or
+incomplete download; it does **not** replace signed publisher verification,
+notarization, GitHub source review, or end-user security acceptance. The owner
+or technical trainer can do this check before giving the installer to staff.
+
 ## Hands-on acceptance
 
 Mark each item **PASS**, **FAIL**, or **NOT TESTED**. Retain screenshots/logs of
