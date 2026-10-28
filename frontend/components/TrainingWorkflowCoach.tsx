@@ -76,7 +76,10 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       const relatedDetail = Number.isSafeInteger(linkedId) && linkedId > 0
         ? await api.get('fixes', linkedId)
         : null;
-      const outcome = verifyWorkflowStep(session, records, detail, relatedDetail);
+      const linkedApprovals = session.kind === 'manager-evidence' && session.step > 0
+        ? await api.listAll('approvals', { active: false, department_id: departmentId || '' })
+        : [];
+      const outcome = verifyWorkflowStep(session, records, detail, relatedDetail, linkedApprovals);
       if (!outcome.passed) {
         setMessage(outcome.error);
         return;
