@@ -388,3 +388,30 @@ test('lead can document maintenance but cannot start a workflow requiring decisi
   await expect(page.getByTestId('start-real-workflow')).toHaveCount(0);
   await expect(page.getByTestId('real-workflow-invite')).toContainText('decision authority');
 });
+
+test('actual Maintenance UI hides Verify/Reopen controls without decision permission', async ({ page }) => {
+  const lead = { ...account, role: 'lead', name: 'Fictional Maintenance Lead',
+    capabilities: { manage_department: true, make_decisions: false, view_all_operations: false },
+    departments: [{ id: 41, name: 'Maintenance', is_primary: true }] };
+  const db = await prepare(page, lead);
+  db.fixes.push({ id: 701, title: 'Fictional light test', status: 'Done',
+    urgency: 'High', department_id: 41, problem: 'Hallway light out' });
+  await page.goto('/fixes');
+  await page.getByText('Fictional light test').first().click();
+  await expect(page.getByRole('button', { name: 'Verify work' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Start work' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Close details' }).click();
+  db.fixes[0].status = 'Verified';
+  await page.reload();
+  await page.getByText('Fictional light test').first().click();
+  await expect(page.getByRole('button', { name: 'Reopen' })).toHaveCount(0);
+});
+
+test('manager with decision authority sees the real Maintenance verification control', async ({ page }) => {
+  const db = await prepare(page);
+  db.fixes.push({ id: 701, title: 'Authorized fictional verification', status: 'Done',
+    urgency: 'High', department_id: 41, problem: 'Corridor light out' });
+  await page.goto('/fixes');
+  await page.getByText('Authorized fictional verification').first().click();
+  await expect(page.getByRole('button', { name: 'Verify work' })).toBeVisible();
+});
