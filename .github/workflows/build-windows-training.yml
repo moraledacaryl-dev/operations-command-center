@@ -24,6 +24,37 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
+      - name: Verify Windows distribution signing is inaccessible to PRs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = 'deployment/training-desktop-windows/sign_windows_training.ps1'
+          $args = @{ PayloadDir = 'dist/desktop'; InstallerScript = 'deployment/training-desktop-windows/installer.iss' }
+          $oldEvent = $env:GITHUB_EVENT_NAME
+          $oldRef = $env:GITHUB_REF
+          try {
+            $env:GITHUB_EVENT_NAME = 'pull_request'
+            $env:GITHUB_REF = 'refs/pull/222/merge'
+            $refused = $false
+            try { & $script @args } catch {
+              if ($_.Exception.Message -match 'REFUSED: Windows distribution signing only permits') { $refused = $true } else { throw }
+            }
+            if (!$refused) { throw 'Signing script unexpectedly accepted PR execution' }
+            $env:GITHUB_EVENT_NAME = 'workflow_dispatch'
+            $env:GITHUB_REF = 'refs/heads/main'
+            $env:WINDOWS_CODESIGN_PFX_BASE64 = ''
+            $env:WINDOWS_CODESIGN_PFX_PASSWORD = ''
+            $env:WINDOWS_CODESIGN_THUMBPRINT = ''
+            $refused = $false
+            try { & $script @args } catch {
+              if ($_.Exception.Message -match 'REFUSED: missing Windows signing credential') { $refused = $true } else { throw }
+            }
+            if (!$refused) { throw 'Signing script unexpectedly accepted missing credentials' }
+            Write-Host 'PASS: PRs and unsigned builds cannot invoke Windows signing'
+          } finally {
+            $env:GITHUB_EVENT_NAME = $oldEvent
+            $env:GITHUB_REF = $oldRef
+          }
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -205,4 +236,57 @@ jobs:
           name: Hidden-Oasis-Operations-Training-Windows-Standalone-Installer
           path: dist/installer/*.exe
           retention-days: 14
+          if-no-files-found: error
+
+      - name: Preserve exact tested unsigned training payload for optional protected signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Windows-Unsigned-Payload
+          path: dist/desktop/
+          retention-days: 3
+          if-no-files-found: error
+
+  # This stage is impossible on a PR. GitHub must additionally restrict the
+  # training-distribution Environment to main and require owner approval.
+  sign-windows:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: windows-training
+    environment: training-distribution
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Windows-Unsigned-Payload
+          path: dist/desktop
+      - name: Validate packaged source and install the Inno compiler
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (!(Test-Path 'dist/desktop/HiddenOasisTraining.exe') -or
+              !(Test-Path 'dist/desktop/backend/training-api/training-api.exe') -or
+              !(Test-Path 'dist/desktop/runtime/node.exe') -or
+              !(Test-Path 'dist/desktop/frontend/standalone/server.js')) {
+            throw 'Downloaded same-run Windows training package is incomplete'
+          }
+          choco install innosetup --yes --no-progress --limit-output
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup is unavailable' }
+      - name: Authenticode sign training runtimes and Inno installer/uninstaller
+        shell: pwsh
+        env:
+          WINDOWS_CODESIGN_PFX_BASE64: ${{ secrets.WINDOWS_CODESIGN_PFX_BASE64 }}
+          WINDOWS_CODESIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PFX_PASSWORD }}
+          WINDOWS_CODESIGN_THUMBPRINT: ${{ secrets.WINDOWS_CODESIGN_THUMBPRINT }}
+        run: |
+          ./deployment/training-desktop-windows/sign_windows_training.ps1 `
+            -PayloadDir dist/desktop `
+            -InstallerScript deployment/training-desktop-windows/installer.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Windows-SIGNED-Installer
+          path: dist/installer/Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe
+          retention-days: 30
           if-no-files-found: error
