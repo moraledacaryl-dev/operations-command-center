@@ -122,13 +122,13 @@ export function TrainingNotificationPractice({ user }: { user: Entity }) {
     {notice ? <>
       <p><strong>Find this notice:</strong> <code data-testid="notification-practice-title">{String(notice.title)}</code></p>
       <p>1. Open <Link href="/notifications" target="_blank" rel="noopener noreferrer">Notifications in a separate tab</Link>, find the exact notice, read it, and click <strong>Mark read</strong>.</p>
-      <p>2. Return here and check the saved read status. Do not dismiss the notice or use another employee's login.</p>
+      <p>2. Return here and check the saved read status. Do not dismiss the notice or use another employee&apos;s login.</p>
       <div className="practice-actions">
         <button type="button" className="practice-primary" data-testid="notification-practice-check" disabled={busy} onClick={() => void verify()}>{busy ? 'Checking saved notice…' : 'Verify saved read status'}</button>
         <button type="button" className="practice-secondary" disabled={busy} onClick={() => void start()}>Choose another unread notice</button>
       </div>
     </> : <button type="button" className="practice-primary" data-testid="notification-practice-start" disabled={busy} onClick={() => void start()}>{busy ? 'Opening practice…' : 'Start notification practice'}</button>}
     {message && <p className="practice-record-result" data-testid="notification-practice-feedback" role="status">{message}</p>}
-    <small>Database read-back confirms the notice's saved read status, but device-local completion is not a signed certification or proof of who clicked the button. Production is never contacted.</small>
+    <small>Database read-back confirms the notice&apos;s saved read status, but device-local completion is not a signed certification or proof of who clicked the button. Production is never contacted.</small>
   </section>;
 }
