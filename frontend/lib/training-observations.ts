@@ -20,7 +20,7 @@ export function readTaskInspections(user: Entity): TaskInspectionEvidence[] {
     if (Number.isSafeInteger(id) && id > 0) ids.add(id);
   }
   const results: TaskInspectionEvidence[] = [];
-  for (const departmentId of ids) {
+  for (const departmentId of Array.from(ids)) {
     try {
       const raw = localStorage.getItem(taskInspectionKey(user, departmentId));
       if (!raw) continue;
