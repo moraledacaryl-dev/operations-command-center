@@ -4,30 +4,53 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId } from '@/lib/session';
-import { TASK_INSPECTION_CHANGED, taskInspectionKey, readTaskInspections } from '@/lib/training-observations';
+import {
+  TASK_INSPECTION_CHANGED, readTrainingInspections, trainingInspectionKey,
+} from '@/lib/training-observations';
+import type { TrainingInspectionKind } from '@/lib/training-observations';
 
 /**
- * Read-only operational-record literacy drill. All staff, including those
- * without manage_department, may inspect permitted fictional task records.
- * This NEVER grants a mutation capability or certifies task completion.
+ * Read-only literacy drill with authenticated backend verification.
+ * Exercises use the unmodified real Tasks or Shift Handover screen, with no
+ * permission elevation and no claims of independently certified performance.
  */
-const STATUSES = ['To Do', 'Doing', 'Review', 'Done'] as const;
-const PRIORITIES = ['Normal', 'High', 'Urgent'] as const;
-const ACTIVE_PREFIX = '[TRAINING] ';
+const DRILLS = {
+  task: {
+    resource: 'tasks', path: '/tasks', screen: 'Tasks',
+    title: 'Find and inspect a saved task', subject: 'task',
+    statuses: ['To Do', 'Doing', 'Review', 'Done'],
+    values: ['Low', 'Normal', 'High', 'Urgent'],
+    field: 'priority', valueLabel: 'Recorded priority',
+    keyLabel: 'task-status-priority',
+  },
+  handover: {
+    resource: 'shift-notes', path: '/shift', screen: 'Shift Handover',
+    title: 'Find and inspect a saved handover', subject: 'handover',
+    statuses: ['New', 'Seen', 'Follow', 'Done'],
+    values: ['Low', 'Normal', 'Urgent'],
+    field: 'urgency', valueLabel: 'Recorded urgency',
+    keyLabel: 'handover-status-urgency',
+  },
+} as const;
 
-function validPracticeTask(task: Entity, departmentId: number): boolean {
-  return Number.isSafeInteger(Number(task.id)) && Number(task.id) > 0 &&
-    Number(task.department_id) === departmentId &&
-    typeof task.title === 'string' && task.title.startsWith(ACTIVE_PREFIX) &&
-    STATUSES.some(status => status === task.status) &&
-    PRIORITIES.some(priority => priority === task.priority);
+function permittedTrainingRecord(record: Entity, departmentId: number, kind: TrainingInspectionKind): boolean {
+  const drill = DRILLS[kind];
+  return Number.isSafeInteger(Number(record.id)) && Number(record.id) > 0 &&
+    Number(record.department_id) === departmentId &&
+    typeof record.title === 'string' && record.title.startsWith('[TRAINING] ') &&
+    drill.statuses.some(value => value === record.status) &&
+    drill.values.some(value => value === record[drill.field]);
 }
 
-export function TrainingRecordLookup({ user }: { user: Entity }) {
+export function TrainingRecordLookup({
+  user, kind = 'task',
+}: { user: Entity; kind?: TrainingInspectionKind }) {
+  const drill = DRILLS[kind];
+  const prefix = kind === 'task' ? 'record-lookup' : 'handover-lookup';
   const [departmentId, setDepartmentId] = useState<number | null>(null);
-  const [task, setTask] = useState<Entity | null>(null);
+  const [record, setRecord] = useState<Entity | null>(null);
   const [status, setStatus] = useState('');
-  const [priority, setPriority] = useState('');
+  const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [completedAt, setCompletedAt] = useState('');
@@ -38,29 +61,29 @@ export function TrainingRecordLookup({ user }: { user: Entity }) {
       const current = ++revision;
       const dept = getCurrentDepartmentId(user);
       setDepartmentId(dept);
-      setTask(null);
+      setRecord(null);
       setStatus('');
-      setPriority('');
+      setValue('');
       setFeedback('');
       setCompletedAt('');
       if (!dept) return;
-      const storageKey = taskInspectionKey(user, dept);
-      const sessionKey = storageKey + ':task';
+      const storageKey = trainingInspectionKey(user, dept, kind);
+      const sessionKey = storageKey + ':record';
       try {
-        const previous = readTaskInspections(user).find(row => row.departmentId === dept);
+        const previous = readTrainingInspections(user)
+          .find(row => row.departmentId === dept && row.kind === kind);
         if (previous) setCompletedAt(previous.completedAt);
         const priorId = Number(sessionStorage.getItem(sessionKey));
         if (Number.isSafeInteger(priorId) && priorId > 0) {
-          // Reject late GETs from a previously selected department.
-          void api.get('tasks', priorId).then(saved => {
+          void api.get(drill.resource, priorId).then(saved => {
             if (current !== revision) return;
-            if (validPracticeTask(saved, dept)) setTask(saved);
+            if (permittedTrainingRecord(saved, dept, kind)) setRecord(saved);
             else sessionStorage.removeItem(sessionKey);
           }).catch(() => {
             if (current === revision) sessionStorage.removeItem(sessionKey);
           });
         }
-      } catch { /* Device storage is optional for reading the task. */ }
+      } catch { /* Device storage is optional for read-only practice. */ }
     };
     loadForDepartment();
     window.addEventListener(DEPARTMENT_CHANGE_EVENT, loadForDepartment);
@@ -68,108 +91,109 @@ export function TrainingRecordLookup({ user }: { user: Entity }) {
       revision += 1;
       window.removeEventListener(DEPARTMENT_CHANGE_EVENT, loadForDepartment);
     };
-  }, [user]);
+  }, [user, kind, drill.resource]);
 
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return null;
-
-  const key = taskInspectionKey(user, departmentId || 0);
+  const key = trainingInspectionKey(user, departmentId || 0, kind);
 
   async function start() {
     if (!departmentId || busy) return;
     setBusy(true);
     setFeedback('');
     try {
-      const records = await api.listAll('tasks', { active: true, department_id: departmentId });
+      const records = await api.listAll(drill.resource, { active: true, department_id: departmentId });
       if (getCurrentDepartmentId(user) !== departmentId) {
         setFeedback('Department changed during the lookup. Start again in the selected workspace.');
         return;
       }
-      const available = records.filter(record => validPracticeTask(record, departmentId));
+      const available = records.filter(item => permittedTrainingRecord(item, departmentId, kind));
       if (!available.length) {
-        setFeedback('No accessible fictional training task was found for this department. Confirm the selected workspace or ask the trainer.');
+        setFeedback('No accessible fictional training ' + drill.subject +
+          ' was found in this department. Confirm the selected workspace or ask your trainer.');
         return;
       }
       const next = available[Math.floor(Math.random() * available.length)];
-      setTask(next);
+      setRecord(next);
       setStatus('');
-      setPriority('');
-      try { sessionStorage.setItem(key + ':task', String(next.id)); } catch { /* fine */ }
+      setValue('');
+      try { sessionStorage.setItem(key + ':record', String(next.id)); } catch { /* fine */ }
     } catch {
-      setFeedback('Could not read local training tasks. Open the training app again and confirm you are signed in.');
+      setFeedback('Could not read local training records. Confirm the training service is running and you are signed in.');
     } finally {
       setBusy(false);
     }
   }
 
   async function check() {
-    if (!task || !departmentId || !status || !priority || busy) return;
+    if (!record || !departmentId || !status || !value || busy) return;
     setBusy(true);
     setFeedback('');
     try {
-      // Compare against an authenticated, current backend read, not the cached
-      // task or a local quiz answer key.
-      const saved = await api.get('tasks', task.id);
+      const saved = await api.get(drill.resource, record.id);
       if (getCurrentDepartmentId(user) !== departmentId) {
         setFeedback('The workspace changed while checking. Reopen the exercise in the selected department.');
         return;
       }
-      if (!validPracticeTask(saved, departmentId) || String(saved.title) !== String(task.title)) {
-        setFeedback('This task is no longer accessible or its details changed. Start a new investigation.');
+      if (!permittedTrainingRecord(saved, departmentId, kind) ||
+          String(saved.title) !== String(record.title)) {
+        setFeedback('This record is no longer accessible or its details changed. Start a new investigation.');
         return;
       }
-      if (status !== saved.status || priority !== saved.priority) {
-        setFeedback('One or both details do not match the saved task. Reopen its card in Tasks and check its status and priority.');
+      if (status !== saved.status || value !== saved[drill.field]) {
+        setFeedback('One or both details do not match the saved ' + drill.subject +
+          '. Reopen it in ' + drill.screen + ' and check again.');
         return;
       }
       const now = new Date().toISOString();
       setCompletedAt(now);
-      setFeedback('Correct: both answers match the actual saved fictional task. You inspected operational data without changing it.');
+      setFeedback('Correct: both answers match the actual saved fictional ' + drill.subject +
+        '. You inspected operational data without changing it.');
       try {
-        localStorage.setItem(key, JSON.stringify({ completedAt: now, taskId: saved.id }));
+        localStorage.setItem(key, JSON.stringify({ completedAt: now, recordId: saved.id }));
         window.dispatchEvent(new Event(TASK_INSPECTION_CHANGED));
-      } catch { /* progress stays visible in session */ }
+      } catch { /* Progress stays visible in this session. */ }
     } catch {
-      setFeedback('Verification could not reach the local training database. Retry after confirming the service is running.');
+      setFeedback('Verification could not reach the training database. Retry after checking the training service.');
     } finally {
       setBusy(false);
     }
   }
 
-  return <section className="practice-record-lookup" data-testid="training-record-lookup" aria-label="Read-only task investigation">
+  return <section className="practice-record-lookup" data-testid={kind === 'task' ? 'training-record-lookup' : 'training-handover-lookup'} aria-label={'Read-only ' + drill.subject + ' investigation'}>
     <div>
       <p className="practice-eyebrow">STAFF-SAFE PRACTICAL EXERCISE</p>
-      <h2>Find and inspect a saved task</h2>
-      <p>Use the actual Operations Tasks screen to investigate one fictional work item. All roles can practise reading records; only authorized roles can edit them.</p>
+      <h2>{drill.title}</h2>
+      <p>Use the actual Operations {drill.screen} screen to investigate one fictional {drill.subject}. All roles can practise reading records; only authorized roles can edit them.</p>
       {completedAt ? <p className="practice-record-result" role="status">Previously completed: {new Date(completedAt).toLocaleDateString('en-PH')}. You can repeat the exercise.</p> : null}
     </div>
-    {!task ? <button type="button" className="practice-primary" onClick={() => void start()} disabled={busy || !departmentId} data-testid="record-lookup-start">
-      {busy ? 'Finding a task…' : 'Start task investigation'}
+    {!record ? <button type="button" className="practice-primary" onClick={() => void start()} disabled={busy || !departmentId} data-testid={prefix + '-start'}>
+      {busy ? 'Finding a ' + drill.subject + '…' : 'Start ' + drill.subject + ' investigation'}
     </button> : <>
-      <p><strong>Find this exact fictional task:</strong> <code data-testid="record-lookup-title">{String(task.title)}</code></p>
-      <p>1. Open <Link href="/tasks" target="_blank" rel="noopener noreferrer">Tasks in a separate tab</Link> and find this title in the same department. Open its card and read the saved details.</p>
-      <p>2. Return here. Choose what the actual record says; do not change the task or guess based on its title.</p>
+      <p><strong>Find this exact fictional {drill.subject}:</strong> <code data-testid={prefix + '-title'}>{String(record.title)}</code></p>
+      <p>1. Open <Link href={drill.path} target="_blank" rel="noopener noreferrer">{drill.screen} in a separate tab</Link> and find this title in the selected department. Open its card to inspect the record.</p>
+      <p>2. Return here. Choose the saved details, not what you think the values should be.</p>
       <div className="practice-record-answers">
-        <label>Current task status
-          <select data-testid="record-lookup-status" value={status} onChange={event => setStatus(event.target.value)}>
+        <label>Current {drill.subject} status
+          <select data-testid={prefix + '-status'} value={status} onChange={event => setStatus(event.target.value)}>
             <option value="">Choose status…</option>
-            {STATUSES.map(value => <option key={value} value={value}>{value}</option>)}
+            {drill.statuses.map(option => <option key={option} value={option}>{option}</option>)}
           </select>
         </label>
-        <label>Recorded priority
-          <select data-testid="record-lookup-priority" value={priority} onChange={event => setPriority(event.target.value)}>
-            <option value="">Choose priority…</option>
-            {PRIORITIES.map(value => <option key={value} value={value}>{value}</option>)}
+        <label>{drill.valueLabel}
+          <select data-testid={prefix + '-priority'} value={value} onChange={event => setValue(event.target.value)}>
+            <option value="">Choose {drill.valueLabel.toLowerCase()}…</option>
+            {drill.values.map(option => <option key={option} value={option}>{option}</option>)}
           </select>
         </label>
       </div>
       <div className="practice-actions">
-        <button type="button" className="practice-primary" data-testid="record-lookup-check" disabled={!status || !priority || busy} onClick={() => void check()}>
-          {busy ? 'Checking saved task…' : 'Check against saved task'}
+        <button type="button" className="practice-primary" data-testid={prefix + '-check'} disabled={!status || !value || busy} onClick={() => void check()}>
+          {busy ? 'Checking saved ' + drill.subject + '…' : 'Check against saved ' + drill.subject}
         </button>
-        <button type="button" className="practice-secondary" disabled={busy} onClick={() => void start()}>Try another task</button>
+        <button type="button" className="practice-secondary" disabled={busy} onClick={() => void start()}>Try another {drill.subject}</button>
       </div>
     </>}
-    {feedback ? <p className="practice-record-result" data-testid="record-lookup-feedback" role="status">{feedback}</p> : null}
-    <small>This is a read-only skills drill, not proof that work was completed or a signed staff certification. All records are fictional and remain on this device.</small>
+    {feedback ? <p className="practice-record-result" data-testid={prefix + '-feedback'} role="status">{feedback}</p> : null}
+    <small>This read-only drill does not certify that work was performed or that the record was opened. No fictional record is changed and no production data is accessed.</small>
   </section>;
 }
