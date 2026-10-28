@@ -111,5 +111,8 @@ spctl --assess --type execute --verbose=4 "$APP"
 OUTPUT="${GITHUB_WORKSPACE:-$PWD}/Hidden_Oasis_Operations_Training_Mac_${ARCH}_SIGNED_NOTARIZED.zip"
 ditto -c -k --keepParent "$APP" "$OUTPUT"
 unzip -t "$OUTPUT" | tail -n 2
-shasum -a 256 "$OUTPUT"
+shasum -a 256 "$OUTPUT" | awk '{print $1}' | while read -r digest; do
+  printf '%s  %s\\n' "$digest" "$(basename "$OUTPUT")" > "$OUTPUT.sha256"
+done
+cat "$OUTPUT.sha256"
 echo "PASS: notarized/stapled Developer ID Mac training archive for $ARCH"
