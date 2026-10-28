@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/session';
 import { TrainingRecordLookup } from '@/components/TrainingRecordLookup';
+import { TrainingNotificationPractice, readNotificationTraining, NOTIFICATION_TRAINING_CHANGED } from '@/components/TrainingNotificationPractice';
+import type { NotificationTrainingEvidence } from '@/components/TrainingNotificationPractice';
 import { readTrainingInspections, TASK_INSPECTION_CHANGED } from '@/lib/training-observations';
 import type { TrainingInspectionEvidence } from '@/lib/training-observations';
 import { Entity } from '@/lib/api';
@@ -38,6 +40,7 @@ export default function PracticeTrainingPage() {
   const [ready, setReady] = useState(false);
   const [verifiedWorkflows, setVerifiedWorkflows] = useState<TrainingWorkflowResults>({});
   const [recordInspections, setRecordInspections] = useState<TrainingInspectionEvidence[]>([]);
+  const [notificationEvidence, setNotificationEvidence] = useState<NotificationTrainingEvidence | null>(null);
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [levelFilter, setLevelFilter] = useState('All');
@@ -88,6 +91,18 @@ export default function PracticeTrainingPage() {
     window.addEventListener('storage', refresh);
     return () => {
       window.removeEventListener(TASK_INSPECTION_CHANGED, refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return;
+    const refresh = () => setNotificationEvidence(readNotificationTraining(user));
+    refresh();
+    window.addEventListener(NOTIFICATION_TRAINING_CHANGED, refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener(NOTIFICATION_TRAINING_CHANGED, refresh);
       window.removeEventListener('storage', refresh);
     };
   }, [user]);
@@ -215,6 +230,11 @@ export default function PracticeTrainingPage() {
         saved.completedAt, saved.attempts, saved.hints || 0, saved.mistakes || 0,
         Boolean(saved.firstTry), '', '', '']);
     }
+    if (notificationEvidence) {
+      rows.push(['staff-notification-read', 'notification-mark-read', 'Personal', 1,
+        notificationEvidence.completedAt, '', '', '', '', notificationEvidence.notificationId,
+        '', 'saved read_at (backend read)']);
+    }
     for (const record of recordInspections) {
       rows.push([record.kind === 'task' ? 'read-only-task-inspection' : 'read-only-handover-inspection',
         record.kind === 'task' ? 'task-status-priority' : 'handover-status-urgency', String(record.departmentId), 1,
@@ -267,13 +287,15 @@ export default function PracticeTrainingPage() {
         <small>{totalErrors} corrections recorded in completed cases</small>
         <small>{verifiedCount} real-workflow practice exercise{verifiedCount === 1 ? '' : 's'} verified</small>
         <small>{recordInspections.length} read-only record investigation{recordInspections.length === 1 ? '' : 's'} completed</small>
-        <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount && !verifiedCount && !recordInspections.length}>Export my results (CSV)</button>
+        <small>{notificationEvidence ? 1 : 0} staff notification action verified</small>
+        <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount && !verifiedCount && !recordInspections.length && !notificationEvidence}>Export my results (CSV)</button>
       </div>
     </header>
 
     <div className="practice-observation-grid" aria-label="Staff practical record-reading exercises">
       <TrainingRecordLookup user={user} kind="task" />
       <TrainingRecordLookup user={user} kind="handover" />
+      <TrainingNotificationPractice user={user} />
     </div>
 
     <div className="practice-layout">
