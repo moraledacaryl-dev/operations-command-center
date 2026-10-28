@@ -11,13 +11,13 @@ const account = {
 };
 
 /** All backend responses here are test-only in-memory fictional records. */
-async function prepare(page: Page) {
-  const database: { guests: FictionalCase[]; tasks: FictionalCase[]; fixes: FictionalCase[]; shiftNotes: FictionalCase[]; requests: FictionalCase[] } =
-    { guests: [], tasks: [], fixes: [], shiftNotes: [], requests: [] };
+async function prepare(page: Page, actor = account) {
+  const database: { guests: FictionalCase[]; tasks: FictionalCase[]; fixes: FictionalCase[]; shiftNotes: FictionalCase[]; requests: FictionalCase[]; approvals: FictionalCase[] } =
+    { guests: [], tasks: [], fixes: [], shiftNotes: [], requests: [], approvals: [] };
   await page.addInitScript(user => {
     localStorage.setItem('cc_user', JSON.stringify(user));
     localStorage.setItem('cc_department_id', '41');
-  }, account);
+  }, actor);
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace(/^\/api/, '');
@@ -53,6 +53,7 @@ async function prepare(page: Page) {
       database.shiftNotes.push(row);
       return respond(row, 201);
     }
+    if (path === '/approvals' && method === 'GET') return respond(database.approvals);
     if (path === '/requests' && method === 'GET') return respond(database.requests);
     if (path === '/requests' && method === 'POST') {
       const input = route.request().postDataJSON();
@@ -111,6 +112,10 @@ async function prepare(page: Page) {
         }
       } else if (action[1] === 'requests' && action[3] === 'submit-approval') {
         record.status = 'Review';
+        const approval = { id: 951, source_type: 'ops_need', source_id: record.id,
+          department_id: record.department_id, status: 'Pending', title: record.title };
+        database.approvals.push(approval);
+        return respond({ request: record, approval });
       } else return respond({ detail: 'Unsupported state transition' }, 409);
       return respond(record);
     }
@@ -298,6 +303,8 @@ test('Manager equipment request exercise checks documentary controls and only Re
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
   expect(database.requests[0].status).not.toBe('Approved');
+  expect(database.approvals[0]).toMatchObject({ id: 951, source_type: 'ops_need',
+    source_id: 901, department_id: 41, status: 'Pending' });
 });
 
 test('real linked Guest-to-Maintenance handoff requires both reciprocal links and all fix transitions', async ({ page }) => {
@@ -368,4 +375,16 @@ test('real linked Guest-to-Maintenance handoff requires both reciprocal links an
   const csv = readFileSync(csvPath!, 'utf8');
   expect(csv).toContain('"hands-on-workflow","fd-broken-shower"');
   expect(csv).toContain('"501","702"');
+});
+
+test('lead can document maintenance but cannot start a workflow requiring decision-authority verification', async ({ page }) => {
+  const lead = { ...account, role: 'lead', name: 'Fictional Maintenance Lead',
+    capabilities: { manage_department: true, make_decisions: false, view_all_operations: false },
+    departments: [{ id: 41, name: 'Maintenance', is_primary: true }] };
+  await prepare(page, lead);
+  await page.goto('/training');
+  await page.getByTestId('scenario-mt-light-fault').click();
+  await expect(page.getByTestId('real-workflow-invite')).toBeVisible();
+  await expect(page.getByTestId('start-real-workflow')).toHaveCount(0);
+  await expect(page.getByTestId('real-workflow-invite')).toContainText('decision authority');
 });
