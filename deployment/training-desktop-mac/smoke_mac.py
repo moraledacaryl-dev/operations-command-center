@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from http.cookies import SimpleCookie
 import os
 from pathlib import Path
@@ -189,6 +190,19 @@ def main() -> None:
         try:
             for i in range(2):
                 subprocess.run([str(backend), "init"], env=env, cwd=backend.parent, check=True, timeout=80)
+                with sqlite3.connect(db) as conn:
+                    count = conn.execute(
+                        "SELECT COUNT(*) FROM notifications WHERE kind='training_practice_read'"
+                    ).fetchone()[0]
+                    assert count == 40, f"Each of the 20 fictional roles needs two visible notices: {count}"
+                    if i == 0:
+                        # Simulate an existing installed training DB with a
+                        # missing sample. Initialization must repair it without
+                        # resetting user data or credentials.
+                        conn.execute(
+                            "DELETE FROM notifications WHERE id=(SELECT MIN(id) FROM notifications WHERE kind='training_practice_read')"
+                        )
+                        conn.commit()
             roster = json.loads((state / "private" / "accounts" / "PRIVATE_training_accounts.json").read_text())
             assert len(roster["accounts"]) == 20
             assert db.is_file()
