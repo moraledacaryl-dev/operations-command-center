@@ -25,9 +25,9 @@
 
 ## Staff-safe authenticated record investigation
 
-- A new training-only exercise is visible to ordinary staff and supervisory roles. It chooses a fictional task from the trainee's **current authorized department**, asks the trainee to inspect it using the actual Tasks screen, and checks the reported **status and priority** using a fresh authenticated backend GET. It never writes or changes the task.
-- A wrong answer does not earn completion. The backend still denies staff edits and cross-department reads; the SQLite service permission test covers that invariant. The browser test proves the drill does not submit any write request.
-- The exercise remembers its task across navigation, resets safely when the workspace department changes, and retains a local completion timestamp. Completed task-inspection rows appear in the same export as scenario and saved-record exercises, with a distinct **read-only-task-inspection** record type. This is **read-only record literacy**, not a seventh saved-record mutation workflow, and does not certify that the trainee actually clicked the card; the UI test explicitly opens the real Tasks page.
+- Two training-only read-only exercises are now available to ordinary staff and supervisory roles: **Task investigation** and **Shift Handover investigation**. Each chooses a fictional saved record in the trainee's authorized department, opens the existing real Operations screen in a separate tab, and checks the trainee's entered **status plus task priority / handover urgency** against a fresh authenticated backend GET. Neither exercise writes or changes the saved record.
+- A wrong answer does not earn completion. The backend still denies staff edits and cross-department reads for both Tasks and Shift Handover; separate SQLite service permission tests cover these invariants. The browser test proves the drill does not submit any write request.
+- The exercise remembers its task across navigation, resets safely when the workspace department changes, and retains a local completion timestamp. Completed task/handover inspection rows appear in the same export as scenario and saved-record exercises, with separate **read-only-task-inspection** and **read-only-handover-inspection** record types. This is **read-only record literacy**, not a seventh saved-record mutation workflow, and does not certify that the trainee actually clicked the card; the UI test explicitly opens the real Tasks page.
 
 ## Evidence and acceptance gates
 
