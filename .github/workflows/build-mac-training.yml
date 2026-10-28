@@ -118,3 +118,60 @@ jobs:
           path: dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip
           retention-days: 14
           if-no-files-found: error
+
+  # Explicit, manual distribution-only job. PRs never access Apple credentials.
+  # The protected GitHub Environment `training-distribution` must require owner
+  # approval and should restrict deployment branches to main.
+  sign-and-notarize:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: mac-training
+    environment: training-distribution
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Mac-${{ matrix.arch }}
+          path: dist/downloaded
+      - name: Extract exact Mac build produced by the verified matrix
+        run: |
+          set -euo pipefail
+          PACKAGE="dist/downloaded/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip"
+          test -f "$PACKAGE"
+          mkdir -p dist/staged
+          ditto -x -k "$PACKAGE" dist/staged
+          test -x "dist/staged/Hidden Oasis Training.app/Contents/MacOS/HiddenOasisTraining"
+          bash -n deployment/training-desktop-mac/sign_notarize_mac.sh
+      - name: Developer ID sign, Apple notarize, staple, and Gatekeeper assess
+        env:
+          APPLE_DEVELOPER_ID_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+          APPLE_DEVELOPER_ID_APPLICATION: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          APPLE_NOTARY_PRIVATE_KEY_BASE64: ${{ secrets.APPLE_NOTARY_PRIVATE_KEY_BASE64 }}
+        run: |
+          bash deployment/training-desktop-mac/sign_notarize_mac.sh \
+            "dist/staged/Hidden Oasis Training.app" "${{ matrix.arch }}"
+      - name: Recheck signed standalone app with real fictional local backend
+        run: |
+          python3 deployment/training-desktop-mac/smoke_mac.py \
+            "dist/staged/Hidden Oasis Training.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Mac-${{ matrix.arch }}-SIGNED-NOTARIZED
+          path: Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}_SIGNED_NOTARIZED.zip
+          retention-days: 30
+          if-no-files-found: error
