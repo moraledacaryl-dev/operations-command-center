@@ -78,6 +78,68 @@ def actual_api(base: str, path: str, cookie: str, data: dict | None = None) -> d
         return json.load(response)
 
 
+def exercise_staff_read_only_investigations(base: str, accounts: dict) -> None:
+    """Exercise all four reading drills against the real packaged local API.
+
+    Uses randomly generated first-launch credentials for two ordinary staff
+    accounts. No mocked routes and no business-record writes.
+    """
+    front = accounts["reception-am@training.invalid"]
+    maintenance = accounts["technician@training.invalid"]
+    front_user, front_cookie = login_with_cookie(base, front["email"], front["password"])
+    maint_user, maint_cookie = login_with_cookie(base, maintenance["email"], maintenance["password"])
+    front_id = next(int(item["id"]) for item in front_user["departments"]
+                    if item["name"] == "Front Desk")
+    maint_id = next(int(item["id"]) for item in maint_user["departments"]
+                    if item["name"] == "Maintenance")
+
+    examples = [
+        ("tasks", "priority", front_id, front_cookie, {"To Do", "Doing", "Review", "Done"}),
+        ("shift-notes", "urgency", front_id, front_cookie, {"New", "Seen", "Follow", "Done"}),
+        ("guests", "urgency", front_id, front_cookie, {"Open", "Follow", "Done"}),
+        ("fixes", "urgency", maint_id, maint_cookie, {"Open", "Working", "Done", "Verified"}),
+    ]
+    saved_examples = {}
+    for resource, field, dept_id, cookie, valid_statuses in examples:
+        rows = actual_api(base, f"/{resource}?department_id={dept_id}&active=true", cookie)
+        assert isinstance(rows, list), f"{resource} must provide an accessible staff list"
+        sample = next((row for row in rows if
+                       isinstance(row.get("title"), str)
+                       and row["title"].startswith("[TRAINING] ")
+                       and int(row.get("department_id") or 0) == dept_id
+                       and row.get("status") in valid_statuses
+                       and row.get(field) in {"Low", "Normal", "High", "Urgent"}), None)
+        assert sample is not None, f"{resource}: no fictional readable staff practice example"
+        detail = actual_api(base, f"/{resource}/{sample['id']}", cookie)
+        assert detail["id"] == sample["id"]
+        assert detail["title"] == sample["title"]
+        assert detail["status"] == sample["status"]
+        assert detail[field] == sample[field]
+        assert int(detail["department_id"]) == dept_id
+        saved_examples[resource] = detail
+
+    # Department isolation must also hold on direct record access, not merely
+    # when an employee applies the correct filter in the training UI.
+    for resource, record_id, cookie in (
+        ("fixes", saved_examples["fixes"]["id"], front_cookie),
+        ("guests", saved_examples["guests"]["id"], maint_cookie),
+    ):
+        try:
+            actual_api(base, f"/{resource}/{record_id}", cookie)
+        except urllib.error.HTTPError as error:
+            assert error.code == 403, (resource, error.code)
+        else:
+            raise AssertionError(f"Cross-department staff read unexpectedly succeeded: {resource}")
+
+    try:
+        actual_api(base, f"/tasks?department_id={maint_id}", front_cookie)
+    except urllib.error.HTTPError as error:
+        assert error.code == 403, ("department list leak", error.code)
+    else:
+        raise AssertionError("Staff unexpectedly listed another department's training tasks")
+    print("PASS: packaged real HTTP staff Task/Handover/Guest/Fix reads, saved status/urgency and cross-department 403")
+
+
 def exercise_real_local_workflows(base: str, roster: dict) -> None:
     """Smoke the packaged backend with actual authenticated HTTP and SQLite."""
     accounts = {row["email"]: row for row in roster["accounts"]}
@@ -85,6 +147,7 @@ def exercise_real_local_workflows(base: str, roster: dict) -> None:
     actor, manager_cookie = login_with_cookie(base, manager["email"], manager["password"])
     front = next(dept for dept in actor["departments"] if dept["name"] == "Front Desk")
     front_id = int(front["id"])
+    exercise_staff_read_only_investigations(base, accounts)
     guest = actual_api(base, "/guests", manager_cookie, {
         "title": "TRAINING SMOKE Room 210 shower no hot water TRN-LINK-MACSMOKE",
         "department_id": front_id, "status": "Open",
