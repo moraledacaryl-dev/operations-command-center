@@ -30,11 +30,12 @@ test('cannot substitute another work order after the original handoff was verifi
   expect(verifyWorkflowStep(state('fd-broken-shower', 2, 501, 702), [], guest, replacement).passed).toBe(false);
 });
 
-test('Guest remains accountable after maintenance Verified; Done and no guest follow-up cannot pass', () => {
+test('linked Fix verification must atomically complete the Guest Matter', () => {
   const guest = { id: 501, title: 'Shower issue TRN-LINK-ABC12345', linked_fix_id: 702, status: 'Done' };
   const fix = { id: 702, title: guest.title, linked_guest_note_id: 501, status: 'Verified' };
-  expect(verifyWorkflowStep(state('fd-broken-shower', 4, 501, 702), [], guest, fix).passed).toBe(false);
-  expect(verifyWorkflowStep(state('fd-broken-shower', 4, 501, 702), [], { ...guest, status: 'Follow' }, fix).passed).toBe(true);
+  expect(verifyWorkflowStep(state('fd-broken-shower', 4, 501, 702), [], guest, fix).passed).toBe(true);
+  expect(verifyWorkflowStep(state('fd-broken-shower', 4, 501, 702), [], { ...guest, status: 'Follow' }, fix).passed).toBe(false);
+  expect(verifyWorkflowStep(state('fd-broken-shower', 3, 501, 702), [], { ...guest, status: 'Follow' }, { ...fix, status: 'Done' }).passed).toBe(true);
 });
 
 test('cannot pass equipment request with unassigned cost and no quote status, or mistake review for approval', () => {
