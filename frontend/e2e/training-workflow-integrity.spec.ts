@@ -47,8 +47,19 @@ test('cannot pass equipment request with unassigned cost and no quote status, or
     reason: 'Urgently necessary for safe service; estimated cost PHP 12000; supplier quotation pending, no quotation attached.' };
   expect(verifyWorkflowStep(session, [complete]).passed).toBe(true);
   const reviewSession = state('manager-evidence', 1, 901);
-  expect(verifyWorkflowStep(reviewSession, [], { ...complete, status: 'Approved' }).passed).toBe(false);
-  expect(verifyWorkflowStep(reviewSession, [], { ...complete, status: 'Review' }).passed).toBe(true);
+  const submitted = { ...complete, status: 'Review', department_id: 41 };
+  const approval = { id: 951, source_type: 'ops_need', source_id: 901, department_id: 41, status: 'Pending' };
+  expect(verifyWorkflowStep(reviewSession, [], { ...complete, status: 'Approved' }, null, [approval]).passed).toBe(false);
+  expect(verifyWorkflowStep(reviewSession, [], submitted).passed).toBe(false);
+  expect(verifyWorkflowStep(reviewSession, [], submitted, null, [
+    { ...approval, department_id: 42 },
+  ]).passed).toBe(false);
+  expect(verifyWorkflowStep(reviewSession, [], submitted, null, [
+    { ...approval, source_id: 902 },
+  ]).passed).toBe(false);
+  expect(verifyWorkflowStep(reviewSession, [], submitted, null, [approval])).toMatchObject({
+    passed: true, relatedRecordId: 951,
+  });
 });
 
 test('task requires a saved real assignee, not merely High priority and title', () => {
