@@ -166,7 +166,15 @@ jobs:
               $auth = Invoke-RestMethod -Uri http://127.0.0.1:3401/api/auth/login -Method Post -Body $payload -ContentType 'application/json'
               if ($auth.role -ne $role) { throw "Incorrect role for $email" }
             }
-            Write-Host "PASS: Windows frozen API + Next frontend + real manager/staff sign-ins"
+            # Reuse the cross-platform authenticated HTTP domain smoke from Mac.
+            # This runs against the *frozen Windows backend*, real SQLite and
+            # HTTP-only cookies; no route mocking and no production services.
+            $crossPlatformSmoke = (Resolve-Path deployment/training-desktop-mac).Path
+            $env:PYTHONPATH = $crossPlatformSmoke
+            $rosterFile = Join-Path $state 'private/accounts/PRIVATE_training_accounts.json'
+            python -c "import json,sys; from smoke_mac import exercise_real_local_workflows; roster=json.load(open(sys.argv[1],encoding='utf-8')); exercise_real_local_workflows('http://127.0.0.1:3401',roster)" $rosterFile
+            if ($LASTEXITCODE -ne 0) { throw "Windows packaged Guest/Fix/Approval workflow smoke failed" }
+            Write-Host "PASS: Windows frozen API + Next frontend + manager/staff login + actual Guest/Fix/Approval workflow"
           } finally {
             Stop-Process -Id $ui.Id,$backend.Id -Force -ErrorAction SilentlyContinue
           }
