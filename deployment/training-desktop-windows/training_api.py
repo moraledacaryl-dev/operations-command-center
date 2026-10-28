@@ -46,6 +46,19 @@ def validate() -> tuple[Path, Path]:
     return path, state
 
 
+def refresh_fictional_notices(path: Path, state: Path) -> None:
+    # Do not reset already-created desktop training accounts or history.
+    script = resources() / "scripts" / "seed_training_demo.py"
+    spec = importlib.util.spec_from_file_location("training_windows_notice_upgrade", str(script))
+    if not spec or not spec.loader:
+        abort("Packaged training data maintenance script missing")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    count = module.ensure_notification_practice_data(path, state)
+    print(f"PASS: fictional per-user notification drills ready ({count} newly added)")
+
+
 def init() -> None:
     path, state = validate()
     marker = state / "data" / ".initialized"
@@ -53,6 +66,7 @@ def init() -> None:
     if marker.exists():
         if not path.is_file() or not roster.is_file():
             abort("Incomplete initialized training database; do not clear manually")
+        refresh_fictional_notices(path, state)
         print("PASS: existing fictional training data preserved")
         return
     if path.exists() or roster.exists():
@@ -75,6 +89,7 @@ def init() -> None:
     if not roster.is_file():
         abort("Credentials were not created")
     marker.write_text("SYNTHETIC_DESKTOP_TRAINING_ONLY\n", encoding="utf-8")
+    refresh_fictional_notices(path, state)
     print("PASS: independently generated, isolated fictional training data")
 
 
