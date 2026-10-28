@@ -116,6 +116,23 @@ jobs:
           file "$APP/Contents/Resources/runtime/node"
           du -sh "$APP"
 
+      - name: Reject pre-generated private account credentials and SQLite records in Mac archive
+        run: |
+          set -euo pipefail
+          RESOURCES="dist/Hidden Oasis Training.app/Contents/Resources"
+          test -d "$RESOURCES"
+          if find "$RESOURCES" -type f \( \
+              -name 'PRIVATE_training_accounts.json' -o \
+              -name 'PRIVATE_TRAINER_ACCOUNTS.txt' -o \
+              -name 'training_manifest.json' -o \
+              -name 'operations_training_demo_*.sqlite' -o \
+              -name '.env' -o -name '.env.*' \
+            \) -print -quit | grep -q .; then
+            echo "REFUSED: Mac training archive contains pre-generated local private data" >&2
+            exit 1
+          fi
+          echo "PASS: Mac training package has no private demo credentials, database or environment files"
+
       - name: Exercise real packaged Mac servers and fictional role logins
         run: |
           python3 deployment/training-desktop-mac/smoke_mac.py "dist/Hidden Oasis Training.app"
@@ -124,13 +141,17 @@ jobs:
         run: |
           set -euo pipefail
           ditto -c -k --keepParent "dist/Hidden Oasis Training.app" "dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip"
-          shasum -a 256 "dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip"
-          unzip -t "dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip" | tail -n 2
+          PACKAGE="dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip"
+          shasum -a 256 "$PACKAGE" | sed 's|^\\([^ ]*\\)  dist/|\\1  |' > "$PACKAGE.sha256"
+          cat "$PACKAGE.sha256"
+          unzip -t "$PACKAGE" | tail -n 2
 
       - uses: actions/upload-artifact@v4
         with:
           name: Hidden-Oasis-Operations-Training-Mac-${{ matrix.arch }}
-          path: dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip
+          path: |
+            dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip
+            dist/Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}.zip.sha256
           retention-days: 14
           if-no-files-found: error
 
@@ -187,6 +208,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Hidden-Oasis-Operations-Training-Mac-${{ matrix.arch }}-SIGNED-NOTARIZED
-          path: Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}_SIGNED_NOTARIZED.zip
+          path: |
+            Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}_SIGNED_NOTARIZED.zip
+            Hidden_Oasis_Operations_Training_Mac_${{ matrix.arch }}_SIGNED_NOTARIZED.zip.sha256
           retention-days: 30
           if-no-files-found: error
