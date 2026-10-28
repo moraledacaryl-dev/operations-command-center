@@ -39,6 +39,26 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify training uses the exact current Operations module UI and workflow source
+        shell: bash
+        run: |
+          git fetch origin main --depth=1
+          git diff --exit-code origin/main -- \
+            frontend/app/guests/page.tsx \
+            frontend/app/tasks/page.tsx \
+            frontend/app/shift/page.tsx \
+            frontend/app/fixes/page.tsx \
+            frontend/app/requests/page.tsx \
+            frontend/lib/api.ts \
+            frontend/lib/session.ts \
+            backend/app/routers/workflow.py \
+            backend/app/services/guest_workflow.py \
+            backend/app/services/fix_workflow.py \
+            backend/app/services/request_workflow.py \
+            backend/app/authorization_policy.py
+          echo "PASS: shared Operations screens and backend workflows match main."
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
