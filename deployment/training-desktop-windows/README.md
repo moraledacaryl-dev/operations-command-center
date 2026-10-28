@@ -24,7 +24,7 @@
 ## Installation caveats
 
 - Windows 10/11 x64 (modern supported builds), normal user install; sufficient free disk (allow at least 2 GiB).
-- Unsigned custom installer. Windows SmartScreen may warn; do not bypass organizational endpoint security policies. Code-signing before general staff distribution is recommended.
+- Regular PR artifacts are **unsigned**. Windows SmartScreen may warn; do not bypass organizational endpoint security policies. A separate **manual, protected, main-only** stage can produce a correctly Authenticode-signed installer **after** the owner configures a trusted publisher certificate and authorizes the release. This has not been executed; see [Signed Windows Distribution](../../docs/TRAINING_WINDOWS_SIGNED_DISTRIBUTION.md). A valid signature alone does not guarantee SmartScreen reputation or a warning-free first install.
 - Test on an actual Windows PC before broad staff rollout. The GitHub CI runs a real Windows packager and functional manager/staff API login, but cannot simulate all staff endpoint security policies or desktop interactions.
 - Since the program is localhost-only, installing on one receptionist's PC does **not** create a central website accessible to everyone. To support multiple PCs simultaneously with shared training progress, deploy a separately secured shared training server.
 - A separate installer is needed for Windows ARM64, macOS, or Linux.
