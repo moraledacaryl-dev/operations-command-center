@@ -123,7 +123,19 @@ failures, but **never screenshot or export the full trainer password guide**.
     services stop cleanly; reopen and verify the app starts again without
     deleting progress. If port 3401/8401 is occupied, report the error
     rather than attempting to connect to a different/production server.
-14. **Small window and readability:** Check a smaller laptop window, scrolling
+14. **Cancel startup safely:** On a clean owner-controlled test profile,
+    close the desktop training window *during* first-launch setup (before
+    the browser opens), then reopen the app. No old startup must reopen the
+    browser, keep the training ports occupied or show a false “running” state.
+    Existing fictional records and randomized trainee credentials must
+    remain intact. On Mac, a stuck initializer must stop within the
+    three-minute initialization limit; on Windows, the initializer must not
+    remain as an invisible child process after closing the launcher.
+15. **Diagnostics for nontechnical staff:** On both Mac and Windows, confirm
+    that **Training logs** opens the local log folder directly, including after
+    a failed initialization. Report errors without sending credential files,
+    demo session secrets, or unredacted account rosters.
+16. **Small window and readability:** Check a smaller laptop window, scrolling
     through long training cases, button visibility, text wrapping, and
     keyboard navigation. The trainee must be able to read instructions and
     return from actual Operations modules to the lesson.
