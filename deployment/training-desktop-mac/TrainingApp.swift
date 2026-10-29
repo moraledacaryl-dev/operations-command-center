@@ -7,6 +7,8 @@ import SwiftUI
 private let trainingURL = URL(string: "http://127.0.0.1:3401/training")!
 
 final class TrainingRuntime {
+    // Prevent rapid Stop → Start from running two migrations/seeders at once.
+    private let startupGate = NSLock()
     private let lock = NSLock()
     private var backend: Process?
     private var frontend: Process?
@@ -154,7 +156,25 @@ final class TrainingRuntime {
         return semaphore.wait(timeout: .now() + 5) == .success && result
     }
 
+    private func stopInitializer(_ process: Process) {
+        if process.isRunning { process.terminate() }
+        // Avoid archiving SQLite while the cancelled seeder is still writing.
+        for _ in 0..<40 {
+            if !process.isRunning { return }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        if process.isRunning { _ = Darwin.kill(process.processIdentifier, SIGKILL) }
+        for _ in 0..<40 {
+            if !process.isRunning { return }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+    }
+
     func start(progress: @escaping (String) -> Void) throws {
+        // A cancelled initializer must finish exiting before a new startup
+        // may inspect/quarantine its partial database or credentials.
+        startupGate.lock()
+        defer { startupGate.unlock() }
         lock.lock()
         generation &+= 1
         let run = generation
@@ -182,12 +202,12 @@ final class TrainingRuntime {
             Thread.sleep(forTimeInterval: 0.2)
         }
         if isCancelled(run) {
-            if initializer.isRunning { initializer.terminate() }
+            stopInitializer(initializer)
             throw NSError(domain: "HiddenOasisTraining", code: 4,
                           userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])
         }
         if initializer.isRunning {
-            initializer.terminate()
+            stopInitializer(initializer)
             throw NSError(domain: "HiddenOasisTraining", code: 8,
                           userInfo: [NSLocalizedDescriptionKey: "Fictional training setup took too long. Check the training logs; existing records are preserved."])
         }
