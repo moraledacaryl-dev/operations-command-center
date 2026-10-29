@@ -170,12 +170,23 @@ final class TrainingRuntime {
         }
     }
 
-    func start(progress: @escaping (String) -> Void) throws {
+    func cancellationGeneration() -> UInt64 {
+        lock.lock()
+        defer { lock.unlock() }
+        return generation
+    }
+
+    func start(expectedGeneration: UInt64, progress: @escaping (String) -> Void) throws {
         // A cancelled initializer must finish exiting before a new startup
         // may inspect/quarantine its partial database or credentials.
         startupGate.lock()
         defer { startupGate.unlock() }
         lock.lock()
+        guard generation == expectedGeneration else {
+            lock.unlock()
+            throw NSError(domain: "HiddenOasisTraining", code: 4,
+                          userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])
+        }
         generation &+= 1
         let run = generation
         cancelled = false
@@ -281,12 +292,13 @@ final class TrainingController: ObservableObject {
         guard !isStarting && !isRunning else { return }
         startupEpoch &+= 1
         let attempt = startupEpoch
+        let expectedGeneration = runtime.cancellationGeneration()
         isStarting = true
         status = "Preparing training..."
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             do {
-                try self.runtime.start(progress: { message in
+                try self.runtime.start(expectedGeneration: expectedGeneration, progress: { message in
                     DispatchQueue.main.async {
                         if self.startupEpoch == attempt { self.status = message }
                     }
