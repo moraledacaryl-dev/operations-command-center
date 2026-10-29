@@ -93,6 +93,8 @@ def prepare_first_launch(state: Path, database: Path) -> str:
             root = state / "recovery"
             root.mkdir(mode=0o700, parents=True, exist_ok=True)
             _check_private_path(root)
+            if os.name != "nt" and root.stat().st_mode & 0o077:
+                _refuse("recovery archive directory is not private (0700)")
             folder = root / ("interrupted-first-launch-" +
                              datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") +
                              "-" + secrets.token_hex(6))
