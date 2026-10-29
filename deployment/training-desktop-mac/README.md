@@ -27,4 +27,4 @@
 
 CI workflow `.github/workflows/build-mac-training.yml` packages arm64 and Intel apps separately and verifies the packaged Mac Python backend migrations, 20 fictional accounts, Next frontend, API proxy, and staff and manager login on each runner. GUI first-open, Gatekeeper dialogs and user-specific environmental issues still require testing on a physical Mac.
 
-If startup fails, choose **Training logs** to open `~/Library/Application Support/HiddenOasis/OperationsTraining/logs`; do not delete the training data folder. Initialization stops after three minutes rather than hanging indefinitely. Closing the window during startup cancels that attempt; reopening starts a new isolated attempt without clearing fictional data.
+If startup fails, choose **Training logs** to open `~/Library/Application Support/HiddenOasis/OperationsTraining/logs`; do not delete the training data folder. Initialization stops after three minutes rather than hanging indefinitely. Use **Stop** during startup or close the window to cancel that attempt; reopening starts a new isolated attempt without clearing fictional data.
