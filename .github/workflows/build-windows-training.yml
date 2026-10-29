@@ -161,7 +161,7 @@ jobs:
           # The packaged executable must quarantine partial records before seeding.
           $journal = Join-Path $data '.first_launch_pending'
           [System.IO.File]::WriteAllText($journal, "HIDDEN_OASIS_FICTIONAL_TRAINING_FIRST_LAUNCH_V1`n")
-          python -c "import sqlite3,os; p=os.environ['DATABASE_URL'][10:]; c=sqlite3.connect(p); c.execute('CREATE TABLE interrupted_migration (value TEXT)'); c.execute(\"INSERT INTO interrupted_migration VALUES ('keep me')\"); c.commit(); c.close()"
+          python -c "import sqlite3,os; p=os.environ['DATABASE_URL'][10:]; c=sqlite3.connect(p); c.execute('CREATE TABLE interrupted_migration (value TEXT)'); c.execute('INSERT INTO interrupted_migration VALUES (?)',('keep me',)); c.commit(); c.close()"
           if ($LASTEXITCODE -ne 0) { throw 'Windows interruption fixture setup failed' }
           $privateAccounts = Join-Path $state 'private/accounts'
           New-Item -ItemType Directory -Force $privateAccounts | Out-Null
