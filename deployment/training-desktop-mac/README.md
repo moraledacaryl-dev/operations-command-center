@@ -7,7 +7,7 @@
 1. Download the zip that matches **About This Mac → Chip**: Apple Silicon = arm64; Intel = x64.
 2. Unzip and drag **Hidden Oasis Training.app** into Applications (or keep it in Downloads for a quick owner test).
 3. Double-click the app. It initializes a **new fictional database** inside this user's `~/Library/Application Support/HiddenOasis/OperationsTraining` directory. Start/Stop/Open and Trainer Accounts controls live in the desktop window.
-4. The local browser opens `http://127.0.0.1:3401/login` only after the service reports readiness.
+4. The local browser opens `http://127.0.0.1:3401/training` after the service reports readiness. An unsigned-in trainee is directed to the local login page.
 5. Click **Trainer accounts** to open a **private, readable list grouped by department and role**. Copy only the assigned fictional email and password for the trainee. Do not distribute the complete list.
 
 **Ordinary PR build artifacts are unsigned and not notarized.** macOS Gatekeeper may prevent opening them, especially immediately after an internet download. A separately protected, manual main-branch release workflow can Developer-ID-sign, Apple-notarize and staple both architectures once the owner configures Apple signing credentials; see [Signed Mac Distribution](../../docs/TRAINING_MAC_SIGNED_DISTRIBUTION.md). This signing stage is not active during PR testing and must pass before general staff distribution. For owner testing, only after confirming the app came from this project's trusted GitHub run, use Finder → Control-click the app → Open, or follow System Settings → Privacy & Security guidance. Do not disable Gatekeeper globally or instruct staff to defeat an organization’s endpoint controls. A code-signed/notarized release is needed before broad distribution.
@@ -27,4 +27,4 @@
 
 CI workflow `.github/workflows/build-mac-training.yml` packages arm64 and Intel apps separately and verifies the packaged Mac Python backend migrations, 20 fictional accounts, Next frontend, API proxy, and staff and manager login on each runner. GUI first-open, Gatekeeper dialogs and user-specific environmental issues still require testing on a physical Mac.
 
-If startup fails, choose **Training logs** to open `~/Library/Application Support/HiddenOasis/OperationsTraining/logs`; do not delete the training data folder.
+If startup fails, choose **Training logs** to open `~/Library/Application Support/HiddenOasis/OperationsTraining/logs`; do not delete the training data folder. Initialization stops after three minutes rather than hanging indefinitely. Closing the window during startup cancels that attempt; reopening starts a new isolated attempt without clearing fictional data.
