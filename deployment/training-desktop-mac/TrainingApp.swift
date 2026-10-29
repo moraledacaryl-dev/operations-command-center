@@ -250,6 +250,8 @@ final class TrainingController: ObservableObject {
     @Published var isRunning = false
     private let runtime = TrainingRuntime()
     private var started = false
+    // Invalidates startup callbacks after Stop or window closure.
+    private var startupEpoch: UInt64 = 0
 
     func startIfNeeded() {
         if !started { started = true; start() }
@@ -257,23 +259,31 @@ final class TrainingController: ObservableObject {
 
     func start() {
         guard !isStarting && !isRunning else { return }
+        startupEpoch &+= 1
+        let attempt = startupEpoch
         isStarting = true
         status = "Preparing training..."
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             do {
                 try self.runtime.start(progress: { message in
-                    DispatchQueue.main.async { self.status = message }
+                    DispatchQueue.main.async {
+                        if self.startupEpoch == attempt { self.status = message }
+                    }
                 })
                 DispatchQueue.main.async {
+                    // Do not reopen a browser or display "running" after the
+                    // window closed or an earlier launch was cancelled.
+                    guard self.startupEpoch == attempt else { return }
                     self.isStarting = false
                     self.isRunning = true
                     self.status = "Running locally • Practice data is saved"
                     NSWorkspace.shared.open(trainingURL)
                 }
             } catch {
-                self.runtime.stop()
                 DispatchQueue.main.async {
+                    guard self.startupEpoch == attempt else { return }
+                    self.runtime.stop()
                     self.isStarting = false
                     self.isRunning = false
                     self.status = "Startup failed • No production data affected"
@@ -288,6 +298,7 @@ final class TrainingController: ObservableObject {
     }
 
     func stop() {
+        startupEpoch &+= 1
         runtime.stop()
         isRunning = false
         isStarting = false
