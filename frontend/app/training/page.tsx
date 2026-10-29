@@ -179,9 +179,10 @@ export default function PracticeTrainingPage() {
     const next = { ...progress, [selected.id]: {
       attempts: (previous?.attempts || 0) + attempts + 1,
       completedAt: new Date().toISOString(),
-      hints: hintsUsed,
-      mistakes: mistakesMade,
-      firstTry: mistakesMade === 0 && hintsUsed === 0,
+      // A repeat must not erase earlier corrections or hints from exported evidence.
+      hints: (previous?.hints || 0) + hintsUsed,
+      mistakes: (previous?.mistakes || 0) + mistakesMade,
+      firstTry: (previous?.firstTry ?? true) && mistakesMade === 0 && hintsUsed === 0,
     } };
     setProgress(next);
     try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* practice remains in memory */ }
