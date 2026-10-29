@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { parseScenarioProgress } from '../lib/training-progress';
+import { parseScenarioProgress, parseWorkflowResults } from '../lib/training-progress';
 
 const ids = ['shift-unresolved', 'guest-ac'];
 const valid = { attempts: 4, mistakes: 1, hints: 1, firstTry: false,
@@ -49,4 +49,25 @@ test('saved records from an unknown schema do not crash training', () => {
   for (const raw of [null, undefined, [], 123, 'old', new Date(), {}]) {
     expect(parseScenarioProgress(raw, ids)).toEqual({});
   }
+});
+
+test('workflow summary rejects missing stages, fake ids and wrong training references', () => {
+  const good = {
+    reference: 'TRN-TASK-ABC12345', recordId: 601, completedAt: valid.completedAt,
+    steps: ['Create and assign a task', 'Start the assigned task', 'Submit the task for review'],
+  };
+  expect(parseWorkflowResults({ 'shared-no-owner': good })['shared-no-owner']).toMatchObject(good);
+  const bad = [
+    { ...good, recordId: 0 },
+    { ...good, steps: [] },
+    { ...good, steps: ['Create and assign a task', 'Start the assigned task', 'Fake verified'] },
+    { ...good, reference: 'TRN-REQ-ABC12345' },
+    { ...good, completedAt: 'invalid date' },
+    { ...good, relatedRecordId: -25 },
+    { ...good, recordId: '601' },
+  ];
+  for (const item of bad) {
+    expect(parseWorkflowResults({ 'shared-no-owner': item })['shared-no-owner']).toBeUndefined();
+  }
+  expect(parseWorkflowResults({ 'fake-certification': good })).toEqual({});
 });
