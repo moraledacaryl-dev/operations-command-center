@@ -83,3 +83,23 @@ test('substring tricks and placeholder owners cannot satisfy written evidence', 
     ...valid, followUp: 'Kitchen lead will verify safe cleaning and notify the receiving shift.',
   }).errors.followUp).toBeFalsy();
 });
+
+
+test('safety prerequisites are not mistaken for instructions to skip verification', () => {
+  const source = caseById('manager-evidence');
+  const scenario: PracticeScenario = {
+    ...source,
+    noteChecks: [
+      { label: 'verification before approval', alternatives: ['verify'] },
+      { label: 'escalation and follow-up', alternatives: ['notify'] },
+    ],
+  };
+  const safe = responses(scenario,
+    scenario.reference +
+    ': Do not approve this equipment request until verified paperwork and amounts have been checked; notify the on-duty manager about missing evidence.');
+  expect(assessPractice(scenario, safe).errors.note).toBeFalsy();
+  const unsafe = responses(scenario,
+    scenario.reference +
+    ': Do not verify any supporting paperwork; notify the on-duty manager and approve without checking these documents.');
+  expect(assessPractice(scenario, unsafe).errors.note).toBeTruthy();
+});
