@@ -311,7 +311,13 @@ internal sealed class TrainingWindow : Form
             if (p is null) continue;
             try
             {
-                if (!p.HasExited) p.Kill(entireProcessTree: true);
+                if (!p.HasExited)
+                {
+                    p.Kill(entireProcessTree: true);
+                    // Ensure a cancelled first-launch writer has exited before
+                    // the next startup can quarantine or migrate SQLite.
+                    p.WaitForExit(3000);
+                }
                 p.Dispose();
             }
             catch { }
