@@ -24,6 +24,7 @@ internal sealed class TrainingWindow : Form
     readonly Button stop = new() { Text = "Stop", Width = 95, Height = 44, Enabled = false };
     readonly Button browser = new() { Text = "Open training", Width = 155, Height = 38, Enabled = false };
     readonly Button accounts = new() { Text = "Trainer accounts", Width = 155, Height = 38, Enabled = false };
+    readonly Button logs = new() { Text = "Training logs", Width = 155, Height = 38 };
     readonly Label status = new() { Text = "Not running", AutoSize = false, Width = 600, Height = 32 };
     readonly Label guidance = new()
     {
@@ -70,16 +71,19 @@ internal sealed class TrainingWindow : Form
         stop.Location = new Point(213, 195);
         browser.Location = new Point(325, 198);
         accounts.Location = new Point(30, 252);
+        logs.Location = new Point(205, 252);
         start.BackColor = Color.FromArgb(31, 92, 70);
         start.ForeColor = Color.White; start.FlatStyle = FlatStyle.Flat;
         stop.FlatStyle = FlatStyle.Flat;
         browser.FlatStyle = FlatStyle.Flat;
         accounts.FlatStyle = FlatStyle.Flat;
-        Controls.AddRange(new Control[] { title, subtitle, guidance, status, start, stop, browser, accounts });
+        logs.FlatStyle = FlatStyle.Flat;
+        Controls.AddRange(new Control[] { title, subtitle, guidance, status, start, stop, browser, accounts, logs });
         start.Click += async (_, _) => await StartTraining();
         stop.Click += (_, _) => StopTraining();
         browser.Click += (_, _) => OpenBrowser();
         accounts.Click += (_, _) => OpenAccounts();
+        logs.Click += (_, _) => OpenLogs();
         Shown += async (_, _) => await StartTraining();
         FormClosing += (_, _) => { closing = true; StopTraining(); };
     }
@@ -279,6 +283,20 @@ internal sealed class TrainingWindow : Form
             "Trainer account access", MessageBoxButtons.OK, MessageBoxIcon.Information);
         try { Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\"") { UseShellExecute = true }); }
         catch { MessageBox.Show("Open this private file: " + path); }
+    }
+
+    void OpenLogs()
+    {
+        var folder = Path.Combine(dataRoot, "logs");
+        try
+        {
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+        }
+        catch
+        {
+            MessageBox.Show("Training logs folder: " + folder);
+        }
     }
 
     void StopTraining()
