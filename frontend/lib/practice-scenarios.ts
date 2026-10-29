@@ -255,6 +255,30 @@ export type PracticeAssessment = {
   score: number;
 };
 
+/** Match whole-word starts and allow stemmed terms such as reconcil → reconciliation.
+ * Negated actions ("do not verify") cannot satisfy a positive "verify" check.
+ * Explicit safe prohibitions ("do not serve") remain valid criteria.
+ * This is practice feedback, not semantic or competency certification.
+ */
+function matchesActionCriterion(note: string, alternative: string): boolean {
+  const phrase = alternative.toLowerCase().trim();
+  if (!phrase) return false;
+  const escaped = phrase.split('').map(char => /[a-z0-9 ]/.test(char) ? char : '\\' + char)
+    .join('').replace(/\s+/g, '\\s+');
+  const expression = new RegExp('(^|[^a-z])' + escaped, 'g');
+  let match: RegExpExecArray | null;
+  while ((match = expression.exec(note)) !== null) {
+    if (/^(?:do not|don't|never)\b/.test(phrase)) return true;
+    const start = match.index + match[1].length;
+    const earlier = note.slice(Math.max(0, start - 70), start).split(/[.;!?\n]/).pop() || '';
+    if (/\b(?:not|never|don't|doesn't|didn't|won't|without|skip|avoid|refuse to|no need to)\s+(?:(?:[a-z]+\s+){0,2})$/.test(earlier)) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
 export function assessPractice(scenario: PracticeScenario, answers: PracticeAnswers): PracticeAssessment {
   const errors: PracticeAssessment['errors'] = {};
   if (answers.priority !== scenario.priority) {
@@ -274,7 +298,7 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
     errors.note = 'Include the fictional case reference so the next shift can locate this concern.';
   } else if (scenario.noteChecks?.length) {
     const missing = scenario.noteChecks.filter(check =>
-      !check.alternatives.some(term => note.includes(term.toLowerCase()))
+      !check.alternatives.some(term => matchesActionCriterion(note, term))
     );
     if (missing.length) {
       errors.note = 'Your note does not clearly explain ' + missing.map(check => check.label).join(' and ') +
@@ -284,8 +308,11 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
   if ((scenario.level || 1) >= 3) {
     const owner = (answers.owner || '').trim();
     const nextCheck = (answers.followUp || '').trim();
-    if (owner.length < 4 || /^(anyone|someone|unknown|nobody|n\/a)$/i.test(owner)) {
-      errors.owner = 'Name a responsible role or person, such as the on-duty Front Desk lead. Do not invent a real guest or employee identity.';
+    // An arbitrary four-letter placeholder is not an accountable role.
+    const responsibleRole = /\b(?:on[- ]duty|lead|supervisor|manager|technician|guard|cook|chef|barista|receptionist|housekeeper|security|maintenance|front desk|housekeeping|café|cafe|kitchen|marketing|management|admin|assigned|designated|team|department|shift)\b/i;
+    if (owner.length < 4 || /^(anyone|someone|unknown|nobody|n\/a|tbd|none)$/i.test(owner) ||
+        !responsibleRole.test(owner)) {
+      errors.owner = 'Specify an accountable fictional role or position (for example, the on-duty Front Desk lead), not a placeholder or a real employee identity.';
     }
     if (nextCheck.length < 20 || new Set(nextCheck.toLowerCase().match(/[a-z]{2,}/g) || []).size < 4) {
       errors.followUp = 'Specify what must be checked next, by whom or when, and how the result will be confirmed.';
