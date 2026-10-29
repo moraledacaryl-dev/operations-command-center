@@ -157,8 +157,22 @@ jobs:
           $env:EXPOSE_API_DOCS = 'false'
           $env:FORCE_HTTPS = 'false'
           $env:TRUST_PROXY_HEADERS = 'false'
+          # Inject a simulated cancelled first boot into the PRIVATE test state.
+          # The packaged executable must quarantine partial records before seeding.
+          $journal = Join-Path $data '.first_launch_pending'
+          [System.IO.File]::WriteAllText($journal, "HIDDEN_OASIS_FICTIONAL_TRAINING_FIRST_LAUNCH_V1`n")
+          python -c "import sqlite3,os; p=os.environ['DATABASE_URL'][10:]; c=sqlite3.connect(p); c.execute('CREATE TABLE interrupted_migration (value TEXT)'); c.execute(\"INSERT INTO interrupted_migration VALUES ('keep me')\"); c.commit(); c.close()"
+          if ($LASTEXITCODE -ne 0) { throw 'Windows interruption fixture setup failed' }
+          $privateAccounts = Join-Path $state 'private/accounts'
+          New-Item -ItemType Directory -Force $privateAccounts | Out-Null
+          [System.IO.File]::WriteAllText((Join-Path $privateAccounts 'PRIVATE_training_accounts.json'), '{"interrupted":true}')
           & dist/desktop/backend/training-api/training-api.exe init
-          if ($LASTEXITCODE -ne 0) { throw "Synthetic seed failed on frozen Windows backend" }
+          if ($LASTEXITCODE -ne 0) { throw "Synthetic seed recovery failed on frozen Windows backend" }
+          $backupDb = @(Get-ChildItem (Join-Path $state 'recovery') -Filter 'operations_training_demo_desktop.sqlite' -File -Recurse)
+          if ($backupDb.Count -ne 1) { throw 'Interrupted database was not preserved in a private recovery folder' }
+          $backupRoster = @(Get-ChildItem (Join-Path $state 'recovery') -Filter 'PRIVATE_training_accounts.json' -File -Recurse)
+          if ($backupRoster.Count -ne 1) { throw 'Interrupted private roster was not preserved' }
+          if (Test-Path $journal) { throw 'Successful initialization left an incomplete setup journal' }
           & dist/desktop/backend/training-api/training-api.exe init
           if ($LASTEXITCODE -ne 0) { throw "Frozen runtime did not preserve training data" }
           $env:HOSTNAME = '127.0.0.1'
