@@ -13,10 +13,9 @@ export type ScenarioProgress = Record<string, ScenarioProgressRecord>;
 
 export function parseScenarioProgress(raw: unknown, allowedScenarioIds: readonly string[]): ScenarioProgress {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
-  const allowed = new Set(allowedScenarioIds);
   const saved = raw as Record<string, unknown>;
   const safe: ScenarioProgress = {};
-  for (const id of allowed) {
+  for (const id of allowedScenarioIds) {
     const value = saved[id];
     if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
     const item = value as Record<string, unknown>;
@@ -65,9 +64,10 @@ export function parseWorkflowResults(raw: unknown): TrainingWorkflowResults {
           !Number.isSafeInteger(item.relatedRecordId) || item.relatedRecordId <= 0)) ||
         !Array.isArray(item.steps) || item.steps.length !== stages.length ||
         !stages.every((stage, index) => item.steps[index] === stage)) continue;
+    const linkedId = typeof item.relatedRecordId === 'number' ? item.relatedRecordId : undefined;
     safe[key] = { reference: item.reference, completedAt: item.completedAt,
       recordId: item.recordId, steps: [...stages],
-      ...(item.relatedRecordId ? { relatedRecordId: item.relatedRecordId } : {}) };
+      ...(linkedId ? { relatedRecordId: linkedId } : {}) };
   }
   return safe;
 }
