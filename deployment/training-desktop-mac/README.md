@@ -28,3 +28,9 @@
 CI workflow `.github/workflows/build-mac-training.yml` packages arm64 and Intel apps separately and verifies the packaged Mac Python backend migrations, 20 fictional accounts, Next frontend, API proxy, and staff and manager login on each runner. GUI first-open, Gatekeeper dialogs and user-specific environmental issues still require testing on a physical Mac.
 
 If startup fails, choose **Training logs** to open `~/Library/Application Support/HiddenOasis/OperationsTraining/logs`; do not delete the training data folder. Initialization stops after three minutes rather than hanging indefinitely. Use **Stop** during startup or close the window to cancel that attempt; reopening starts a new isolated attempt without clearing fictional data.
+
+### Interrupted first-time setup recovery
+
+If the very first startup is cancelled or loses power during migration or fictional-account creation, opening the app again can safely retry. The new first-launch journal allows only an **uncompleted training installation** to be recovered: incomplete SQLite files and private trainee credentials are **moved, not deleted**, into `~/Library/Application Support/HiddenOasis/OperationsTraining/recovery/interrupted-first-launch-*` before generating a fresh fictional set. The recovery directory is private. This may generate a different set of passwords, so use the **Trainer accounts** guide from the successfully initialized installation.
+
+If the app detects an unrecognized database, real uploads, or missing/invalid recovery journal, it deliberately refuses to reset anything. Use **Training logs** and refer the issue to the owner; do not delete files or use terminal commands on staff devices. Recovery only covers interrupted first-time setup, not database corruption or existing completed training progress.
