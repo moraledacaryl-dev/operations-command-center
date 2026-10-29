@@ -350,7 +350,7 @@ struct TrainingView: View {
                     .tint(teal)
                     .disabled(controller.isStarting || controller.isRunning)
                 Button("Stop") { controller.stop() }
-                    .disabled(!controller.isRunning)
+                    .disabled(!controller.isRunning && !controller.isStarting)
                 Button("Open training") { controller.openBrowser() }
                     .disabled(!controller.isRunning)
             }
