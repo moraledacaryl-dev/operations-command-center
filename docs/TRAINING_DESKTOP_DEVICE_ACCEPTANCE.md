@@ -124,9 +124,11 @@ failures, but **never screenshot or export the full trainer password guide**.
     deleting progress. If port 3401/8401 is occupied, report the error
     rather than attempting to connect to a different/production server.
 14. **Cancel startup safely:** On a clean owner-controlled test profile,
-    close the desktop training window *during* first-launch setup (before
-    the browser opens), then reopen the app. No old startup must reopen the
-    browser, keep the training ports occupied or show a false “running” state.
+    click **Stop** on Mac or **Cancel setup** on Windows *during* first-launch
+    setup (before the browser opens), then click **Start training** to retry.
+    Repeat by closing the window during setup and reopening it. No cancelled
+    startup must reopen the browser, keep the training ports occupied or show
+    a false “running” state.
     Existing fictional records and randomized trainee credentials must
     remain intact. On Mac, a stuck initializer must stop within the
     three-minute initialization limit; on Windows, the initializer must not
