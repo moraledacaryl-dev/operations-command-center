@@ -21,9 +21,10 @@ import {
   practiceScenariosFor,
 } from '@/lib/practice-scenarios';
 import type { PracticeAnswers, PracticeAssessment, PracticeField } from '@/lib/practice-scenarios';
+import { parseScenarioProgress } from '@/lib/training-progress';
+import type { ScenarioProgress } from '@/lib/training-progress';
 
 type Phase = 'assess' | 'document' | 'complete';
-type SavedProgress = Record<string, { attempts: number; completedAt: string; hints?: number; mistakes?: number; firstTry?: boolean }>;
 const STORAGE_PREFIX = 'ho-ops-scenario-practice-v1:';
 const emptyAnswers: PracticeAnswers = { priority: '', department: '', decision: '', note: '', owner: '', followUp: '' };
 
@@ -35,7 +36,7 @@ export default function PracticeTrainingPage() {
   const [answers, setAnswers] = useState<PracticeAnswers>({ ...emptyAnswers });
   const [result, setResult] = useState<PracticeAssessment | null>(null);
   const [attempts, setAttempts] = useState(0);
-  const [progress, setProgress] = useState<SavedProgress>({});
+  const [progress, setProgress] = useState<ScenarioProgress>({});
   const [showTip, setShowTip] = useState(false);
   const [ready, setReady] = useState(false);
   const [verifiedWorkflows, setVerifiedWorkflows] = useState<TrainingWorkflowResults>({});
@@ -61,7 +62,7 @@ export default function PracticeTrainingPage() {
       const lastCase = localStorage.getItem(key + ':last');
       if (lastCase) setActiveId(lastCase);
       const saved = JSON.parse(localStorage.getItem(key) || '{}');
-      if (saved && typeof saved === 'object' && !Array.isArray(saved)) setProgress(saved);
+      setProgress(parseScenarioProgress(saved, practiceScenariosFor(stored).map(s => s.id)));
     } catch { setProgress({}); }
     setReady(true);
   }, [router]);
