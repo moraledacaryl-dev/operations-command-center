@@ -133,6 +133,15 @@ failures, but **never screenshot or export the full trainer password guide**.
     remain intact. On Mac, a stuck initializer must stop within the
     three-minute initialization limit; on Windows, the initializer must not
     remain as an invisible child process after closing the launcher.
+    A new first launch that was interrupted during database migration or
+    fictional-account seeding now uses an installation journal to preserve
+    incomplete SQLite and private roster files under the local
+    `OperationsTraining/recovery/interrupted-first-launch-*` directory
+    before retrying. Verify that existing **completed** training records
+    are never quarantined. If unexpected files, real uploads, or an unknown
+    preexisting database are present, startup must refuse automatic recovery
+    rather than overwrite them. Do not delete recovery folders.
+
 15. **Diagnostics for nontechnical staff:** On both Mac and Windows, confirm
     that **Training logs** opens the local log folder directly, including after
     a failed initialization. Report errors without sending credential files,
