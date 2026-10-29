@@ -17,7 +17,8 @@
 1. Install `Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe` by double-clicking the installer.
 2. Launch **Hidden Oasis Training** from the desktop shortcut. The app initializes itself and opens the fictional training login automatically.
 3. Sign in with the assigned fictional training account. Lessons and permissions follow the role.
-4. When finished, click **Stop** or close the launcher. Practice records are preserved.
+4. During a slow first launch, click **Cancel setup** to stop initialization safely; afterward **Start training** can retry. When finished, click **Stop** or close the launcher. Practice records are preserved.
+5. If the training window shows a startup problem, click **Training logs** to open the local diagnostic folder without needing a terminal or Windows command prompt.
 
 **Do not share the full trainer roster with staff.** No real guest data should be entered in this installation.
 
