@@ -21,7 +21,7 @@ import {
   practiceScenariosFor,
 } from '@/lib/practice-scenarios';
 import type { PracticeAnswers, PracticeAssessment, PracticeField } from '@/lib/practice-scenarios';
-import { parseScenarioProgress } from '@/lib/training-progress';
+import { parseScenarioProgress, parseWorkflowResults } from '@/lib/training-progress';
 import type { ScenarioProgress } from '@/lib/training-progress';
 
 type Phase = 'assess' | 'document' | 'complete';
@@ -72,7 +72,7 @@ export default function PracticeTrainingPage() {
     const load = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}');
-        setVerifiedWorkflows(saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {});
+        setVerifiedWorkflows(parseWorkflowResults(saved));
       } catch { setVerifiedWorkflows({}); }
     };
     load();
