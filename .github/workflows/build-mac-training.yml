@@ -6,6 +6,7 @@ on:
       - "deployment/training-desktop-mac/**"
       - ".github/workflows/build-mac-training.yml"
       - "backend/scripts/seed_training_demo.py"
+      - "backend/scripts/training_first_launch.py"
       - "frontend/**"
   workflow_dispatch:
 
@@ -69,6 +70,7 @@ jobs:
             --add-data "backend/alembic:alembic" \
             --add-data "backend/alembic.ini:." \
             --add-data "backend/scripts/seed_training_demo.py:scripts" \
+            --add-data "backend/scripts/training_first_launch.py:scripts" \
             deployment/training-desktop-mac/training_api.py
           test -x dist/training-api/training-api
 
