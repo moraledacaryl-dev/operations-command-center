@@ -140,9 +140,50 @@ def exercise_staff_read_only_investigations(base: str, accounts: dict) -> None:
     print("PASS: packaged real HTTP staff Task/Handover/Guest/Fix reads, saved status/urgency and cross-department 403")
 
 
+def exercise_all_training_roles(base: str, roster: dict) -> None:
+    """Real packaged HTTP authorization smoke for every fictional trainee role."""
+    rows = roster["accounts"]
+    assert len(rows) == 20 and len({row["email"] for row in rows}) == 20
+    manager = next(row for row in rows if row["email"] == "manager@training.invalid")
+    manager_user, _ = login_with_cookie(base, manager["email"], manager["password"])
+    departments = {item["name"]: int(item["id"]) for item in manager_user["departments"]}
+    assert {"Front Desk", "Housekeeping", "Café", "Kitchen", "Maintenance", "Security", "Marketing", "Management", "Admin"} <= set(departments)
+
+    for assigned in rows:
+        trainee, cookie = login_with_cookie(base, assigned["email"], assigned["password"])
+        assert trainee["email"] == assigned["email"], "Fictional login returned the wrong identity"
+        assert trainee["role"] == assigned["role"], "Fictional login returned the wrong role"
+        member_ids = {int(item["id"]) for item in trainee["departments"]}
+        department_id = departments[assigned["department"]]
+        assert department_id in member_ids, "Fictional account is missing its assigned department"
+        owned = actual_api(base, f"/tasks?department_id={department_id}&active=true", cookie)
+        assert isinstance(owned, list), "Assigned department tasks should be readable"
+        assert all(int(item["department_id"]) == department_id for item in owned), "Task list leaked another department"
+
+        notices = actual_api(base, "/notifications?limit=100", cookie)
+        own_drills = [item for item in notices["items"] if item.get("kind") == "training_practice_read"]
+        assert len(own_drills) >= 2, "Every fictional role needs personal read-status practice"
+        assert all(str(item["title"]).startswith("[TRAINING] ") for item in own_drills)
+
+        # Owner/Manager/Admin may have broader visibility. Leads, supervisors,
+        # and staff must never read a department they do not belong to.
+        if assigned["role"] in {"staff", "lead", "supervisor"}:
+            foreign_ids = set(departments.values()) - member_ids
+            assert foreign_ids, "Role test needs a department without membership"
+            foreign_id = min(foreign_ids)
+            try:
+                actual_api(base, f"/tasks?department_id={foreign_id}&active=true", cookie)
+            except urllib.error.HTTPError as error:
+                assert error.code == 403, (assigned["email"], "unexpected cross-department status", error.code)
+            else:
+                raise AssertionError(f"Cross-department task read succeeded for {assigned['email']}")
+    print("PASS: all 20 fictional roles authenticate; own task/notice scope and denied foreign department reads")
+
+
 def exercise_real_local_workflows(base: str, roster: dict) -> None:
     """Smoke the packaged backend with actual authenticated HTTP and SQLite."""
     accounts = {row["email"]: row for row in roster["accounts"]}
+    exercise_all_training_roles(base, roster)
     manager = accounts["manager@training.invalid"]
     actor, manager_cookie = login_with_cookie(base, manager["email"], manager["password"])
     front = next(dept for dept in actor["departments"] if dept["name"] == "Front Desk")
