@@ -39,6 +39,7 @@ internal sealed class TrainingWindow : Form
     Process? frontend;
     bool starting;
     bool closing;
+    bool cancelled;
 
     string BrowserUrl => "http://127.0.0.1:3401/training";
 
@@ -194,7 +195,8 @@ internal sealed class TrainingWindow : Form
                 "Training cannot start", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
-        starting = true; start.Enabled = false; stop.Enabled = false;
+        starting = true; cancelled = false;
+        start.Enabled = false; stop.Enabled = true; stop.Text = "Cancel setup";
         try
         {
             Directory.CreateDirectory(dataRoot);
@@ -212,7 +214,7 @@ internal sealed class TrainingWindow : Form
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
                 await initializer.WaitForExitAsync(timeout.Token);
-                if (closing) return;
+                if (closing || cancelled) return;
                 if (initializer.ExitCode != 0)
                     throw new Exception("Could not initialize demo data. See the training logs.");
             }
@@ -221,7 +223,7 @@ internal sealed class TrainingWindow : Form
                 try { initializer?.Dispose(); } catch { }
                 initializer = null;
             }
-            if (closing) return;
+            if (closing || cancelled) return;
             SetStatus("Starting training backend...");
             backend = Launch(ApiExe, "serve", Path.GetDirectoryName(ApiExe)!, env, "backend.log");
             // Next.js standalone server has the proxy destination baked into its build.
@@ -235,7 +237,7 @@ internal sealed class TrainingWindow : Form
             for (var attempt = 0; attempt < 70; attempt++)
             {
                 await Task.Delay(1000);
-                if (closing) return;
+                if (closing || cancelled) return;
                 if (backend.HasExited || frontend.HasExited)
                     throw new Exception("Training stopped unexpectedly. See the training logs.");
                 try
@@ -251,12 +253,14 @@ internal sealed class TrainingWindow : Form
                 catch { /* services may still be starting */ }
             }
             if (!healthy) throw new Exception("Training service did not become ready.");
-            stop.Enabled = true; browser.Enabled = true; accounts.Enabled = true;
+            stop.Enabled = true; stop.Text = "Stop";
+            browser.Enabled = true; accounts.Enabled = true;
             SetStatus("Running locally • Your practice records are saved.");
             OpenBrowser();
         }
         catch (Exception exc)
         {
+            if (cancelled || closing) { StopTraining(); return; }
             StopTraining();
             SetStatus("Could not start • Check the local training logs.");
             if (!closing) MessageBox.Show(exc.Message + "\n\nTraining logs: " + Path.Combine(dataRoot,"logs"),
@@ -301,6 +305,7 @@ internal sealed class TrainingWindow : Form
 
     void StopTraining()
     {
+        cancelled = true;
         foreach (var p in new[] { initializer, frontend, backend })
         {
             if (p is null) continue;
@@ -313,7 +318,8 @@ internal sealed class TrainingWindow : Form
         }
         initializer = null; frontend = null; backend = null;
         if (closing) return;
-        stop.Enabled = false; browser.Enabled = false; accounts.Enabled = false;
+        stop.Enabled = false; stop.Text = "Stop";
+        browser.Enabled = false; accounts.Enabled = false;
         status.Text = "Stopped • Practice records are safely preserved.";
     }
 }
