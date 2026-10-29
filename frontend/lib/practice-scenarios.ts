@@ -314,8 +314,11 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
         !responsibleRole.test(owner)) {
       errors.owner = 'Specify an accountable fictional role or position (for example, the on-duty Front Desk lead), not a placeholder or a real employee identity.';
     }
-    if (nextCheck.length < 20 || new Set(nextCheck.toLowerCase().match(/[a-z]{2,}/g) || []).size < 4) {
-      errors.followUp = 'Specify what must be checked next, by whom or when, and how the result will be confirmed.';
+    const verifiableNextStep = /\b(?:check|verif|confirm|inspect|call|contact|notify|update|report|review|reassess|document|revisit|reconcil|test|record|follow|monitor|audit|log|count|correct|replace|remake|provide|secure|handover|return|submit|inform|reopen|assign|escalate|acknowledg|respond|schedule|measure|trace|isolate|arrange|conduct|discard|quarantine)\w*\b/i;
+    if (nextCheck.length < 20 ||
+        new Set(nextCheck.toLowerCase().match(/[a-z]{2,}/g) || []).size < 4 ||
+        !verifiableNextStep.test(nextCheck)) {
+      errors.followUp = 'Specify an actionable next check, update, inspection or verification—not just a vague promise to handle it later.';
     }
   }
   return { passed: Object.keys(errors).length === 0, errors, score: 6 - Object.keys(errors).length };
