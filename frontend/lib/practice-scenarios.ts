@@ -271,7 +271,7 @@ function matchesActionCriterion(note: string, alternative: string): boolean {
     if (/^(?:do not|don't|never)\b/.test(phrase)) return true;
     const start = match.index + match[1].length;
     const earlier = note.slice(Math.max(0, start - 70), start).split(/[.;!?\n]/).pop() || '';
-    if (/\b(?:not|never|don't|doesn't|didn't|won't|without|skip|avoid|refuse to|no need to)\s+(?:(?:[a-z]+\s+){0,2})$/.test(earlier)) {
+    if (/\b(?:not|never|don't|doesn't|didn't|won't|without|skip|avoid|refuse to|no need to)\s+(?:(?:[a-z]+\s+){0,4})$/.test(earlier)) {
       continue;
     }
     return true;
