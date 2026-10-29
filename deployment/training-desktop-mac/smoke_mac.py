@@ -253,7 +253,43 @@ def exercise_real_local_workflows(base: str, roster: dict) -> None:
     assert approval["source_type"] == "ops_need"
     assert approval["source_id"] == req["id"]
     assert approval["department_id"] == front_id
-    print("PASS: packaged local HTTP, cookie session, staff 403, reciprocal Guest↔Fix, auto-close and linked Pending Approval")
+    # Complete two additional real-API lessons. A mock route alone cannot
+    # establish that bundled Tasks and Shift Handover agree with the live UI.
+    task = actual_api(base, "/tasks", manager_cookie, {
+        "title": "Training follow-up task TRN-TASK-MACSMOKE",
+        "department_id": front_id, "status": "To Do",
+        "priority": "High", "assigned_to_id": int(actor["id"]),
+    })
+    task_id = int(task["id"])
+    assert task["status"] == "To Do" and task["priority"] == "High"
+    for action, expected in (("start", "Doing"), ("submit-review", "Review")):
+        moved = actual_api(base, f"/workflow/tasks/{task_id}/{action}", manager_cookie, {})
+        assert moved["id"] == task_id and moved["status"] == expected
+    verified_task = actual_api(base, f"/tasks/{task_id}", manager_cookie)
+    assert verified_task["status"] == "Review" and int(verified_task["assigned_to_id"]) == int(actor["id"])
+
+    handover = actual_api(base, "/shift-notes", manager_cookie, {
+        "title": "Training pending callback TRN-SHIFT-MACSMOKE",
+        "department_id": front_id, "shift": "AM",
+        "category": "Guest", "urgency": "Urgent", "status": "New",
+        "note": "Fictional guest follow-up assigned to Front Desk manager with a documented callback.",
+    })
+    shift_id = int(handover["id"])
+    assert handover["status"] == "New"
+    carried = actual_api(base, f"/workflow/shift-notes/{shift_id}/follow-up-new", manager_cookie, {})
+    assert carried["id"] == shift_id and carried["status"] == "Follow"
+    saved_handover = actual_api(base, f"/shift-notes/{shift_id}", manager_cookie)
+    assert saved_handover["status"] == "Follow" and saved_handover["urgency"] == "Urgent"
+
+    for resource, record_id, action in (("tasks", task_id, "complete"), ("shift-notes", shift_id, "resolve-follow")):
+        try:
+            actual_api(base, f"/workflow/{resource}/{record_id}/{action}", staff_cookie, {})
+        except urllib.error.HTTPError as error:
+            assert error.code == 403, (resource, error.code)
+        else:
+            raise AssertionError("Ordinary staff unexpectedly mutated " + resource)
+
+    print("PASS: packaged local HTTP, all 20 scoped roles, staff 403, real Task/Shift transitions, Guest↔Fix, auto-close and linked Pending Approval")
 
 
 def main() -> None:
