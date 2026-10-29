@@ -7,10 +7,13 @@ import SwiftUI
 private let trainingURL = URL(string: "http://127.0.0.1:3401/training")!
 
 final class TrainingRuntime {
+    // Prevent rapid Stop → Start from running two migrations/seeders at once.
+    private let startupGate = NSLock()
     private let lock = NSLock()
     private var backend: Process?
     private var frontend: Process?
     private var cancelled = false
+    private var generation: UInt64 = 0
 
     let state = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/HiddenOasis/OperationsTraining", isDirectory: true)
@@ -121,10 +124,10 @@ final class TrainingRuntime {
         return process
     }
 
-    private func setProcess(_ process: Process, api: Bool) throws {
+    private func setProcess(_ process: Process, api: Bool, generation expected: UInt64) throws {
         lock.lock()
         defer { lock.unlock() }
-        if cancelled {
+        if cancelled || generation != expected {
             if process.isRunning { process.terminate() }
             throw NSError(domain: "HiddenOasisTraining", code: 4,
                           userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])
@@ -132,10 +135,10 @@ final class TrainingRuntime {
         if api { backend = process } else { frontend = process }
     }
 
-    private func isCancelled() -> Bool {
+    private func isCancelled(_ expected: UInt64) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        return cancelled
+        return cancelled || generation != expected
     }
 
     private func healthy() -> Bool {
@@ -153,8 +156,39 @@ final class TrainingRuntime {
         return semaphore.wait(timeout: .now() + 5) == .success && result
     }
 
-    func start(progress: @escaping (String) -> Void) throws {
+    private func stopInitializer(_ process: Process) {
+        if process.isRunning { process.terminate() }
+        // Avoid archiving SQLite while the cancelled seeder is still writing.
+        for _ in 0..<40 {
+            if !process.isRunning { return }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        if process.isRunning { _ = Darwin.kill(process.processIdentifier, SIGKILL) }
+        for _ in 0..<40 {
+            if !process.isRunning { return }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+    }
+
+    func cancellationGeneration() -> UInt64 {
         lock.lock()
+        defer { lock.unlock() }
+        return generation
+    }
+
+    func start(expectedGeneration: UInt64, progress: @escaping (String) -> Void) throws {
+        // A cancelled initializer must finish exiting before a new startup
+        // may inspect/quarantine its partial database or credentials.
+        startupGate.lock()
+        defer { startupGate.unlock() }
+        lock.lock()
+        guard generation == expectedGeneration else {
+            lock.unlock()
+            throw NSError(domain: "HiddenOasisTraining", code: 4,
+                          userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])
+        }
+        generation &+= 1
+        let run = generation
         cancelled = false
         lock.unlock()
         guard !portTaken(3401) && !portTaken(8401) else {
@@ -172,28 +206,45 @@ final class TrainingRuntime {
         progress("Preparing private, fictional training accounts...")
         let initializer = try launch(api, args: ["init"], workdir: api.deletingLastPathComponent(),
                                      env: env, logfile: "initialize.log")
-        initializer.waitUntilExit()
+        // A first launch must not hang forever during initialization. Closing
+        // the window cancels startup promptly, without deleting existing data.
+        let deadline = Date().addingTimeInterval(180)
+        while initializer.isRunning && !isCancelled(run) && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        if isCancelled(run) {
+            stopInitializer(initializer)
+            throw NSError(domain: "HiddenOasisTraining", code: 4,
+                          userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])
+        }
+        if initializer.isRunning {
+            stopInitializer(initializer)
+            throw NSError(domain: "HiddenOasisTraining", code: 8,
+                          userInfo: [NSLocalizedDescriptionKey: "Fictional training setup took too long. Check the training logs; existing records are preserved."])
+        }
         guard initializer.terminationStatus == 0 else {
             throw NSError(domain: "HiddenOasisTraining", code: 6,
                           userInfo: [NSLocalizedDescriptionKey: "Training data could not initialize. Check the local logs; existing practice data was not erased."])
         }
-        guard !isCancelled() else { return }
 
         progress("Starting isolated Operations training...")
         let apiProcess = try launch(api, args: ["serve"], workdir: api.deletingLastPathComponent(),
                                     env: env, logfile: "backend.log")
-        try setProcess(apiProcess, api: true)
+        try setProcess(apiProcess, api: true, generation: run)
         var uiEnv = env
         uiEnv["HOSTNAME"] = "127.0.0.1"
         uiEnv["PORT"] = "3401"
         uiEnv["NODE_ENV"] = "production"
         let uiProcess = try launch(node, args: ["server.js"], workdir: frontendPath,
                                    env: uiEnv, logfile: "frontend.log")
-        try setProcess(uiProcess, api: false)
+        try setProcess(uiProcess, api: false, generation: run)
 
         progress("Checking training website and database...")
         for _ in 0..<90 {
-            if isCancelled() { return }
+            if isCancelled(run) {
+                throw NSError(domain: "HiddenOasisTraining", code: 4,
+                              userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])
+            }
             guard apiProcess.isRunning, uiProcess.isRunning else { break }
             if healthy() { return }
             Thread.sleep(forTimeInterval: 1)
@@ -205,6 +256,7 @@ final class TrainingRuntime {
     func stop() {
         lock.lock()
         cancelled = true
+        generation &+= 1
         let processes = [frontend, backend].compactMap { $0 }
         frontend = nil
         backend = nil
@@ -215,7 +267,7 @@ final class TrainingRuntime {
     }
 
     func trainerRosterURL() -> URL {
-        state.appendingPathComponent("private/accounts/PRIVATE_training_accounts.json")
+        state.appendingPathComponent("private/accounts/PRIVATE_TRAINER_ACCOUNTS.txt")
     }
 
     func logsURL() -> URL {
@@ -229,6 +281,8 @@ final class TrainingController: ObservableObject {
     @Published var isRunning = false
     private let runtime = TrainingRuntime()
     private var started = false
+    // Invalidates startup callbacks after Stop or window closure.
+    private var startupEpoch: UInt64 = 0
 
     func startIfNeeded() {
         if !started { started = true; start() }
@@ -236,23 +290,32 @@ final class TrainingController: ObservableObject {
 
     func start() {
         guard !isStarting && !isRunning else { return }
+        startupEpoch &+= 1
+        let attempt = startupEpoch
+        let expectedGeneration = runtime.cancellationGeneration()
         isStarting = true
         status = "Preparing training..."
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             do {
-                try self.runtime.start(progress: { message in
-                    DispatchQueue.main.async { self.status = message }
+                try self.runtime.start(expectedGeneration: expectedGeneration, progress: { message in
+                    DispatchQueue.main.async {
+                        if self.startupEpoch == attempt { self.status = message }
+                    }
                 })
                 DispatchQueue.main.async {
+                    // Do not reopen a browser or display "running" after the
+                    // window closed or an earlier launch was cancelled.
+                    guard self.startupEpoch == attempt else { return }
                     self.isStarting = false
                     self.isRunning = true
                     self.status = "Running locally • Practice data is saved"
                     NSWorkspace.shared.open(trainingURL)
                 }
             } catch {
-                self.runtime.stop()
                 DispatchQueue.main.async {
+                    guard self.startupEpoch == attempt else { return }
+                    self.runtime.stop()
                     self.isStarting = false
                     self.isRunning = false
                     self.status = "Startup failed • No production data affected"
@@ -267,6 +330,7 @@ final class TrainingController: ObservableObject {
     }
 
     func stop() {
+        startupEpoch &+= 1
         runtime.stop()
         isRunning = false
         isStarting = false
@@ -318,7 +382,7 @@ struct TrainingView: View {
                     .tint(teal)
                     .disabled(controller.isStarting || controller.isRunning)
                 Button("Stop") { controller.stop() }
-                    .disabled(!controller.isRunning)
+                    .disabled(!controller.isRunning && !controller.isStarting)
                 Button("Open training") { controller.openBrowser() }
                     .disabled(!controller.isRunning)
             }

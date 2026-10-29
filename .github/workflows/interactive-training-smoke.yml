@@ -7,6 +7,24 @@ on:
       - 'frontend/app/training/page.tsx'
       - 'frontend/app/practice-training.css'
       - 'frontend/lib/practice-scenarios.ts'
+      - 'frontend/lib/extended-practice-scenarios.ts'
+      - 'frontend/lib/training-workflows.ts'
+      - 'frontend/lib/training-observations.ts'
+      - 'frontend/components/TrainingWorkflowCoach.tsx'
+      - 'frontend/e2e/real-workflow-training.spec.ts'
+      - 'frontend/e2e/read-only-task-training.spec.ts'
+      - 'frontend/components/TrainingRecordLookup.tsx'
+      - 'frontend/components/TrainingNotificationPractice.tsx'
+      - 'frontend/e2e/notification-training.spec.ts'
+      - 'frontend/e2e/guest-fix-reading-training.spec.ts'
+      - 'frontend/lib/training-observations.ts'
+      - 'backend/scripts/seed_training_demo.py'
+      - 'deployment/training-desktop-mac/training_api.py'
+      - 'deployment/training-desktop-windows/training_api.py'
+      - 'frontend/e2e/training-workflow-integrity.spec.ts'
+      - 'frontend/app/guests/page.tsx'
+      - 'frontend/app/shift/page.tsx'
+      - 'frontend/app/fixes/page.tsx'
       - 'frontend/e2e/hands-on-training.spec.ts'
       - 'frontend/app/login/page.tsx'
       - 'frontend/lib/interactive-training.ts'
@@ -31,6 +49,33 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify training uses the exact current Operations module UI and workflow source
+        shell: bash
+        run: |
+          # This job's default working-directory is frontend/. Git pathspecs
+          # are relative to cwd, so run source-parity checks at repository root.
+          cd "$GITHUB_WORKSPACE"
+          git fetch origin main --depth=1
+          git diff --exit-code origin/main -- \
+            frontend/app/guests/page.tsx \
+            frontend/app/tasks/page.tsx \
+            frontend/app/shift/page.tsx \
+            frontend/app/requests/page.tsx \
+            frontend/lib/api.ts \
+            frontend/lib/session.ts \
+            backend/app/routers/workflow.py \
+            backend/app/services/guest_workflow.py \
+            backend/app/services/fix_workflow.py \
+            backend/app/services/request_workflow.py \
+            backend/app/authorization_policy.py
+          # Maintenance Verify/Reopen UI is intentionally corrected in this PR:
+          # main exposes these controls to Leads even though backend returns 403.
+          # Other module pages and all backend workflow contracts must match.
+          git diff --unified=0 origin/main -- frontend/app/fixes/page.tsx > /tmp/training-fixes-ui.patch
+          grep -q 'canVerifyWork' /tmp/training-fixes-ui.patch
+          echo "PASS: shared Operations source matches main, except explicit permission UI fix."
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -41,8 +86,8 @@ jobs:
         run: npm install --no-save --package-lock=false @playwright/test@1.55.0 @axe-core/playwright@4.10.2
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run guided tours and hands-on role-scoped scenario assessments
-        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts --reporter=line
+      - name: Run guided tours, role-scoped scenarios and API-verified real workflows
+        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts e2e/real-workflow-training.spec.ts e2e/training-workflow-integrity.spec.ts e2e/read-only-task-training.spec.ts e2e/notification-training.spec.ts e2e/guest-fix-reading-training.spec.ts --reporter=line
       - name: Publish guided walkthrough screenshots
         if: always()
         uses: actions/upload-artifact@v4

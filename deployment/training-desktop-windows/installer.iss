@@ -5,6 +5,12 @@
 
 [Setup]
 AppId={{5CDE176D-A66A-42BB-954A-2316E3317056}
+#ifdef TRAINING_SIGNED_RELEASE
+; Compile-time SignTool comes exclusively from an owner-approved protected
+; manual main-branch release. Inno signs setup, uninstaller and self-copies.
+SignTool=training_sign
+SignedUninstaller=yes
+#endif
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}

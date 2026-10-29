@@ -618,3 +618,15 @@ body .drawer .pill{border-radius:5px!important;font-size:11px!important;font-wei
     display: none !important;
   }
 }
+
+/* Training must be legible during all automated and real staff accessibility checks.
+   This only changes the fictional-data banner, not production application chrome. */
+#operations-app-root .ops-demo-banner[aria-label="Training environment — fictional data only"] {
+  color:#294d39!important;
+  font-size:12px!important;
+  font-weight:650!important;
+  letter-spacing:.015em;
+}
+#operations-app-root .ops-demo-banner[aria-label="Training environment — fictional data only"] strong {
+  color:#145336!important;
+}

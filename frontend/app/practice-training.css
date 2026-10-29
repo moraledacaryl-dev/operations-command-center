@@ -18,31 +18,31 @@
 .practice-scenario { min-height: 68px; border: 1px solid transparent; border-radius: 11px; width: 100%; display: flex; align-items: start; gap: 11px; padding: 10px; text-align: left; background: #fff; color: #244435; cursor: pointer; }
 .practice-scenario:hover, .practice-scenario.selected { background: #eaf5ee; border-color: #a8cdb7; }
 .practice-scenario-number { display: grid; place-items: center; flex: 0 0 30px; min-height: 30px; border-radius: 9px; background: #dbece2; font-size: 11px; color: #13523b; font-weight: 800; }
-.practice-scenario strong { display: block; line-height: 1.3; font-size: 13px; margin-bottom: 4px; }
-.practice-scenario small { color: #4f6457; font-size: 11px; }
+.practice-scenario strong { display: block; line-height: 1.35; font-size: 15px; margin-bottom: 4px; }
+.practice-scenario small { color: #4f6457; font-size: 12px; }
 .practice-workspace { min-width: 0; border: 1px solid #d5dfd8; background: #fff; border-radius: 17px; padding: clamp(18px, 3vw, 30px); box-shadow: var(--shadow-xs); }
 .practice-workspace > h2 { font-size: clamp(21px, 2.5vw, 29px); margin: 6px 0 10px; }
 .practice-topline { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; color: #4d6054; font-size: 12px; }
 .practice-department { background: #e2f2e9; border-radius: 999px; color: #175f47; font-weight: 800; padding: 4px 9px; }
-.practice-situation { font-size: 15px; line-height: 1.6; color: #22372c; }
+.practice-situation { font-size: 16px; line-height: 1.6; color: #22372c; }
 .practice-case { background: #f7f9f6; border: 1px solid #dce7dc; padding: 16px; border-radius: 12px; }
 .practice-case h3 { font-size: 14px; margin: 0 0 10px; }
 .practice-case ul { display: grid; gap: 6px; margin: 0 0 12px; padding-left: 23px; }
-.practice-case li, .practice-case p { font-size: 13px; line-height: 1.5; }
+.practice-case li, .practice-case p { font-size: 14px; line-height: 1.5; }
 .practice-case p { margin: 0; }
 .practice-steps { display: flex; flex-wrap: wrap; gap: 7px; margin: 22px 0 18px; }
-.practice-steps span { background: #eef2ee; color: #52675a; border-radius: 8px; padding: 8px 11px; font-size: 12px; font-weight: 750; }
+.practice-steps span { background: #eef2ee; color: #52675a; border-radius: 8px; padding: 9px 12px; font-size: 13px; font-weight: 750; }
 .practice-steps span.current { background: #176d5d; color: white; }
 .practice-form { max-width: 710px; display: grid; gap: 18px; }
-.practice-instruction { margin: 0; line-height: 1.5; color: #405247; font-size: 13px; }
-.practice-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 750; color: #263a2d; }
-.practice-form select, .practice-form textarea { width: 100%; min-width: 0; border-radius: 10px; border: 1px solid #afc7b6; background: #fff; color: #20392c; padding: 12px; font-size: 14px; line-height: 1.5; font-weight: 500; }
+.practice-instruction { margin: 0; line-height: 1.5; color: #405247; font-size: 15px; }
+.practice-form label { display: grid; gap: 7px; font-size: 15px; font-weight: 750; color: #263a2d; }
+.practice-form select, .practice-form textarea, .practice-form input[type="text"] { width: 100%; min-width: 0; border-radius: 10px; border: 1px solid #afc7b6; background: #fff; color: #20392c; padding: 12px; font-size: 16px; line-height: 1.5; font-weight: 500; }
 .practice-form select:focus-visible, .practice-form textarea:focus-visible { outline: 3px solid #9ac8b1; outline-offset: 2px; }
 .practice-form label small { font-size: 11px; font-weight: 500; color: #4c5f51; }
 .practice-form label .practice-error { font-size: 12px; font-weight: 700; color: #a02f27; }
 .practice-notice { border: 1px solid #f0cda9; background: #fff4e7; color: #784718; padding: 11px 13px; border-radius: 9px; margin: 0; }
 .practice-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 4px; }
-.practice-primary, .practice-secondary { cursor: pointer; border: 1px solid #166a55; padding: 12px 16px; min-height: 43px; border-radius: 9px; font-weight: 760; font-size: 13px; }
+.practice-primary, .practice-secondary { cursor: pointer; border: 1px solid #166a55; padding: 12px 16px; min-height: 48px; border-radius: 9px; font-weight: 760; font-size: 14px; }
 .practice-primary { color: white; background: #176d5d; }
 .practice-primary:hover { background: #0f5547; }
 .practice-secondary { color: #22533e; background: #fff; }
@@ -69,4 +69,85 @@
   .practice-catalog { max-height: 230px; overflow: auto; }
   .practice-workspace { padding: 17px; }
   .practice-actions > button { flex: 1 1 100%; }
+}
+
+
+/* Large-curriculum orientation, accessibility, and simple staff-first controls. */
+.practice-filters { padding: 12px 14px; display: grid; gap: 11px; border-bottom: 1px solid #e2e8e3; }
+.practice-filters label { display: grid; gap: 5px; font-size: 12px; font-weight: 760; color: #294c38; }
+.practice-filters input, .practice-filters select { min-width: 0; width: 100%; padding: 10px 11px; font-size: 14px; background: #fff; color: #20392c; border: 1px solid #a9c8b2; border-radius: 9px; }
+.practice-filters input:focus-visible, .practice-filters select:focus-visible,
+.practice-primary:focus-visible, .practice-secondary:focus-visible, .practice-scenario:focus-visible,
+.practice-help summary:focus-visible { outline: 3px solid #8dbfa5; outline-offset: 2px; }
+.practice-filters small { font-size: 11px; color: #425b4b; }
+.practice-empty { padding: 14px; color: #496450; font-size: 13px; line-height: 1.55; }
+.practice-export { width: 100%; text-align: center; font-size: 12px; margin-top: 6px; padding: 9px; }
+.practice-export:disabled { cursor: not-allowed; opacity: .5; }
+.practice-help { display: flex; flex-wrap: wrap; align-items: start; gap: 12px 16px; margin: 13px 0; }
+.practice-help details { flex: 1 1 360px; background: #f2f8f3; border: 1px solid #cbded0; padding: 13px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+.practice-help summary { cursor: pointer; font-weight: 790; color: #12583c; }
+.practice-help ol { padding-left: 21px; margin: 12px 0; }
+.practice-help p { margin: 10px 0 0; }
+.practice-mode { display: inline-flex; align-items: center; gap: 8px; padding: 12px; font-weight: 740; font-size: 12px; background: #fff; border: 1px solid #cbded0; border-radius: 10px; color: #27503c; cursor: pointer; }
+.practice-mode input { width: 16px; height: 16px; accent-color: #176d5d; }
+.practice-skill { font-size: 12px; color: #465f4f; margin-bottom: 15px; }
+.practice-form textarea { resize: vertical; }
+@media (max-width: 650px) {
+  .practice-filters { padding: 11px; }
+  .practice-help details, .practice-mode { flex-basis: 100%; }
+  .practice-hero h1 { line-height: 1.2; }
+  .practice-form select, .practice-form textarea, .practice-form input[type="text"] { font-size: 16px; }
+}
+
+
+/* Training-only real Operations workflow coach: never injected in production. */
+.practice-real-workflow { background: #eff7f3; border: 1px solid #afcdbd; border-radius: 13px; padding: 16px; margin: 14px 0; }
+.practice-real-workflow > strong { color: #14583e; font-size: 16px; }
+.practice-real-workflow p { margin: 8px 0 12px; font-size: 14px; line-height: 1.6; }
+.practice-real-workflow .practice-real-workflow-verified { color: #16563c; font-weight: 750; }
+.practice-real-workflow .practice-real-workflow-restricted { color: #684a21; background: #fff7e8; padding: 12px; border-radius: 8px; }
+.training-workflow-coach { margin: 12px clamp(12px, 2.3vw, 28px) 0; padding: 18px; border: 2px solid #6b9c80; border-radius: 16px; background: #f7fcf9; color: #183527; box-shadow: 0 6px 20px rgba(23, 66, 42, .05); }
+.training-workflow-header { display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 12px; }
+.training-workflow-header h2 { font-size: 19px; margin: 4px 0 5px; line-height: 1.3; }
+.training-workflow-header p { font-size: 15px; margin: 0; }
+.training-workflow-kicker { font-size: 11px; letter-spacing: .09em; font-weight: 800; color: #0e684b; }
+.training-workflow-header-actions, .training-workflow-buttons { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.training-workflow-header-actions > *, .training-workflow-buttons > * { min-height: 42px; }
+.training-workflow-reference { background: white; border: 1px solid #b8d5c1; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px; border-radius: 9px; margin: 14px 0; font-size: 14px; }
+.training-workflow-reference code { font-size: 16px; font-weight: 780; color: #124732; white-space: normal; overflow-wrap: anywhere; }
+.training-workflow-instructions { margin: 0 0 12px; padding-left: 24px; display: grid; gap: 8px; font-size: 15px; line-height: 1.65; }
+.training-workflow-instructions li { padding-left: 3px; }
+.training-workflow-message { margin: 12px 0; border: 1px solid #dfb777; background: #fff7eb; padding: 11px 13px; border-radius: 9px; font-size: 14px; line-height: 1.5; }
+.training-workflow-finished { color: #155d3f; font-size: 15px; font-weight: 760; }
+.training-workflow-safe { color: #466356; font-size: 12px; line-height: 1.55; margin: 10px 0 0; }
+@media(max-width: 650px) {
+  .training-workflow-coach { margin: 10px; padding: 13px; }
+  .training-workflow-header-actions, .training-workflow-buttons { width: 100%; }
+  .training-workflow-header-actions > *, .training-workflow-buttons > * { flex: 1 1 140px; text-align: center; }
+  .training-workflow-reference { font-size: 13px; }
+}
+
+
+/* Authenticated, read-only task observation for ordinary staff accounts. */
+.practice-record-lookup { display: grid; gap: 10px; padding: 20px; margin: 18px 0; border: 1px solid #bbd3c4; border-radius: 14px; background: #f5faf7; color: #203f2d; }
+.practice-record-lookup h2 { margin: 4px 0 6px; font-size: 20px; }
+.practice-record-lookup p { margin: 5px 0; line-height: 1.55; font-size: 14px; }
+.practice-record-lookup > small { color: #496452; line-height: 1.5; }
+.practice-record-lookup code { font-weight: 800; overflow-wrap: anywhere; }
+.practice-record-lookup a { color: #176d5d; text-decoration: underline; font-weight: 750; }
+.practice-record-lookup button { justify-self: start; }
+.practice-record-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 720px; }
+.practice-record-answers label { display: grid; gap: 6px; font-size: 14px; font-weight: 750; }
+.practice-record-answers select { min-width: 0; width: 100%; padding: 10px 11px; border: 1px solid #9cbaa6; border-radius: 9px; background: white; color: #20392c; font: inherit; }
+.practice-record-result { padding: 12px; border: 1px solid #b4d1be; background: white; border-radius: 9px; }
+@media (max-width: 650px) {
+  .practice-record-lookup { padding: 15px; }
+  .practice-record-answers { grid-template-columns: 1fr; }
+}
+
+/* Two staff observation drills should not bury the main scenario catalog. */
+.practice-observation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; margin: 16px 0; }
+.practice-observation-grid > .practice-record-lookup { min-width: 0; margin: 0; }
+@media (max-width: 760px) {
+  .practice-observation-grid { grid-template-columns: 1fr; }
 }

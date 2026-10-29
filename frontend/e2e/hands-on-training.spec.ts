@@ -63,10 +63,12 @@ test('reception must click choices, type a case note and correct mistakes before
   );
   await page.getByRole('button', { name: 'Submit practice response' }).click();
   await expect(page.getByTestId('scenario-complete')).toContainText('Scenario completed');
-  await expect(page.getByText('1 / 3')).toBeVisible();
+  // Two triage checks and two documentation submissions are exactly four attempts.
+  await expect(page.getByTestId('scenario-complete')).toContainText('Attempts: 4');
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \d+$/);
 
   await page.reload();
-  await expect(page.getByText('1 / 3')).toBeVisible();
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \d+$/);
   await expect(page.getByTestId('scenario-shift-unresolved')).toContainText('Completed');
   await page.getByTestId('scenario-guest-ac').click();
   await expect(page.getByTestId('scenario-triage')).toBeVisible();
@@ -80,4 +82,129 @@ test('manager has management decision scenarios while staff cannot see them', as
   await page.getByTestId('scenario-manager-evidence').click();
   await expect(page.getByRole('heading', { name: 'Approval request without supporting evidence' })).toBeVisible();
   await expect(page.getByText('DEMO-REQ-088').first()).toBeVisible();
+});
+
+
+test('large role-aware catalog can be searched by issue and difficulty', async ({ page }) => {
+  await signInToFictionalWorkspace(page, 'staff');
+  await expect(page.getByTestId('scenario-shared-wrong-room')).toBeVisible();
+  await expect(page.getByTestId('scenario-fd-payment-unverified')).toBeVisible();
+  await expect(page.getByTestId('scenario-kt-raw-contact')).toHaveCount(0);
+  await expect(page.getByTestId('scenario-mgr-approval-delegation')).toHaveCount(0);
+  await page.getByTestId('scenario-search').fill('wrong room');
+  await expect(page.getByTestId('scenario-shared-wrong-room')).toBeVisible();
+  await expect(page.getByTestId('scenario-fd-payment-unverified')).toHaveCount(0);
+  await page.getByTestId('scenario-search').clear();
+  await page.locator('#practice-level-filter').selectOption('5');
+  await expect(page.getByTestId('scenario-fd-repeat-failure')).toBeVisible();
+  await expect(page.getByTestId('scenario-shared-wrong-room')).toHaveCount(0);
+});
+
+test('complex incident must include concrete response, accountable owner and verification', async ({ page }) => {
+  await signInToFictionalWorkspace(page, 'staff');
+  await page.getByTestId('scenario-shared-wrong-room').click();
+  await page.getByTestId('scenario-priority').selectOption('High');
+  await page.getByTestId('scenario-department').selectOption('Front Desk');
+  await page.getByRole('button', { name: 'Check my assessment' }).click();
+  await page.getByTestId('scenario-decision').selectOption('Return for changes');
+  await page.getByTestId('scenario-note').fill('DEMO-SHARED-WRONG-ROOM: There is an issue; someone will take care of it eventually. Please just follow up.');
+  await page.getByRole('button', { name: 'Submit practice response' }).click();
+  await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
+  await expect(page.getByText('Who is accountable for the next action?')).toBeVisible();
+  await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
+  await page.getByTestId('scenario-owner').fill('On-duty Front Desk lead');
+  await page.getByTestId('scenario-follow-up').fill('The lead confirms the correct room on the booking record and updates the receiving shift.');
+  await page.getByTestId('scenario-note').fill(
+    'DEMO-SHARED-WRONG-ROOM: Verify whether Room 102 or Room 201 is correct by checking the source report, correct the record, and notify the receiving shift.',
+  );
+  await page.getByRole('button', { name: 'Submit practice response' }).click();
+  await expect(page.getByTestId('scenario-complete')).toBeVisible();
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \d+$/);
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toContain('training-progress.csv');
+});
+
+test('repeating a completed case retains prior corrections and hints in its exported results', async ({ page }) => {
+  await signInToFictionalWorkspace(page, 'staff');
+  await page.getByTestId('scenario-shift-unresolved').click();
+  await page.getByRole('button', { name: 'Need a hint?' }).click();
+  await page.getByTestId('scenario-priority').selectOption('Routine');
+  await page.getByTestId('scenario-department').selectOption('Front Desk');
+  await page.getByRole('button', { name: 'Check my assessment' }).click();
+  await expect(page.getByText('Not quite. Re-read the situation')).toBeVisible();
+
+  const correctSubmission = async () => {
+    await page.getByTestId('scenario-priority').selectOption('High');
+    await page.getByTestId('scenario-department').selectOption('Front Desk');
+    await page.getByRole('button', { name: 'Check my assessment' }).click();
+    await expect(page.getByTestId('scenario-document')).toBeVisible();
+    await page.getByTestId('scenario-decision').selectOption('Assign and follow up');
+    await page.getByTestId('scenario-note').fill(
+      'DEMO-HANDOVER-014: Front Desk lead must confirm the unresolved guest concern, assign an owner, contact the fictional guest and update the receiving shift.',
+    );
+    await page.getByRole('button', { name: 'Submit practice response' }).click();
+    await expect(page.getByTestId('scenario-complete')).toBeVisible();
+  };
+
+  await correctSubmission();
+  await page.getByRole('button', { name: 'Repeat this situation' }).click();
+  await correctSubmission();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  const download = await downloadPromise;
+  const { readFile } = await import('node:fs/promises');
+  const csv = await readFile((await download.path())!, 'utf8');
+  const row = csv.split(/\r?\n/).find(line => line.startsWith('"scenario","shift-unresolved",'));
+  expect(row).toBeTruthy();
+  // First run: two triage submissions + one handover; repeat: one of each.
+  // No repeat can erase the earlier hint or mistake or restore "unassisted".
+  expect(row).toContain(',"5","1","1","false",');
+});
+
+
+test('original shift handover rejects filler even after correct priority and routing', async ({ page }) => {
+  await signInToFictionalWorkspace(page, 'staff');
+  await page.getByTestId('scenario-shift-unresolved').click();
+  await page.getByTestId('scenario-priority').selectOption('High');
+  await page.getByTestId('scenario-department').selectOption('Front Desk');
+  await page.getByRole('button', { name: 'Check my assessment' }).click();
+  await page.getByTestId('scenario-decision').selectOption('Assign and follow up');
+  await page.getByTestId('scenario-note').fill(
+    'DEMO-HANDOVER-014: This fictional note is sufficiently long but contains only generic statements about the property.',
+  );
+  await page.getByRole('button', { name: 'Submit practice response' }).click();
+  await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
+  await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
+  await page.getByTestId('scenario-note').fill(
+    'DEMO-HANDOVER-014: Front Desk assigns an on-duty owner to the pending request and will update the fictional guest before the next handover.',
+  );
+  await page.getByRole('button', { name: 'Submit practice response' }).click();
+  await expect(page.getByTestId('scenario-complete')).toBeVisible();
+});
+
+test('critical kitchen drill rejects explicit instructions not to stop or notify', async ({ page }) => {
+  await signInToFictionalWorkspace(page, 'manager');
+  await page.getByTestId('scenario-kt-raw-contact').click();
+  await page.getByTestId('scenario-priority').selectOption('Critical');
+  await page.getByTestId('scenario-department').selectOption('Kitchen');
+  await page.getByRole('button', { name: 'Check my assessment' }).click();
+  await page.getByTestId('scenario-decision').selectOption('Escalate immediately');
+  await page.getByTestId('scenario-owner').fill('On-duty Kitchen lead');
+  await page.getByTestId('scenario-follow-up').fill(
+    'The kitchen lead will check affected food and verify sanitization before further guest service.',
+  );
+  await page.getByTestId('scenario-note').fill(
+    'DEMO-KT-RAW-CONTACT: Do not stop serving this plate. Do not notify the kitchen lead; the item is fine and can proceed with food service immediately.',
+  );
+  await page.getByRole('button', { name: 'Submit practice response' }).click();
+  await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
+  await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
+  await page.getByTestId('scenario-note').fill(
+    'DEMO-KT-RAW-CONTACT: Stop plating and hold the contaminated food from service. Sanitize safely under protocol and notify the kitchen lead.',
+  );
+  await page.getByRole('button', { name: 'Submit practice response' }).click();
+  await expect(page.getByTestId('scenario-complete')).toBeVisible();
 });

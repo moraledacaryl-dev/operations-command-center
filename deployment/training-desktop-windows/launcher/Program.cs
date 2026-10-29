@@ -24,6 +24,7 @@ internal sealed class TrainingWindow : Form
     readonly Button stop = new() { Text = "Stop", Width = 95, Height = 44, Enabled = false };
     readonly Button browser = new() { Text = "Open training", Width = 155, Height = 38, Enabled = false };
     readonly Button accounts = new() { Text = "Trainer accounts", Width = 155, Height = 38, Enabled = false };
+    readonly Button logs = new() { Text = "Training logs", Width = 155, Height = 38 };
     readonly Label status = new() { Text = "Not running", AutoSize = false, Width = 600, Height = 32 };
     readonly Label guidance = new()
     {
@@ -33,10 +34,12 @@ internal sealed class TrainingWindow : Form
     readonly HttpClient client = new() { Timeout = TimeSpan.FromSeconds(3) };
     readonly string dataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "HiddenOasis", "OperationsTraining");
+    Process? initializer;
     Process? backend;
     Process? frontend;
     bool starting;
     bool closing;
+    bool cancelled;
 
     string BrowserUrl => "http://127.0.0.1:3401/training";
 
@@ -69,16 +72,19 @@ internal sealed class TrainingWindow : Form
         stop.Location = new Point(213, 195);
         browser.Location = new Point(325, 198);
         accounts.Location = new Point(30, 252);
+        logs.Location = new Point(205, 252);
         start.BackColor = Color.FromArgb(31, 92, 70);
         start.ForeColor = Color.White; start.FlatStyle = FlatStyle.Flat;
         stop.FlatStyle = FlatStyle.Flat;
         browser.FlatStyle = FlatStyle.Flat;
         accounts.FlatStyle = FlatStyle.Flat;
-        Controls.AddRange(new Control[] { title, subtitle, guidance, status, start, stop, browser, accounts });
+        logs.FlatStyle = FlatStyle.Flat;
+        Controls.AddRange(new Control[] { title, subtitle, guidance, status, start, stop, browser, accounts, logs });
         start.Click += async (_, _) => await StartTraining();
         stop.Click += (_, _) => StopTraining();
         browser.Click += (_, _) => OpenBrowser();
         accounts.Click += (_, _) => OpenAccounts();
+        logs.Click += (_, _) => OpenLogs();
         Shown += async (_, _) => await StartTraining();
         FormClosing += (_, _) => { closing = true; StopTraining(); };
     }
@@ -189,7 +195,8 @@ internal sealed class TrainingWindow : Form
                 "Training cannot start", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
-        starting = true; start.Enabled = false; stop.Enabled = false;
+        starting = true; cancelled = false;
+        start.Enabled = false; stop.Enabled = true; stop.Text = "Cancel setup";
         try
         {
             Directory.CreateDirectory(dataRoot);
@@ -199,14 +206,24 @@ internal sealed class TrainingWindow : Form
             var config = LoadSettings();
             var env = Env(config);
             SetStatus("Preparing fictional training records...");
-            using (var init = Launch(ApiExe, "init", Path.GetDirectoryName(ApiExe)!, env, "init.log"))
+            // Track first-launch initialization as a child process, too.
+            // Closing the desktop window must cancel it rather than allowing
+            // an invisible demo seeder to keep running after the app exits.
+            initializer = Launch(ApiExe, "init", Path.GetDirectoryName(ApiExe)!, env, "init.log");
+            try
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-                await init.WaitForExitAsync(timeout.Token);
-                if (init.ExitCode != 0)
+                await initializer.WaitForExitAsync(timeout.Token);
+                if (closing || cancelled) return;
+                if (initializer.ExitCode != 0)
                     throw new Exception("Could not initialize demo data. See the training logs.");
             }
-            if (closing) return;
+            finally
+            {
+                try { initializer?.Dispose(); } catch { }
+                initializer = null;
+            }
+            if (closing || cancelled) return;
             SetStatus("Starting training backend...");
             backend = Launch(ApiExe, "serve", Path.GetDirectoryName(ApiExe)!, env, "backend.log");
             // Next.js standalone server has the proxy destination baked into its build.
@@ -220,7 +237,7 @@ internal sealed class TrainingWindow : Form
             for (var attempt = 0; attempt < 70; attempt++)
             {
                 await Task.Delay(1000);
-                if (closing) return;
+                if (closing || cancelled) return;
                 if (backend.HasExited || frontend.HasExited)
                     throw new Exception("Training stopped unexpectedly. See the training logs.");
                 try
@@ -236,12 +253,14 @@ internal sealed class TrainingWindow : Form
                 catch { /* services may still be starting */ }
             }
             if (!healthy) throw new Exception("Training service did not become ready.");
-            stop.Enabled = true; browser.Enabled = true; accounts.Enabled = true;
+            stop.Enabled = true; stop.Text = "Stop";
+            browser.Enabled = true; accounts.Enabled = true;
             SetStatus("Running locally • Your practice records are saved.");
             OpenBrowser();
         }
         catch (Exception exc)
         {
+            if (cancelled || closing) { StopTraining(); return; }
             StopTraining();
             SetStatus("Could not start • Check the local training logs.");
             if (!closing) MessageBox.Show(exc.Message + "\n\nTraining logs: " + Path.Combine(dataRoot,"logs"),
@@ -258,7 +277,7 @@ internal sealed class TrainingWindow : Form
 
     void OpenAccounts()
     {
-        var path = Path.Combine(dataRoot, "private", "accounts", "PRIVATE_training_accounts.json");
+        var path = Path.Combine(dataRoot, "private", "accounts", "PRIVATE_TRAINER_ACCOUNTS.txt");
         if (!File.Exists(path))
         {
             MessageBox.Show("Training accounts are not ready yet.");
@@ -270,21 +289,43 @@ internal sealed class TrainingWindow : Form
         catch { MessageBox.Show("Open this private file: " + path); }
     }
 
+    void OpenLogs()
+    {
+        var folder = Path.Combine(dataRoot, "logs");
+        try
+        {
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+        }
+        catch
+        {
+            MessageBox.Show("Training logs folder: " + folder);
+        }
+    }
+
     void StopTraining()
     {
-        foreach (var p in new[] { frontend, backend })
+        cancelled = true;
+        foreach (var p in new[] { initializer, frontend, backend })
         {
             if (p is null) continue;
             try
             {
-                if (!p.HasExited) p.Kill(entireProcessTree: true);
+                if (!p.HasExited)
+                {
+                    p.Kill(entireProcessTree: true);
+                    // Ensure a cancelled first-launch writer has exited before
+                    // the next startup can quarantine or migrate SQLite.
+                    p.WaitForExit(3000);
+                }
                 p.Dispose();
             }
             catch { }
         }
-        frontend = null; backend = null;
+        initializer = null; frontend = null; backend = null;
         if (closing) return;
-        stop.Enabled = false; browser.Enabled = false; accounts.Enabled = false;
+        stop.Enabled = false; stop.Text = "Stop";
+        browser.Enabled = false; accounts.Enabled = false;
         status.Text = "Stopped • Practice records are safely preserved.";
     }
 }

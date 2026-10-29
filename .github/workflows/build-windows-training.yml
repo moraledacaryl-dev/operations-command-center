@@ -6,6 +6,7 @@ on:
       - "deployment/training-desktop-windows/**"
       - ".github/workflows/build-windows-training.yml"
       - "backend/scripts/seed_training_demo.py"
+      - "backend/scripts/training_first_launch.py"
       - "frontend/**"
   workflow_dispatch:
 
@@ -24,6 +25,37 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
+      - name: Verify Windows distribution signing is inaccessible to PRs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = 'deployment/training-desktop-windows/sign_windows_training.ps1'
+          $guardParams = @{ PayloadDir = 'dist/desktop'; InstallerScript = 'deployment/training-desktop-windows/installer.iss' }
+          $oldEvent = $env:GITHUB_EVENT_NAME
+          $oldRef = $env:GITHUB_REF
+          try {
+            $env:GITHUB_EVENT_NAME = 'pull_request'
+            $env:GITHUB_REF = 'refs/pull/222/merge'
+            $refused = $false
+            try { & $script @guardParams } catch {
+              if ($_.Exception.Message -match 'REFUSED: Windows distribution signing only permits') { $refused = $true } else { throw }
+            }
+            if (!$refused) { throw 'Signing script unexpectedly accepted PR execution' }
+            $env:GITHUB_EVENT_NAME = 'workflow_dispatch'
+            $env:GITHUB_REF = 'refs/heads/main'
+            $env:WINDOWS_CODESIGN_PFX_BASE64 = ''
+            $env:WINDOWS_CODESIGN_PFX_PASSWORD = ''
+            $env:WINDOWS_CODESIGN_THUMBPRINT = ''
+            $refused = $false
+            try { & $script @guardParams } catch {
+              if ($_.Exception.Message -match 'REFUSED: missing Windows signing credential') { $refused = $true } else { throw }
+            }
+            if (!$refused) { throw 'Signing script unexpectedly accepted missing credentials' }
+            Write-Host 'PASS: PRs and unsigned builds cannot invoke Windows signing'
+          } finally {
+            $env:GITHUB_EVENT_NAME = $oldEvent
+            $env:GITHUB_REF = $oldRef
+          }
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -55,6 +87,7 @@ jobs:
             --add-data "backend/alembic;alembic" `
             --add-data "backend/alembic.ini;." `
             --add-data "backend/scripts/seed_training_demo.py;scripts" `
+            --add-data "backend/scripts/training_first_launch.py;scripts" `
             deployment/training-desktop-windows/training_api.py
           if (!(Test-Path dist/training-api/training-api.exe)) { throw "Frozen API missing" }
 
@@ -91,6 +124,18 @@ jobs:
           if ((Get-Item dist/desktop/runtime/node.exe).Length -lt 20000000) { throw "Node runtime unexpectedly small" }
           Write-Host "PASS: self-contained desktop application, no end-user Docker, Python or Node install"
 
+      - name: Reject pre-generated credentials or private training databases in shipped payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $forbidden = @(Get-ChildItem -LiteralPath dist/desktop -File -Recurse -Force | Where-Object {
+            $_.Name -match '^(PRIVATE_training_accounts\.json|PRIVATE_TRAINER_ACCOUNTS\.txt|training_manifest\.json)$' -or
+            $_.Name -match '^operations_training_demo_.*\.sqlite$' -or
+            $_.Name -match '^\.env(\..*)?$'
+          })
+          if ($forbidden.Count -gt 0) { throw 'REFUSED: desktop installer contains private credentials or a pre-seeded database' }
+          Write-Host 'PASS: Windows installer payload cannot ship local trainee passwords, SQLite records or environment secrets'
+
       - name: Smoke real Windows API, proxy and staff/manager login
         shell: pwsh
         run: |
@@ -112,8 +157,22 @@ jobs:
           $env:EXPOSE_API_DOCS = 'false'
           $env:FORCE_HTTPS = 'false'
           $env:TRUST_PROXY_HEADERS = 'false'
+          # Inject a simulated cancelled first boot into the PRIVATE test state.
+          # The packaged executable must quarantine partial records before seeding.
+          $journal = Join-Path $data '.first_launch_pending'
+          [System.IO.File]::WriteAllText($journal, "HIDDEN_OASIS_FICTIONAL_TRAINING_FIRST_LAUNCH_V1`n")
+          python -c "import sqlite3,os; p=os.environ['DATABASE_URL'][10:]; c=sqlite3.connect(p); c.execute('CREATE TABLE interrupted_migration (value TEXT)'); c.execute('INSERT INTO interrupted_migration VALUES (?)',('keep me',)); c.commit(); c.close()"
+          if ($LASTEXITCODE -ne 0) { throw 'Windows interruption fixture setup failed' }
+          $privateAccounts = Join-Path $state 'private/accounts'
+          New-Item -ItemType Directory -Force $privateAccounts | Out-Null
+          [System.IO.File]::WriteAllText((Join-Path $privateAccounts 'PRIVATE_training_accounts.json'), '{"interrupted":true}')
           & dist/desktop/backend/training-api/training-api.exe init
-          if ($LASTEXITCODE -ne 0) { throw "Synthetic seed failed on frozen Windows backend" }
+          if ($LASTEXITCODE -ne 0) { throw "Synthetic seed recovery failed on frozen Windows backend" }
+          $backupDb = @(Get-ChildItem (Join-Path $state 'recovery') -Filter 'operations_training_demo_desktop.sqlite' -File -Recurse)
+          if ($backupDb.Count -ne 1) { throw 'Interrupted database was not preserved in a private recovery folder' }
+          $backupRoster = @(Get-ChildItem (Join-Path $state 'recovery') -Filter 'PRIVATE_training_accounts.json' -File -Recurse)
+          if ($backupRoster.Count -ne 1) { throw 'Interrupted private roster was not preserved' }
+          if (Test-Path $journal) { throw 'Successful initialization left an incomplete setup journal' }
           & dist/desktop/backend/training-api/training-api.exe init
           if ($LASTEXITCODE -ne 0) { throw "Frozen runtime did not preserve training data" }
           $env:HOSTNAME = '127.0.0.1'
@@ -159,6 +218,15 @@ jobs:
             if ($login.Content -notmatch 'TRAINING ONLY') { throw "Missing training-only warning" }
             $accounts = Get-Content (Join-Path $state 'private/accounts/PRIVATE_training_accounts.json') -Raw | ConvertFrom-Json
             if ($accounts.accounts.Count -ne 20) { throw "Fictional roster incorrect" }
+            $guidePath = Join-Path $state 'private/accounts/PRIVATE_TRAINER_ACCOUNTS.txt'
+            if (!(Test-Path $guidePath)) { throw "Readable trainer account guide missing" }
+            $guide = Get-Content $guidePath -Raw
+            if ($guide -notmatch 'TRAINER ONLY' -or $guide -notmatch 'FRONT DESK') { throw "Invalid trainer account guide" }
+            foreach ($account in $accounts.accounts) {
+              if (!$guide.Contains($account.email) -or !$guide.Contains($account.password)) {
+                throw "Trainer guide is missing a fictional account"
+              }
+            }
             foreach ($role in @('manager','staff')) {
               $email = if ($role -eq 'manager') {'manager@training.invalid'} else {'reception-am@training.invalid'}
               $account = $accounts.accounts | Where-Object { $_.email -eq $email }
@@ -166,7 +234,15 @@ jobs:
               $auth = Invoke-RestMethod -Uri http://127.0.0.1:3401/api/auth/login -Method Post -Body $payload -ContentType 'application/json'
               if ($auth.role -ne $role) { throw "Incorrect role for $email" }
             }
-            Write-Host "PASS: Windows frozen API + Next frontend + real manager/staff sign-ins"
+            # Reuse the cross-platform authenticated HTTP domain smoke from Mac.
+            # This runs against the *frozen Windows backend*, real SQLite and
+            # HTTP-only cookies; no route mocking and no production services.
+            $crossPlatformSmoke = (Resolve-Path deployment/training-desktop-mac).Path
+            $env:PYTHONPATH = $crossPlatformSmoke
+            $rosterFile = Join-Path $state 'private/accounts/PRIVATE_training_accounts.json'
+            python -c "import json,sys; from smoke_mac import exercise_real_local_workflows; roster=json.load(open(sys.argv[1],encoding='utf-8')); exercise_real_local_workflows('http://127.0.0.1:3401',roster)" $rosterFile
+            if ($LASTEXITCODE -ne 0) { throw "Windows packaged Guest/Fix/Approval workflow smoke failed" }
+            Write-Host "PASS: Windows frozen API + Next frontend + manager/staff login + actual Guest/Fix/Approval workflow"
           } finally {
             Stop-Process -Id $ui.Id,$backend.Id -Force -ErrorAction SilentlyContinue
           }
@@ -181,11 +257,152 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Inno setup build failed" }
           $setup = @(Get-ChildItem dist/installer/*.exe)
           if ($setup.Count -ne 1) { throw "Expected one Windows installer" }
-          Get-FileHash $setup[0].FullName -Algorithm SHA256 | Format-List
+          $digest = (Get-FileHash $setup[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest  $($setup[0].Name)" | Set-Content -LiteralPath ($setup[0].FullName + '.sha256') -Encoding ascii
+          Write-Host "PASS: Windows installer SHA-256 $digest"
+
+      - name: Install and uninstall actual unsigned Windows setup in a private test location
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Resolve-Path 'dist/installer/Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe').Path
+          $install = Join-Path $env:RUNNER_TEMP 'HiddenOasisUnsignedInstallTest'
+          if (Test-Path $install) { throw 'REFUSED: installer smoke cannot overwrite an existing app' }
+          $state = Join-Path $env:LOCALAPPDATA 'HiddenOasis/OperationsTraining'
+          New-Item -ItemType Directory -Force $state | Out-Null
+          $sentinel = Join-Path $state 'CI_DO_NOT_DELETE_TRAINING_DATA.txt'
+          if (Test-Path $sentinel) { throw 'REFUSED: installer smoke cannot reuse a prior user-state marker' }
+          Set-Content -LiteralPath $sentinel -Value 'local-training-state-must-survive-uninstall' -NoNewline -Encoding utf8
+          try {
+            $process = Start-Process -FilePath $setup -PassThru -Wait -NoNewWindow -ArgumentList @(
+              '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/DIR=`"$install`""
+            )
+            if ($process.ExitCode -ne 0) { throw "Unsigned setup failed: $($process.ExitCode)" }
+            foreach ($relative in @('HiddenOasisTraining.exe', 'backend/training-api/training-api.exe',
+                                    'runtime/node.exe', 'frontend/standalone/server.js')) {
+              if (!(Test-Path (Join-Path $install $relative) -PathType Leaf)) {
+                throw "Installed standalone app is missing $relative"
+              }
+            }
+            $uninstaller = @(Get-ChildItem -LiteralPath $install -Filter 'unins*.exe' -File)
+            if ($uninstaller.Count -ne 1) { throw 'Inno uninstaller not installed' }
+            $removed = Start-Process -FilePath $uninstaller[0].FullName -PassThru -Wait -NoNewWindow -ArgumentList @(
+              '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+            )
+            if ($removed.ExitCode -ne 0) { throw "Uninstall failed: $($removed.ExitCode)" }
+            if (Test-Path (Join-Path $install 'HiddenOasisTraining.exe')) {
+              throw 'Uninstaller did not remove its desktop launcher'
+            }
+            if (!(Test-Path $sentinel -PathType Leaf) -or
+                (Get-Content -LiteralPath $sentinel -Raw) -ne 'local-training-state-must-survive-uninstall') {
+              throw 'Uninstall unexpectedly deleted or changed private training records'
+            }
+            Write-Host 'PASS: ordinary unsigned Windows installer installs and uninstalls without deleting user training state'
+          } finally {
+            Remove-Item -LiteralPath $sentinel -Force -ErrorAction SilentlyContinue
+          }
 
       - uses: actions/upload-artifact@v4
         with:
           name: Hidden-Oasis-Operations-Training-Windows-Standalone-Installer
-          path: dist/installer/*.exe
+          path: |
+            dist/installer/*.exe
+            dist/installer/*.exe.sha256
           retention-days: 14
+          if-no-files-found: error
+
+      - name: Preserve exact tested unsigned training payload for optional protected signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Windows-Unsigned-Payload
+          path: dist/desktop/
+          retention-days: 3
+          if-no-files-found: error
+
+  # This stage is impossible on a PR. GitHub must additionally restrict the
+  # training-distribution Environment to main and require owner approval.
+  sign-windows:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: windows-training
+    environment: training-distribution
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Windows-Unsigned-Payload
+          path: dist/desktop
+      - name: Validate packaged source and install the Inno compiler
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (!(Test-Path 'dist/desktop/HiddenOasisTraining.exe') -or
+              !(Test-Path 'dist/desktop/backend/training-api/training-api.exe') -or
+              !(Test-Path 'dist/desktop/runtime/node.exe') -or
+              !(Test-Path 'dist/desktop/frontend/standalone/server.js')) {
+            throw 'Downloaded same-run Windows training package is incomplete'
+          }
+          choco install innosetup --yes --no-progress --limit-output
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup is unavailable' }
+      - name: Authenticode sign training runtimes and Inno installer/uninstaller
+        shell: pwsh
+        env:
+          WINDOWS_CODESIGN_PFX_BASE64: ${{ secrets.WINDOWS_CODESIGN_PFX_BASE64 }}
+          WINDOWS_CODESIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PFX_PASSWORD }}
+          WINDOWS_CODESIGN_THUMBPRINT: ${{ secrets.WINDOWS_CODESIGN_THUMBPRINT }}
+        run: |
+          ./deployment/training-desktop-windows/sign_windows_training.ps1 `
+            -PayloadDir dist/desktop `
+            -InstallerScript deployment/training-desktop-windows/installer.iss
+      - name: Install, verify signed uninstaller and uninstall on isolated Windows runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Resolve-Path 'dist/installer/Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe').Path
+          $install = Join-Path $env:RUNNER_TEMP 'HiddenOasisTrainingSignedInstall'
+          if (Test-Path $install) { throw 'Refusing to overwrite an existing installation folder' }
+          $signature = Get-AuthenticodeSignature -FilePath $setup
+          if ($signature.Status -ne 'Valid' -or -not $signature.TimeStamperCertificate) {
+            throw 'Protected Windows setup is not signed and timestamped'
+          }
+          $setupProcess = Start-Process -FilePath $setup -PassThru -Wait -NoNewWindow -ArgumentList @(
+            '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',("/DIR=" + $install)
+          )
+          if ($setupProcess.ExitCode -ne 0) { throw "Signed Windows silent install failed with exit $($setupProcess.ExitCode)" }
+          foreach ($relative in @('HiddenOasisTraining.exe','backend/training-api/training-api.exe','frontend/standalone/server.js')) {
+            if (!(Test-Path (Join-Path $install $relative))) { throw "Signed installer omitted $relative" }
+          }
+          $uninstaller = @(Get-ChildItem -Path $install -File -Filter 'unins*.exe')
+          if ($uninstaller.Count -ne 1) { throw 'Signed Inno uninstaller was not installed' }
+          $uninstallerSignature = Get-AuthenticodeSignature -FilePath $uninstaller[0].FullName
+          if ($uninstallerSignature.Status -ne 'Valid' -or
+              $uninstallerSignature.SignerCertificate.Thumbprint -ne $signature.SignerCertificate.Thumbprint -or
+              -not $uninstallerSignature.TimeStamperCertificate) {
+            throw 'Installed training uninstaller has an invalid publisher signature or timestamp'
+          }
+          $uninstall = Start-Process -FilePath $uninstaller[0].FullName -PassThru -Wait -NoNewWindow -ArgumentList @(
+            '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART'
+          )
+          if ($uninstall.ExitCode -ne 0) { throw "Signed Windows uninstaller failed with exit $($uninstall.ExitCode)" }
+          if (Test-Path (Join-Path $install 'HiddenOasisTraining.exe')) {
+            throw 'Signed Windows uninstall left the executable installed'
+          }
+          Write-Host 'PASS: signed installer, runtime files and Authenticode-signed uninstaller work without developer tools'
+      - name: Generate checksum of verified signed Windows training installer
+        shell: pwsh
+        run: |
+          $setup = (Resolve-Path 'dist/installer/Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe').Path
+          $digest = (Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest  $(Split-Path $setup -Leaf)" | Set-Content -LiteralPath ($setup + '.sha256') -Encoding ascii
+          Write-Host "PASS: signed Windows setup SHA-256 $digest"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hidden-Oasis-Operations-Training-Windows-SIGNED-Installer
+          path: |
+            dist/installer/Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe
+            dist/installer/Hidden_Oasis_Operations_Training_Windows_Standalone_Setup.exe.sha256
+          retention-days: 30
           if-no-files-found: error
