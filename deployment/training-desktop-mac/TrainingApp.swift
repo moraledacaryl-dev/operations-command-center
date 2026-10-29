@@ -11,6 +11,7 @@ final class TrainingRuntime {
     private var backend: Process?
     private var frontend: Process?
     private var cancelled = false
+    private var generation: UInt64 = 0
 
     let state = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/HiddenOasis/OperationsTraining", isDirectory: true)
@@ -121,10 +122,10 @@ final class TrainingRuntime {
         return process
     }
 
-    private func setProcess(_ process: Process, api: Bool) throws {
+    private func setProcess(_ process: Process, api: Bool, generation expected: UInt64) throws {
         lock.lock()
         defer { lock.unlock() }
-        if cancelled {
+        if cancelled || generation != expected {
             if process.isRunning { process.terminate() }
             throw NSError(domain: "HiddenOasisTraining", code: 4,
                           userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])
@@ -132,10 +133,10 @@ final class TrainingRuntime {
         if api { backend = process } else { frontend = process }
     }
 
-    private func isCancelled() -> Bool {
+    private func isCancelled(_ expected: UInt64) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        return cancelled
+        return cancelled || generation != expected
     }
 
     private func healthy() -> Bool {
@@ -155,6 +156,8 @@ final class TrainingRuntime {
 
     func start(progress: @escaping (String) -> Void) throws {
         lock.lock()
+        generation &+= 1
+        let run = generation
         cancelled = false
         lock.unlock()
         guard !portTaken(3401) && !portTaken(8401) else {
@@ -172,28 +175,45 @@ final class TrainingRuntime {
         progress("Preparing private, fictional training accounts...")
         let initializer = try launch(api, args: ["init"], workdir: api.deletingLastPathComponent(),
                                      env: env, logfile: "initialize.log")
-        initializer.waitUntilExit()
+        // A first launch must not hang forever during initialization. Closing
+        // the window cancels startup promptly, without deleting existing data.
+        let deadline = Date().addingTimeInterval(180)
+        while initializer.isRunning && !isCancelled(run) && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        if isCancelled(run) {
+            if initializer.isRunning { initializer.terminate() }
+            throw NSError(domain: "HiddenOasisTraining", code: 4,
+                          userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])
+        }
+        if initializer.isRunning {
+            initializer.terminate()
+            throw NSError(domain: "HiddenOasisTraining", code: 8,
+                          userInfo: [NSLocalizedDescriptionKey: "Fictional training setup took too long. Check the training logs; existing records are preserved."])
+        }
         guard initializer.terminationStatus == 0 else {
             throw NSError(domain: "HiddenOasisTraining", code: 6,
                           userInfo: [NSLocalizedDescriptionKey: "Training data could not initialize. Check the local logs; existing practice data was not erased."])
         }
-        guard !isCancelled() else { return }
 
         progress("Starting isolated Operations training...")
         let apiProcess = try launch(api, args: ["serve"], workdir: api.deletingLastPathComponent(),
                                     env: env, logfile: "backend.log")
-        try setProcess(apiProcess, api: true)
+        try setProcess(apiProcess, api: true, generation: run)
         var uiEnv = env
         uiEnv["HOSTNAME"] = "127.0.0.1"
         uiEnv["PORT"] = "3401"
         uiEnv["NODE_ENV"] = "production"
         let uiProcess = try launch(node, args: ["server.js"], workdir: frontendPath,
                                    env: uiEnv, logfile: "frontend.log")
-        try setProcess(uiProcess, api: false)
+        try setProcess(uiProcess, api: false, generation: run)
 
         progress("Checking training website and database...")
         for _ in 0..<90 {
-            if isCancelled() { return }
+            if isCancelled(run) {
+                throw NSError(domain: "HiddenOasisTraining", code: 4,
+                              userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])
+            }
             guard apiProcess.isRunning, uiProcess.isRunning else { break }
             if healthy() { return }
             Thread.sleep(forTimeInterval: 1)
@@ -205,6 +225,7 @@ final class TrainingRuntime {
     func stop() {
         lock.lock()
         cancelled = true
+        generation &+= 1
         let processes = [frontend, backend].compactMap { $0 }
         frontend = nil
         backend = nil
