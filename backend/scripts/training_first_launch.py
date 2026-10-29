@@ -57,14 +57,14 @@ def _assert_journal(data: Path) -> None:
 def _artifacts(state: Path, database: Path) -> list[Path]:
     data, accounts, uploads = _layout(state, database)
     db_files = {database.name, database.name + "-wal", database.name + "-shm", database.name + "-journal"}
-    allowed_data = db_files | {JOURNAL_NAME}
+    allowed_data = db_files | {JOURNAL_NAME, ".initialized.pending"}
     if data.exists() and any(p.name not in allowed_data for p in data.iterdir()):
         _refuse("unrecognized files in private training data; manual review required")
     if accounts.exists() and any(p.name not in ACCOUNT_FILES for p in accounts.iterdir()):
         _refuse("unrecognized private credentials; manual review required")
     if uploads.exists() and any(uploads.iterdir()):
         _refuse("existing uploads must not be reset automatically")
-    paths = [data / name for name in sorted(db_files)]
+    paths = [data / name for name in sorted(db_files | {".initialized.pending"})]
     paths.extend(accounts / name for name in sorted(ACCOUNT_FILES))
     for path in paths:
         _check_private_path(path)
@@ -127,6 +127,25 @@ def complete_first_launch(state: Path) -> None:
     if not marker.is_file():
         _refuse("cannot complete first launch without initialized marker")
     _journal(data).unlink()
+
+
+def mark_initialized(state: Path, contents: str) -> None:
+    """Atomically publish the marker after seeding, then close the journal."""
+    data = state / "data"
+    _assert_journal(data)
+    marker = data / ".initialized"
+    staged = data / ".initialized.pending"
+    for path in (marker, staged):
+        _check_private_path(path)
+        if path.exists():
+            _refuse("unexpected existing initialization marker")
+    descriptor = os.open(staged, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        stream.write(contents)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(staged, marker)
+    complete_first_launch(state)
 
 
 def tidy_completed_launch(state: Path) -> None:
