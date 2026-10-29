@@ -42,3 +42,9 @@ GitHub Actions workflow: `.github/workflows/build-windows-training.yml`
 6. Run real Windows backend migrations, data seeding, frontend health checks and sample role logins before releasing artifact.
 
 The entire app is synthetic-data-only; it does not modify the online production application.
+
+### Interrupted first-time setup recovery
+
+If the **first** startup is cancelled or interrupted during initial migration or fictional account creation, click **Start training** again. A new installation journal allows only an incomplete first launch to be retried. It preserves partial databases and randomized private account files under `%LOCALAPPDATA%\\HiddenOasis\\OperationsTraining\\recovery\\interrupted-first-launch-*`, then creates a new fictional set. Trainer passwords can change after recovering an incomplete first launch; read them through **Trainer accounts** after successful setup.
+
+Existing fully initialized training data is never reset. Unexpected files, uploads, or an installation without a valid first-launch journal block automatic recovery. Use **Training logs** and contact the owner; do not delete or rename training folders. This feature does not fix hardware failures, corrupted completed databases, SmartScreen warnings, or unsigned distribution.
