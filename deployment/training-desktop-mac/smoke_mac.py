@@ -251,8 +251,37 @@ def main() -> None:
             "NEXT_PUBLIC_TRAINING_MODE": "true", "NEXT_TELEMETRY_DISABLED": "1",
         }
         try:
+            # Failure injection against the FROZEN packaged initializer, not
+            # just a Python unit test: a cancelled first boot leaves a journal,
+            # partial migration and private credentials that must be archived.
+            (state / "data" / ".first_launch_pending").write_text(
+                "HIDDEN_OASIS_FICTIONAL_TRAINING_FIRST_LAUNCH_V1\n",
+                encoding="utf-8",
+            )
+            with sqlite3.connect(db) as interrupted:
+                interrupted.execute("CREATE TABLE interrupted_migration (value TEXT)")
+                interrupted.execute("INSERT INTO interrupted_migration VALUES ('keep me')")
+            accounts_dir = state / "private" / "accounts"
+            accounts_dir.mkdir(parents=True)
+            (accounts_dir / "PRIVATE_training_accounts.json").write_text(
+                '{"interrupted":true}', encoding="utf-8"
+            )
             for i in range(2):
                 subprocess.run([str(backend), "init"], env=env, cwd=backend.parent, check=True, timeout=80)
+                if i == 0:
+                    backups = list((state / "recovery").glob(
+                        "*/data/operations_training_demo_macdesktop.sqlite"
+                    ))
+                    assert len(backups) == 1, "Packaged recovery must retain the prior SQLite file"
+                    with sqlite3.connect(backups[0]) as interrupted:
+                        assert interrupted.execute(
+                            "SELECT value FROM interrupted_migration"
+                        ).fetchone()[0] == "keep me"
+                    assert list((state / "recovery").glob(
+                        "*/private/accounts/PRIVATE_training_accounts.json"
+                    )), "Private interrupted roster was not preserved"
+                    assert not (state / "data" / ".first_launch_pending").exists()
+                
                 with sqlite3.connect(db) as conn:
                     count = conn.execute(
                         "SELECT COUNT(*) FROM notifications WHERE kind='training_practice_read'"
