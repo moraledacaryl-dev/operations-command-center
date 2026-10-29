@@ -7,7 +7,7 @@
 - **One installation serves every role.** The same launcher runs the entire command center, and each fictional login (Reception, Housekeeping, Café, Kitchen, Maintenance, Security, Marketing, Supervisors, Management) determines the user's view and permission boundaries.
 - Exactly 20 randomized fictional accounts are generated at **first launch** on the local device. Neither passwords nor a seeded database are shipped inside the installer.
 - Fictional guest, task, project, shift, approval, and request data is independently seeded on each Windows computer. Desktop training never reads the live Operations PostgreSQL database.
-- Trainer credentials are at `%LOCALAPPDATA%\HiddenOasis\OperationsTraining\private\accounts\PRIVATE_training_accounts.json`. The shortcut's **Trainer accounts** button can open that file. Give staff only the demo credentials intended for their role.
+- Trainer credentials are at `%LOCALAPPDATA%\HiddenOasis\OperationsTraining\private\accounts\PRIVATE_training_accounts.json`. The shortcut's **Trainer accounts** button opens the private, department-grouped `PRIVATE_TRAINER_ACCOUNTS.txt` guide derived from that file. Give staff only the demo credentials intended for their role.
 - Practice records persist after stopping and restarting the desktop launcher and across program updates. The trainer-only credentials guide is regenerated from the existing private roster if needed; it does not reset passwords. **Uninstall does not delete practice records.**
 - Uses localhost only (`127.0.0.1:3401` web UI and `127.0.0.1:8401` backend). Does not expose training on LAN or the Internet.
 - Independent randomly generated session/integration keys; no production credentials or connections.
@@ -36,7 +36,7 @@ GitHub Actions workflow: `.github/workflows/build-windows-training.yml`
 1. Build the training-enabled standalone Next.js frontend on a Windows runner.
 2. Freeze Python 3.12 application into native Windows executable with PyInstaller.
 3. Bundle Node 24 from GitHub Actions, not from end-user machine.
-4. Compile a self-contained .NET 8 WinForms controller with Start, Stop, Open, and trainer account actions.
+4. Compile a self-contained .NET 8 WinForms controller with automatic startup, Start/Stop/Open, trainer accounts, and a one-click Training logs folder.
 5. Create a per-user Inno Setup executable installer.
 6. Run real Windows backend migrations, data seeding, frontend health checks and sample role logins before releasing artifact.
 
