@@ -270,8 +270,11 @@ function matchesActionCriterion(note: string, alternative: string): boolean {
   while ((match = expression.exec(note)) !== null) {
     if (/^(?:do not|don't|never)\b/.test(phrase)) return true;
     const start = match.index + match[1].length;
-    const earlier = note.slice(Math.max(0, start - 70), start).split(/[.;!?\n]/).pop() || '';
-    if (/\b(?:not|never|don't|doesn't|didn't|won't|without|skip|avoid|refuse to|no need to)\s+(?:(?:[a-z]+\s+){0,4})$/.test(earlier)) {
+    // "Do not approve UNTIL verified" supports verification; an "until"
+    // condition is not a negation of the following corrective action.
+    const earlier = note.slice(Math.max(0, start - 70), start)
+      .split(/[.;!?\n]|\b(?:until|unless|before|after|once|when)\b/).pop() || '';
+    if (/\b(?:not|never|don't|doesn't|didn't|won't|skip|avoid|refuse to|no need to)\s+(?:(?:[a-z]+\s+){0,4})$/.test(earlier)) {
       continue;
     }
     return true;
