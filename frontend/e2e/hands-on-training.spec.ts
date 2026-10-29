@@ -123,3 +123,41 @@ test('complex incident must include concrete response, accountable owner and ver
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain('training-progress.csv');
 });
+
+test('repeating a completed case retains prior corrections and hints in its exported results', async ({ page }) => {
+  await signInToFictionalWorkspace(page, 'staff');
+  await page.getByTestId('scenario-shift-unresolved').click();
+  await page.getByRole('button', { name: 'Need a hint?' }).click();
+  await page.getByTestId('scenario-priority').selectOption('Routine');
+  await page.getByTestId('scenario-department').selectOption('Front Desk');
+  await page.getByRole('button', { name: 'Check my assessment' }).click();
+  await expect(page.getByText('Not quite. Re-read the situation')).toBeVisible();
+
+  const correctSubmission = async () => {
+    await page.getByTestId('scenario-priority').selectOption('High');
+    await page.getByTestId('scenario-department').selectOption('Front Desk');
+    await page.getByRole('button', { name: 'Check my assessment' }).click();
+    await expect(page.getByTestId('scenario-document')).toBeVisible();
+    await page.getByTestId('scenario-decision').selectOption('Assign and follow up');
+    await page.getByTestId('scenario-note').fill(
+      'DEMO-HANDOVER-014: Front Desk lead must confirm the unresolved guest concern, assign an owner, contact the fictional guest and update the receiving shift.',
+    );
+    await page.getByRole('button', { name: 'Submit practice response' }).click();
+    await expect(page.getByTestId('scenario-complete')).toBeVisible();
+  };
+
+  await correctSubmission();
+  await page.getByRole('button', { name: 'Repeat this situation' }).click();
+  await correctSubmission();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  const download = await downloadPromise;
+  const { readFile } = await import('node:fs/promises');
+  const csv = await readFile((await download.path())!, 'utf8');
+  const row = csv.split(/\\r?\\n/).find(line => line.startsWith('"scenario","shift-unresolved",'));
+  expect(row).toBeTruthy();
+  // First run: two triage submissions + one handover; repeat: one of each.
+  // No repeat can erase the earlier hint or mistake or restore "unassisted".
+  expect(row).toContain(',"5","1","1","false",');
+});
