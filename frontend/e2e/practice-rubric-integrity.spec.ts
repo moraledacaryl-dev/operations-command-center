@@ -76,4 +76,10 @@ test('substring tricks and placeholder owners cannot satisfy written evidence', 
   expect(assessPractice(scenario, { ...valid, owner: 'asdf' }).errors.owner).toBeTruthy();
   expect(assessPractice(scenario, { ...valid, owner: 'TBD' }).errors.owner).toBeTruthy();
   expect(assessPractice(scenario, { ...valid, owner: 'On-duty Kitchen lead' }).errors.owner).toBeFalsy();
+  expect(assessPractice(scenario, {
+    ...valid, followUp: 'We will eventually get around to this somewhere at some point.',
+  }).errors.followUp).toBeTruthy();
+  expect(assessPractice(scenario, {
+    ...valid, followUp: 'Kitchen lead will verify safe cleaning and notify the receiving shift.',
+  }).errors.followUp).toBeFalsy();
 });
