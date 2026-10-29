@@ -263,8 +263,11 @@ export type PracticeAssessment = {
 function matchesActionCriterion(note: string, alternative: string): boolean {
   const phrase = alternative.toLowerCase().trim();
   if (!phrase) return false;
-  const escaped = phrase.split('').map(char => /[a-z0-9 ]/.test(char) ? char : '\\' + char)
+  let escaped = phrase.split('').map(char => /[a-z0-9 ]/.test(char) ? char : '\\' + char)
     .join('').replace(/\s+/g, '\\s+');
+  // Common forms like verify → verified and notify → notified must be
+  // accepted without making the staff memorize a particular spelling.
+  if (phrase.endsWith('y')) escaped = escaped.slice(0, -1) + '(?:y|i)';
   const expression = new RegExp('(^|[^a-z])' + escaped, 'g');
   let match: RegExpExecArray | null;
   while ((match = expression.exec(note)) !== null) {
