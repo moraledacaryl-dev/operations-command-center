@@ -36,3 +36,38 @@ export function parseScenarioProgress(raw: unknown, allowedScenarioIds: readonly
   }
   return safe;
 }
+
+import { WORKFLOW_DEFINITIONS, isTrainingWorkflowKind } from './training-workflows';
+import type { TrainingWorkflowResults } from './training-workflows';
+
+/** Ignore malformed device-local workflow summaries in progress totals/CSV.
+ * This is not proof of who performed the workflow; authorization and actual
+ * record transitions are checked by the Operations backend during practice.
+ */
+export function parseWorkflowResults(raw: unknown): TrainingWorkflowResults {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const saved = raw as Record<string, unknown>;
+  const safe: TrainingWorkflowResults = {};
+  for (const [key, value] of Object.entries(saved)) {
+    if (!isTrainingWorkflowKind(key) ||
+        !value || typeof value !== 'object' || Array.isArray(value)) continue;
+    const item = value as Record<string, unknown>;
+    const stages = WORKFLOW_DEFINITIONS[key].stages;
+    const prefix = ({
+      'guest-ac': 'TRN-GUEST-', 'shared-no-owner': 'TRN-TASK-',
+      'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-',
+      'manager-evidence': 'TRN-REQ-', 'fd-broken-shower': 'TRN-LINK-',
+    })[key];
+    if (typeof item.reference !== 'string' || !item.reference.startsWith(prefix) ||
+        typeof item.completedAt !== 'string' || !Number.isFinite(Date.parse(item.completedAt)) ||
+        typeof item.recordId !== 'number' || !Number.isSafeInteger(item.recordId) || item.recordId <= 0 ||
+        (item.relatedRecordId !== undefined && (typeof item.relatedRecordId !== 'number' ||
+          !Number.isSafeInteger(item.relatedRecordId) || item.relatedRecordId <= 0)) ||
+        !Array.isArray(item.steps) || item.steps.length !== stages.length ||
+        !stages.every((stage, index) => item.steps[index] === stage)) continue;
+    safe[key] = { reference: item.reference, completedAt: item.completedAt,
+      recordId: item.recordId, steps: [...stages],
+      ...(item.relatedRecordId ? { relatedRecordId: item.relatedRecordId } : {}) };
+  }
+  return safe;
+}
