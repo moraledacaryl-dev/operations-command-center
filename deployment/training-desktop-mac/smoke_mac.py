@@ -261,6 +261,7 @@ def main() -> None:
             with sqlite3.connect(db) as interrupted:
                 interrupted.execute("CREATE TABLE interrupted_migration (value TEXT)")
                 interrupted.execute("INSERT INTO interrupted_migration VALUES ('keep me')")
+            interrupted.close()
             accounts_dir = state / "private" / "accounts"
             accounts_dir.mkdir(parents=True)
             (accounts_dir / "PRIVATE_training_accounts.json").write_text(
@@ -277,6 +278,7 @@ def main() -> None:
                         assert interrupted.execute(
                             "SELECT value FROM interrupted_migration"
                         ).fetchone()[0] == "keep me"
+                    interrupted.close()
                     assert list((state / "recovery").glob(
                         "*/private/accounts/PRIVATE_training_accounts.json"
                     )), "Private interrupted roster was not preserved"
