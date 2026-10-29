@@ -60,16 +60,31 @@ def refresh_fictional_notices(path: Path, state: Path) -> None:
     print(f"PASS: fictional per-user notification drills ready ({count} newly added)")
 
 
+def _first_launch():
+    script = resources() / "scripts" / "training_first_launch.py"
+    spec = importlib.util.spec_from_file_location("isolated_training_first_launch", str(script))
+    if not spec or not spec.loader:
+        abort("Packaged first-launch recovery module missing")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def init() -> None:
     path, state = validate()
     marker = state / "data" / ".initialized"
     roster = state / "private" / "accounts" / "PRIVATE_training_accounts.json"
+    first_launch = _first_launch()
     if marker.exists():
+        first_launch.tidy_completed_launch(state)
         if not path.is_file() or not roster.is_file():
             abort("Incomplete initialized training database; do not clear manually")
         refresh_fictional_notices(path, state)
         print("PASS: existing fictional training data preserved")
         return
+    # Recovery is allowed only with an interrupted first-launch journal.
+    # Preserve all partial fictional data privately before a clean retry.
+    first_launch.prepare_first_launch(state, path)
     if path.exists() or roster.exists():
         abort("Pre-existing incomplete DB or credentials; no changes made")
     from alembic import command
@@ -89,7 +104,7 @@ def init() -> None:
     module.seed(path, state / "private" / "accounts")
     if not roster.is_file():
         abort("Credentials were not created")
-    marker.write_text("SYNTHETIC_DESKTOP_TRAINING_ONLY\n", encoding="utf-8")
+    first_launch.mark_initialized(state, "SYNTHETIC_DESKTOP_TRAINING_ONLY\n")
     refresh_fictional_notices(path, state)
     print("PASS: independently generated, isolated fictional training data")
 
