@@ -460,7 +460,7 @@ export default function PracticeTrainingPage() {
           <p className="practice-success-mark" aria-hidden="true">✓</p>
           <h3>Scenario completed</h3>
           <p>Your triage, ownership, action and fictional handover met the practice rubric.</p>
-          <p><strong>Attempts:</strong> {attempts + 1} · <strong>Corrections:</strong> {mistakesMade} · <strong>Hints:</strong> {hintsUsed}</p>
+          <p><strong>Attempts:</strong> {attempts} · <strong>Corrections:</strong> {mistakesMade} · <strong>Hints:</strong> {hintsUsed}</p>
           <p><strong>Why this response works:</strong> {selected.why}</p>
           <div className="practice-example"><strong>Example of a useful handover:</strong><p>{selected.example}</p></div>
           <p className="practice-disclaimer">This is a decision and documentation drill, not an official skill certification. Completing it does not demonstrate actual Operations record creation or approval. Real end-to-end application workflows still require separate hands-on assessment.</p>
