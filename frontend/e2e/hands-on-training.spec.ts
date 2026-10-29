@@ -63,6 +63,8 @@ test('reception must click choices, type a case note and correct mistakes before
   );
   await page.getByRole('button', { name: 'Submit practice response' }).click();
   await expect(page.getByTestId('scenario-complete')).toContainText('Scenario completed');
+  // Two triage checks and two documentation submissions are exactly four attempts.
+  await expect(page.getByTestId('scenario-complete')).toContainText('Attempts: 4');
   await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \d+$/);
 
   await page.reload();
