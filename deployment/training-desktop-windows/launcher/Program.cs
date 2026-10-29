@@ -33,6 +33,7 @@ internal sealed class TrainingWindow : Form
     readonly HttpClient client = new() { Timeout = TimeSpan.FromSeconds(3) };
     readonly string dataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "HiddenOasis", "OperationsTraining");
+    Process? initializer;
     Process? backend;
     Process? frontend;
     bool starting;
@@ -199,12 +200,22 @@ internal sealed class TrainingWindow : Form
             var config = LoadSettings();
             var env = Env(config);
             SetStatus("Preparing fictional training records...");
-            using (var init = Launch(ApiExe, "init", Path.GetDirectoryName(ApiExe)!, env, "init.log"))
+            // Track first-launch initialization as a child process, too.
+            // Closing the desktop window must cancel it rather than allowing
+            // an invisible demo seeder to keep running after the app exits.
+            initializer = Launch(ApiExe, "init", Path.GetDirectoryName(ApiExe)!, env, "init.log");
+            try
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-                await init.WaitForExitAsync(timeout.Token);
-                if (init.ExitCode != 0)
+                await initializer.WaitForExitAsync(timeout.Token);
+                if (closing) return;
+                if (initializer.ExitCode != 0)
                     throw new Exception("Could not initialize demo data. See the training logs.");
+            }
+            finally
+            {
+                try { initializer?.Dispose(); } catch { }
+                initializer = null;
             }
             if (closing) return;
             SetStatus("Starting training backend...");
@@ -272,7 +283,7 @@ internal sealed class TrainingWindow : Form
 
     void StopTraining()
     {
-        foreach (var p in new[] { frontend, backend })
+        foreach (var p in new[] { initializer, frontend, backend })
         {
             if (p is null) continue;
             try
@@ -282,7 +293,7 @@ internal sealed class TrainingWindow : Form
             }
             catch { }
         }
-        frontend = null; backend = null;
+        initializer = null; frontend = null; backend = null;
         if (closing) return;
         stop.Enabled = false; browser.Enabled = false; accounts.Enabled = false;
         status.Text = "Stopped • Practice records are safely preserved.";
