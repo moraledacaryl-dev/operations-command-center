@@ -155,7 +155,7 @@ test('repeating a completed case retains prior corrections and hints in its expo
   const download = await downloadPromise;
   const { readFile } = await import('node:fs/promises');
   const csv = await readFile((await download.path())!, 'utf8');
-  const row = csv.split(/\\r?\\n/).find(line => line.startsWith('"scenario","shift-unresolved",'));
+  const row = csv.split(/\r?\n/).find(line => line.startsWith('"scenario","shift-unresolved",'));
   expect(row).toBeTruthy();
   // First run: two triage submissions + one handover; repeat: one of each.
   // No repeat can erase the earlier hint or mistake or restore "unassisted".
