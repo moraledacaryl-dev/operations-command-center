@@ -322,14 +322,6 @@ export default function PracticeTrainingPage() {
         <button type="button" className="practice-secondary" data-testid="repeat-current-lesson" onClick={repeatGuide}>↻ Repeat current lesson</button>
       </div>
     </section>
-    <div className="practice-observation-grid" aria-label="Staff practical record-reading exercises">
-      <TrainingRecordLookup user={user} kind="task" />
-      <TrainingRecordLookup user={user} kind="handover" />
-      <TrainingRecordLookup user={user} kind="guest" />
-      <TrainingRecordLookup user={user} kind="fix" />
-      <TrainingNotificationPractice user={user} />
-    </div>
-
     <div className="practice-layout">
       <aside className="practice-catalog" aria-label="Choose a training scenario">
         <div className="practice-side-title"><h2>Your practice cases</h2><span>{user.name || 'Trainee'}</span></div>
@@ -500,6 +492,17 @@ export default function PracticeTrainingPage() {
         </footer>
       </section>
     </div>
+    <section className="practice-extra-lessons" aria-label="Additional record-reading lessons">
+      <h2>Extra practice — inspect real fictional records</h2>
+      <p>These optional exercises are separate from your step-by-step scenario. Complete them whenever you are ready.</p>
+      <div className="practice-observation-grid" aria-label="Staff practical record-reading exercises">
+        <TrainingRecordLookup user={user} kind="task" />
+        <TrainingRecordLookup user={user} kind="handover" />
+        <TrainingRecordLookup user={user} kind="guest" />
+        <TrainingRecordLookup user={user} kind="fix" />
+        <TrainingNotificationPractice user={user} />
+      </div>
+    </section>
     {guideMode === 'welcome' && <TrainingSpotlight
       title="Welcome! Start your first lesson"
       description="This is interactive—not a manual. Click Start guided lesson, then follow the spotlight and arrows one step at a time. You can repeat any lesson without losing your earlier results."
