@@ -182,8 +182,8 @@
 .training-spotlight-again { border: 1px solid #b7aa94; color: #173d2c; background: #fff; }
 .training-spotlight-instruction { display: block; margin-top: 9px; font-size: 11px; color: #755520; }
 .training-spotlight-arrow { display: block; position: absolute; top: -30px; left: 22px;
-  font-size: 25px; color: #a65d09; transform: rotate(90deg); text-shadow: 0 0 4px #fff; }
-.training-spotlight-arrow.arrow-down { top: auto; bottom: -30px; transform: rotate(-90deg); }
+  font-size: 25px; color: #a65d09; transform: rotate(-90deg); text-shadow: 0 0 4px #fff; }
+.training-spotlight-arrow.arrow-down { top: auto; bottom: -30px; transform: rotate(90deg); }
 .training-spotlight-popover button:focus-visible { outline: 3px solid #176d58; outline-offset: 2px; }
 @media (max-width: 650px) {
   .practice-start-here, .practice-start-buttons { align-items: stretch; width: 100%; }
