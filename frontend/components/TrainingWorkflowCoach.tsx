@@ -1,6 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { TrainingSpotlight } from '@/components/TrainingSpotlight';
+import { workflowFocus } from '@/lib/training-workflow-focus';
+import { makeTrainingReference } from '@/lib/training-workflows';
 import { useCallback, useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
@@ -24,6 +27,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const [session, setSession] = useState<TrainingWorkflowSession | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showArrows, setShowArrows] = useState(true);
 
   const refresh = useCallback(() => {
     try { setSession(parseWorkflowSession(localStorage.getItem(storageKey), identity)); }
@@ -54,6 +58,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const onModule = path === expectedPath;
   const currentStage = definition.stages[session.step];
   const instructions = finished ? [] : workflowInstructions(session);
+  const focus = !finished ? workflowFocus(session, onModule) : null;
 
   async function checkSavedWork() {
     if (!session || busy || finished) return;
@@ -116,6 +121,22 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
     }
   }
 
+  function repeatWorkflow() {
+    if (!session || busy) return;
+    const next: TrainingWorkflowSession = {
+      kind: session.kind, ownerId: identity,
+      reference: makeTrainingReference(session.kind),
+      createdAt: new Date().toISOString(), step: 0,
+    };
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      setSession(next);
+      setShowArrows(true);
+      setMessage('Fresh lesson started. Use the NEW unique reference; previous results are preserved.');
+      window.dispatchEvent(new Event(WORKFLOW_CHANGED));
+    } catch { setMessage('Unable to restart the practice lesson because local storage is unavailable.'); }
+  }
+
   function endSession() {
     try { localStorage.removeItem(storageKey); } catch { /* no remote mutation */ }
     setSession(null);
@@ -135,6 +156,8 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       </div>
       <div className="training-workflow-header-actions">
         <Link href="/training" className="btn small secondary">Training catalog</Link>
+        <button type="button" className="btn small secondary" data-testid="repeat-real-workflow" onClick={repeatWorkflow} disabled={busy}>↻ Repeat lesson</button>
+        <button type="button" className="btn small secondary" data-testid="show-workflow-arrows" onClick={() => setShowArrows(value => !value)}>{showArrows ? 'Hide arrows' : 'Show arrows'}</button>
         <button type="button" className="btn small secondary" onClick={endSession}>
           {finished ? 'Close coach' : 'Exit exercise'}</button>
       </div>
@@ -147,6 +170,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         } else setMessage('Select and copy the reference shown above.');
       }}>Copy</button>
     </p>
+    {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>DO THIS NOW →</strong> {focus?.text}</p>}
     {finished ? <p className="training-workflow-finished" role="status">
       Verified practice complete. This is not an employment competency certification; supervisor sign-off and independent real-workflow testing remain separate.
     </p> : <>
@@ -170,5 +194,15 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
     </>}
     {message && <p className="training-workflow-message" role="status" data-testid="training-workflow-message">{message}</p>}
     <p className="training-workflow-safe">All records must be fictional. No production database, guest details or external integrations are permitted. The coach only reads records to verify your actions; it cannot save them for you.</p>
+    {showArrows && !finished && focus && <TrainingSpotlight
+      key={session.reference + ':' + session.step + ':' + expectedPath}
+      title={focus.title} description={focus.text}
+      stepLabel={'REAL OPERATIONS • STAGE ' + (session.step + 1) + ' / ' + definition.stages.length}
+      targets={focus.targets} onClose={() => setShowArrows(false)} />}
+    {showArrows && finished && <TrainingSpotlight
+      title="Lesson finished — you can practise it again"
+      description="The saved record changes passed the training backend checks. You can repeat with a fresh fictional reference and your earlier completion remains recorded."
+      stepLabel="COMPLETED" targets={[{ selector: '[data-testid="repeat-real-workflow"]' }]}
+      onRepeat={repeatWorkflow} onClose={() => setShowArrows(false)} />}
   </section>;
 }
