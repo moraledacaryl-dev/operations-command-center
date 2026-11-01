@@ -126,11 +126,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     try { localStorage.setItem(courseKey, JSON.stringify(course)); } catch { /* no certificate */ }
   }, [courseKey, course]);
 
-  useEffect(() => {
-    if (!course || course.stage !== 'tour' || active || !courseLesson) return;
-    setMenuOpen(false);
-    setActive({ id: courseLesson.id, index: 0 });
-  }, [course, active, courseLesson]);
+  // A resumed tour displays an explicit Resume button; closing the coach
+  // must never restart a tour unexpectedly or mark the practical complete.
 
   // A database-backed saved fictional workflow (same unique reference) is
   // required for lessons that edit records. No Next button can grant a pass.
