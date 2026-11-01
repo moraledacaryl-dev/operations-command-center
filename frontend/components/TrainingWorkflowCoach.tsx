@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { TrainingSpotlight } from '@/components/TrainingSpotlight';
-import { workflowFocus } from '@/lib/training-workflow-focus';
+import { workflowFocus, currentWorkflowFocus } from '@/lib/training-workflow-focus';
+import type { WorkflowFocus } from '@/lib/training-workflow-focus';
 import { makeTrainingReference } from '@/lib/training-workflows';
 import { useCallback, useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
@@ -28,6 +29,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [showArrows, setShowArrows] = useState(true);
+  const [liveFocus, setLiveFocus] = useState<WorkflowFocus | null>(null);
 
   const refresh = useCallback(() => {
     try { setSession(parseWorkflowSession(localStorage.getItem(storageKey), identity)); }
@@ -47,6 +49,34 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
 
   useEffect(() => { setMessage(''); }, [path, session?.reference, session?.step]);
 
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true' || !session) {
+      setLiveFocus(null);
+      return;
+    }
+    let animation = 0;
+    const onModule = path === workflowStagePath(session);
+    const refreshFocus = () => {
+      const next = currentWorkflowFocus(session, onModule);
+      setLiveFocus(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
+    };
+    const schedule = () => {
+      window.cancelAnimationFrame(animation);
+      animation = window.requestAnimationFrame(refreshFocus);
+    };
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, { subtree: true, childList: true });
+    document.addEventListener('input', schedule, true);
+    document.addEventListener('change', schedule, true);
+    refreshFocus();
+    return () => {
+      window.cancelAnimationFrame(animation);
+      observer.disconnect();
+      document.removeEventListener('input', schedule, true);
+      document.removeEventListener('change', schedule, true);
+    };
+  }, [path, session?.kind, session?.reference, session?.step, session?.ownerId]);
+
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true' ||
     !session || !hasCapability(user, 'manage_department') ||
     (['mt-light-fault', 'fd-broken-shower'].includes(session.kind) &&
@@ -58,7 +88,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const onModule = path === expectedPath;
   const currentStage = definition.stages[session.step];
   const instructions = finished ? [] : workflowInstructions(session);
-  const focus = !finished ? workflowFocus(session, onModule) : null;
+  const focus = !finished ? liveFocus || workflowFocus(session, onModule) : null;
 
   async function checkSavedWork() {
     if (!session || busy || finished) return;
