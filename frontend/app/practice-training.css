@@ -194,3 +194,9 @@
 @media (prefers-reduced-motion: reduce) {
   .training-spotlight-popover { transition: none; animation: none; }
 }
+
+
+.training-workflow-action-now { display: block; padding: 12px 14px; margin: 14px 0;
+  background: #fff7e8; border: 2px solid #e7a43c; border-radius: 10px;
+  color: #42341e; line-height: 1.6; font-size: 14px; }
+.training-workflow-action-now strong { color: #7a4807; margin-right: 5px; }
