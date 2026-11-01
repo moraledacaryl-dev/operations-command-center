@@ -96,3 +96,47 @@ test('finished curriculum unlocks its completed tour without giving unearned sta
   await expect(page.getByRole('button', { name: /Getting around Operations/ })).toBeEnabled();
   await expect(page.getByRole('button', { name: /Creating and managing a task/ })).toHaveCount(0);
 });
+
+test('manager must leave the taught task tour for an API-verified saved-work exercise, not a fake pass', async ({ page }) => {
+  const manager = {
+    ...staff, id: 92813, role: 'manager', name: 'Fictional Practice Manager',
+    capabilities: { manage_department: true, make_decisions: true, view_all_operations: true },
+  };
+  await page.addInitScript(user => {
+    localStorage.setItem('cc_user', JSON.stringify(user));
+    localStorage.setItem('cc_department_id', '41');
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
+      lessonId: 'team-tasks', stage: 'quiz', question: 1,
+      passed: ['orientation', 'staff-handover', 'staff-rooms', 'staff-my-work'],
+    }));
+  }, manager);
+  await page.route('**/api/**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ items: [], groups: {}, counts: {}, users: [], unread_count: 0 }),
+  }));
+  await page.goto('/');
+  const quiz = page.getByTestId('required-training-course');
+  await expect(quiz).toContainText('Before creating a task');
+  await quiz.getByLabel('Search for an existing task').check();
+  await page.getByTestId('course-check-answer').click();
+  await expect(page).toHaveURL(/\\/tasks$/);
+  const coach = page.locator('.ops-guide-tip');
+  await expect(coach).toContainText('Board versus List');
+  await coach.getByRole('button', { name: /Next/ }).click();
+  await coach.getByRole('button', { name: /Next/ }).click();
+  await expect(coach).toContainText('Open New task');
+  await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
+  await page.getByTestId('create-task').click();
+  await expect(coach).toContainText('Fill out the task');
+  await coach.getByRole('button', { name: /Next/ }).click();
+  await page.getByTestId('create-task-form').getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByTestId('course-await-work')).toContainText('Actual-page practice');
+  await expect(page.getByTestId('training-workflow-coach')).toBeVisible();
+  await expect(page.getByTestId('course-completed')).toHaveCount(0);
+  const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key) || 'null'), 'ho-ops-structured-course-v2:' + String(manager.id));
+  expect(saved.stage).toBe('work');
+  expect(saved.reference).toMatch(/^TRN-TASK-/);
+  await page.getByTestId('repeat-real-workflow').click();
+  await expect(page.getByTestId('training-workflow-message')).toContainText('practice is required');
+  await expect(page.getByTestId('course-completed')).toHaveCount(0);
+});
