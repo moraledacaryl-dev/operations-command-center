@@ -66,8 +66,9 @@ test('two independent actual page clicks are required before course can complete
   await expect(page.getByTestId('course-completed')).toContainText('Lesson 1 completed');
 });
 
-test('staff can restore read-only lesson history but must recheck saved records', async ({page})=>{
-  await init(page,trainee,{lessonId:'orientation',stage:'learn',question:0,passed:[]});
+test('manager can restore read-only lesson history but must recheck saved records', async ({page})=>{
+  const manager = {...trainee,role:'manager',capabilities:{manage_department:true,make_decisions:true,view_all_operations:true}};
+  await init(page,manager,{lessonId:'orientation',stage:'learn',question:0,passed:[]});
   await page.goto('/');
   await expect(page.getByTestId('course-lesson-title')).toContainText('Getting around');
   const details=page.locator('.ops-course-help');
