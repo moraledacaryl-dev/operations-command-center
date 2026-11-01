@@ -46,7 +46,7 @@ export const INDEPENDENT_CHECKS: Record<string, readonly [IndependentAction,Inde
 };
 
 export function independentActionMatches(
-  action: IndependentAction, target: HTMLElement, eventType: 'click'|'input',
+  action: IndependentAction, target: Element, eventType: 'click'|'input',
 ): boolean {
   if ((action.type || 'click') !== eventType) return false;
   let node: HTMLElement | null = null;

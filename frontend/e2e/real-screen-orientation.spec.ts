@@ -28,7 +28,7 @@ test('first training open starts on real dashboard and requires navigating actua
   // Wrong choices do not unlock the practical page.
   await course.getByLabel('Rooms', { exact: true }).check();
   await page.getByTestId('course-check-answer').click();
-  await expect(course).toContainText('Not yet');
+  await expect(course).toContainText('Not quite.');
   await course.getByLabel('My Work', { exact: true }).check();
   await page.getByTestId('course-check-answer').click();
   await expect(course).toContainText('You read a notification');

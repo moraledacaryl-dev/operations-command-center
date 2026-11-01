@@ -222,7 +222,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     }
     const onInteraction = (event: Event) => {
       const target = event.target;
-      if (!(target instanceof HTMLElement) ||
+      if (!(target instanceof Element) ||
         !independentActionMatches(independentAction, target, event.type as 'click'|'input')) return;
       setCourse(current => {
         if (!current || current.stage !== 'independent' ||
