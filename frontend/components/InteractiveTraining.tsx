@@ -154,7 +154,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   }, []);
 
   useEffect(() => {
-    if (!active || !lesson || !lessons.some(item => item.id === lesson.id)) exit();
+    if (active && (!lesson || !lessons.some(item => item.id === lesson.id))) exit();
   }, [active, lesson, lessons, exit]);
 
   useEffect(() => {
