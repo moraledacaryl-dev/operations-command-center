@@ -61,7 +61,7 @@ export function TrainingSpotlight({
       if (found && found !== lastFound) {
         lastFound = found;
         // Never scroll the user's open form away just because a field's text changed.
-        found.scrollIntoView({ block: 'center', behavior: 'instant' });
+        found.scrollIntoView({ block: 'center', behavior: 'auto' });
       }
     };
     const schedule = () => {
