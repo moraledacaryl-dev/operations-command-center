@@ -1,7 +1,7 @@
 import type { TrainingWorkflowSession } from './training-workflows';
 import type { FocusTarget } from '@/components/TrainingSpotlight';
 
-type WorkflowFocus = {
+export type WorkflowFocus = {
   title: string;
   text: string;
   targets: FocusTarget[];
@@ -54,4 +54,98 @@ export function workflowFocus(session: TrainingWorkflowSession, onModule: boolea
       { selector: '[data-testid="training-check-work"]' },
     ],
   };
+}
+
+
+type FieldPrompt = { selector: string; label: string; help: string; expected?: string; minimum?: number };
+
+function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPrompt[] {
+  const root = '[data-testid="create-' + type + '-form"]';
+  const first = root + ' .form-grid > label:nth-child(1) input';
+  const reference = 'Write a descriptive fictional title that includes ' + session.reference + '.';
+  const title = { selector: first, label: 'Type the training record title', help: reference, minimum: session.reference.length + 8 };
+  const field = (number: number, element: 'select' | 'input') =>
+    root + ' .form-grid > label:nth-child(' + number + ') ' + element;
+  const choice = (number: number, expected: string, label: string): FieldPrompt =>
+    ({ selector: field(number, 'select'), label, help: 'Choose ' + expected + ' in this real menu.', expected });
+  const note = (label: string): FieldPrompt => ({
+    selector: root + ' label textarea', label,
+    help: 'Write concrete fictional actions, ownership and follow-up, not only “done.”', minimum: 35,
+  });
+  if (type === 'task') return [
+    title, choice(3, 'High', 'Set High priority'),
+    { selector: field(4, 'select'), label: 'Assign an actual fictional teammate',
+      help: 'Choose a fictional teammate from Assigned to. Do not leave this as Unassigned.', expected: '!empty' },
+  ];
+  if (type === 'shift') return [
+    title, choice(3, 'Guest', 'Choose Guest category'), choice(4, 'Urgent', 'Set Urgent priority'),
+    note('Write the actionable shift handover'),
+  ];
+  if (type === 'request') return [
+    title, choice(2, 'Equipment', 'Choose Equipment type'), choice(3, 'Urgent', 'Set Urgent priority'),
+    note('Document budget, quotation status and operational reason'),
+  ];
+  if (type === 'fix') return [
+    title, choice(3, 'High', 'Set High urgency'),
+    { selector: field(4, 'select'), label: 'Assign a fictional technician',
+      help: 'Select the technician responsible for this practice fault.', expected: '!empty' },
+    note('Describe the failed corridor light and impact'),
+  ];
+  return [
+    title,
+    { selector: field(4, 'select'), label: 'Choose Room or Complaint type',
+      help: 'This guest matter must be classified as a Room issue or Complaint.', expected: 'Room|Complaint' },
+    choice(5, 'High', 'Set High guest-impact urgency'),
+    note('Describe the fault, required inspection and guest callback'),
+  ];
+}
+
+function savedTrainingCard(session: TrainingWorkflowSession): boolean {
+  const cards = document.querySelectorAll(
+    '.maintenance-board-card, .ops-handover-card, [data-testid="tasks-board"] button, ' +
+    '[data-testid="tasks-list"] button, .ops-card-grid button');
+  return Array.from(cards).some(card => card.textContent?.includes(session.reference));
+}
+
+/** Called only inside a client effect. Maps the real form and current user input
+ * to a precise next focus. This visual hint NEVER marks a database stage complete.
+ */
+export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule: boolean): WorkflowFocus {
+  const basic = workflowFocus(session, onModule);
+  if (!onModule || session.step !== 0) return basic;
+  const type = ({ 'guest-ac': 'guest', 'shared-no-owner': 'task', 'shift-unresolved': 'shift',
+    'mt-light-fault': 'fix', 'manager-evidence': 'request', 'fd-broken-shower': 'guest' } as const)[session.kind];
+  const root = '[data-testid="create-' + type + '-form"]';
+  const form = document.querySelector(root);
+  if (!form) {
+    if (savedTrainingCard(session)) return {
+      title: 'Saved! Verify your practice record',
+      text: 'Your training reference is visible in the saved list. Click Check saved work to verify the record and unlock the next step.',
+      targets: [{ selector: '[data-testid="training-check-work"]' }],
+    };
+    return basic;
+  }
+  for (const prompt of getFormPrompts(session, type)) {
+    const control = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+      prompt.selector.replace(root + ' ', ''),
+    );
+    // If a particular form differs, focus the form rather than silently giving
+    // a false visual completion.
+    if (!control) return { title: 'Complete the highlighted form',
+      text: 'Find the matching labeled field inside this form, enter the fictional details, and save.',
+      targets: [{ selector: root }] };
+    const value = control.value.trim();
+    const passed = prompt.expected === '!empty' ? value.length > 0
+      : prompt.expected?.includes('|') ? prompt.expected.split('|').includes(value)
+      : prompt.expected ? value === prompt.expected
+      : prompt.selector === root + ' .form-grid > label:nth-child(1) input'
+        ? value.includes(session.reference) && value.length >= (prompt.minimum || 0)
+        : value.length >= (prompt.minimum || 0);
+    if (!passed) return { title: prompt.label,
+      text: prompt.help + ' After completing this field, the orange arrow moves automatically.',
+      targets: [{ selector: prompt.selector }] };
+  }
+  return { title: 'Now save the fictional record',
+    text: 'Click the outlined Save/Create/Publish button. Then use Check saved work in the coach. Merely typing into the form does not finish the stage.',
+    targets: [{ selector: root + ' .toolbar button:not(.secondary)' }] };
 }
