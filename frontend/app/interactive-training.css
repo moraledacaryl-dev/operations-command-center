@@ -208,3 +208,31 @@
 .ops-course-independent-status button { width: fit-content; border-radius: 7px;
   border: 1px solid #73a98c; padding: 7px 10px; color: #174731; background: white; cursor: pointer; }
 .ops-course-independent-status > small { font-size: 12px; }
+
+.ops-guide-report-actions { display: grid; gap: 8px; margin: 11px 0 14px; padding: 12px;
+ border: 1px solid #b8dbc5; border-radius: 11px; background: #f4faf6; }
+.ops-guide-report-actions > span { font-size: 12px; line-height: 1.5; color: #39644d; }
+.ops-course-import { display: grid; gap: 6px; font-size: 13px; font-weight: 750; }
+.ops-course-import input { max-width: 100%; font-weight: 400; }
+.ops-course-help { border: 1px solid #b9d9c5; border-radius: 10px; padding: 10px 12px; }
+.ops-course-help summary { font-weight: 750; cursor: pointer; }
+.ops-course-help label { display: grid; gap: 7px; margin-top: 10px; }
+.ops-course-restart { width: fit-content; border: 1px solid #7cae8d;
+ background: white; color: #22503a; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+.ops-trainer-dashboard { margin: 14px 0; border: 1px solid #c4d9cd; border-radius: 11px;
+ background: #fbfdfa; padding: 12px; font-size: 13px; }
+.ops-trainer-toggle { display: flex; width: 100%; text-align: left; justify-content: space-between;
+ flex-wrap: wrap; gap: 8px; border: 0; padding: 9px; border-radius: 8px; color: #204c37;
+ background: #eaf5ee; cursor: pointer; }
+.ops-trainer-dashboard p { line-height: 1.55; }
+.ops-trainer-import { display: grid; gap: 6px; margin: 12px 0; font-weight: 720; }
+.ops-trainer-import input { max-width: 100%; font-weight: 400; }
+.ops-trainer-record { border: 1px solid #c9ddcd; background: white; border-radius: 10px; padding: 14px; margin: 9px 0; }
+.ops-trainer-record h3 { font-size: 16px; margin: 0; }
+.ops-trainer-record label { display: grid; gap: 6px; font-weight: 700; margin: 9px 0; }
+.ops-trainer-record textarea { width: 100%; max-width: 100%; border: 1px solid #aebdb3; border-radius: 8px; padding: 9px; }
+.ops-trainer-save { border: 0; padding: 9px 12px; background: #236e51; border-radius: 9px; color: white; cursor: pointer; }
+.ops-trainer-message { border-left: 3px solid #248163; padding: 8px; background: #edf8f0; }
+@media (prefers-reduced-motion: reduce) {
+ .ops-guide-spotlight, .ops-guide-progress span { transition: none; }
+}

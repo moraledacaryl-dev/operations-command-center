@@ -9,7 +9,7 @@ import type { TrainingStep } from '@/lib/interactive-training';
 import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
 import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
-import { buildTrainingReport } from '@/lib/training-progress-report';
+import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
 import { TrainerReports } from '@/components/TrainerReports';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
@@ -94,6 +94,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [course, setCourse] = useState<CourseProgress | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [quizFeedback, setQuizFeedback] = useState('');
+  const [restoreMessage, setRestoreMessage] = useState('');
   const [quizErrors, setQuizErrors] = useState(0);
   const [branchAnswer, setBranchAnswer] = useState<number | null>(null);
   const [branchExplained, setBranchExplained] = useState(false);
@@ -111,6 +112,35 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
   const quizItem = courseGuide?.questions[course?.question || 0];
   const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
+
+  async function restoreTrainingProgress(file: File | undefined) {
+    if (!file || !course) return;
+    if (file.size > 120000) { setRestoreMessage('This is not a normal progress file. Please export a new report from the training app.'); return; }
+    try {
+      const report = parseTrainingReport(JSON.parse(await file.text()) as unknown);
+      if (!report || report.trainee.id !== identity) {
+        setRestoreMessage('The report is invalid or belongs to a different practice account. No progress changed.'); return;
+      }
+      const credits = portableLearningCredit(report, lessons.map(item=>item.id));
+      const nextLesson = lessons.find(item=>!credits.includes(item.id));
+      setCourse(current=>current ? {
+        ...current, lessonId:nextLesson?.id || lessons[0].id,
+        stage:nextLesson?'learn':'finished', question:0, independentStep:0,
+        reference:undefined, passed:credits, metrics:report.metrics,
+      }:current);
+      setRestoreMessage('Imported read-only lessons from this practice account. Lessons with saved task/guest/maintenance records must be practised and verified again on this device. This is not a skills certificate.');
+    } catch { setRestoreMessage('This file could not be read. Export a fresh training report and try again.'); }
+  }
+
+  function restartCurrentLessonSafely() {
+    if (!course) return;
+    if (course.stage==='work') {
+      try { localStorage.removeItem(workflowSessionKey(user)); window.dispatchEvent(new Event(WORKFLOW_CHANGED)); }
+      catch { /* Course cannot pass without saved work regardless. */ }
+    }
+    setActive(null); setMenuOpen(false); setQuizFeedback(''); setSelectedAnswer(null);
+    setCourse({ ...course, stage:'learn', question:0, independentStep:0, reference:undefined });
+  }
 
   function exportTrainingProgress() {
     if (!course) return;
@@ -482,9 +512,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       <span aria-hidden="true">?</span> Training
     </button>
 
-    {course && courseLesson && courseGuide &&
-      (course.stage === 'done' || (['learn', 'quiz'].includes(course.stage) &&
-        (path === '/' || course.stage === 'quiz' || course.passed.length > 0))) && <div
+    {course && courseLesson && courseGuide && ['learn','quiz','done'].includes(course.stage) && <div
       className="ops-course-backdrop" data-testid="required-training-course">
       <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
         <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>
@@ -513,7 +541,15 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
               onClick={()=>setBranchExplained(true)}>Explain this situation</button>
           </div>}
           <p><strong>Remember:</strong> {courseGuide.remember}</p>
-          <p className="ops-course-next-explainer">Next: Answer two short questions. When you get them right, the app automatically takes you to the real fictional Operations pages to practise.</p>
+          <p className="ops-course-next-explainer">Next: Answer two short questions. Then practise on the actual fictional Operations pages. You must perform the actions yourself.</p>
+          <details className="ops-course-help">
+            <summary>Having trouble? Resume or restore on another computer</summary>
+            <p>Close and reopen the app to continue on this device. If a practice form gets stuck, restart this lesson; previously finished lessons stay recorded. Export a report to keep a local copy. On another device, read-only lessons can be restored, but tasks and other saved work must be redone.</p>
+            <label>Restore a report for this practice login
+              <input type="file" accept=".json,application/json" onChange={event=>{void restoreTrainingProgress(event.target.files?.[0]);event.target.value='';}} />
+            </label>
+            {restoreMessage && <p role="status">{restoreMessage}</p>}
+          </details>
           <button type="button" className="ops-course-primary" data-testid="course-start-quiz"
             onClick={() => { setCourse({ ...course, stage: 'quiz', question: 0 }); setQuizFeedback(''); }}>I understand — take the quiz →</button>
         </>}
@@ -557,10 +593,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       <span>{independentAction.title}: {independentAction.instruction}</span>
       <small>You must use the real control on this page. Reading this instruction is not enough to pass.</small>
       <button type="button" onClick={() => router.push(independentAction.path)}>Take me to the correct screen</button>
+      <button type="button" onClick={restartCurrentLessonSafely}>Restart this lesson from the beginning (no pass given)</button>
     </div>}
     {course?.stage === 'work' && <div className="ops-course-work-status" data-testid="course-await-work" role="status">
       <strong>Lesson {lessonNumber}: Actual-page practice</strong>
       <span>Follow the arrows on the real form. Save your fictional work, then use Check saved work. The next lesson unlocks only after verification.</span>
+      <button type="button" className="ops-course-restart" onClick={restartCurrentLessonSafely}>Something is stuck? Restart this lesson safely</button>
     </div>}
     {menuOpen && !active && <div className="ops-guide-library-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setMenuOpen(false); }}>
       <section ref={libraryRef} className="ops-guide-library" role="dialog" aria-modal="true" aria-label="Interactive staff training" tabIndex={-1}>
@@ -577,7 +615,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <div className="ops-guide-report-actions">
           <button type="button" className="ops-guide-repeat-course" data-testid="export-training-progress"
             onClick={exportTrainingProgress}>Export my training progress report</button>
-          <span>This is a local, editable report for trainer review—not an official skills certificate.</span>
+          <label className="ops-course-import">Restore from report (same practice login)
+            <input type="file" accept=".json,application/json" data-testid="restore-training-progress"
+              onChange={event=>{void restoreTrainingProgress(event.target.files?.[0]);event.target.value='';}} />
+          </label>
+          <span>Exports can be shared with a trainer. Restoring only brings back read-only lesson history; saved-record skills require new practice on this device. This is not a certificate.</span>
+          {restoreMessage && <p role="status" data-testid="restore-progress-feedback">{restoreMessage}</p>}
         </div>
         {capabilities.manage_department && <TrainerReports manager={user} />}
         <div className="ops-guide-lesson-grid">
