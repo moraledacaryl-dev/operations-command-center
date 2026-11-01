@@ -6,6 +6,8 @@ export type TrainingStep = {
   selector: string;
   /** Only safe, reversible clicks (opening a form, switching a tab). */
   advanceOnClick?: boolean;
+  /** The trainee must click this real navigation control before the lesson advances. */
+  requiresAction?: boolean;
 };
 export type TrainingLesson = {
   id: string;
@@ -23,13 +25,15 @@ export type TrainingLesson = {
  */
 export const TRAINING_LESSONS: readonly TrainingLesson[] = [
   {
-    id: 'orientation', title: 'Getting around Operations', summary: 'Learn the layout, find your work, and read notices.',
+    id: 'orientation', title: 'Getting around Operations', summary: 'Navigate the actual workspace by clicking its controls.',
     steps: [
-      { path: '/', selector: '.ops-breadcrumb', title: 'Where you are', body: 'This header shows the current workspace and page. Your available options depend on your account and department.' },
-      { path: '/', selector: 'a[aria-label="My Work"]', title: 'My Work', body: 'This is your personal task list. Select My Work to review overdue, today, upcoming, waiting, and completed tasks.' },
-      { path: '/my-work', selector: '.ops-agenda, .ops-module', title: 'Check your assignments', body: 'Look through Overdue and Today first. Select a task to read its details. A card being visible does not necessarily mean you can approve it.' },
-      { path: '/notifications', selector: '.ops-module', title: 'Review notifications', body: 'Open notifications, follow actionable items, and use Mark read only after you understand the information.' },
-      { path: '/account', selector: '.account-security-intro, .ops-module', title: 'Protect your account', body: 'Use your own account. Never share credentials. A password change signs you out, so sign in again using the new password.' },
+      { path: '/', selector: '.ops-breadcrumb', title: 'You are on the real training dashboard', body: 'This looks and works like Operations, but all accounts and records are fictional. We will navigate the actual pages together. Click Next to start.' },
+      { path: '/', selector: 'a[aria-label="My Work"]', title: 'Find My Work in the actual navigation', body: 'Click the highlighted My Work link in the sidebar or bottom navigation. The tour will continue when you click it, just like during a shift.', advanceOnClick: true, requiresAction: true },
+      { path: '/my-work', selector: '.ops-agenda, .ops-module', title: 'Review your assigned work', body: 'This is the real My Work screen. Look for overdue and today\'s items, then open a fictional task to read the details. Click Next when you understand.' },
+      { path: '/my-work', selector: 'a.ops-notifications', title: 'Find notifications', body: 'Click the highlighted bell in the top bar to go to your actual Notifications screen.', advanceOnClick: true, requiresAction: true },
+      { path: '/notifications', selector: '.ops-module, main', title: 'Read your notifications', body: 'Here you review updates and follow them to their related records. Do not mark a notification read until you understand what action is needed.' },
+      { path: '/notifications', selector: 'a.ops-brand[href="/"]', title: 'Return to the dashboard', body: 'Click the Hidden Oasis logo to navigate home. That is how you return to the main dashboard during real work.', advanceOnClick: true, requiresAction: true },
+      { path: '/', selector: '.today-workspace', title: 'You know your way around', body: 'You returned to Today using real navigation. To repeat this lesson or learn another screen, select the floating Training button. All records in this practice app remain fictional.' },
     ],
   },
   {
