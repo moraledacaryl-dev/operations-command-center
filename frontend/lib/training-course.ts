@@ -168,7 +168,7 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     const allowed = new Set(lessons.map(lesson => lesson.id));
     const lessonId = typeof v.lessonId === 'string' && allowed.has(v.lessonId) ? v.lessonId : first;
     const stage = ['learn','quiz','tour','work','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
-    const question = Number.isInteger(v.question) && Number(v.question) >= 0 && Number(v.question) <= 2 ? Number(v.question) : 0;
+    const question = typeof v.question === 'number' && Number.isInteger(v.question) && v.question >= 0 && v.question <= 1 ? v.question : 0;
     const passed = Array.isArray(v.passed) ? v.passed.filter((id): id is string => typeof id === 'string' && allowed.has(id)).slice(0, lessons.length) : [];
     const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
     return { lessonId, stage: stage === 'work' && !reference ? 'learn' : stage,

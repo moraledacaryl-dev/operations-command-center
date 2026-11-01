@@ -26,8 +26,7 @@ function targetFor(selector: string): HTMLElement | null {
         const rect = node.getBoundingClientRect();
         return node.getClientRects().length > 0
           && window.getComputedStyle(node).visibility !== 'hidden'
-          && rect.bottom > 0 && rect.right > 0
-          && rect.top < window.innerHeight && rect.left < window.innerWidth;
+          && window.getComputedStyle(node).display !== 'none';
       }) || null;
   } catch {
     return null;
@@ -100,6 +99,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const identity = String(user.id || user.email || 'signed-in-user');
   const storageKey = COMPLETION_PREFIX + identity;
   const courseKey = COURSE_STORAGE_PREFIX + identity;
+  const latestLessons = useRef(lessons);
+  latestLessons.current = lessons;
   const courseLesson = course && lessons.find(item => item.id === course.lessonId);
   const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
   const quizItem = courseGuide?.questions[course?.question || 0];
@@ -118,8 +119,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     if (!lessons.length) return;
     let saved: string | null = null;
     try { saved = localStorage.getItem(courseKey); } catch { /* in-memory fallback */ }
-    setCourse(readCourseProgress(saved, lessons));
-  }, [courseKey, lessons]);
+    setCourse(readCourseProgress(saved, latestLessons.current));
+  }, [courseKey]);
 
   useEffect(() => {
     if (!course) return;
