@@ -348,6 +348,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setCourse({ ...course, lessonId: nextLesson.id, stage: 'learn', question: 0, independentStep: 0, reference: undefined });
     setSelectedAnswer(null);
     setQuizFeedback('');
+    setBranchAnswer(null);
+    setBranchExplained(false);
     setMenuOpen(false);
   }
 
@@ -362,6 +364,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     });
     setSelectedAnswer(null);
     setQuizFeedback('');
+    setBranchAnswer(null);
+    setBranchExplained(false);
   }
 
   const begin = useCallback((lessonId: string) => {
