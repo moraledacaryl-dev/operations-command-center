@@ -410,28 +410,6 @@ export default function PracticeTrainingPage() {
         <h2>{selected.title}</h2>
         <p className="practice-situation">{selected.situation}</p>
         <p className="practice-skill"><strong>Skill:</strong> {selected.skill || 'Basic operational judgment'} · {selected.level === 5 ? 'Advanced scenario' : 'Practice lesson'}</p>
-        {workflowKind && <section className="practice-real-workflow" data-testid="real-workflow-invite">
-          <strong>Practice this inside the real fictional Operations screens</strong>
-          <p>Unlike the decision quiz, this exercise requires you to open the actual
-            {({ 'guest-ac': ' Guest Matters', 'shared-no-owner': ' Tasks',
-              'shift-unresolved': ' Shift Handover', 'mt-light-fault': ' Maintenance',
-              'manager-evidence': ' Requests', 'fd-broken-shower': ' Guest Matters and Maintenance' } as const)[workflowKind]} module, create a real fictional record,
-            change its status, and pass a read-back check of the saved data.</p>
-          {verifiedWorkflows[workflowKind]
-            ? <p className="practice-real-workflow-verified" role="status">
-              ✓ Workflow verified on {new Date(verifiedWorkflows[workflowKind]?.completedAt || '').toLocaleDateString('en-PH')}. You can repeat it.
-            </p> : null}
-          {canRunWorkflow(workflowKind)
-            ? <button type="button" className="practice-primary" data-testid="start-real-workflow"
-                onClick={() => startWorkflow(workflowKind)}>
-                {verifiedWorkflows[workflowKind] ? 'Repeat actual workflow practice' : 'Start actual workflow practice'}</button>
-            : <p className="practice-real-workflow-restricted">
-                This fictional account can read and respond to scenarios, but cannot create operational records.
-                {['mt-light-fault', 'fd-broken-shower'].includes(workflowKind)
-                  ? 'The final verification requires a Manager/Owner account with decision authority. Supervisors and Leads can still practise reporting and handover lessons.'
-                  : 'A Supervisor, Lead, or Manager training account with department-edit authority is required. Your role permissions will not be bypassed.'}
-              </p>}
-        </section>}
         <div className="practice-case" data-testid="scenario-case-brief">
           <h3>What you know so far</h3>
           <ul>{selected.context.map(fact => <li key={fact}>{fact}</li>)}</ul>
@@ -443,6 +421,28 @@ export default function PracticeTrainingPage() {
           <dl>{plainWordsForScenario(selected).map(item =>
             <div key={item.term}><dt>{item.term}</dt><dd>{item.meaning}</dd></div>)}</dl>
         </section>
+        {workflowKind && <section className="practice-real-workflow" data-testid="real-workflow-invite">
+          <strong>Practise using the actual Operations screens</strong>
+          <p>Use the same buttons and forms that staff use at work. Open
+            {({ 'guest-ac': ' Guest Matters', 'shared-no-owner': ' Tasks',
+              'shift-unresolved': ' Shift Handover', 'mt-light-fault': ' Maintenance',
+              'manager-evidence': ' Requests', 'fd-broken-shower': ' Guest Matters and Maintenance' } as const)[workflowKind]}.
+            Create a made-up practice record, change it, and check that the app saved your work. No real guest or resort records are affected.</p>
+          {verifiedWorkflows[workflowKind]
+            ? <p className="practice-real-workflow-verified" role="status">
+              ✓ The app checked this practice on {new Date(verifiedWorkflows[workflowKind]?.completedAt || '').toLocaleDateString('en-PH')}. You can repeat it.
+            </p> : null}
+          {canRunWorkflow(workflowKind)
+            ? <button type="button" className="practice-primary" data-testid="start-real-workflow"
+                onClick={() => startWorkflow(workflowKind)}>
+                {verifiedWorkflows[workflowKind] ? 'Repeat practice on real app screens' : 'Practise on real app screens'}</button>
+            : <p className="practice-real-workflow-restricted">
+                This practice login can read the lessons, but it cannot create or change records.
+                {['mt-light-fault', 'fd-broken-shower'].includes(workflowKind)
+                  ? 'A manager or owner practice login is needed for the final check. Other staff can still practise writing and passing on reports.'
+                  : 'Ask the trainer for a supervisor, lead or manager practice login if you need to create a record. The app will not give extra permissions to an ordinary staff account.'}
+              </p>}
+        </section>}
 
         <div className="practice-steps" aria-label="Exercise stages">
           <span className={phase === 'assess' ? 'current' : ''}>1. Assess & route</span>
