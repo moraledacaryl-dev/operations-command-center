@@ -76,6 +76,9 @@ test('actual Tasks module highlights New, then the real form, and Repeat creates
   await page.goto('/tasks');
   await expect(page.getByTestId('training-workflow-coach')).toBeVisible();
   await expect(page.getByTestId('training-spotlight')).toContainText('Click New');
+  // Guidance must never physically block the underlying application buttons.
+  await expect(page.locator('.training-spotlight-popover')).toHaveCSS('pointer-events', 'none');
+  await expect(page.locator('.training-spotlight-dismiss')).toHaveCSS('pointer-events', 'auto');
   await expect(page.getByTestId('create-task')).toHaveAttribute('data-training-spotlight-target', 'true');
   await page.getByTestId('create-task').click();
   const form = page.getByTestId('create-task-form');
