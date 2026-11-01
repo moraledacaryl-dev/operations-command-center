@@ -231,3 +231,12 @@
 .practice-judgment-explanation { background: #eef6f0; border-left: 3px solid #176d5d; padding: 12px 14px; line-height: 1.55; margin: 0; }
 .practice-start-buttons a.practice-primary { display: inline-flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; }
 @media (max-width: 650px) { .practice-judgment { padding: 12px; } .practice-judgment-options { grid-template-columns: 1fr; } .practice-start-buttons > * { flex: 1 1 100%; } }
+
+/* Immediate plain-English definitions for beginners; never hide key vocabulary behind a collapsed panel. */
+.practice-simple-words { margin: 13px 0 18px; padding: 15px 17px; border: 1px solid #b7d7c6; border-radius: 12px; background: #f0f8f3; }
+.practice-simple-words h3 { margin: 0 0 5px; font-size: 17px; }
+.practice-simple-words > p { margin: 0 0 11px; color: #3f594b; font-size: 13px; }
+.practice-simple-words dl { display: grid; gap: 8px; margin: 0; }
+.practice-simple-words dl > div { background: #fff; border: 1px solid #d3e3d7; border-radius: 9px; padding: 10px 12px; }
+.practice-simple-words dt { font-weight: 800; color: #185b40; font-size: 14px; }
+.practice-simple-words dd { margin: 3px 0 0; line-height: 1.55; font-size: 13px; color: #35483d; }

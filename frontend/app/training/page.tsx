@@ -7,6 +7,7 @@ import { getStoredUser } from '@/lib/session';
 import { TrainingRecordLookup } from '@/components/TrainingRecordLookup';
 import { TrainingSpotlight } from '@/components/TrainingSpotlight';
 import { scenarioCoachStage } from '@/lib/training-scenario-coach';
+import { plainWordsForScenario } from '@/lib/training-plain-language';
 import { TrainingNotificationPractice, readNotificationTraining, NOTIFICATION_TRAINING_CHANGED } from '@/components/TrainingNotificationPractice';
 import type { NotificationTrainingEvidence } from '@/components/TrainingNotificationPractice';
 import { readTrainingInspections, TASK_INSPECTION_CHANGED } from '@/lib/training-observations';
@@ -29,14 +30,14 @@ import type { ScenarioProgress } from '@/lib/training-progress';
 type Phase = 'assess' | 'document' | 'complete';
 type Reasoning = { consequence: string; timing: string };
 const RISK_QUESTIONS = [
-  { id: 'consequence' as const, title: '1. What is at stake if nobody acts?',
-    hint: 'Only use what the report actually tells you. It is okay to be unsure.',
-    choices: ['Someone could get hurt or exposed to danger', 'A guest or resort operation may be seriously affected',
-      'A small inconvenience or planned task may remain unfinished', 'Not enough facts yet — someone must verify'] },
-  { id: 'timing' as const, title: '2. What is the cost of waiting?',
-    hint: 'Think about how quickly the situation could get worse, not how dramatic it sounds.',
-    choices: ['Unsafe to wait — the danger may be immediate', 'This shift — delays could make it worse',
-      'Normal work queue — no urgent consequence is established', 'Unknown — check the situation promptly'] },
+  { id: 'consequence' as const, title: '1. What could go wrong if nobody helps?',
+    hint: 'Only think about what the story actually says. It is okay to say you are not sure.',
+    choices: ['A person could get hurt', 'A guest may be left without something important',
+      'It is a small problem that can wait', 'I am not sure yet; somebody needs to check'] },
+  { id: 'timing' as const, title: '2. How soon should someone do something?',
+    hint: 'Think about what happens if staff wait. Do not guess based on how angry the guest sounds.',
+    choices: ['Right now — somebody might be in danger', 'During this shift — waiting may make it worse',
+      'Later — it can be done at the usual time', 'Not sure — somebody needs to check first'] },
 ];
 function riskClues(scenario: { context: readonly string[]; situation: string }): string[] {
   const facts = scenario.context.filter(item => !/^reference:/i.test(item.trim()));
@@ -47,13 +48,13 @@ function reasoningFeedback(scenario: { context: readonly string[]; situation: st
   const order = ['Routine', 'High', 'Critical'];
   const tooSlow = order.indexOf(chosen) < order.indexOf(scenario.priority);
   return 'Focus on this clue: “' + clue + '”. ' +
-    (tooSlow ? 'What could happen if everyone waits? Does this need an owner or immediate protection sooner?' :
-      'Is actual immediate danger or exceptional escalation established, or is prompt follow-up enough?');
+    (tooSlow ? 'What happens if staff leave this problem until the next day? Who needs to handle it before the guest is left waiting even longer?' :
+      'Does the story actually say someone is in immediate danger? Or can the right team handle the problem promptly without treating it like an emergency?');
 }
 function reasoningDebrief(priority: string): string {
-  if (priority === 'Critical') return 'Critical: protect people or escalate an exceptional risk immediately; do not leave it in the normal queue.';
-  if (priority === 'High') return 'High: a significant guest or operational consequence calls for prompt action, clear ownership and a follow-up.';
-  return 'Routine: the facts support normal planned work. Reassess if a real safety risk or urgent deadline emerges.';
+  if (priority === 'Critical') return 'Critical: Someone could be in danger, or a very serious situation needs a supervisor or manager immediately. Protect people and ask for help now.';
+  if (priority === 'High') return 'High: This problem should not be left until later. Ask the right person to handle it soon, then check that it is being handled.';
+  return 'Routine: From what we know, this is not dangerous and staff can handle it during normal planned work. If new information shows danger, treat it as more urgent.';
 }
 const STORAGE_PREFIX = 'ho-ops-scenario-practice-v1:';
 const emptyAnswers: PracticeAnswers = { priority: '', department: '', decision: '', note: '', owner: '', followUp: '' };
@@ -395,13 +396,13 @@ export default function PracticeTrainingPage() {
           <details>
             <summary>New here? How to complete this lesson</summary>
             <ol>
-              <li>Read the fictional situation, including what has <strong>not</strong> been confirmed.</li>
-              <li>Choose its urgency and the department responsible for the next action.</li>
+              <li>Read the made-up problem. Pay attention to what happened and what staff do not know yet.</li>
+              <li>Choose how soon somebody needs to act and which team should help.</li>
               <li>Choose an appropriate response and write what really needs to happen, not simply “done.”</li>
-              <li>For harder cases, assign an owner and specify what must be checked next.</li>
+              <li>For harder cases, name the job position responsible for solving the problem and say what they must check.</li>
               <li>Read any correction, try again, and continue after passing.</li>
             </ol>
-            <p><strong>Urgency:</strong> Routine = normal planned work; High = prompt action or significant impact; Critical = immediate danger or escalation.</p>
+            <p><strong>Urgency means how soon someone needs to act.</strong> Routine = can wait for normal work; High = should be handled soon; Critical = somebody may be in danger, or another serious problem needs immediate help.</p>
             <p>Only fictional cases are used. Nothing you enter here changes production records.</p>
           </details>
           <label className="practice-mode"><input type="checkbox" checked={guided} onChange={event => { setGuided(event.target.checked); setShowTip(false); }} /> Guided practice (allow hints)</label>
@@ -432,10 +433,16 @@ export default function PracticeTrainingPage() {
               </p>}
         </section>}
         <div className="practice-case" data-testid="scenario-case-brief">
-          <h3>Situation brief</h3>
+          <h3>What you know so far</h3>
           <ul>{selected.context.map(fact => <li key={fact}>{fact}</li>)}</ul>
-          <p><strong>Your objective:</strong> {selected.goal}</p>
+          <p><strong>What you need to do:</strong> {selected.goal}</p>
         </div>
+        <section className="practice-simple-words" data-testid="training-simple-words" aria-label="Helpful words explained">
+          <h3>Words made simple</h3>
+          <p>These words may appear in the real Operations app. Here is what they mean.</p>
+          <dl>{plainWordsForScenario(selected).map(item =>
+            <div key={item.term}><dt>{item.term}</dt><dd>{item.meaning}</dd></div>)}</dl>
+        </section>
 
         <div className="practice-steps" aria-label="Exercise stages">
           <span className={phase === 'assess' ? 'current' : ''}>1. Assess & route</span>
@@ -444,11 +451,11 @@ export default function PracticeTrainingPage() {
         </div>
 
         {phase === 'assess' && <form className="practice-form" onSubmit={triage} data-testid="scenario-triage">
-          <p className="practice-instruction">Before choosing an urgency label, work out <strong>what could happen</strong> and <strong>how long it is safe to wait</strong>. These questions teach the reasoning; they do not reveal the answer.</p>
+          <p className="practice-instruction">Before choosing Routine, High or Critical, ask <strong>what could happen</strong> and <strong>how long staff can safely wait</strong>.</p>
           <section className="practice-judgment" data-testid="judgment-lens" aria-label="Two-question urgency guide">
-            <h3>Spot the risk — think before picking a label</h3>
-            <p>Read the clues and answer two short questions. They are not graded. You still decide the urgency yourself.</p>
-            <div className="practice-judgment-facts"><strong>Look closely at these case facts:</strong>
+            <h3>Think about what could happen next</h3>
+            <p>Answer two simple questions about the story. There is no grade for these questions. Then you decide how soon staff need to act.</p>
+            <div className="practice-judgment-facts"><strong>Two things to notice:</strong>
               <ul>{riskClues(selected).map(clue => <li key={clue}>{clue}</li>)}</ul>
             </div>
             {RISK_QUESTIONS.map(question => <fieldset key={question.id} data-testid={'judgment-' + question.id}>
@@ -479,7 +486,7 @@ export default function PracticeTrainingPage() {
             {result?.errors.priority && <><small className="practice-error" role="alert">{result.errors.priority}</small>
               <small className="practice-judgment-correction" data-testid="priority-feedback">{reasoningFeedback(selected, answers.priority)}</small></>}
           </label>
-          <label>Who should own the next action?
+          <label>Which team should handle this next?
             <select value={answers.department} required onChange={e => update('department', e.target.value as PracticeAnswers['department'])} data-testid="scenario-department">
               <option value="">Select a team…</option>{DEPARTMENTS.map(option => <option key={option} value={option}>{option}</option>)}
             </select>
@@ -495,9 +502,9 @@ export default function PracticeTrainingPage() {
         </form>}
 
         {phase === 'document' && <form className="practice-form" onSubmit={submit} data-testid="scenario-document">
-          <p className="practice-instruction">Your urgency and team choices were accepted. This is the reason behind the urgency:</p>
+          <p className="practice-instruction">You chose the right urgency and team. Here is why:</p>
           <p className="practice-judgment-explanation" data-testid="priority-debrief">{reasoningDebrief(selected.priority)}</p>
-          <p className="practice-instruction">Now choose an appropriate action and write a note the next shift could actually use.</p>
+          <p className="practice-instruction">Now decide what staff should do next. Write a note that the next employee can understand without asking you.</p>
           <label>Choose the next action
             <select value={answers.decision} required onChange={e => update('decision', e.target.value as PracticeAnswers['decision'])} data-testid="scenario-decision">
               <option value="">Select action…</option>{DECISIONS.map(option => <option key={option} value={option}>{option}</option>)}
@@ -505,7 +512,7 @@ export default function PracticeTrainingPage() {
             {result?.errors.decision && <small className="practice-error" role="alert">{result.errors.decision}</small>}
           </label>
           {(selected.level || 1) >= 3 && <>
-            <label>Who is accountable for the next action?
+            <label>Which job position is responsible for making sure this gets done?
               <input type="text" data-testid="scenario-owner" value={answers.owner || ''}
                 placeholder="e.g., On-duty Maintenance lead"
                 onChange={event => update('owner', event.target.value)} />
@@ -519,12 +526,12 @@ export default function PracticeTrainingPage() {
               {result?.errors.followUp && <small className="practice-error" role="alert">{result.errors.followUp}</small>}
             </label>
           </>}
-          <label>Write your fictional handover / incident note
+          <label>Write a note for the next employee (practice only)
             <textarea data-testid="scenario-note" value={answers.note} rows={5} required minLength={45}
-              placeholder={'Include ' + selected.reference + ', what happened, the next action and follow-up owner.'}
+              placeholder={'Include ' + selected.reference + ', what happened, what staff should do next, and who should do it.'}
               onChange={e => update('note', e.target.value)} />
-            <small>Include <strong>{selected.reference}</strong>, what happened, the necessary intervention, and who verifies the outcome. Do not enter real guest details.</small>
-            {selected.noteChecks && <small>In this exercise, your note needs to cover {selected.noteChecks.map(rule => rule.label).join(' and ')}. Explain concretely; general filler will not pass.</small>}
+            <small>Write the practice case number <strong>{selected.reference}</strong>, explain the problem, say what staff should do next, and name who will check it. Use made-up guest details only.</small>
+            {selected.noteChecks && <small>Make sure your note explains {selected.noteChecks.map(rule => rule.label).join(' and ')}. Write what the person should actually do.</small>}
             {result?.errors.note && <small className="practice-error" role="alert">{result.errors.note}</small>}
           </label>
           {result && !result.passed && <p className="practice-notice" role="status">Your response needs changes. Review the highlighted guidance and submit again.</p>}
@@ -537,7 +544,7 @@ export default function PracticeTrainingPage() {
         {phase === 'complete' && <section className="practice-success" role="status" data-testid="scenario-complete">
           <p className="practice-success-mark" aria-hidden="true">✓</p>
           <h3>Scenario completed</h3>
-          <p>Your triage, ownership, action and fictional handover met the practice rubric.</p>
+          <p>You chose an appropriate priority and team, described what to do, and wrote a clear practice note for the next employee.</p>
           <p><strong>Attempts:</strong> {attempts} · <strong>Corrections:</strong> {mistakesMade} · <strong>Hints:</strong> {hintsUsed}</p>
           <p><strong>Why this urgency fits:</strong> {reasoningDebrief(selected.priority)}</p>
           <p><strong>Why this response works:</strong> {selected.why}</p>

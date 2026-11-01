@@ -44,17 +44,17 @@ export const DECISIONS: readonly TrainingDecision[] = [
 export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
     id: 'shift-unresolved', level: 2, department: 'Everyone',
-    title: 'Unresolved concern at shift change',
-    situation: 'The previous shift left an unresolved request without an owner. Your shift starts in five minutes.',
-    goal: 'Keep the issue visible and make accountability clear.',
-    context: ['Reference: DEMO-HANDOVER-014', 'The guest has not yet received a status update', 'There is no documented follow-up owner'],
+    title: 'Guest still waiting when Reception staff change shifts',
+    situation: 'A guest in Room 204 called Reception 30 minutes ago because the toilet will not flush. Reception wrote down the problem, but nobody was asked to fix it or call the guest back. The next receptionist starts in five minutes.',
+    goal: 'Make sure someone helps the guest, tells them what happens next, and passes the unfinished problem to the new receptionist.',
+    context: ['Reference: DEMO-HANDOVER-014', 'The guest has waited 30 minutes. Nobody has called back to explain what the staff will do.', 'The next receptionist starts in five minutes, and no staff member has been told to handle the problem.'],
     priority: 'High', route: 'Front Desk', decision: 'Assign and follow up', reference: 'DEMO-HANDOVER-014',
     noteChecks: [
-      { label: "who takes ownership", alternatives: ["assign", "owner", "ownership", "responsib"] },
-      { label: "the guest update or next handover", alternatives: ["update", "call back", "callback", "follow up"] },
+      { label: "who is responsible for handling the problem", alternatives: ["assign", "owner", "ownership", "responsib"] },
+      { label: "telling the guest what happens next or informing the next shift", alternatives: ["update", "call back", "callback", "follow up"] },
     ],
-    example: 'DEMO-HANDOVER-014 remains unresolved. Assign Front Desk ownership, confirm the previous actions and update the fictional guest before handover.',
-    why: 'Reading a note does not resolve it. Assign an owner and record what the next shift must do.',
+    example: 'DEMO-HANDOVER-014: Room 204 guest says the toilet will not flush. Assign the Front Desk lead as owner to contact Maintenance and call the guest with an update. Tell the next receptionist that the repair is still waiting for inspection.',
+    why: 'The guest is still waiting and a new receptionist starts soon. Someone must contact the right team, tell the guest what is happening, and make sure the next shift knows who is responsible.',
   },
   {
     id: 'guest-ac', level: 3, department: 'Front Desk',

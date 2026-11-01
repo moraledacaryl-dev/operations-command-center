@@ -45,7 +45,7 @@ test('reception must click choices, type a case note and correct mistakes before
   await page.getByTestId('scenario-department').selectOption('Front Desk');
   await page.getByRole('button', { name: 'Check my assessment' }).click();
   await expect(page.getByText('Not quite. Re-read the situation')).toBeVisible();
-  await expect(page.getByTestId('priority-feedback')).toContainText('The guest has not yet received a status update');
+  await expect(page.getByTestId('priority-feedback')).toContainText('The guest has waited 30 minutes. Nobody has called back to explain what the staff will do.');
   await expect(page.getByTestId('scenario-document')).toHaveCount(0);
 
   await page.getByTestId('scenario-priority').selectOption('High');

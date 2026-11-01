@@ -27,12 +27,12 @@ export function scenarioCoachStage(
   if (phase === 'complete') return stage('complete', 'You passed this lesson!',
     'Your saved progress stays on this device. Choose Repeat lesson to practice again, or Next situation to continue.', '[data-testid="scenario-complete"]', total);
   if (phase === 'assess') {
-    if (!reasoningReady && !consequenceDone) return stage('consequence', 'First: What could happen if nobody acts?',
-      'Choose the most credible consequence from the facts. If you do not know enough, say so; never invent danger or assume it is harmless.', '[data-testid="judgment-consequence"]', 2);
-    if (!reasoningReady) return stage('timing', 'Next: How quickly could the situation worsen?',
-      'Choose the response window suggested by the facts. This is your reasoning exercise, not the urgency answer.', '[data-testid="judgment-timing"]', 3);
+    if (!reasoningReady && !consequenceDone) return stage('consequence', 'First: What could happen if nobody helps?',
+      'Read the story. Tap what could happen if staff do nothing. If the story does not say enough, choose that you are not sure.', '[data-testid="judgment-consequence"]', 2);
+    if (!reasoningReady) return stage('timing', 'Next: How soon should staff act?',
+      'Think about what could happen if staff wait. Tap how soon you think someone needs to help.', '[data-testid="judgment-timing"]', 3);
     if (!answers.priority || result?.errors.priority) return stage('priority', 'First, choose urgency',
-      'You have considered the consequence and timing. Choose the urgency justified by the case facts, not the urgency that merely sounds important.', '[data-testid="scenario-priority"]', 4);
+      'You have thought about what might happen and when. Now pick Routine, High or Critical. Choose based on the story, not how angry somebody sounds.', '[data-testid="scenario-priority"]', 4);
     if (!answers.department || result?.errors.department) return stage('department', 'Choose who acts next',
       'Open this menu and choose the team that should perform the next action. Think about who can actually resolve the issue.', '[data-testid="scenario-department"]', 5);
     return stage('assessment', 'Check your two choices',
