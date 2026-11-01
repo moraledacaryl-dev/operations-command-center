@@ -19,6 +19,10 @@ async function signInToFictionalWorkspace(page: import('@playwright/test').Page,
   };
   await page.addInitScript(storedUser => {
     localStorage.setItem('cc_user', JSON.stringify(storedUser));
+    // These established tests inspect fictional operational records, not first-login teaching.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(storedUser.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '41');
   }, user);
   await page.route('**/api/**', route => route.fulfill({

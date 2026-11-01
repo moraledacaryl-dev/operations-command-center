@@ -17,6 +17,10 @@ test('front desk staff inspect a saved guest matter without editing operational 
   let writes = 0;
   await page.addInitScript(value => {
     localStorage.setItem('cc_user', JSON.stringify(value));
+    // These established tests inspect fictional operational records, not first-login teaching.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(value.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '41');
   }, staff(41, 'Front Desk', 'reception-am@training.invalid'));
   await page.context().route('**/api/**', route => {
@@ -75,6 +79,10 @@ test('maintenance staff inspect a saved work order without verify/repair privile
   let reads = 0;
   await page.addInitScript(value => {
     localStorage.setItem('cc_user', JSON.stringify(value));
+    // These established tests inspect fictional operational records, not first-login teaching.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(value.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '43');
   }, staff(43, 'Maintenance', 'technician@training.invalid'));
   await page.context().route('**/api/**', route => {

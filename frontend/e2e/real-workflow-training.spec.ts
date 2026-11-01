@@ -16,6 +16,10 @@ async function prepare(page: Page, actor = account) {
     { guests: [], tasks: [], fixes: [], shiftNotes: [], requests: [], approvals: [] };
   await page.addInitScript(user => {
     localStorage.setItem('cc_user', JSON.stringify(user));
+    // These established tests inspect fictional operational records, not first-login teaching.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '41');
   }, actor);
   await page.route('**/api/**', async route => {

@@ -15,6 +15,10 @@ test('ordinary staff inspect an actual saved fictional task without mutation per
   let writes = 0;
   await page.addInitScript(account => {
     localStorage.setItem('cc_user', JSON.stringify(account));
+    // These established tests inspect fictional operational records, not first-login teaching.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(account.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '41');
   }, employee);
   await page.context().route('**/api/**', route => {
@@ -74,6 +78,10 @@ test('ordinary staff inspect an actual saved fictional task without mutation per
 test('staff task inspection handles missing department records without fake completion', async ({ page }) => {
   await page.addInitScript(account => {
     localStorage.setItem('cc_user', JSON.stringify(account));
+    // These established tests inspect fictional operational records, not first-login teaching.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(account.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '41');
   }, employee);
   await page.route('**/api/**', route => {
@@ -103,6 +111,10 @@ test('switching the selected department discards stale task details and restores
     status: 'Review', priority: 'Urgent' };
   await page.addInitScript(account => {
     localStorage.setItem('cc_user', JSON.stringify(account));
+    // These established tests inspect fictional operational records, not first-login teaching.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(account.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '41');
   }, manager);
   await page.route('**/api/**', route => {
@@ -141,6 +153,10 @@ test('staff inspect saved shift handovers in the real interface and export read-
   let writes = 0;
   await page.addInitScript(account => {
     localStorage.setItem('cc_user', JSON.stringify(account));
+    // These established tests inspect fictional operational records, not first-login teaching.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(account.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '41');
   }, employee);
   await page.context().route('**/api/**', route => {
