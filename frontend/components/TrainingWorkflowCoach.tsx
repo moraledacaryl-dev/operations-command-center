@@ -201,6 +201,9 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       }}>Copy</button>
     </p>
     {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>DO THIS NOW →</strong> {focus?.text}</p>}
+    {!finished && session.step === 0 && <p className="training-workflow-safe" data-testid="workflow-risk-explanation">
+      <strong>How to judge urgency:</strong> What is at stake if no one acts? How soon could the consequence happen? Routine can wait for planned work; High requires prompt ownership because the impact matters; Critical demands immediate protection or exceptional escalation. Actual form labels may vary (Normal / Urgent). Use the same thinking and seek qualified help for an uncertain safety hazard.
+    </p>
     {finished ? <p className="training-workflow-finished" role="status">
       Verified practice complete. This is not an employment competency certification; supervisor sign-off and independent real-workflow testing remain separate.
     </p> : <>

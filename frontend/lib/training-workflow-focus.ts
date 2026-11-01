@@ -66,27 +66,27 @@ function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPr
   const title = { selector: first, label: 'Type the training record title', help: reference, minimum: session.reference.length + 8 };
   const field = (number: number, element: 'select' | 'input') =>
     root + ' .form-grid > label:nth-child(' + number + ') ' + element;
-  const choice = (number: number, expected: string, label: string): FieldPrompt =>
-    ({ selector: field(number, 'select'), label, help: 'Choose ' + expected + ' in this real menu.', expected });
+  const choice = (number: number, expected: string, label: string, guidance?: string): FieldPrompt =>
+    ({ selector: field(number, 'select'), label, help: guidance || 'Choose ' + expected + ' in this real menu.', expected });
   const note = (label: string): FieldPrompt => ({
     selector: root + ' label textarea', label,
     help: 'Write concrete fictional actions, ownership and follow-up, not only “done.”', minimum: 35,
   });
   if (type === 'task') return [
-    title, choice(3, 'High', 'Set High priority'),
+    title, choice(3, 'High', 'Decide the task priority', 'An unassigned task needs clear ownership. Think about the consequence of delay, whether immediate danger is reported, and how quickly the issue needs action.'),
     { selector: field(4, 'select'), label: 'Assign an actual fictional teammate',
       help: 'Choose a fictional teammate from Assigned to. Do not leave this as Unassigned.', expected: '!empty' },
   ];
   if (type === 'shift') return [
-    title, choice(3, 'Guest', 'Choose Guest category'), choice(4, 'Urgent', 'Set Urgent priority'),
+    title, choice(3, 'Guest', 'Choose Guest category'), choice(4, 'Urgent', 'Decide how urgent the handover is', 'The guest has no update and nobody owns the follow-up. Think about whether this can wait in the normal queue or needs timely shift coordination.'),
     note('Write the actionable shift handover'),
   ];
   if (type === 'request') return [
-    title, choice(2, 'Equipment', 'Choose Equipment type'), choice(3, 'Urgent', 'Set Urgent priority'),
+    title, choice(2, 'Equipment', 'Choose Equipment type'), choice(3, 'Urgent', 'Decide the request urgency', 'The equipment need deserves a timely review, but price and quotation still need verification. Decide urgency from impact and timing, not from pressure to approve.'),
     note('Document budget, quotation status and operational reason'),
   ];
   if (type === 'fix') return [
-    title, choice(3, 'High', 'Set High urgency'),
+    title, choice(3, 'High', 'Assess the failed light', 'Think about how this fault could affect people using the corridor and how soon it requires a qualified inspection. Do not assume a repair is complete.'),
     { selector: field(4, 'select'), label: 'Assign a fictional technician',
       help: 'Select the technician responsible for this practice fault.', expected: '!empty' },
     note('Describe the failed corridor light and impact'),
@@ -95,7 +95,7 @@ function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPr
     title,
     { selector: field(4, 'select'), label: 'Choose Room or Complaint type',
       help: 'This guest matter must be classified as a Room issue or Complaint.', expected: 'Room|Complaint' },
-    choice(5, 'High', 'Set High guest-impact urgency'),
+    choice(5, 'High', 'Assess the guest matter', 'The guest is affected by an unresolved room fault. Consider the cost of waiting for inspection and the next guest update; distinguish significant disruption from confirmed immediate danger.'),
     note('Describe the fault, required inspection and guest callback'),
   ];
 }

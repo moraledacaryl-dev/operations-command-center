@@ -89,6 +89,8 @@ test('actual Tasks module highlights New, then the real form, and Repeat creates
   const first = await page.getByTestId('training-workflow-reference').innerText();
   await form.locator('input').first().fill('Repair fictional room lighting ' + first);
   await expect(form.locator('select').first()).toHaveAttribute('data-training-spotlight-target', 'true');
+  await expect(page.getByTestId('workflow-risk-explanation')).toContainText('What is at stake');
+  await expect(page.getByTestId('training-spotlight')).not.toContainText('Choose High in this real menu');
   await form.locator('select').first().selectOption('High');
   await expect(form.locator('select').nth(1)).toHaveAttribute('data-training-spotlight-target', 'true');
   await page.getByTestId('repeat-real-workflow').click();
