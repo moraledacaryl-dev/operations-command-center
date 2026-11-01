@@ -151,3 +151,46 @@
 @media (max-width: 760px) {
   .practice-observation-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Non-blocking in-context trainer: arrows and highlights always indicate an actual control. */
+.practice-start-here { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; align-items: center;
+  margin: 18px 0; padding: 18px 20px; border: 2px solid #e7a43c; border-radius: 16px;
+  background: #fff9ec; color: #403321; }
+.practice-start-here strong { display: block; font-size: 19px; margin-bottom: 4px; }
+.practice-start-here p { font-size: 14px; line-height: 1.55; max-width: 650px; margin: 0; }
+.practice-start-buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.practice-start-buttons button { min-height: 44px; }
+.training-spotlight-layer { position: fixed; inset: 0; z-index: 120; pointer-events: none; }
+[data-training-spotlight-target="true"] { outline: 4px solid #eea63f !important; outline-offset: 5px !important;
+  box-shadow: 0 0 0 9px rgba(255, 189, 66, .18) !important; position: relative;
+  z-index: 2; scroll-margin: 100px; }
+.training-spotlight-popover { position: fixed; box-sizing: border-box; pointer-events: auto;
+  max-height: calc(100dvh - 24px); overflow: auto;
+  padding: 16px; border: 2px solid #d18a24; border-radius: 14px;
+  background: #fffdf7; color: #312a21; box-shadow: 0 18px 48px rgba(30, 31, 24, .22);
+  font-size: 14px; line-height: 1.5; }
+.training-spotlight-topline { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.training-spotlight-kicker { font-size: 11px; font-weight: 850; letter-spacing: .065em; color: #784b0a; }
+.training-spotlight-dismiss { border: 1px solid #d2c7b1; border-radius: 8px; background: #fff;
+  min-width: 32px; min-height: 32px; font-size: 22px; cursor: pointer; }
+.training-spotlight-title { display: block; font-size: 16px; margin: 6px 0 5px; }
+.training-spotlight-description { margin: 0 0 11px; }
+.training-spotlight-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.training-spotlight-main, .training-spotlight-again { border-radius: 8px; min-height: 39px; padding: 8px 12px; font: inherit; font-weight: 760; cursor: pointer; }
+.training-spotlight-main { border: 1px solid #14634d; background: #176d58; color: #fff; }
+.training-spotlight-again { border: 1px solid #b7aa94; color: #173d2c; background: #fff; }
+.training-spotlight-instruction { display: block; margin-top: 9px; font-size: 11px; color: #755520; }
+.training-spotlight-arrow { display: block; position: absolute; top: -30px; left: 22px;
+  font-size: 25px; color: #a65d09; transform: rotate(90deg); text-shadow: 0 0 4px #fff; }
+.training-spotlight-arrow.arrow-down { top: auto; bottom: -30px; transform: rotate(-90deg); }
+.training-spotlight-popover button:focus-visible { outline: 3px solid #176d58; outline-offset: 2px; }
+@media (max-width: 650px) {
+  .practice-start-here, .practice-start-buttons { align-items: stretch; width: 100%; }
+  .practice-start-buttons > button { flex: 1 1 100%; }
+  .training-spotlight-popover { padding: 12px; max-height: 40dvh; }
+  .training-spotlight-arrow { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .training-spotlight-popover { transition: none; animation: none; }
+}
