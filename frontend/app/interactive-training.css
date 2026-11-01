@@ -187,3 +187,12 @@
   .ops-course-primary { width: 100%; }
   .ops-course-quiet { width: 100%; margin: 8px 0 0; justify-content: center; }
 }
+
+.ops-guide-lesson-wrap { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.ops-guide-lesson-wrap > .ops-guide-lesson { width: 100%; flex: 1; }
+.ops-guide-repeat-course { border: 1px solid #bfd7c6; color: #225841; background: #edf6ef;
+  border-radius: 8px; min-height: 40px; font-size: 12px; font-weight: 800; cursor: pointer; }
+.ops-guide-repeat-course:hover { background: #ddf0e4; }
+.ops-guide-course-summary { padding: 10px 12px; border-left: 4px solid #23855f;
+  background: #f0f8f2; color: #22513a; border-radius: 7px; margin-bottom: 12px; }
+.ops-guide-course-summary > p { font-size: 12px; margin: 3px 0 0; }
