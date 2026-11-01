@@ -6,12 +6,17 @@ import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { availableTrainingLessons, TRAINING_LESSONS } from '@/lib/interactive-training';
 import type { TrainingStep } from '@/lib/interactive-training';
+import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
+import type { CourseProgress } from '@/lib/training-course';
+import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
+import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
 
 type Position = { top: number; left: number; width: number; height: number };
 type Active = { id: string; index: number };
 
 const COMPLETION_PREFIX = 'ho-ops-training-complete-v1:';
-const INTRO_PREFIX = 'ho-ops-real-screens-intro-v1:';
+// Lesson explanations, quiz state, and practical outcomes live together. Only
+// the verified local workflow database may confirm a record-editing practical.
 
 function targetFor(selector: string): HTMLElement | null {
   try {
@@ -84,6 +89,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [position, setPosition] = useState<Position | null>(null);
   const [targetFound, setTargetFound] = useState(false);
   const [complete, setComplete] = useState<string[]>([]);
+  const [course, setCourse] = useState<CourseProgress | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [quizFeedback, setQuizFeedback] = useState('');
   const observedNode = useRef<HTMLElement | null>(null);
   const tipRef = useRef<HTMLElement | null>(null);
   const libraryRef = useRef<HTMLElement | null>(null);
@@ -91,6 +99,11 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');
   const storageKey = COMPLETION_PREFIX + identity;
+  const courseKey = COURSE_STORAGE_PREFIX + identity;
+  const courseLesson = course && lessons.find(item => item.id === course.lessonId);
+  const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
+  const quizItem = courseGuide?.questions[course?.question || 0];
+  const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
 
   useEffect(() => {
     try {
@@ -99,18 +112,48 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     } catch { setComplete([]); }
   }, [storageKey]);
 
-  // First sign-in begins on the actual fictional Operations dashboard, with
-  // the orientation spotlight already pointing at a real screen control.
-  // This flag is per fictional trainee/device; Repeat remains available.
+  // Begin lesson one automatically on sign-in; repeat / resume does not skip
+  // the explanation or the quiz. Store only convenience progress, not a credential.
   useEffect(() => {
-    if (path !== '/' || !lessons.some(item => item.id === 'orientation')) return;
-    try {
-      const key = INTRO_PREFIX + identity;
-      if (localStorage.getItem(key)) return;
-      localStorage.setItem(key, 'started');
-      setActive({ id: 'orientation', index: 0 });
-    } catch { /* Storage unavailable: keep manual Training button usable. */ }
-  }, [path, identity, lessons]);
+    if (!lessons.length) return;
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(courseKey); } catch { /* in-memory fallback */ }
+    setCourse(readCourseProgress(saved, lessons));
+  }, [courseKey, lessons]);
+
+  useEffect(() => {
+    if (!course) return;
+    try { localStorage.setItem(courseKey, JSON.stringify(course)); } catch { /* no certificate */ }
+  }, [courseKey, course]);
+
+  useEffect(() => {
+    if (!course || course.stage !== 'tour' || active || !courseLesson) return;
+    setMenuOpen(false);
+    setActive({ id: courseLesson.id, index: 0 });
+  }, [course, active, courseLesson]);
+
+  // A database-backed saved fictional workflow (same unique reference) is
+  // required for lessons that edit records. No Next button can grant a pass.
+  useEffect(() => {
+    if (!course || course.stage !== 'work' || !course.reference || !courseGuide?.handsOn) return;
+    const check = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}') as TrainingWorkflowResults;
+        const evidence = saved[courseGuide.handsOn!];
+        if (evidence?.reference !== course.reference || !evidence.recordId) return;
+        setCourse(current => current && current.stage === 'work' && current.reference === evidence.reference
+          ? { ...current, stage: 'done', passed: Array.from(new Set([...current.passed, current.lessonId])) }
+          : current);
+      } catch { /* An invalid local marker never completes a practical. */ }
+    };
+    check();
+    window.addEventListener(WORKFLOW_CHANGED, check);
+    window.addEventListener('storage', check);
+    return () => {
+      window.removeEventListener(WORKFLOW_CHANGED, check);
+      window.removeEventListener('storage', check);
+    };
+  }, [course, courseGuide, user]);
 
   const lesson = active ? TRAINING_LESSONS.find(entry => entry.id === active.id) : undefined;
   const step: TrainingStep | undefined = lesson && active ? lesson.steps[active.index] : undefined;
@@ -125,9 +168,36 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     });
     setPosition(null);
     setActive(null);
+    // A tour is only the hands-on portion AFTER the mandatory explanation
+    // and short quiz; authorized staff must also verify saved fictional work.
+    if (course?.stage === 'tour' && course.lessonId === lessonId) {
+      const kind = courseGuide?.handsOn;
+      if (kind && capabilities.manage_department && (kind !== 'mt-light-fault' || capabilities.make_decisions)) {
+        const reference = makeTrainingReference(kind);
+        const session: TrainingWorkflowSession = {
+          kind: kind as TrainingWorkflowKind, ownerId: workflowOwnerId(user),
+          reference, step: 0, createdAt: new Date().toISOString(),
+        };
+        try {
+          localStorage.setItem(workflowSessionKey(user), JSON.stringify(session));
+          setCourse(current => current ? { ...current, stage: 'work', reference } : current);
+          window.dispatchEvent(new Event(WORKFLOW_CHANGED));
+          router.push(WORKFLOW_DEFINITIONS[kind].path);
+        } catch {
+          // Do not claim the practical passed if storage cannot persist it.
+          setCourse(current => current ? { ...current, stage: 'tour' } : current);
+          setHelpMessage('Training storage is unavailable. Please enable local storage and restart this practice.');
+        }
+      } else {
+        setCourse(current => current ? {
+          ...current, stage: 'done', passed: Array.from(new Set([...current.passed, lessonId])),
+        } : current);
+      }
+      return;
+    }
     setMenuOpen(true);
-    setHelpMessage('Tour viewed. Practise the steps in the isolated demo and complete the separate supervisor assessment before certification.');
-  }, [storageKey]);
+    setHelpMessage('Tour viewed. Your course completion still requires the lesson, quiz and practical exercise.');
+  }, [storageKey, course, courseGuide, capabilities.manage_department, capabilities.make_decisions, user, router]);
 
   const next = useCallback((fromActualClick = false) => {
     if (!active || !lesson) return;
@@ -150,7 +220,54 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setPosition(null);
     setTargetFound(false);
     setHelpMessage('');
+    // Pausing a practical never grants a pass. The course resumes at the tour.
   }, []);
+
+  function startCurrentPractice() {
+    if (!course || !courseLesson || course.stage !== 'quiz') return;
+    setSelectedAnswer(null);
+    setQuizFeedback('');
+    setMenuOpen(false);
+    setActive({ id: courseLesson.id, index: 0 });
+    setCourse({ ...course, stage: 'tour', question: 0 });
+    router.push(courseLesson.steps[0]?.path || '/');
+  }
+
+  function answerQuiz() {
+    if (!course || !quizItem || selectedAnswer === null) return;
+    if (selectedAnswer !== quizItem.correct) {
+      setQuizFeedback('Not yet. ' + quizItem.explanation + ' Read the example above, then choose again.');
+      setSelectedAnswer(null);
+      return;
+    }
+    setQuizFeedback('');
+    setSelectedAnswer(null);
+    if (course.question < (courseGuide?.questions.length || 0) - 1) {
+      setCourse({ ...course, question: course.question + 1 });
+    } else startCurrentPractice();
+  }
+
+  function startNextLesson() {
+    if (!course || course.stage !== 'done') return;
+    const index = lessons.findIndex(item => item.id === course.lessonId);
+    const nextLesson = lessons[index + 1];
+    if (!nextLesson) { setMenuOpen(true); return; }
+    setCourse({ ...course, lessonId: nextLesson.id, stage: 'learn', question: 0, reference: undefined });
+    setSelectedAnswer(null);
+    setQuizFeedback('');
+    setMenuOpen(false);
+  }
+
+  function repeatCourseLesson(lessonId: string) {
+    if (!lessons.some(item => item.id === lessonId)) return;
+    setActive(null);
+    setMenuOpen(false);
+    setCourse(current => current ? { ...current, lessonId, stage: 'learn', question: 0, reference: undefined } : {
+      lessonId, stage: 'learn', question: 0, passed: [],
+    });
+    setSelectedAnswer(null);
+    setQuizFeedback('');
+  }
 
   const begin = useCallback((lessonId: string) => {
     setMenuOpen(false);
@@ -297,10 +414,67 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   return <>
     <button type="button" className="ops-guide-launch" data-testid="interactive-training-open"
-      aria-label="Open interactive training" onClick={() => { exit(); setMenuOpen(true); }}>
+      aria-label="Open interactive training" onClick={() => {
+        if (course && ['learn', 'quiz'].includes(course.stage)) return;
+        exit(); setMenuOpen(true);
+      }}>
       <span aria-hidden="true">?</span> Training
     </button>
 
+    {course && courseLesson && courseGuide && ['learn', 'quiz', 'done'].includes(course.stage) && <div
+      className="ops-course-backdrop" data-testid="required-training-course">
+      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
+        <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>
+          <strong>Lesson {lessonNumber} of {lessons.length}</strong></div>
+        <div className="ops-course-progress" aria-label="Lesson stages"><span className={course.stage === 'learn' ? 'current' : ''}>1. Learn</span>
+          <span className={course.stage === 'quiz' ? 'current' : ''}>2. Check understanding</span>
+          <span className={course.stage === 'done' ? 'current' : ''}>3. Actual-page practice</span></div>
+        {course.stage === 'learn' && <>
+          <h2 data-testid="course-lesson-title">{courseLesson.title}</h2>
+          <p className="ops-course-explanation">{courseGuide.explanation}</p>
+          <h3>Example — what this looks like at work</h3>
+          <p className="ops-course-example">{courseGuide.example}</p>
+          <p><strong>Remember:</strong> {courseGuide.remember}</p>
+          <p className="ops-course-next-explainer">Next: Answer two short questions. When you get them right, the app automatically takes you to the real fictional Operations pages to practise.</p>
+          <button type="button" className="ops-course-primary" data-testid="course-start-quiz"
+            onClick={() => { setCourse({ ...course, stage: 'quiz', question: 0 }); setQuizFeedback(''); }}>I understand — take the quiz →</button>
+        </>}
+        {course.stage === 'quiz' && quizItem && <>
+          <h2>{courseLesson.title}</h2>
+          <p className="ops-course-example">{courseGuide.example}</p>
+          <h3 data-testid="course-quiz-question">Question {course.question + 1} of {courseGuide.questions.length}: {quizItem.prompt}</h3>
+          <div className="ops-course-choices">{quizItem.choices.map((answer, i) =>
+            <label key={answer} className={selectedAnswer === i ? 'selected' : ''}>
+              <input type="radio" name="course-answer" checked={selectedAnswer === i}
+                onChange={() => { setSelectedAnswer(i); setQuizFeedback(''); }} />
+              <span>{answer}</span>
+            </label>)}</div>
+          {quizFeedback && <p className="ops-course-feedback" role="alert">{quizFeedback}</p>}
+          <button type="button" className="ops-course-primary" data-testid="course-check-answer"
+            disabled={selectedAnswer === null} onClick={answerQuiz}>Check my answer →</button>
+          <button type="button" className="ops-course-quiet" onClick={() => { setCourse({ ...course, stage: 'learn', question: 0 }); setSelectedAnswer(null); setQuizFeedback(''); }}>Read lesson again</button>
+        </>}
+        {course.stage === 'done' && <>
+          <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
+          <p>You finished the explanation, answered the quiz, and completed the required practice on the actual fictional app pages{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
+          <p>Done lessons can be repeated without removing earlier completion results.</p>
+          <button type="button" className="ops-course-primary" data-testid="course-next-lesson"
+            onClick={startNextLesson}>{lessonNumber < lessons.length ? 'Continue to Lesson ' + (lessonNumber + 1) + ' →' : 'Review completed lessons'}</button>
+          <button type="button" className="ops-course-quiet" data-testid="course-repeat-lesson" onClick={() => repeatCourseLesson(course.lessonId)}>↻ Repeat this lesson</button>
+        </>}
+      </section>
+    </div>}
+    {course?.stage === 'tour' && !active && <div className="ops-course-backdrop">
+      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
+        <h2>Continue your actual-page practice</h2>
+        <p>The lesson is not finished yet. Reopen the guided steps to practise on the real fictional Operations pages.</p>
+        <button type="button" className="ops-course-primary" onClick={() => setActive({ id: course.lessonId, index: 0 })}>Resume practical lesson →</button>
+      </section>
+    </div>}
+    {course?.stage === 'work' && <div className="ops-course-work-status" data-testid="course-await-work" role="status">
+      <strong>Lesson {lessonNumber}: Actual-page practice</strong>
+      <span>Follow the arrows on the real form. Save your fictional work, then use Check saved work. The next lesson unlocks only after verification.</span>
+    </div>}
     {menuOpen && !active && <div className="ops-guide-library-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setMenuOpen(false); }}>
       <section ref={libraryRef} className="ops-guide-library" role="dialog" aria-modal="true" aria-label="Interactive staff training" tabIndex={-1}>
         <header className="ops-guide-library-header">
@@ -310,14 +484,23 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         {helpMessage && <p className="ops-guide-success" role="status">{helpMessage}</p>}
         <p className="ops-guide-safety"><strong>Safe practice:</strong> Lessons never save, approve, or publish automatically. Use only an isolated demo workspace to submit fictional practice records.</p>
         <div className="ops-guide-lesson-grid">
-          {lessons.map(item => <button type="button" key={item.id} className="ops-guide-lesson" onClick={() => begin(item.id)}>
-            <span className="ops-guide-lesson-title">{item.title}{complete.includes(item.id) ? <span className="ops-guide-done">Tour viewed</span> : null}</span>
+          {lessons.map(item => <button type="button" key={item.id} className="ops-guide-lesson"
+              disabled={Boolean(course && !course.passed.includes(item.id) && item.id !== course.lessonId)}
+              onClick={() => {
+                if (course && item.id === course.lessonId && course.stage !== 'done') repeatCourseLesson(item.id);
+                else if (course && course.passed.includes(item.id)) repeatCourseLesson(item.id);
+                else begin(item.id);
+              }}>
+            <span className="ops-guide-lesson-title">{item.title}{course?.passed.includes(item.id) ? <span className="ops-guide-done">Lesson complete</span>
+              : course?.lessonId === item.id ? <span className="ops-guide-done">Your current lesson</span>
+              : course ? <span className="ops-guide-done">Locked until previous lesson</span>
+              : complete.includes(item.id) ? <span className="ops-guide-done">Tour viewed</span> : null}</span>
             <span className="ops-guide-lesson-description">{item.summary}</span>
-            <span className="ops-guide-lesson-meta">{item.steps.length} guided steps · Start lesson →</span>
+            <span className="ops-guide-lesson-meta">{item.steps.length} real-screen steps · {course?.passed.includes(item.id) ? 'Repeat lesson' : 'Learn, quiz, then practise'}</span>
           </button>)}
         </div>
         <p className="ops-guide-footer-note"><button type="button" className="ops-guide-more" onClick={() => { setMenuOpen(false); router.push('/training'); }}>Optional: situational decision practice and progress</button></p>
-        <p className="ops-guide-footer-note">Viewed-tour markers are not staff certification. Markers are stored on this device for this account; clearing browser data removes them.</p>
+        <p className="ops-guide-footer-note">Lessons are in order. Staff must finish the short quiz and actual-screen practice before moving to the next lesson. Local markers are not staff certification.</p>
       </section>
     </div>}
 
@@ -330,7 +513,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       </svg>}
       <section ref={tipRef} className="ops-guide-tip" role="dialog" aria-modal="false"
         aria-label={`Training step ${stepIndex + 1} of ${lesson.steps.length}`} style={popupStyle(position, tipPosition?.height)}>
-        <div className="ops-guide-tip-top"><span>STEP {stepIndex + 1} / {lesson.steps.length}</span><button type="button" onClick={exit} aria-label="Exit walkthrough">Exit ×</button></div>
+        <div className="ops-guide-tip-top"><span>REAL-PAGE PRACTICE · STEP {stepIndex + 1} / {lesson.steps.length}</span><button type="button" onClick={exit} aria-label="Exit walkthrough">Pause ×</button></div>
         <div className="ops-guide-progress" aria-hidden="true"><span style={{ width: `${(stepIndex + 1) / lesson.steps.length * 100}%` }} /></div>
         <h2>{step.title}</h2>
         <p>{step.body}</p>
@@ -342,9 +525,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <div className="ops-guide-actions">
           <button type="button" className="ops-guide-button-secondary" onClick={previous} disabled={stepIndex === 0}>Back</button>
           <button type="button" className="ops-guide-button-primary" onClick={() => next()}
-            disabled={Boolean(step.requiresAction && targetFound)}>{step.requiresAction && targetFound ? 'Click highlighted link →' : atLastStep ? 'Finish lesson' : 'Next →'}</button>
+            disabled={Boolean(step.requiresAction && (course?.stage === 'tour' || targetFound))}>{step.requiresAction ? 'Click highlighted link →' : atLastStep ? 'Finish practice' : 'Next →'}</button>
         </div>
-        <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>All lessons</button>
+        <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>Lesson list (progress stays)</button>
       </section>
     </>}
   </>;
