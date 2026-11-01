@@ -42,7 +42,7 @@ export function buildTrainingReport(
     trainee:{id:String(trainee.id || ''),name:String(trainee.name || 'Fictional trainee').slice(0,100),
       role:String(trainee.role || 'staff').slice(0,30)},
     currentLesson:course.lessonId,currentStage:course.stage,
-    completedLessons:[...new Set(course.passed)].slice(0,50),metrics,
+    completedLessons:Array.from(new Set(course.passed)).slice(0,50),metrics,
     verifiedPractice,
   };
 }
