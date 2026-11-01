@@ -119,7 +119,7 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   await expect(quiz).toContainText('Before creating a task');
   await quiz.getByLabel('Search for an existing task').check();
   await page.getByTestId('course-check-answer').click();
-  await expect(page).toHaveURL(/\\/tasks$/);
+  await expect(page).toHaveURL(/\/tasks$/);
   const coach = page.locator('.ops-guide-tip');
   await expect(coach).toContainText('Board versus List');
   await coach.getByRole('button', { name: /Next/ }).click();
