@@ -9,6 +9,9 @@ export type CheckQuestion = {
 };
 export type CourseGuide = {
   explanation: string;
+  incorrectExample?: string;
+  whyIncorrect?: string;
+  branches?: readonly { question: string; choices: readonly [string,string,string]; correct: 0|1|2; response: string }[];
   example: string;
   remember: string;
   questions: readonly [CheckQuestion, CheckQuestion];
@@ -25,6 +28,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'This is the real Operations layout with pretend guest and employee information. My Work shows tasks assigned to you. Notifications tells you when something needs your attention. The Hidden Oasis logo returns you to the main page.',
     example: 'You arrive for your shift. You need to see your assigned tasks, check any important new messages, then return to the dashboard.',
     remember: 'You will click the real My Work link, Notifications link and logo yourself. Clicking Next cannot replace these actions.',
+    incorrectExample: 'An employee sees a red notification number, assumes the task is already done, and ignores it.',
+    whyIncorrect: 'A notification is a message, not confirmation that a task was finished. Open the related task to see what still needs doing.',
     questions: [
       q('Where do you go first to see tasks assigned to you?', ['My Work','Rooms','Marketing'], 0, 'My Work shows assignments for your own account.'),
       q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the linked work and check what action is still needed','Change another employee’s password'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
@@ -34,6 +39,11 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'A handover is a note from the employee finishing a shift to the employee starting the next one. It explains problems that are still unfinished, who is handling them and what to do next.',
     example: 'A guest reported a broken toilet. Reception has called Maintenance but the repair is not confirmed. The next receptionist needs to know what to check and when to update the guest.',
     remember: 'Reading a note is not the same as fixing the problem. Do not mark it finished until work really is confirmed.',
+    incorrectExample: 'A receptionist sees a note saying the toilet repair is waiting, then tells the guest that it is fixed.',
+    whyIncorrect: 'The note only records an unfinished problem. Staff need to ask the responsible team what actually happened.',
+    branches: [{question:'What if Maintenance cannot come before the next shift?',
+      choices:['Mark the repair complete','Tell the next receptionist who will follow up and update the guest','Delete the report'],
+      correct:1, response:'The next employee must know the problem is still open and who will follow up with the guest.'}],
     questions: [
       q('What should a useful shift note tell the next employee?', ['Only that the guest was upset','The problem, who should act and what to check next','Only the shift end time'], 1, 'The next employee needs enough information to continue the work.'),
       q('You read a handover about a repair that is not checked yet. What should you do?', ['Assume it is repaired','Delete the note','Check the situation or tell the person responsible'], 2, 'An unresolved problem needs follow-up, not an assumed completion.'),
@@ -71,6 +81,11 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'A guest matter is a record of a guest’s problem. A good record states what happened, which room or service is affected, who should investigate and when Reception will call the guest back.',
     example: 'Room 205 reports an AC that is blowing warm air. Record the complaint, arrange an inspection and keep the guest informed.',
     remember: 'Do not claim the guest problem is solved before it has actually been checked.',
+    incorrectExample: 'Reception tells the guest the air conditioner is repaired even though no technician has inspected it.',
+    whyIncorrect: 'Promising a result that has not been checked can mislead the guest and hide an unfinished repair.',
+    branches: [{question:'What if the guest says the room is too hot to stay in?',
+      choices:['Ignore the new information','Ask the lead about safe immediate assistance or a room option and update the guest','Say maintenance will arrive at a made-up time'],
+      correct:1, response:'New information can change the response. Ask an authorized lead for an appropriate immediate option.'}],
     handsOn: 'guest-ac',
     questions: [
       q('A guest says the AC is not cooling. What is a useful first step?', ['Record the fault and ask for inspection','Mark it repaired immediately','Promise it will never happen again'], 0, 'The team needs a clear report before the repair and follow-up can be checked.'),
@@ -81,6 +96,11 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'Maintenance records show what is broken, where it is and who is fixing it. Working means repair is underway. Done means somebody reports completion. Verified means authorized staff have checked the result.',
     example: 'A corridor light is out. Record the affected area, ask a fictional technician to inspect it and make sure the finished work is checked.',
     remember: 'Never treat a digital training completion as proof that a real electrical repair was performed.',
+    incorrectExample: 'A technician clicks Done on the work order without inspecting or testing the fault.',
+    whyIncorrect: 'Clicking Done cannot prove a repair. A qualified person must inspect and an authorized person verifies the result.',
+    branches: [{question:'What if the light fault is near water?',
+      choices:['Keep using the area normally','Restrict access and urgently alert qualified personnel','Touch the wiring to test it'],
+      correct:1, response:'Water and electricity may create an immediate hazard. Protect people and alert qualified personnel.'}],
     handsOn: 'mt-light-fault',
     questions: [
       q('A repair is marked Done but has not been tested. What does that mean?', ['A final check may still be needed','The building is definitely safe','The task should be forgotten'], 0, 'Done and Verified are different steps in the work process.'),
@@ -91,6 +111,11 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'A request asks for something to be purchased or changed. Explain what is needed, why it matters and whether the price or quotation has been verified. Requesting approval is not approving your own request.',
     example: 'A department needs equipment but the supplier quotation is missing. Save the truthful reason and send it to an authorized reviewer.',
     remember: 'Never invent supplier documents, prices, or approvals to finish practice.',
+    incorrectExample: 'An employee writes “quotation attached” to make the request look complete, but no quotation exists.',
+    whyIncorrect: 'The reviewer needs accurate information, including what is still missing, before deciding.',
+    branches: [{question:'What if the supplier sends a different price later?',
+      choices:['Hide the new price','Update the request with the new quoted price and explain the change','Approve it without checking'],
+      correct:1, response:'Changes in price must be visible to the authorized reviewer.'}],
     handsOn: 'manager-evidence',
     questions: [
       q('A purchase request has no quotation. What should you write?', ['Clearly say the quotation is missing','Say one is attached even when it is not','Approve it yourself'], 0, 'The reviewer must know what evidence is and is not available.'),
@@ -101,6 +126,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'A useful shift note tells the next employee what happened, who is supposed to handle it and when the guest or team needs another update.',
     example: 'A guest is still waiting for a toilet repair. Write who will contact Maintenance and who must call the guest back after the shift changes.',
     remember: 'Publishing a note does not automatically make the unfinished work go away.',
+    incorrectExample: 'A receptionist leaves a note saying “Guest problem” without room, next action, or responsible person.',
+    whyIncorrect: 'The next employee cannot act on such a vague note. Write the real problem and what should happen next.',
     handsOn: 'shift-unresolved',
     questions: [
       q('Which shift note would help the next receptionist most?', ['Room 204 toilet is broken; Maintenance will inspect; Front Desk will call the guest','Problem noted','Somebody will deal with something'], 0, 'A clear note identifies the issue, next action and responsibility.'),

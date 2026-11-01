@@ -91,6 +91,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [course, setCourse] = useState<CourseProgress | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [quizFeedback, setQuizFeedback] = useState('');
+  const [quizErrors, setQuizErrors] = useState(0);
+  const [branchAnswer, setBranchAnswer] = useState<number | null>(null);
+  const [branchExplained, setBranchExplained] = useState(false);
   const observedNode = useRef<HTMLElement | null>(null);
   const tipRef = useRef<HTMLElement | null>(null);
   const libraryRef = useRef<HTMLElement | null>(null);
@@ -234,11 +237,15 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   function answerQuiz() {
     if (!course || !quizItem || selectedAnswer === null) return;
     if (selectedAnswer !== quizItem.correct) {
-      setQuizFeedback('Not yet. ' + quizItem.explanation + ' Read the example above, then choose again.');
+      setQuizErrors(v => v + 1);
+      setQuizFeedback(quizErrors === 0
+        ? 'Not quite. Read the situation again. What would the next employee need to do, and what has actually been confirmed? Try again.'
+        : 'Try again. ' + quizItem.explanation);
       setSelectedAnswer(null);
       return;
     }
     setQuizFeedback('');
+    setQuizErrors(0);
     setSelectedAnswer(null);
     if (course.question < (courseGuide?.questions.length || 0) - 1) {
       setCourse({ ...course, question: course.question + 1 });
@@ -435,6 +442,21 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           <p className="ops-course-explanation">{courseGuide.explanation}</p>
           <h3>Example — what this looks like at work</h3>
           <p className="ops-course-example">{courseGuide.example}</p>
+          <h3>What not to do</h3>
+          <p className="ops-course-wrong-example">{courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'}</p>
+          <p><strong>Why that would be a problem:</strong> {courseGuide.whyIncorrect || 'Someone might rely on the wrong information or miss unfinished work. Always confirm what happened.'}</p>
+          {courseGuide.branches?.[0] && <div className="ops-course-branch" data-testid="course-situation-branch">
+            <h3>What if the situation changes?</h3>
+            <p>{courseGuide.branches[0].question}</p>
+            <div className="ops-course-choices">{courseGuide.branches[0].choices.map((option,i) =>
+              <label key={option} className={branchAnswer===i?'selected':''}>
+                <input type="radio" name="course-branch" checked={branchAnswer===i}
+                  onChange={() => {setBranchAnswer(i);setBranchExplained(false);}} /> {option}
+              </label>)}</div>
+            {branchExplained && <p role="status">{branchAnswer===courseGuide.branches[0].correct?'Good thinking. ':'Think again: '}{courseGuide.branches[0].response}</p>}
+            <button type="button" className="ops-course-quiet" disabled={branchAnswer===null}
+              onClick={()=>setBranchExplained(true)}>Explain this situation</button>
+          </div>}
           <p><strong>Remember:</strong> {courseGuide.remember}</p>
           <p className="ops-course-next-explainer">Next: Answer two short questions. When you get them right, the app automatically takes you to the real fictional Operations pages to practise.</p>
           <button type="button" className="ops-course-primary" data-testid="course-start-quiz"

@@ -56,7 +56,7 @@ test('first training open starts on real dashboard and requires navigating actua
   await page.locator('.ops-sidebar a.ops-brand[href="/"]').click();
   await expect(page).toHaveURL('/');
   await expect(coach).toContainText('You know your way around');
-  await coach.getByRole('button', { name: 'Finish lesson' }).click();
+  await coach.getByRole('button', { name: 'Finish practice' }).click();
   await expect(coach).toHaveCount(0);
   await expect(page.getByTestId('course-completed')).toContainText('Lesson 1 completed');
 
