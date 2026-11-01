@@ -248,7 +248,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     if (!course || course.stage !== 'done') return;
     const index = lessons.findIndex(item => item.id === course.lessonId);
     const nextLesson = lessons[index + 1];
-    if (!nextLesson) { setMenuOpen(true); return; }
+    if (!nextLesson) { setCourse({ ...course, stage: 'finished' }); setMenuOpen(true); return; }
     setCourse({ ...course, lessonId: nextLesson.id, stage: 'learn', question: 0, reference: undefined });
     setSelectedAnswer(null);
     setQuizFeedback('');
@@ -484,8 +484,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           {lessons.map(item => <button type="button" key={item.id} className="ops-guide-lesson"
               disabled={Boolean(course && !course.passed.includes(item.id) && item.id !== course.lessonId)}
               onClick={() => {
-                if (course && item.id === course.lessonId && course.stage !== 'done') repeatCourseLesson(item.id);
-                else if (course && course.passed.includes(item.id)) repeatCourseLesson(item.id);
+                if (course && course.stage === 'finished' && course.passed.includes(item.id)) begin(item.id);
+                else if (course) repeatCourseLesson(item.id);
                 else begin(item.id);
               }}>
             <span className="ops-guide-lesson-title">{item.title}{course?.passed.includes(item.id) ? <span className="ops-guide-done">Lesson complete</span>
@@ -493,7 +493,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
               : course ? <span className="ops-guide-done">Locked until previous lesson</span>
               : complete.includes(item.id) ? <span className="ops-guide-done">Tour viewed</span> : null}</span>
             <span className="ops-guide-lesson-description">{item.summary}</span>
-            <span className="ops-guide-lesson-meta">{item.steps.length} real-screen steps · {course?.passed.includes(item.id) ? 'Repeat lesson' : 'Learn, quiz, then practise'}</span>
+            <span className="ops-guide-lesson-meta">{item.steps.length} real-screen steps · {course?.passed.includes(item.id) ? 'Review practical tour' : 'Learn, quiz, then practise'}</span>
           </button>)}
         </div>
         <p className="ops-guide-footer-note"><button type="button" className="ops-guide-more" onClick={() => { setMenuOpen(false); router.push('/training'); }}>Optional: situational decision practice and progress</button></p>
