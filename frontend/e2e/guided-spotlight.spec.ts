@@ -78,8 +78,13 @@ test('actual Tasks module highlights New, then the real form, and Repeat creates
   await expect(page.getByTestId('training-spotlight')).toContainText('Click New');
   await expect(page.getByTestId('create-task')).toHaveAttribute('data-training-spotlight-target', 'true');
   await page.getByTestId('create-task').click();
-  await expect(page.getByTestId('create-task-form')).toHaveAttribute('data-training-spotlight-target', 'true');
+  const form = page.getByTestId('create-task-form');
+  await expect(form.locator('input').first()).toHaveAttribute('data-training-spotlight-target', 'true');
   const first = await page.getByTestId('training-workflow-reference').innerText();
+  await form.locator('input').first().fill('Repair fictional room lighting ' + first);
+  await expect(form.locator('select').first()).toHaveAttribute('data-training-spotlight-target', 'true');
+  await form.locator('select').first().selectOption('High');
+  await expect(form.locator('select').nth(1)).toHaveAttribute('data-training-spotlight-target', 'true');
   await page.getByTestId('repeat-real-workflow').click();
   await expect(page.getByTestId('training-workflow-reference')).not.toHaveText(first);
   await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 1 of 3');
