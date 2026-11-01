@@ -11,6 +11,7 @@ type Position = { top: number; left: number; width: number; height: number };
 type Active = { id: string; index: number };
 
 const COMPLETION_PREFIX = 'ho-ops-training-complete-v1:';
+const INTRO_PREFIX = 'ho-ops-real-screens-intro-v1:';
 
 function targetFor(selector: string): HTMLElement | null {
   try {
@@ -92,6 +93,19 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     } catch { setComplete([]); }
   }, [storageKey]);
 
+  // First sign-in begins on the actual fictional Operations dashboard, with
+  // the orientation spotlight already pointing at a real screen control.
+  // This flag is per fictional trainee/device; Repeat remains available.
+  useEffect(() => {
+    if (path !== '/' || !lessons.some(item => item.id === 'orientation')) return;
+    try {
+      const key = INTRO_PREFIX + identity;
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, 'started');
+      setActive({ id: 'orientation', index: 0 });
+    } catch { /* Storage unavailable: keep manual Training button usable. */ }
+  }, [path, identity, lessons]);
+
   const lesson = active ? TRAINING_LESSONS.find(entry => entry.id === active.id) : undefined;
   const step: TrainingStep | undefined = lesson && active ? lesson.steps[active.index] : undefined;
   const stepIndex = active?.index || 0;
@@ -109,13 +123,14 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setHelpMessage('Tour viewed. Practise the steps in the isolated demo and complete the separate supervisor assessment before certification.');
   }, [storageKey]);
 
-  const next = useCallback(() => {
+  const next = useCallback((fromActualClick = false) => {
     if (!active || !lesson) return;
+    if (step?.requiresAction && targetFound && !fromActualClick) return;
     setHelpMessage('');
     setPosition(null);
     if (atLastStep) finish(lesson.id);
     else setActive({ id: lesson.id, index: active.index + 1 });
-  }, [active, lesson, atLastStep, finish]);
+  }, [active, lesson, atLastStep, finish, step, targetFound]);
 
   const previous = useCallback(() => {
     if (!active) return;
@@ -195,7 +210,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     if (!step?.advanceOnClick || path !== step.path || !active) return;
     const node = targetFor(step.selector);
     if (!node) return;
-    const click = () => { window.setTimeout(() => { if (document.body.contains(node) || step.advanceOnClick) next(); }, 100); };
+    const click = () => { window.setTimeout(() => { if (document.body.contains(node) || step.advanceOnClick) next(true); }, 100); };
     node.addEventListener('click', click, { once: true });
     return () => node.removeEventListener('click', click);
   }, [active, path, step, targetFound, next]);
@@ -290,6 +305,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
             <span className="ops-guide-lesson-meta">{item.steps.length} guided steps · Start lesson →</span>
           </button>)}
         </div>
+        <p className="ops-guide-footer-note"><button type="button" className="ops-guide-more" onClick={() => { setMenuOpen(false); router.push('/training'); }}>Optional: situational decision practice and progress</button></p>
         <p className="ops-guide-footer-note">Viewed-tour markers are not staff certification. Markers are stored on this device for this account; clearing browser data removes them.</p>
       </section>
     </div>}
@@ -309,11 +325,13 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <p>{step.body}</p>
         {path !== step.path ? <p className="ops-guide-hint">Opening the correct page…</p>
           : !targetFound ? <p className="ops-guide-hint">This control is not visible yet. Check the page or continue to the next step.</p>
+          : step.requiresAction ? <p className="ops-guide-hint">↖ Click the highlighted link yourself to continue. This is how you will navigate at work.</p>
           : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted control, or select Next to continue.</p>
           : <p className="ops-guide-hint">↖ Look at the highlighted area, then select Next.</p>}
         <div className="ops-guide-actions">
           <button type="button" className="ops-guide-button-secondary" onClick={previous} disabled={stepIndex === 0}>Back</button>
-          <button type="button" className="ops-guide-button-primary" onClick={next}>{atLastStep ? 'Finish lesson' : 'Next →'}</button>
+          <button type="button" className="ops-guide-button-primary" onClick={() => next()}
+            disabled={Boolean(step.requiresAction && targetFound)}>{step.requiresAction && targetFound ? 'Click highlighted link →' : atLastStep ? 'Finish lesson' : 'Next →'}</button>
         </div>
         <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>All lessons</button>
       </section>
