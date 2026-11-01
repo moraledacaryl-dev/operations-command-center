@@ -110,7 +110,11 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   latestLessons.current = lessons;
   const courseLesson = course && lessons.find(item => item.id === course.lessonId);
   const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
-  const quizItem = courseGuide?.questions[course?.question || 0];
+  const repeatVariant = courseGuide?.repeatVariant && (course?.metrics?.[course?.lessonId || '']?.repeats || 0) % 2 === 1
+    ? courseGuide.repeatVariant : undefined;
+  const currentExample = repeatVariant?.example || courseGuide?.example;
+  const currentQuestions = repeatVariant?.questions || courseGuide?.questions;
+  const quizItem = currentQuestions?.[course?.question || 0];
   const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
 
   async function restoreTrainingProgress(file: File | undefined) {
@@ -330,7 +334,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setQuizFeedback('');
     setQuizErrors(0);
     setSelectedAnswer(null);
-    if (course.question < (courseGuide?.questions.length || 0) - 1) {
+    if (course.question < (currentQuestions?.length || 0) - 1) {
       setCourse({ ...course, question: course.question + 1 });
     } else startCurrentPractice();
   }
@@ -524,7 +528,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           <h2 data-testid="course-lesson-title">{courseLesson.title}</h2>
           <p className="ops-course-explanation">{courseGuide.explanation}</p>
           <h3>Example — what this looks like at work</h3>
-          <p className="ops-course-example">{courseGuide.example}</p>
+          <p className="ops-course-example">{currentExample}</p>
           <h3>What not to do</h3>
           <p className="ops-course-wrong-example">{courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'}</p>
           <p><strong>Why that would be a problem:</strong> {courseGuide.whyIncorrect || 'Someone might rely on the wrong information or miss unfinished work. Always confirm what happened.'}</p>
@@ -555,8 +559,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </>}
         {course.stage === 'quiz' && quizItem && <>
           <h2>{courseLesson.title}</h2>
-          <p className="ops-course-example">{courseGuide.example}</p>
-          <h3 data-testid="course-quiz-question">Question {course.question + 1} of {courseGuide.questions.length}: {quizItem.prompt}</h3>
+          <p className="ops-course-example">{currentExample}</p>
+          <h3 data-testid="course-quiz-question">Question {course.question + 1} of {currentQuestions?.length || 2}: {quizItem.prompt}</h3>
           <div className="ops-course-choices">{quizItem.choices.map((answer, i) =>
             <label key={answer} className={selectedAnswer === i ? 'selected' : ''}>
               <input type="radio" name="course-answer" checked={selectedAnswer === i}

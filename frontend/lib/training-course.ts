@@ -10,6 +10,7 @@ export type CheckQuestion = {
 export type CourseGuide = {
   explanation: string;
   incorrectExample?: string;
+  repeatVariant?: { example: string; questions: readonly [CheckQuestion,CheckQuestion] };
   whyIncorrect?: string;
   branches?: readonly { question: string; choices: readonly [string,string,string]; correct: 0|1|2; response: string }[];
   example: string;
@@ -27,6 +28,10 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   orientation: {
     explanation: 'This is the real Operations layout with pretend guest and employee information. My Work shows tasks assigned to you. Notifications tells you when something needs your attention. The Hidden Oasis logo returns you to the main page.',
     example: 'You arrive for your shift. You need to see your assigned tasks, check any important new messages, then return to the dashboard.',
+    repeatVariant: { example:'The next shift starts and you need to find one assigned task, read a new alert, and return home without changing anything.', questions:[
+      q('Which control normally takes you back to the dashboard?', ['A request approval button','The Hidden Oasis logo','The room filter'],1,'The Hidden Oasis logo returns to the main dashboard.'),
+      q('How do you find an alert about your assignments?', ['Use Notifications and read the related task','Mark every alert done','Ask another employee for their password'],0,'Read the notification and related work with your own login.'),
+    ] },
     remember: 'You will click the real My Work link, Notifications link and logo yourself. Clicking Next cannot replace these actions.',
     incorrectExample: 'An employee sees a red notification number, assumes the task is already done, and ignores it.',
     whyIncorrect: 'A notification is a message, not confirmation that a task was finished. Open the related task to see what still needs doing.',
@@ -61,6 +66,10 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   'staff-my-work': {
     explanation: 'My Work shows the jobs assigned to your account. Read the due date, urgency and instructions. If something is blocked, tell the appropriate lead instead of pretending it is complete.',
     example: 'An item due today is waiting for materials. Open it, understand what is missing, and tell the lead so they can help.',
+    repeatVariant: { example:'You open My Work and see a job blocked because a part has not arrived. Report the blocker rather than falsely closing the task.', questions:[
+      q('A task is Waiting for another team. What should you do?', ['Check the blocker and keep the responsible person informed','Delete it','Mark it done'],0,'Waiting is not the same as finished work.'),
+      q('Where should you look for tasks assigned to your login?', ['My Work','A coworker’s payroll','Marketing drafts'],0,'My Work shows your assigned workload.'),
+    ] },
     remember: 'A task waiting for approval or another team is not automatically finished.',
     questions: [
       q('A task is due today but you cannot finish it. What should you do?', ['Say nothing until tomorrow','Tell the lead what is blocking it','Mark it done to clear the list'], 1, 'The responsible lead needs a truthful update so the issue can be addressed.'),
@@ -70,6 +79,10 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   'team-tasks': {
     explanation: 'A task is a specific job with a title, priority and person responsible. Search first so you do not create duplicates. When saving, make sure the correct teammate is actually assigned.',
     example: 'A shared job has no owner. Assign the right fictional teammate, start the work, and submit the saved task for review.',
+    repeatVariant: { example:'A staff member reports a broken hallway sign but nobody is assigned. Find whether the job exists, assign the right fictional teammate, and follow its progress.', questions:[
+      q('A task already exists for the same sign. What should you do?', ['Create a second copy','Review the existing task and update it if appropriate','Ignore both'],1,'Duplicate tasks confuse ownership.'),
+      q('When can a task be submitted for review?', ['After it actually reaches the required work stage','The moment it is created without work','By changing the title only'],0,'The saved workflow needs the real work stages.'),
+    ] },
     remember: 'Your practice only counts after the app confirms your saved task really changed through the required stages.',
     handsOn: 'shared-no-owner',
     questions: [
@@ -80,6 +93,10 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   'guest-matters': {
     explanation: 'A guest matter is a record of a guest’s problem. A good record states what happened, which room or service is affected, who should investigate and when Reception will call the guest back.',
     example: 'Room 205 reports an AC that is blowing warm air. Record the complaint, arrange an inspection and keep the guest informed.',
+    repeatVariant: { example:'A fictional guest in Room 203 says their bathroom sink is leaking. Nobody has inspected the room. Record what is known and arrange an update without promising a repair time.', questions:[
+      q('The guest asks if the sink is already repaired. What should Reception say?', ['It is repaired without inspection','We will confirm with Maintenance and update you','We do not care'],1,'Do not promise a finished repair before checking.'),
+      q('What is useful in the guest matter?', ['Room 203, leaking sink, responsible team and follow-up','Only the guest mood','A fake completion note'],0,'The right details help the next employee act.'),
+    ] },
     remember: 'Do not claim the guest problem is solved before it has actually been checked.',
     incorrectExample: 'Reception tells the guest the air conditioner is repaired even though no technician has inspected it.',
     whyIncorrect: 'Promising a result that has not been checked can mislead the guest and hide an unfinished repair.',
@@ -95,6 +112,10 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   maintenance: {
     explanation: 'Maintenance records show what is broken, where it is and who is fixing it. Working means repair is underway. Done means somebody reports completion. Verified means authorized staff have checked the result.',
     example: 'A corridor light is out. Record the affected area, ask a fictional technician to inspect it and make sure the finished work is checked.',
+    repeatVariant: { example:'The pool-side walkway light is out after rain. Do not touch wiring. Record the area, protect access if necessary and request a qualified inspection.', questions:[
+      q('The affected light is next to a wet walkway. What comes first?', ['Protect people and alert a qualified person','Touch the wiring','Mark Verified immediately'],0,'Water near electricity may be unsafe.'),
+      q('What is the difference between Done and Verified?', ['There is no difference','Done is reported completion; Verified is an authorized check','Verified means the form was opened'],1,'A real inspection is separate from a technician saying work is done.'),
+    ] },
     remember: 'Never treat a digital training completion as proof that a real electrical repair was performed.',
     incorrectExample: 'A technician clicks Done on the work order without inspecting or testing the fault.',
     whyIncorrect: 'Clicking Done cannot prove a repair. A qualified person must inspect and an authorized person verifies the result.',
@@ -110,6 +131,10 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   requests: {
     explanation: 'A request asks for something to be purchased or changed. Explain what is needed, why it matters and whether the price or quotation has been verified. Requesting approval is not approving your own request.',
     example: 'A department needs equipment but the supplier quotation is missing. Save the truthful reason and send it to an authorized reviewer.',
+    repeatVariant: { example:'The kitchen requests replacement equipment but only has an estimate, not a supplier quote. Clearly describe what is missing before asking for review.', questions:[
+      q('The supplier has not sent a price. What should the request say?', ['Quotation still pending','Exact final price confirmed','Management already approved'],0,'Missing information must be reported accurately.'),
+      q('What does Send for review mean?', ['The item was delivered','The request is waiting for an authorized decision','The supplier has been paid'],1,'Submitting does not grant approval.'),
+    ] },
     remember: 'Never invent supplier documents, prices, or approvals to finish practice.',
     incorrectExample: 'An employee writes “quotation attached” to make the request look complete, but no quotation exists.',
     whyIncorrect: 'The reviewer needs accurate information, including what is still missing, before deciding.',
