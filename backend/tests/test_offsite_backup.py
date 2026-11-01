@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from datetime import datetime, timezone
 
 import pytest
 
@@ -23,32 +24,38 @@ def published(setup, monkeypatch):
 
 
 class FakeRestic:
-    def __init__(self, *, existing=False, usage=0, failed_check=False):
+    def __init__(self, *, existing=False, usage=0, failed_check=False, confirmation_id=None):
         self.calls = []
         self.existing = existing
         self.usage = usage
         self.failed_check = failed_check
+        self.uploaded = False
+        self.confirmation_id = confirmation_id
 
     def run(self, *args):
         self.calls.append(args)
         if args[0] == 'snapshots':
-            return json.dumps([{'id': 'b'*64}] if self.existing else []).encode()
+            identifier = ('b'*64 if self.existing else
+                          self.confirmation_id or 'b'*64 if self.uploaded else None)
+            return json.dumps([{'id': identifier}] if identifier else []).encode()
         if args[0] == 'stats':
             return json.dumps({'total_size': self.usage}).encode()
         if args[0] == 'backup':
+            self.uploaded = True
             return json.dumps({'message_type': 'summary', 'snapshot_id': 'b'*64}).encode()
         if args[0] == 'check' and self.failed_check:
             raise job.BackupFailure('Synthetic repository corruption')
         return b'{}'
 
 
-def test_encrypted_copy_verifies_metadata_and_never_prunes_source_or_cloud(published):
+def test_encrypted_copy_confirms_snapshot_and_never_prunes_source_or_cloud(published):
     current, base, source = published
     before = {str(p): p.read_bytes() for p in source.rglob('*') if p.is_file()}
     client = FakeRestic()
-    result = job.upload_snapshot(current, base, client)
-    assert result['repository_metadata_verified'] and result['release_sha'] == 'a'*40
-    assert [a[0] for a in client.calls] == ['snapshots', 'stats', 'backup', 'check']
+    result = job.upload_snapshot(current, base, client, verify_repository=False)
+    assert result['snapshot_identity_verified'] and not result['repository_metadata_verified']
+    assert result['release_sha'] == 'a'*40
+    assert [a[0] for a in client.calls] == ['snapshots', 'stats', 'backup', 'snapshots']
     assert all(word not in repr(client.calls) for word in ['prune', 'forget', 'init', 'unlock'])
     assert before == {str(p): p.read_bytes() for p in source.rglob('*') if p.is_file()}
 
@@ -56,8 +63,32 @@ def test_encrypted_copy_verifies_metadata_and_never_prunes_source_or_cloud(publi
 def test_repeat_reuses_exact_source_snapshot_without_another_upload(published):
     current, base, _ = published
     client = FakeRestic(existing=True)
-    assert job.upload_snapshot(current, base, client)['snapshot_id'] == 'b'*64
-    assert [a[0] for a in client.calls] == ['snapshots', 'check']
+    assert job.upload_snapshot(current, base, client, verify_repository=False)['snapshot_id'] == 'b'*64
+    assert [a[0] for a in client.calls] == ['snapshots']
+
+
+def test_exact_cloud_identity_disagreement_fails_after_backup(published):
+    current, base, _ = published
+    client = FakeRestic(confirmation_id='c'*64)
+    with pytest.raises(job.BackupFailure, match='identity not verified'):
+        job.upload_snapshot(current, base, client, verify_repository=False)
+    assert [a[0] for a in client.calls] == ['snapshots', 'stats', 'backup', 'snapshots']
+
+
+def test_daily_repository_check_is_after_utc_cap_reset_and_fails_closed(published, monkeypatch):
+    current, base, _ = published
+    assert not job.should_check_repository(datetime(2026, 11, 2, 2, 10, tzinfo=timezone.utc))
+    assert job.should_check_repository(datetime(2026, 11, 2, 3, 10, tzinfo=timezone.utc))
+    with pytest.raises(job.BackupFailure, match='Timezone-aware'):
+        job.should_check_repository(datetime(2026, 11, 2, 3, 10))
+    source, sha, size = job.verified_snapshot(current, base)
+    scheduled = source.parent/'snapshot-20261102T030000Z-aaaaaaaa'
+    monkeypatch.setattr(job, 'verified_snapshot', lambda *_: (scheduled, sha, size))
+    client = FakeRestic()
+    assert job.upload_snapshot(current, base, client)['repository_metadata_verified']
+    assert [a[0] for a in client.calls] == ['snapshots', 'stats', 'backup', 'snapshots', 'check']
+    with pytest.raises(job.BackupFailure, match='corruption'):
+        job.upload_snapshot(current, base, FakeRestic(failed_check=True), verify_repository=True)
 
 
 @pytest.mark.parametrize('problem', ['tamper', 'extra_file', 'external_symlink', 'oversize', 'stale', 'old_release'])
@@ -88,8 +119,6 @@ def test_budget_and_repository_failure_are_failures_not_false_success(published)
     with pytest.raises(job.BackupFailure, match='budget'):
         job.upload_snapshot(current, base, client)
     assert 'backup' not in [a[0] for a in client.calls]
-    with pytest.raises(job.BackupFailure, match='corruption'):
-        job.upload_snapshot(current, base, FakeRestic(failed_check=True))
 
 
 def config_files(tmp_path):
@@ -164,8 +193,8 @@ def test_real_snapshot_upload_retry_is_idempotent_and_recovery_files_match(publi
         'PATH': '/usr/bin:/bin', 'HOME': str(tmp_path), 'RESTIC_REPOSITORY': str(tmp_path/'encrypted-repository'),
         'RESTIC_PASSWORD_FILE': str(password), 'RESTIC_CACHE_DIR': str(tmp_path/'restic-cache')})
     client.run('init')
-    first = job.upload_snapshot(current, base, client)
-    repeated = job.upload_snapshot(current, base, client)
+    first = job.upload_snapshot(current, base, client, verify_repository=False)
+    repeated = job.upload_snapshot(current, base, client, verify_repository=False)
     assert first['snapshot_id'] == repeated['snapshot_id']
     assert len(json.loads(client.run('snapshots'))) == 1
     client.run('restore', first['snapshot_id'], '--target', str(tmp_path/'restored'))
