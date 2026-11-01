@@ -60,7 +60,9 @@ test('successful browser login persists metadata only and uses cookie transport'
   await page.getByLabel('Email').fill('cookie-owner@example.test');
   await page.getByLabel('Password').fill('correct-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/training$/);
+  await expect(page.getByRole('heading', { name: 'Practice real decisions in a safe simulation' })).toBeVisible();
+  await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
 
   const browserStorage = await page.evaluate(() => ({
