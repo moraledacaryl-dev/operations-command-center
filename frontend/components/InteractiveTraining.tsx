@@ -198,12 +198,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   const next = useCallback((fromActualClick = false) => {
     if (!active || !lesson) return;
-    if (step?.requiresAction && targetFound && !fromActualClick) return;
+    if (step?.requiresAction && (course?.stage === 'tour' || targetFound) && !fromActualClick) return;
     setHelpMessage('');
     setPosition(null);
     if (atLastStep) finish(lesson.id);
     else setActive({ id: lesson.id, index: active.index + 1 });
-  }, [active, lesson, atLastStep, finish, step, targetFound]);
+  }, [active, lesson, atLastStep, finish, step, targetFound, course?.stage]);
 
   const previous = useCallback(() => {
     if (!active) return;
