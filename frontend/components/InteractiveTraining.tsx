@@ -9,6 +9,8 @@ import type { TrainingStep } from '@/lib/interactive-training';
 import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
 import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
+import { buildTrainingReport } from '@/lib/training-progress-report';
+import { TrainerReports } from '@/components/TrainerReports';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
 
@@ -109,6 +111,23 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
   const quizItem = courseGuide?.questions[course?.question || 0];
   const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
+
+  function exportTrainingProgress() {
+    if (!course) return;
+    let workflows: TrainingWorkflowResults = {};
+    try { workflows = JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}') as TrainingWorkflowResults; }
+    catch { /* Export without unparseable workflow data. */ }
+    const report = buildTrainingReport(course, { id:user.id, name:user.name, role:user.role }, workflows, new Date().toISOString());
+    const blob = new Blob([JSON.stringify(report,null,2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'hidden-oasis-training-progress-' + String(user.id || 'demo').replace(/[^a-z0-9_-]/gi,'') + '.json';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
   const independentActions = course ? INDEPENDENT_CHECKS[course.lessonId] : null;
   const independentAction = course && independentActions?.[course.independentStep || 0];
 
@@ -176,7 +195,10 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           current.lessonId !== course.lessonId || (current.independentStep || 0) !== (course.independentStep || 0)) return current;
         if ((current.independentStep || 0) === 0) return { ...current, independentStep: 1 };
         return { ...current, stage: 'done', independentStep: 0,
-          passed: Array.from(new Set([...current.passed, current.lessonId])) };
+          passed: Array.from(new Set([...current.passed, current.lessonId])),
+          metrics: { ...(current.metrics || {}), [current.lessonId]: {
+            ...(current.metrics?.[current.lessonId] || {}), completedAt:new Date().toISOString(),
+          } } };
       });
     };
     document.addEventListener(independentAction.type || 'click', onInteraction, true);
@@ -264,6 +286,10 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   function answerQuiz() {
     if (!course || !quizItem || selectedAnswer === null) return;
     if (selectedAnswer !== quizItem.correct) {
+      setCourse(current => current ? { ...current, metrics: { ...(current.metrics || {}),
+        [current.lessonId]: { ...(current.metrics?.[current.lessonId] || {}),
+          incorrectAnswers: (current.metrics?.[current.lessonId]?.incorrectAnswers || 0) + 1 },
+      } } : current);
       setQuizErrors(v => v + 1);
       setQuizFeedback(quizErrors === 0
         ? 'Not quite. Read the situation again. What would the next employee need to do, and what has actually been confirmed? Try again.'
@@ -295,7 +321,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     if (!lessons.some(item => item.id === lessonId)) return;
     setActive(null);
     setMenuOpen(false);
-    setCourse(current => current ? { ...current, lessonId, stage: 'learn', question: 0, independentStep: 0, reference: undefined } : {
+    setCourse(current => current ? { ...current, lessonId, stage: 'learn', question: 0, independentStep: 0, reference: undefined,
+      metrics: { ...(current.metrics || {}), [lessonId]: { ...(current.metrics?.[lessonId] || {}),
+        repeats: (current.metrics?.[lessonId]?.repeats || 0) + 1 } } } : {
       lessonId, stage: 'learn', question: 0, passed: [],
     });
     setSelectedAnswer(null);
@@ -508,6 +536,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
           <p>You finished the explanation, answered the quiz, and completed guided and independent practice on the actual fictional app pages{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
           <p>Done lessons can be repeated without removing earlier completion results.</p>
+          <button type="button" className="ops-course-quiet" data-testid="export-training-report"
+            onClick={exportTrainingProgress}>Export my progress report</button>
           <button type="button" className="ops-course-primary" data-testid="course-next-lesson"
             onClick={startNextLesson}>{lessonNumber < lessons.length ? 'Continue to Lesson ' + (lessonNumber + 1) + ' →' : 'Review completed lessons'}</button>
           <button type="button" className="ops-course-quiet" data-testid="course-repeat-lesson" onClick={() => repeatCourseLesson(course.lessonId)}>↻ Repeat this lesson</button>
@@ -544,6 +574,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           <strong>{course?.passed.length || 0} of {lessons.length} lessons completed</strong>
           <p>Lessons are in order. Finished lessons can be repeated as often as needed.</p>
         </div>
+        <div className="ops-guide-report-actions">
+          <button type="button" className="ops-guide-repeat-course" data-testid="export-training-progress"
+            onClick={exportTrainingProgress}>Export my training progress report</button>
+          <span>This is a local, editable report for trainer review—not an official skills certificate.</span>
+        </div>
+        {capabilities.manage_department && <TrainerReports manager={user} />}
         <div className="ops-guide-lesson-grid">
           {lessons.map(item => <div key={item.id} className="ops-guide-lesson-wrap">
             <button type="button" className="ops-guide-lesson"

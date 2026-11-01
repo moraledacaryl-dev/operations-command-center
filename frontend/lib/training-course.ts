@@ -180,6 +180,7 @@ export type CourseProgress = {
   independentStep?: number;
   reference?: string;
   passed: string[];
+  metrics?: Record<string, { incorrectAnswers?: number; repeats?: number; completedAt?: string; hintsViewed?: number }>;
 };
 
 /** Read data as untrusted browser state: it is a convenience resume marker,
@@ -199,9 +200,22 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     const question = typeof v.question === 'number' && Number.isInteger(v.question) && v.question >= 0 && v.question <= 1 ? v.question : 0;
     const independentStep = v.independentStep === 1 ? 1 : 0;
     const passed = Array.isArray(v.passed) ? v.passed.filter((id): id is string => typeof id === 'string' && allowed.has(id)).slice(0, lessons.length) : [];
+    const metrics: NonNullable<CourseProgress['metrics']> = {};
+    if (v.metrics && typeof v.metrics === 'object' && !Array.isArray(v.metrics)) {
+      for (const [id, val] of Object.entries(v.metrics as Record<string,unknown>).slice(0,50)) {
+        if (!allowed.has(id) || !val || typeof val !== 'object' || Array.isArray(val)) continue;
+        const m = val as Record<string,unknown>;
+        metrics[id] = {
+          incorrectAnswers: Math.max(0, Math.min(999, Math.floor(Number(m.incorrectAnswers)||0))),
+          repeats: Math.max(0, Math.min(999, Math.floor(Number(m.repeats)||0))),
+          hintsViewed: Math.max(0, Math.min(999, Math.floor(Number(m.hintsViewed)||0))),
+          ...(typeof m.completedAt === 'string' && m.completedAt.length < 40 ? { completedAt:m.completedAt } : {}),
+        };
+      }
+    }
     const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
     return { lessonId, stage: stage === 'work' && !reference ? 'learn' : stage,
-      question, independentStep, ...(reference ? { reference } : {}), passed };
+      question, independentStep, ...(reference ? { reference } : {}), passed, metrics };
   } catch { return fallback; }
 }
 export const COURSE_STORAGE_PREFIX = 'ho-ops-structured-course-v2:';
