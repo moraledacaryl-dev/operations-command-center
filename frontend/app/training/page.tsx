@@ -446,7 +446,7 @@ export default function PracticeTrainingPage() {
         {phase === 'assess' && <form className="practice-form" onSubmit={triage} data-testid="scenario-triage">
           <p className="practice-instruction">Before choosing an urgency label, work out <strong>what could happen</strong> and <strong>how long it is safe to wait</strong>. These questions teach the reasoning; they do not reveal the answer.</p>
           <section className="practice-judgment" data-testid="judgment-lens" aria-label="Two-question urgency guide">
-            <h3>Spot the risk — don't just guess a label</h3>
+            <h3>Spot the risk — think before picking a label</h3>
             <p>Read the clues and answer two short questions. They are not graded. You still decide the urgency yourself.</p>
             <div className="practice-judgment-facts"><strong>Look closely at these case facts:</strong>
               <ul>{riskClues(selected).map(clue => <li key={clue}>{clue}</li>)}</ul>
