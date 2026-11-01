@@ -28,6 +28,13 @@ on:
       - 'frontend/e2e/hands-on-training.spec.ts'
       - 'frontend/app/login/page.tsx'
       - 'frontend/lib/interactive-training.ts'
+      - 'frontend/lib/training-course.ts'
+      - 'frontend/lib/training-independent.ts'
+      - 'frontend/lib/training-progress-report.ts'
+      - 'frontend/components/TrainerReports.tsx'
+      - 'frontend/e2e/required-course.spec.ts'
+      - 'frontend/e2e/course-improvement-passes.spec.ts'
+      - 'frontend/e2e/real-screen-orientation.spec.ts'
       - 'frontend/app/interactive-training.css'
       - 'frontend/app/layout.tsx'
       - 'frontend/components/AppShell.tsx'
@@ -87,7 +94,7 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Run guided tours, role-scoped scenarios and API-verified real workflows
-        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts e2e/real-workflow-training.spec.ts e2e/training-workflow-integrity.spec.ts e2e/read-only-task-training.spec.ts e2e/notification-training.spec.ts e2e/guest-fix-reading-training.spec.ts --reporter=line
+        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts e2e/real-workflow-training.spec.ts e2e/training-workflow-integrity.spec.ts e2e/read-only-task-training.spec.ts e2e/notification-training.spec.ts e2e/guest-fix-reading-training.spec.ts e2e/required-course.spec.ts e2e/course-improvement-passes.spec.ts e2e/real-screen-orientation.spec.ts --reporter=line
       - name: Publish guided walkthrough screenshots
         if: always()
         uses: actions/upload-artifact@v4
