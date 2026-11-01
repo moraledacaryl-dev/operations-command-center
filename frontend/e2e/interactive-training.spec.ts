@@ -25,6 +25,9 @@ async function openMockWorkspace(page: import('@playwright/test').Page, role: Tr
   await page.addInitScript(storedUser => {
     localStorage.setItem('cc_user', JSON.stringify(storedUser));
     localStorage.setItem('cc_department_id', '41');
+    // The real-screen first-run tour has its own dedicated tests. This helper
+    // opens the lesson library without that welcome tour covering the launcher.
+    localStorage.setItem('ho-ops-real-screens-intro-v1:' + String(storedUser.id), 'started');
   }, user);
   await page.route('**/api/**', route => route.fulfill({
     status: 200, contentType: 'application/json',
@@ -48,7 +51,7 @@ test('staff have read-only lessons with guided spotlights', async ({ page }) => 
   await expect(library).not.toContainText('Creating and managing a task');
   await library.getByRole('button', { name: /Getting around Operations/ }).click();
   const step = page.getByRole('dialog', { name: /Training step/ });
-  await expect(step).toContainText('Where you are');
+  await expect(step).toContainText('You are on the real training dashboard');
   await expect(page.locator('.ops-guide-spotlight')).toBeVisible();
   await expect(page.locator('.ops-guide-arrow')).toBeVisible();
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-staff-spotlight.png' });
