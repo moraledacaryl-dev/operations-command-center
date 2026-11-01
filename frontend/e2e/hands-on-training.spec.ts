@@ -112,7 +112,7 @@ test('complex incident must include concrete response, accountable owner and ver
   await page.getByTestId('scenario-note').fill('DEMO-SHARED-WRONG-ROOM: There is an issue; someone will take care of it eventually. Please just follow up.');
   await page.getByRole('button', { name: 'Submit practice response' }).click();
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
-  await expect(page.getByText('Who is accountable for the next action?')).toBeVisible();
+  await expect(page.getByText('Which job position is responsible for making sure this gets done?')).toBeVisible();
   await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
   await page.getByTestId('scenario-owner').fill('On-duty Front Desk lead');
   await page.getByTestId('scenario-follow-up').fill('The lead confirms the correct room on the booking record and updates the receiving shift.');
