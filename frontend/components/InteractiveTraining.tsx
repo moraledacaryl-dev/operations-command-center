@@ -17,7 +17,13 @@ function targetFor(selector: string): HTMLElement | null {
   try {
     // Do not highlight hidden desktop/mobile duplicates or closed navigation groups.
     return Array.from(document.querySelectorAll<HTMLElement>(selector))
-      .find(node => node.getClientRects().length > 0 && window.getComputedStyle(node).visibility !== 'hidden') || null;
+      .find(node => {
+        const rect = node.getBoundingClientRect();
+        return node.getClientRects().length > 0
+          && window.getComputedStyle(node).visibility !== 'hidden'
+          && rect.bottom > 0 && rect.right > 0
+          && rect.top < window.innerHeight && rect.left < window.innerWidth;
+      }) || null;
   } catch {
     return null;
   }
@@ -158,13 +164,18 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   }, [active, lesson, lessons, exit]);
 
   useEffect(() => {
-    if (!step) return;
-    if (path !== step.path) {
-      setTargetFound(false);
-      setPosition(null);
-      router.push(step.path);
+    if (!step || path === step.path) return;
+    setTargetFound(false);
+    setPosition(null);
+    if (step.requiresAction) {
+      // The trainee navigates using the actual link. Do not immediately
+      // redirect them back to the previous page before the click advances.
+      const destination = lesson?.steps[(active?.index ?? 0) + 1]?.path;
+      if (destination && path === destination) next(true);
+      return;
     }
-  }, [path, router, step]);
+    router.push(step.path);
+  }, [path, router, step, lesson, active, next]);
 
   useEffect(() => {
     if (!step || path !== step.path) return;
