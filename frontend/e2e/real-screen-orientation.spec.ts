@@ -58,6 +58,11 @@ test('first training open starts on real dashboard and requires navigating actua
   await expect(coach).toContainText('You know your way around');
   await coach.getByRole('button', { name: 'Finish practice' }).click();
   await expect(coach).toHaveCount(0);
+  await expect(page.getByTestId('course-independent-challenge')).toContainText('No arrows');
+  await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
+  await expect(page).toHaveURL(/\/my-work$/);
+  await expect(page.getByTestId('course-independent-challenge')).toContainText('notifications');
+  await page.locator('a.ops-notifications').click();
   await expect(page.getByTestId('course-completed')).toContainText('Lesson 1 completed');
 
   await page.reload();
