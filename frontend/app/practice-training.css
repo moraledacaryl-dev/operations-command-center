@@ -200,3 +200,10 @@
   background: #fff7e8; border: 2px solid #e7a43c; border-radius: 10px;
   color: #42341e; line-height: 1.6; font-size: 14px; }
 .training-workflow-action-now strong { color: #7a4807; margin-right: 5px; }
+
+
+.practice-extra-lessons { margin: 26px 0 8px; padding: 18px 20px; background: #f7faf7;
+  border: 1px solid #d5e2d8; border-radius: 16px; }
+.practice-extra-lessons > h2 { font-size: 18px; margin: 0 0 6px; color: #184a34; }
+.practice-extra-lessons > p { font-size: 13px; color: #4a6455; line-height: 1.5; margin: 0 0 16px; }
+.practice-extra-lessons .practice-observation-grid { margin: 0; }
