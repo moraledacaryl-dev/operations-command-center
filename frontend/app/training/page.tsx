@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/session';
 import { TrainingRecordLookup } from '@/components/TrainingRecordLookup';
+import { TrainingSpotlight } from '@/components/TrainingSpotlight';
+import { scenarioCoachStage } from '@/lib/training-scenario-coach';
 import { TrainingNotificationPractice, readNotificationTraining, NOTIFICATION_TRAINING_CHANGED } from '@/components/TrainingNotificationPractice';
 import type { NotificationTrainingEvidence } from '@/components/TrainingNotificationPractice';
 import { readTrainingInspections, TASK_INSPECTION_CHANGED } from '@/lib/training-observations';
@@ -46,6 +48,7 @@ export default function PracticeTrainingPage() {
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [levelFilter, setLevelFilter] = useState('All');
   const [guided, setGuided] = useState(true);
+  const [guideMode, setGuideMode] = useState<'off' | 'welcome' | 'brief' | 'guided'>('off');
   const [hintsUsed, setHintsUsed] = useState(0);
   const [mistakesMade, setMistakesMade] = useState(0);
 
@@ -64,6 +67,9 @@ export default function PracticeTrainingPage() {
       const saved = JSON.parse(localStorage.getItem(key) || '{}');
       setProgress(parseScenarioProgress(saved, practiceScenariosFor(stored).map(s => s.id)));
     } catch { setProgress({}); }
+    try {
+      if (!localStorage.getItem(key + ':guide-intro-v2')) setGuideMode('welcome');
+    } catch { setGuideMode('welcome'); }
     setReady(true);
   }, [router]);
 
@@ -144,10 +150,19 @@ export default function PracticeTrainingPage() {
     setShowTip(false);
     setHintsUsed(0);
     setMistakesMade(0);
+    setGuideMode(current => current === 'guided' || current === 'brief' ? 'brief' : current);
     if (user) {
       try { localStorage.setItem(STORAGE_PREFIX + String(user.id || user.email) + ':last', id); } catch { /* offline memory only */ }
     }
   }
+  function markGuideSeen() {
+    if (!user) return;
+    try { localStorage.setItem(STORAGE_PREFIX + String(user.id || user.email) + ':guide-intro-v2', 'yes'); }
+    catch { /* Browser storage is optional for onboarding, not a permission. */ }
+  }
+  function closeGuide() { markGuideSeen(); setGuideMode('off'); }
+  function startGuide() { markGuideSeen(); setGuideMode('brief'); }
+  function repeatGuide() { if (selected) { switchScenario(selected.id); markGuideSeen(); setGuideMode('brief'); } }
   function update<K extends PracticeField>(field: K, value: PracticeAnswers[K]) {
     setAnswers(current => ({ ...current, [field]: value }));
     setResult(null);
@@ -276,6 +291,7 @@ export default function PracticeTrainingPage() {
     switchScenario(next.id);
   }
 
+  const lessonStage = selected ? scenarioCoachStage(selected, phase, answers, result) : null;
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return <p>Hands-on training is available only inside the isolated fictional training application.</p>;
   if (!ready || !user || !selected) return <section className="practice-shell" aria-live="polite">Opening your fictional training exercises…</section>;
   return <div className="practice-shell" data-testid="scenario-training">
@@ -299,6 +315,13 @@ export default function PracticeTrainingPage() {
       </div>
     </header>
 
+    <section className="practice-start-here" data-testid="training-start-here">
+      <div><strong>Start here — interactive lessons</strong><p>Follow the orange arrow, click the highlighted control, and enter your own answers. Each step advances after you do the action.</p></div>
+      <div className="practice-start-buttons">
+        <button type="button" className="practice-primary" data-testid="show-lesson-arrows" onClick={startGuide}>▶ {guideMode === 'off' ? 'Show me where to start' : 'Restart step-by-step arrows'}</button>
+        <button type="button" className="practice-secondary" data-testid="repeat-current-lesson" onClick={repeatGuide}>↻ Repeat current lesson</button>
+      </div>
+    </section>
     <div className="practice-observation-grid" aria-label="Staff practical record-reading exercises">
       <TrainingRecordLookup user={user} kind="task" />
       <TrainingRecordLookup user={user} kind="handover" />
@@ -384,7 +407,7 @@ export default function PracticeTrainingPage() {
                   : 'A Supervisor, Lead, or Manager training account with department-edit authority is required. Your role permissions will not be bypassed.'}
               </p>}
         </section>}
-        <div className="practice-case">
+        <div className="practice-case" data-testid="scenario-case-brief">
           <h3>Situation brief</h3>
           <ul>{selected.context.map(fact => <li key={fact}>{fact}</li>)}</ul>
           <p><strong>Your objective:</strong> {selected.goal}</p>
@@ -411,7 +434,7 @@ export default function PracticeTrainingPage() {
             {result?.errors.department && <small className="practice-error" role="alert">{result.errors.department}</small>}
           </label>
           {result && !result.passed && <p className="practice-notice" role="status">Not quite. Re-read the situation, adjust your choices and check again. Mistakes are part of practice.</p>}
-          <div className="practice-actions"><button type="submit" className="practice-primary">Check my assessment →</button>
+          <div className="practice-actions"><button type="submit" className="practice-primary" data-testid="scenario-check-assessment">Check my assessment →</button>
             {guided && <button type="button" className="practice-secondary" onClick={() => {
               if (!showTip) setHintsUsed(n => n + 1);
               setShowTip(value => !value);
@@ -452,7 +475,7 @@ export default function PracticeTrainingPage() {
           </label>
           {result && !result.passed && <p className="practice-notice" role="status">Your response needs changes. Review the highlighted guidance and submit again.</p>}
           <div className="practice-actions">
-            <button type="submit" className="practice-primary">Submit practice response</button>
+            <button type="submit" className="practice-primary" data-testid="scenario-submit">Submit practice response</button>
             <button type="button" className="practice-secondary" onClick={() => { setResult(null); setPhase('assess'); }}>← Back to assessment</button>
           </div>
         </form>}
@@ -466,8 +489,8 @@ export default function PracticeTrainingPage() {
           <div className="practice-example"><strong>Example of a useful handover:</strong><p>{selected.example}</p></div>
           <p className="practice-disclaimer">This is a decision and documentation drill, not an official skill certification. Completing it does not demonstrate actual Operations record creation or approval. Real end-to-end application workflows still require separate hands-on assessment.</p>
           <div className="practice-actions">
-            <button type="button" className="practice-primary" onClick={nextScenario}>Next situation →</button>
-            <button type="button" className="practice-secondary" onClick={() => switchScenario(selected.id)}>Repeat this situation</button>
+            <button type="button" className="practice-primary" data-testid="scenario-next" onClick={nextScenario}>Next situation →</button>
+            <button type="button" className="practice-secondary" data-testid="scenario-repeat" onClick={() => switchScenario(selected.id)}>Repeat this situation</button>
           </div>
         </section>}
         <footer className="practice-footer">
@@ -477,5 +500,23 @@ export default function PracticeTrainingPage() {
         </footer>
       </section>
     </div>
+    {guideMode === 'welcome' && <TrainingSpotlight
+      title="Welcome! Start your first lesson"
+      description="This is interactive—not a manual. Click Start guided lesson, then follow the spotlight and arrows one step at a time. You can repeat any lesson without losing your earlier results."
+      stepLabel="YOUR FIRST CLICK" onNext={() => { markGuideSeen(); setGuideMode('brief'); }}
+      nextLabel="Start guided lesson →" onClose={closeGuide} />}
+    {guideMode === 'brief' && <TrainingSpotlight title="Step 1: Read the fictional case"
+      description="Read this situation and the objective. Nothing is submitted yet. When you are ready, click Show me the first answer."
+      stepLabel="STEP 1 — READ" targets={[{ selector: '[data-testid="scenario-case-brief"]' }]}
+      onNext={() => setGuideMode('guided')} nextLabel="Show me the first answer →" onClose={closeGuide} />}
+    {guideMode === 'guided' && lessonStage && <TrainingSpotlight
+      title={lessonStage.title} description={lessonStage.instruction}
+      stepLabel={'STEP ' + lessonStage.position + ' OF ' + lessonStage.total}
+      targets={[{ selector: lessonStage.target }]}
+      onClose={closeGuide}
+      {...(phase === 'complete' ? {
+        onNext: nextScenario, nextLabel: 'Next lesson →',
+        onRepeat: repeatGuide, repeatLabel: '↻ Repeat this lesson',
+      } : {})} />}
   </div>;
 }
