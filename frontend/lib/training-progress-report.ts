@@ -85,3 +85,13 @@ export function parseTrainingReport(input: unknown): TrainingProgressReport | nu
     currentLesson:obj.currentLesson.slice(0,90),currentStage:obj.currentStage.slice(0,40),
     completedLessons:obj.completedLessons as string[],metrics,verifiedPractice};
 }
+
+/** Restore only read-only training navigation/decision lessons as local learning history.
+ * Saved-record skills are NEVER restored across devices without the original
+ * isolated training database and a new verified hands-on run.
+ */
+export function portableLearningCredit(report: TrainingProgressReport, available: readonly string[]): string[] {
+  const recordEditing = new Set(['team-tasks','guest-matters','maintenance','requests','shift-writing']);
+  const known = new Set(available);
+  return report.completedLessons.filter(id => known.has(id) && !recordEditing.has(id));
+}
