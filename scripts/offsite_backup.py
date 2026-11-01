@@ -121,14 +121,28 @@ def verified_snapshot(current: Path, base: Path) -> tuple[Path, str, int]:
     return snapshot, sha, total
 
 
-def upload_snapshot(current: Path, base: Path, client: Restic) -> dict:
+def should_check_repository(now: datetime) -> bool:
+    # The hourly source with a 03 UTC timestamp is checked after B2's daily
+    # download-cap reset. Boot catch-up or a delayed timer keeps this decision
+    # tied to the verified source, not the time the process happened to start.
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise BackupFailure('Timezone-aware source timestamp required')
+    return now.astimezone(timezone.utc).hour == 3
+
+
+def upload_snapshot(current: Path, base: Path, client: Restic, *, verify_repository: bool | None = None) -> dict:
     snapshot, sha, size = verified_snapshot(current, base)
+    if verify_repository is None:
+        source_time = datetime.strptime(snapshot.name[9:25], '%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc)
+        verify_repository = should_check_repository(source_time)
     tag = 'source:'+snapshot.name
     # Repeated invocations reuse this exact source snapshot. No init, forget,
     # prune, unlock, lifecycle change or deletion of backup objects is performed.
     existing = json.loads(client.run('snapshots', '--tag', tag))
+    if not isinstance(existing, list):
+        raise BackupFailure('Unexpected repository snapshot listing')
     if existing:
-        if len(existing) != 1 or not re.fullmatch('[a-f0-9]{64}', existing[0].get('id', '')):
+        if len(existing) != 1 or not isinstance(existing[0], dict) or not re.fullmatch('[a-f0-9]{64}', existing[0].get('id', '')):
             raise BackupFailure('Unexpected repository snapshot identity')
         identifier = existing[0]['id']
     else:
@@ -142,11 +156,18 @@ def upload_snapshot(current: Path, base: Path, client: Restic) -> dict:
         identifier = summaries[-1].get('snapshot_id', '') if summaries else ''
         if not re.fullmatch('[a-f0-9]{64}', identifier):
             raise BackupFailure('Encrypted upload completion not verified')
-    # Verify repository structure/indexes. A separate real cloud restore is
-    # required before schedule activation; do not claim full data-read integrity.
-    client.run('check')
+        confirmed = json.loads(client.run('snapshots', '--tag', tag))
+        if (not isinstance(confirmed, list) or len(confirmed) != 1
+                or not isinstance(confirmed[0], dict) or confirmed[0].get('id') != identifier):
+            raise BackupFailure('Encrypted snapshot identity not verified')
+    # Per-upload source integrity and exact cloud snapshot identity remain
+    # mandatory. A full metadata/index check runs on the 03 UTC source once
+    # daily; checking hourly consumes the shared account download allowance.
+    if verify_repository:
+        client.run('check')
     return {'status': 'pass', 'release_sha': sha, 'snapshot_id': identifier,
-            'repository_metadata_verified': True, 'archives_deleted': False}
+            'snapshot_identity_verified': True,
+            'repository_metadata_verified': verify_repository, 'archives_deleted': False}
 
 
 def main() -> int:
@@ -164,10 +185,13 @@ def main() -> int:
             return 0
         with deployment_lock(Path('/run/operations-command-center.deploy.lock')):
             client = restic_client(config, Path('/usr/local/bin/restic'), Path('/var/cache/operations-command-center-offsite'))
-            report = upload_snapshot(Path('/opt/operations-command-center/current'), Path('/root/backups/operations-command-center/scheduled'), client)
+            report = upload_snapshot(Path('/opt/operations-command-center/current'),
+                                     Path('/root/backups/operations-command-center/scheduled'), client)
             write_status(status, 'ok', success_sha=report['release_sha'])
         # Repository identifiers and private paths stay out of the journal.
-        print('{"status":"pass","repository_metadata_verified":true,"archives_deleted":false}')
+        print(json.dumps({'status': 'pass', 'snapshot_identity_verified': True,
+                          'repository_metadata_verified': report['repository_metadata_verified'],
+                          'archives_deleted': False}, separators=(',', ':')))
         return 0
     except BackupBusy:
         write_status(status, 'busy')
