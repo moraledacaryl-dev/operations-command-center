@@ -30,8 +30,9 @@ test('first open makes Start obvious, then moves the orange focus after real use
   await page.getByRole('button', { name: 'Start guided lesson' }).click();
   await expect(page.getByTestId('scenario-case-brief')).toHaveAttribute('data-training-spotlight-target', 'true');
   await page.getByRole('button', { name: 'Guide my thinking' }).click();
-  await expect(page.getByTestId('judgment-lens')).toHaveAttribute('data-training-spotlight-target', 'true');
+  await expect(page.getByTestId('judgment-consequence')).toHaveAttribute('data-training-spotlight-target', 'true');
   await page.getByTestId('judgment-consequence').locator('input').nth(1).check();
+  await expect(page.getByTestId('judgment-timing')).toHaveAttribute('data-training-spotlight-target', 'true');
   await page.getByTestId('judgment-timing').locator('input').nth(1).check();
   await expect(page.getByTestId('scenario-priority')).toHaveAttribute('data-training-spotlight-target', 'true');
 

@@ -322,7 +322,7 @@ export default function PracticeTrainingPage() {
   }
 
   const reasoningReady = Boolean(reasoning.consequence && reasoning.timing);
-  const lessonStage = selected ? scenarioCoachStage(selected, phase, answers, result, !guided || reasoningReady) : null;
+  const lessonStage = selected ? scenarioCoachStage(selected, phase, answers, result, !guided || reasoningReady, Boolean(reasoning.consequence)) : null;
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return <p>Hands-on training is available only inside the isolated fictional training application.</p>;
   if (!ready || !user || !selected) return <section className="practice-shell" aria-live="polite">Opening your fictional training exercises…</section>;
   return <div className="practice-shell" data-testid="scenario-training">
