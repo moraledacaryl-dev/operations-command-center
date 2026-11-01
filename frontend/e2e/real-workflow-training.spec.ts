@@ -386,7 +386,7 @@ test('lead can document maintenance but cannot start a workflow requiring decisi
   await page.getByTestId('scenario-mt-light-fault').click();
   await expect(page.getByTestId('real-workflow-invite')).toBeVisible();
   await expect(page.getByTestId('start-real-workflow')).toHaveCount(0);
-  await expect(page.getByTestId('real-workflow-invite')).toContainText('decision authority');
+  await expect(page.getByTestId('real-workflow-invite')).toContainText('A manager or owner practice login is needed');
 });
 
 test('actual Maintenance UI hides Verify/Reopen controls without decision permission', async ({ page }) => {
