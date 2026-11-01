@@ -1,0 +1,178 @@
+import type { TrainingLesson } from './interactive-training';
+import type { TrainingWorkflowKind } from './training-workflows';
+
+export type CheckQuestion = {
+  prompt: string;
+  choices: readonly [string, string, string];
+  correct: 0 | 1 | 2;
+  explanation: string;
+};
+export type CourseGuide = {
+  explanation: string;
+  example: string;
+  remember: string;
+  questions: readonly [CheckQuestion, CheckQuestion];
+  handsOn?: TrainingWorkflowKind;
+};
+const q = (prompt: string, choices: [string,string,string], correct: 0|1|2, explanation: string): CheckQuestion =>
+  ({ prompt, choices, correct, explanation });
+
+/** Plain-language preparation comes BEFORE the real-screen practical tour.
+ * No answers are entered for the trainee and the course cannot be passed by reading alone.
+ */
+export const COURSE_GUIDES: Record<string, CourseGuide> = {
+  orientation: {
+    explanation: 'This is the real Operations layout with pretend guest and employee information. My Work shows tasks assigned to you. Notifications tells you when something needs your attention. The Hidden Oasis logo returns you to the main page.',
+    example: 'You arrive for your shift. You need to see your assigned tasks, check any important new messages, then return to the dashboard.',
+    remember: 'You will click the real My Work link, Notifications link and logo yourself. Clicking Next cannot replace these actions.',
+    questions: [
+      q('Where do you go first to see tasks assigned to you?', ['My Work','Rooms','Marketing'], 0, 'My Work shows assignments for your own account.'),
+      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the linked work and check what action is still needed','Change another employee’s password'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
+    ],
+  },
+  'staff-handover': {
+    explanation: 'A handover is a note from the employee finishing a shift to the employee starting the next one. It explains problems that are still unfinished, who is handling them and what to do next.',
+    example: 'A guest reported a broken toilet. Reception has called Maintenance but the repair is not confirmed. The next receptionist needs to know what to check and when to update the guest.',
+    remember: 'Reading a note is not the same as fixing the problem. Do not mark it finished until work really is confirmed.',
+    questions: [
+      q('What should a useful shift note tell the next employee?', ['Only that the guest was upset','The problem, who should act and what to check next','Only the shift end time'], 1, 'The next employee needs enough information to continue the work.'),
+      q('You read a handover about a repair that is not checked yet. What should you do?', ['Assume it is repaired','Delete the note','Check the situation or tell the person responsible'], 2, 'An unresolved problem needs follow-up, not an assumed completion.'),
+    ],
+  },
+  'staff-rooms': {
+    explanation: 'The Rooms screen helps you find a guest room or shared area. Check the correct room number and any existing issues before reporting a new problem.',
+    example: 'A guest calls from Room 205. Search for Room 205 and check whether somebody has already reported the issue.',
+    remember: 'Confirm the room number. Never use one guest’s room information for another guest.',
+    questions: [
+      q('Before reporting another problem for Room 205, what should you check?', ['Whether the issue is already recorded','Whether it is payday','Whether the café menu changed'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
+      q('Why should you confirm the room number?', ['To send the right team to the correct place','To make the record longer','To avoid telling the next shift anything'], 0, 'The correct room number prevents wasted trips and mistaken guest updates.'),
+    ],
+  },
+  'staff-my-work': {
+    explanation: 'My Work shows the jobs assigned to your account. Read the due date, urgency and instructions. If something is blocked, tell the appropriate lead instead of pretending it is complete.',
+    example: 'An item due today is waiting for materials. Open it, understand what is missing, and tell the lead so they can help.',
+    remember: 'A task waiting for approval or another team is not automatically finished.',
+    questions: [
+      q('A task is due today but you cannot finish it. What should you do?', ['Say nothing until tomorrow','Tell the lead what is blocking it','Mark it done to clear the list'], 1, 'The responsible lead needs a truthful update so the issue can be addressed.'),
+      q('What does a task marked Waiting normally mean?', ['It may still need something before work can finish','It is always fully completed','It should be deleted'], 0, 'Waiting means another action or dependency may be pending.'),
+    ],
+  },
+  'team-tasks': {
+    explanation: 'A task is a specific job with a title, priority and person responsible. Search first so you do not create duplicates. When saving, make sure the correct teammate is actually assigned.',
+    example: 'A shared job has no owner. Assign the right fictional teammate, start the work, and submit the saved task for review.',
+    remember: 'Your practice only counts after the app confirms your saved task really changed through the required stages.',
+    handsOn: 'shared-no-owner',
+    questions: [
+      q('A task is unassigned and needs attention today. What matters most?', ['Assigning someone who will handle it','Changing its color','Closing it without work'], 0, 'Work can be forgotten when nobody is responsible.'),
+      q('Before creating a task, what should you do?', ['Create duplicates to be safe','Search for an existing task','Mark somebody else’s task as done'], 1, 'Searching first reduces duplicate and conflicting work.'),
+    ],
+  },
+  'guest-matters': {
+    explanation: 'A guest matter is a record of a guest’s problem. A good record states what happened, which room or service is affected, who should investigate and when Reception will call the guest back.',
+    example: 'Room 205 reports an AC that is blowing warm air. Record the complaint, arrange an inspection and keep the guest informed.',
+    remember: 'Do not claim the guest problem is solved before it has actually been checked.',
+    handsOn: 'guest-ac',
+    questions: [
+      q('A guest says the AC is not cooling. What is a useful first step?', ['Record the fault and ask for inspection','Mark it repaired immediately','Promise it will never happen again'], 0, 'The team needs a clear report before the repair and follow-up can be checked.'),
+      q('When should Reception say a fault was repaired?', ['After the actual repair is verified','As soon as the guest calls','Before Maintenance has looked'], 0, 'Staff should not promise a result that nobody has confirmed.'),
+    ],
+  },
+  maintenance: {
+    explanation: 'Maintenance records show what is broken, where it is and who is fixing it. Working means repair is underway. Done means somebody reports completion. Verified means authorized staff have checked the result.',
+    example: 'A corridor light is out. Record the affected area, ask a fictional technician to inspect it and make sure the finished work is checked.',
+    remember: 'Never treat a digital training completion as proof that a real electrical repair was performed.',
+    handsOn: 'mt-light-fault',
+    questions: [
+      q('A repair is marked Done but has not been tested. What does that mean?', ['A final check may still be needed','The building is definitely safe','The task should be forgotten'], 0, 'Done and Verified are different steps in the work process.'),
+      q('What should a maintenance report include?', ['The exact location and what is not working','Only the employee’s nickname','An invented completed repair'], 0, 'A useful report identifies the defect and where staff need to inspect.'),
+    ],
+  },
+  requests: {
+    explanation: 'A request asks for something to be purchased or changed. Explain what is needed, why it matters and whether the price or quotation has been verified. Requesting approval is not approving your own request.',
+    example: 'A department needs equipment but the supplier quotation is missing. Save the truthful reason and send it to an authorized reviewer.',
+    remember: 'Never invent supplier documents, prices, or approvals to finish practice.',
+    handsOn: 'manager-evidence',
+    questions: [
+      q('A purchase request has no quotation. What should you write?', ['Clearly say the quotation is missing','Say one is attached even when it is not','Approve it yourself'], 0, 'The reviewer must know what evidence is and is not available.'),
+      q('Does sending a request for review mean the purchase is already approved?', ['Yes, automatically','Only if someone says so in chat','No, approval is a separate authorized decision'], 2, 'Submitting a proposal and approving it are different actions.'),
+    ],
+  },
+  'shift-writing': {
+    explanation: 'A useful shift note tells the next employee what happened, who is supposed to handle it and when the guest or team needs another update.',
+    example: 'A guest is still waiting for a toilet repair. Write who will contact Maintenance and who must call the guest back after the shift changes.',
+    remember: 'Publishing a note does not automatically make the unfinished work go away.',
+    handsOn: 'shift-unresolved',
+    questions: [
+      q('Which shift note would help the next receptionist most?', ['Room 204 toilet is broken; Maintenance will inspect; Front Desk will call the guest','Problem noted','Somebody will deal with something'], 0, 'A clear note identifies the issue, next action and responsibility.'),
+      q('The guest problem is still not resolved when your shift ends. What should happen?', ['Pass it to the next shift with an owner','Mark it completed anyway','Delete the issue'], 0, 'Unfinished work must be passed on rather than hidden.'),
+    ],
+  },
+  projects: {
+    explanation: 'A project is a larger goal made up of smaller steps, such as preparing an event. Use a clear objective, deadline and responsible team. Read existing projects before adding a new one.',
+    example: 'The resort is preparing a holiday event. Find its project first, then inspect the tasks and the people responsible.',
+    remember: 'A project marked complete needs the actual agreed work finished, not just a good description.',
+    questions: [
+      q('Before creating another project for the same event, what should you do?', ['Check whether it already exists','Use an unrelated name','Mark the old project complete'], 0, 'Checking the portfolio avoids duplicate plans.'),
+      q('What makes a project easier for the team to follow?', ['A goal, deadline and next actions','A title with no owner','Only a photo'], 0, 'Clear responsibility and milestones make the project actionable.'),
+    ],
+  },
+  marketing: {
+    explanation: 'Marketing posts move from an idea to a draft, review, changes and publication. A reviewed design is not automatically approved to publish.',
+    example: 'A Halloween poster has a spelling mistake. Find the draft, record the requested correction and wait for the authorized approval.',
+    remember: 'Do not publish a real poster while using the fictional training app.',
+    questions: [
+      q('A poster has a spelling mistake before approval. What should happen?', ['Request a correction','Publish it anyway','Delete all designs'], 0, 'The problem should be corrected before authorized publication.'),
+      q('Does a post being in Review mean it is already published?', ['Yes','No, it is awaiting a decision','Only if the file is large'], 1, 'Review and Posted are distinct stages.'),
+    ],
+  },
+  'management-review': {
+    explanation: 'A manager reviews the underlying evidence before approving, rejecting or asking for changes. A request that lacks proof should not be approved just to clear the queue.',
+    example: 'A purchase request has no reliable price quotation. Ask for the missing information instead of guessing.',
+    remember: 'Approval is a real permission; training never creates an approval without the authorized fictional workflow.',
+    questions: [
+      q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Approve without looking','Ignore the missing details'], 0, 'Authorized reviewers need adequate evidence.'),
+      q('A request is approved. Does this prove the item was delivered?', ['No, delivery or implementation must be checked separately','Yes, always','Only if the reviewer was busy'], 0, 'The approval decision is not proof that the work was carried out.'),
+    ],
+  },
+  accounts: {
+    explanation: 'Each staff member should use their own account. Roles and department access determine what they can view and change. Never share a password to work around a permission limit.',
+    example: 'A new fictional receptionist needs access only to the correct department and tasks; do not give unrestricted manager powers.',
+    remember: 'Changing an employee’s access must be approved and follow the resort’s rules.',
+    questions: [
+      q('A staff member cannot open a manager-only screen. What should they do?', ['Ask an authorized manager or admin','Borrow a colleague’s password','Create a second hidden account'], 0, 'Permission limits must not be bypassed using another person’s login.'),
+      q('What is the safest access for a new employee?', ['Only what the job actually requires','Full permissions everywhere','A shared password for the team'], 0, 'Individual accounts with limited necessary access protect records.'),
+    ],
+  },
+};
+
+export type CourseStage = 'learn' | 'quiz' | 'tour' | 'work' | 'done';
+export type CourseProgress = {
+  lessonId: string;
+  stage: CourseStage;
+  question: number;
+  reference?: string;
+  passed: string[];
+};
+
+/** Read data as untrusted browser state: it is a convenience resume marker,
+ * not an official competency credential or proof of saved work.
+ */
+export function readCourseProgress(raw: string | null, lessons: readonly TrainingLesson[]): CourseProgress {
+  const first = lessons[0]?.id || 'orientation';
+  const fallback: CourseProgress = { lessonId: first, stage: 'learn', question: 0, passed: [] };
+  if (!raw) return fallback;
+  try {
+    const data: unknown = JSON.parse(raw);
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return fallback;
+    const v = data as Record<string, unknown>;
+    const allowed = new Set(lessons.map(lesson => lesson.id));
+    const lessonId = typeof v.lessonId === 'string' && allowed.has(v.lessonId) ? v.lessonId : first;
+    const stage = ['learn','quiz','tour','work','done'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
+    const question = Number.isInteger(v.question) && Number(v.question) >= 0 && Number(v.question) <= 2 ? Number(v.question) : 0;
+    const passed = Array.isArray(v.passed) ? v.passed.filter((id): id is string => typeof id === 'string' && allowed.has(id)).slice(0, lessons.length) : [];
+    const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
+    return { lessonId, stage: stage === 'work' && !reference ? 'learn' : stage,
+      question, ...(reference ? { reference } : {}), passed };
+  } catch { return fallback; }
+}
+export const COURSE_STORAGE_PREFIX = 'ho-ops-structured-course-v2:';
