@@ -165,7 +165,7 @@
 [data-training-spotlight-target="true"] { outline: 4px solid #eea63f !important; outline-offset: 5px !important;
   box-shadow: 0 0 0 9px rgba(255, 189, 66, .18) !important; position: relative;
   z-index: 2; scroll-margin: 100px; }
-.training-spotlight-popover { position: fixed; box-sizing: border-box; pointer-events: auto;
+.training-spotlight-popover { position: fixed; box-sizing: border-box; pointer-events: none;
   max-height: calc(100dvh - 24px); overflow: auto;
   padding: 16px; border: 2px solid #d18a24; border-radius: 14px;
   background: #fffdf7; color: #312a21; box-shadow: 0 18px 48px rgba(30, 31, 24, .22);
@@ -180,6 +180,7 @@
 .training-spotlight-main, .training-spotlight-again { border-radius: 8px; min-height: 39px; padding: 8px 12px; font: inherit; font-weight: 760; cursor: pointer; }
 .training-spotlight-main { border: 1px solid #14634d; background: #176d58; color: #fff; }
 .training-spotlight-again { border: 1px solid #b7aa94; color: #173d2c; background: #fff; }
+.training-spotlight-dismiss, .training-spotlight-main, .training-spotlight-again { pointer-events: auto; }
 .training-spotlight-instruction { display: block; margin-top: 9px; font-size: 11px; color: #755520; }
 .training-spotlight-arrow { display: block; position: absolute; top: -30px; left: 22px;
   font-size: 25px; color: #a65d09; transform: rotate(-90deg); text-shadow: 0 0 4px #fff; }
