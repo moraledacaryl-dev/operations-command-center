@@ -15,6 +15,8 @@ test('every role-available lesson has two clear teaching checks and example befo
     expect(guide.explanation.length, lesson.id).toBeGreaterThan(75);
     expect(guide.example.length, lesson.id).toBeGreaterThan(30);
     expect(guide.questions).toHaveLength(2);
+    expect(lesson.steps.some(step => step.requiresAction),
+      lesson.id + ': practice must include at least one required real UI click').toBe(true);
     for (const question of guide.questions) {
       expect(question.choices).toHaveLength(3);
       expect(question.correct).toBeGreaterThanOrEqual(0);
