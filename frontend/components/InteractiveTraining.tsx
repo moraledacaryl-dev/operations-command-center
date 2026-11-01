@@ -248,7 +248,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   function startNextLesson() {
     if (!course || course.stage !== 'done') return;
     const index = lessons.findIndex(item => item.id === course.lessonId);
-    const nextLesson = lessons[index + 1];
+    const nextLesson = lessons.slice(index + 1).find(item => !course.passed.includes(item.id))
+      || lessons.find(item => !course.passed.includes(item.id));
     if (!nextLesson) { setCourse({ ...course, stage: 'finished' }); setMenuOpen(true); return; }
     setCourse({ ...course, lessonId: nextLesson.id, stage: 'learn', question: 0, reference: undefined });
     setSelectedAnswer(null);
