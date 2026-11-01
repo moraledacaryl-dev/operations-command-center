@@ -27,6 +27,34 @@ import { parseScenarioProgress, parseWorkflowResults } from '@/lib/training-prog
 import type { ScenarioProgress } from '@/lib/training-progress';
 
 type Phase = 'assess' | 'document' | 'complete';
+type Reasoning = { consequence: string; timing: string };
+const RISK_QUESTIONS = [
+  { id: 'consequence' as const, title: '1. What is at stake if nobody acts?',
+    hint: 'Only use what the report actually tells you. It is okay to be unsure.',
+    choices: ['Someone could get hurt or exposed to danger', 'A guest or resort operation may be seriously affected',
+      'A small inconvenience or planned task may remain unfinished', 'Not enough facts yet — someone must verify'] },
+  { id: 'timing' as const, title: '2. What is the cost of waiting?',
+    hint: 'Think about how quickly the situation could get worse, not how dramatic it sounds.',
+    choices: ['Unsafe to wait — the danger may be immediate', 'This shift — delays could make it worse',
+      'Normal work queue — no urgent consequence is established', 'Unknown — check the situation promptly'] },
+];
+function riskClues(scenario: { context: readonly string[]; situation: string }): string[] {
+  const facts = scenario.context.filter(item => !/^reference:/i.test(item.trim()));
+  return facts.length ? facts.slice(0, 2) : [scenario.situation];
+}
+function reasoningFeedback(scenario: { context: readonly string[]; situation: string; priority: string }, chosen: string): string {
+  const clue = riskClues(scenario)[0];
+  const order = ['Routine', 'High', 'Critical'];
+  const tooSlow = order.indexOf(chosen) < order.indexOf(scenario.priority);
+  return 'Focus on this clue: “' + clue + '”. ' +
+    (tooSlow ? 'What could happen if everyone waits? Does this need an owner or immediate protection sooner?' :
+      'Is actual immediate danger or exceptional escalation established, or is prompt follow-up enough?');
+}
+function reasoningDebrief(priority: string): string {
+  if (priority === 'Critical') return 'Critical: protect people or escalate an exceptional risk immediately; do not leave it in the normal queue.';
+  if (priority === 'High') return 'High: a significant guest or operational consequence calls for prompt action, clear ownership and a follow-up.';
+  return 'Routine: the facts support normal planned work. Reassess if a real safety risk or urgent deadline emerges.';
+}
 const STORAGE_PREFIX = 'ho-ops-scenario-practice-v1:';
 const emptyAnswers: PracticeAnswers = { priority: '', department: '', decision: '', note: '', owner: '', followUp: '' };
 
@@ -51,6 +79,7 @@ export default function PracticeTrainingPage() {
   const [guideMode, setGuideMode] = useState<'off' | 'welcome' | 'brief' | 'guided'>('off');
   const [hintsUsed, setHintsUsed] = useState(0);
   const [mistakesMade, setMistakesMade] = useState(0);
+  const [reasoning, setReasoning] = useState<Reasoning>({ consequence: '', timing: '' });
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return;
@@ -150,6 +179,7 @@ export default function PracticeTrainingPage() {
     setShowTip(false);
     setHintsUsed(0);
     setMistakesMade(0);
+    setReasoning({ consequence: '', timing: '' });
     setGuideMode(current => current === 'guided' || current === 'brief' ? 'brief' : current);
     if (user) {
       try { localStorage.setItem(STORAGE_PREFIX + String(user.id || user.email) + ':last', id); } catch { /* offline memory only */ }
@@ -291,7 +321,8 @@ export default function PracticeTrainingPage() {
     switchScenario(next.id);
   }
 
-  const lessonStage = selected ? scenarioCoachStage(selected, phase, answers, result) : null;
+  const reasoningReady = Boolean(reasoning.consequence && reasoning.timing);
+  const lessonStage = selected ? scenarioCoachStage(selected, phase, answers, result, !guided || reasoningReady) : null;
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return <p>Hands-on training is available only inside the isolated fictional training application.</p>;
   if (!ready || !user || !selected) return <section className="practice-shell" aria-live="polite">Opening your fictional training exercises…</section>;
   return <div className="practice-shell" data-testid="scenario-training">
@@ -316,9 +347,10 @@ export default function PracticeTrainingPage() {
     </header>
 
     <section className="practice-start-here" data-testid="training-start-here">
-      <div><strong>Start here — interactive lessons</strong><p>Follow the orange arrow, click the highlighted control, and enter your own answers. Each step advances after you do the action.</p></div>
+      <div><strong>Start on the actual Operations screens</strong><p><strong>Recommended first:</strong> Use the real fictional dashboard, navigation, queues and forms with a guided arrow. Then return here to learn how to assess situations and make decisions.</p></div>
       <div className="practice-start-buttons">
-        <button type="button" className="practice-primary" data-testid="show-lesson-arrows" onClick={startGuide}>▶ {guideMode === 'off' ? 'Show me where to start' : 'Restart step-by-step arrows'}</button>
+        <Link href="/" className="practice-primary" data-testid="open-real-screens">1. Learn on actual app pages →</Link>
+        <button type="button" className="practice-secondary" data-testid="show-lesson-arrows" onClick={startGuide}>2. Guide me through decisions</button>
         <button type="button" className="practice-secondary" data-testid="repeat-current-lesson" onClick={repeatGuide}>↻ Repeat current lesson</button>
       </div>
     </section>
@@ -412,12 +444,40 @@ export default function PracticeTrainingPage() {
         </div>
 
         {phase === 'assess' && <form className="practice-form" onSubmit={triage} data-testid="scenario-triage">
-          <p className="practice-instruction">Decide how urgent this case is and which team should take ownership. Select both answers before continuing.</p>
-          <label>How urgent is it?
+          <p className="practice-instruction">Before choosing an urgency label, work out <strong>what could happen</strong> and <strong>how long it is safe to wait</strong>. These questions teach the reasoning; they do not reveal the answer.</p>
+          <section className="practice-judgment" data-testid="judgment-lens" aria-label="Two-question urgency guide">
+            <h3>Spot the risk — don't just guess a label</h3>
+            <p>Read the clues and answer two short questions. They are not graded. You still decide the urgency yourself.</p>
+            <div className="practice-judgment-facts"><strong>Look closely at these case facts:</strong>
+              <ul>{riskClues(selected).map(clue => <li key={clue}>{clue}</li>)}</ul>
+            </div>
+            {RISK_QUESTIONS.map(question => <fieldset key={question.id} data-testid={'judgment-' + question.id}>
+              <legend>{question.title}</legend>
+              <p>{question.hint}</p>
+              <div className="practice-judgment-options">{question.choices.map(choice =>
+                <label key={choice} className={reasoning[question.id] === choice ? 'chosen' : ''}>
+                  <input type="radio" name={'risk-' + question.id} value={choice}
+                    checked={reasoning[question.id] === choice}
+                    onChange={() => setReasoning(current => ({ ...current, [question.id]: choice }))} />
+                  <span>{choice}</span>
+                </label>)}</div>
+            </fieldset>)}
+            <p role="status" className="practice-judgment-status">{reasoningReady
+              ? 'Good. Now choose the urgency below. Your reasoning helps you decide; it does not select an answer automatically.'
+              : 'Start with what could happen. Then think about when waiting would become a problem.'}</p>
+            <details><summary>Need the rule? Compare three different examples</summary>
+              <p><strong>Routine:</strong> An ordinary, nonhazardous task can safely join the planned queue. Example: updating a future event checklist.</p>
+              <p><strong>High:</strong> Significant guest or operations impact needs prompt attention and an accountable owner. Example: a room cannot be released until an essential repair is confirmed.</p>
+              <p><strong>Critical:</strong> A potential immediate safety hazard or exceptional escalation calls for protective action now. Example: water near an outlet. Restrict access and notify qualified staff.</p>
+              <p><strong>If safety is uncertain:</strong> Never assume a credible hazard is harmless. Protect people while an authorized person verifies the facts.</p>
+            </details>
+          </section>
+          <label>Based on the facts, how urgent is it?
             <select value={answers.priority} required onChange={e => update('priority', e.target.value as PracticeAnswers['priority'])} data-testid="scenario-priority">
               <option value="">Select urgency…</option>{PRIORITIES.map(option => <option key={option} value={option}>{option}</option>)}
             </select>
-            {result?.errors.priority && <small className="practice-error" role="alert">{result.errors.priority}</small>}
+            {result?.errors.priority && <><small className="practice-error" role="alert">{result.errors.priority}</small>
+              <small className="practice-judgment-correction" data-testid="priority-feedback">{reasoningFeedback(selected, answers.priority)}</small></>}
           </label>
           <label>Who should own the next action?
             <select value={answers.department} required onChange={e => update('department', e.target.value as PracticeAnswers['department'])} data-testid="scenario-department">
@@ -431,11 +491,13 @@ export default function PracticeTrainingPage() {
               if (!showTip) setHintsUsed(n => n + 1);
               setShowTip(value => !value);
             }}>{showTip ? 'Hide hint' : 'Need a hint?'}</button>}</div>
-          {guided && showTip && <p className="practice-hint">Think about danger to a person, urgency of guest impact, and which team can actually perform the next step. A report is not finished until someone is responsible for follow-up.</p>}
+          {guided && showTip && <p className="practice-hint">Try this: What is the credible consequence of doing nothing? Could the problem get worse before the next shift? Who can stop it, confirm the facts, and update the affected person? Use those clues rather than guessing from the label.</p>}
         </form>}
 
         {phase === 'document' && <form className="practice-form" onSubmit={submit} data-testid="scenario-document">
-          <p className="practice-instruction">You chose the right priority and team. Now make the operational decision and write a note the next shift could actually use.</p>
+          <p className="practice-instruction">Your urgency and team choices were accepted. This is the reason behind the urgency:</p>
+          <p className="practice-judgment-explanation" data-testid="priority-debrief">{reasoningDebrief(selected.priority)}</p>
+          <p className="practice-instruction">Now choose an appropriate action and write a note the next shift could actually use.</p>
           <label>Choose the next action
             <select value={answers.decision} required onChange={e => update('decision', e.target.value as PracticeAnswers['decision'])} data-testid="scenario-decision">
               <option value="">Select action…</option>{DECISIONS.map(option => <option key={option} value={option}>{option}</option>)}
@@ -477,6 +539,7 @@ export default function PracticeTrainingPage() {
           <h3>Scenario completed</h3>
           <p>Your triage, ownership, action and fictional handover met the practice rubric.</p>
           <p><strong>Attempts:</strong> {attempts} · <strong>Corrections:</strong> {mistakesMade} · <strong>Hints:</strong> {hintsUsed}</p>
+          <p><strong>Why this urgency fits:</strong> {reasoningDebrief(selected.priority)}</p>
           <p><strong>Why this response works:</strong> {selected.why}</p>
           <div className="practice-example"><strong>Example of a useful handover:</strong><p>{selected.example}</p></div>
           <p className="practice-disclaimer">This is a decision and documentation drill, not an official skill certification. Completing it does not demonstrate actual Operations record creation or approval. Real end-to-end application workflows still require separate hands-on assessment.</p>
@@ -505,13 +568,13 @@ export default function PracticeTrainingPage() {
     </section>
     {guideMode === 'welcome' && <TrainingSpotlight
       title="Welcome! Start your first lesson"
-      description="This is interactive—not a manual. Click Start guided lesson, then follow the spotlight and arrows one step at a time. You can repeat any lesson without losing your earlier results."
+      description="First use the real fictional Operations screens or start the decision lesson here. The lesson teaches you to look for risk clues before choosing an urgency level."
       stepLabel="YOUR FIRST CLICK" onNext={() => { markGuideSeen(); setGuideMode('brief'); }}
       nextLabel="Start guided lesson →" onClose={closeGuide} />}
     {guideMode === 'brief' && <TrainingSpotlight title="Step 1: Read the fictional case"
-      description="Read this situation and the objective. Nothing is submitted yet. When you are ready, click Show me the first answer."
+      description="Read this situation and the objective. Next, we will reason through the risks before choosing any answer."
       stepLabel="STEP 1 — READ" targets={[{ selector: '[data-testid="scenario-case-brief"]' }]}
-      onNext={() => setGuideMode('guided')} nextLabel="Show me the first answer →" onClose={closeGuide} />}
+      onNext={() => setGuideMode('guided')} nextLabel="Guide my thinking →" onClose={closeGuide} />}
     {guideMode === 'guided' && lessonStage && <TrainingSpotlight
       title={lessonStage.title} description={lessonStage.instruction}
       stepLabel={'STEP ' + lessonStage.position + ' OF ' + lessonStage.total}

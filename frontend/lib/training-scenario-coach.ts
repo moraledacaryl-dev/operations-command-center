@@ -17,6 +17,7 @@ export function scenarioCoachStage(
   phase: 'assess' | 'document' | 'complete',
   answers: PracticeAnswers,
   result: PracticeAssessment | null,
+  reasoningReady = true,
 ): CoachStage {
   const advanced = (scenario.level || 1) >= 3;
   const total = advanced ? 9 : 7;
@@ -25,8 +26,10 @@ export function scenarioCoachStage(
   if (phase === 'complete') return stage('complete', 'You passed this lesson!',
     'Your saved progress stays on this device. Choose Repeat lesson to practice again, or Next situation to continue.', '[data-testid="scenario-complete"]', total);
   if (phase === 'assess') {
+    if (!reasoningReady) return stage('reasoning', 'Think through two risk questions first',
+      'Tap what is at stake if nobody acts. Then tap how quickly delaying could make it worse. The guide does not give away the correct urgency.', '[data-testid="judgment-lens"]', 1);
     if (!answers.priority || result?.errors.priority) return stage('priority', 'First, choose urgency',
-      'Read the situation and decide how quickly the team needs to respond. Click the outlined urgency menu.', '[data-testid="scenario-priority"]', 2);
+      'You have considered the consequence and timing. Choose the urgency justified by the case facts, not the urgency that merely sounds important.', '[data-testid="scenario-priority"]', 2);
     if (!answers.department || result?.errors.department) return stage('department', 'Choose who acts next',
       'Open this menu and choose the team that should perform the next action. Think about who can actually resolve the issue.', '[data-testid="scenario-department"]', 3);
     return stage('assessment', 'Check your two choices',

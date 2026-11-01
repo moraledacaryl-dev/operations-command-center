@@ -208,3 +208,26 @@
 .practice-extra-lessons > h2 { font-size: 18px; margin: 0 0 6px; color: #184a34; }
 .practice-extra-lessons > p { font-size: 13px; color: #4a6455; line-height: 1.5; margin: 0 0 16px; }
 .practice-extra-lessons .practice-observation-grid { margin: 0; }
+
+/* Beginner-friendly, evidence-first urgency training. */
+.practice-judgment { display: grid; gap: 12px; padding: 16px; border: 2px solid #b4d6c0; border-radius: 14px; background: #f5faf6; }
+.practice-judgment > h3 { font-size: 17px; margin: 0; }
+.practice-judgment > p { margin: 0; line-height: 1.5; }
+.practice-judgment-facts { background: white; border: 1px solid #cbded0; border-radius: 9px; padding: 12px; line-height: 1.55; }
+.practice-judgment-facts ul { margin: 8px 0 0; padding-left: 19px; }
+.practice-judgment fieldset { display: grid; gap: 9px; border: 1px solid #cbded0; border-radius: 10px; padding: 12px; min-width: 0; }
+.practice-judgment legend { font-weight: 830; font-size: 15px; padding: 0 4px; }
+.practice-judgment fieldset p { font-size: 13px; color: #4f6054; margin: 0; }
+.practice-judgment-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.practice-judgment-options label { display: flex; gap: 9px; align-items: start; padding: 11px; border: 1px solid #c8dcca; border-radius: 9px; background: white; font-size: 13px; font-weight: 610; line-height: 1.4; cursor: pointer; }
+.practice-judgment-options label.chosen { border-color: #176d5d; background: #e0f1e5; box-shadow: inset 0 0 0 1px #176d5d; }
+.practice-judgment-options label:focus-within { outline: 3px solid #8dbfa5; outline-offset: 2px; }
+.practice-judgment-options input { margin: 2px 0 0; flex: 0 0 auto; accent-color: #176d5d; }
+.practice-judgment .practice-judgment-status { padding: 10px 12px; border-radius: 9px; background: #e5f2e9; font-weight: 760; font-size: 13px; }
+.practice-judgment details { border-radius: 9px; border: 1px solid #cbded0; padding: 12px; background: white; font-size: 13px; line-height: 1.55; }
+.practice-judgment summary { cursor: pointer; font-weight: 780; }
+.practice-judgment details p { margin: 9px 0; }
+.practice-judgment-correction { background: #fff4e7; border-left: 3px solid #bb7927; padding: 10px; line-height: 1.55; }
+.practice-judgment-explanation { background: #eef6f0; border-left: 3px solid #176d5d; padding: 12px 14px; line-height: 1.55; margin: 0; }
+.practice-start-buttons a.practice-primary { display: inline-flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; }
+@media (max-width: 650px) { .practice-judgment { padding: 12px; } .practice-judgment-options { grid-template-columns: 1fr; } .practice-start-buttons > * { flex: 1 1 100%; } }
