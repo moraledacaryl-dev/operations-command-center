@@ -8,6 +8,7 @@ import { availableTrainingLessons, TRAINING_LESSONS } from '@/lib/interactive-tr
 import type { TrainingStep } from '@/lib/interactive-training';
 import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
 import type { CourseProgress } from '@/lib/training-course';
+import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
 
@@ -108,6 +109,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
   const quizItem = courseGuide?.questions[course?.question || 0];
   const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
+  const independentActions = course ? INDEPENDENT_CHECKS[course.lessonId] : null;
+  const independentAction = course && independentActions?.[course.independentStep || 0];
 
   useEffect(() => {
     try {
@@ -143,7 +146,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         const evidence = saved[courseGuide.handsOn!];
         if (evidence?.reference !== course.reference || !evidence.recordId) return;
         setCourse(current => current && current.stage === 'work' && current.reference === evidence.reference
-          ? { ...current, stage: 'done', passed: Array.from(new Set([...current.passed, current.lessonId])) }
+          ? { ...current, stage: 'independent', independentStep: 0 }
           : current);
       } catch { /* An invalid local marker never completes a practical. */ }
     };
@@ -155,6 +158,30 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       window.removeEventListener('storage', check);
     };
   }, [course, courseGuide, user]);
+
+  // This is an unguided check using real, safe Operations controls. No
+  // spotlight, Next button, or simulated click can pass it.
+  useEffect(() => {
+    if (!course || course.stage !== 'independent' || !independentAction) return;
+    if (path !== independentAction.path) {
+      router.push(independentAction.path);
+      return;
+    }
+    const onInteraction = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) ||
+        !independentActionMatches(independentAction, target, event.type as 'click'|'input')) return;
+      setCourse(current => {
+        if (!current || current.stage !== 'independent' ||
+          current.lessonId !== course.lessonId || (current.independentStep || 0) !== (course.independentStep || 0)) return current;
+        if ((current.independentStep || 0) === 0) return { ...current, independentStep: 1 };
+        return { ...current, stage: 'done', independentStep: 0,
+          passed: Array.from(new Set([...current.passed, current.lessonId])) };
+      });
+    };
+    document.addEventListener(independentAction.type || 'click', onInteraction, true);
+    return () => document.removeEventListener(independentAction.type || 'click', onInteraction, true);
+  }, [course, independentAction, path, router]);
 
   const lesson = active ? TRAINING_LESSONS.find(entry => entry.id === active.id) : undefined;
   const step: TrainingStep | undefined = lesson && active ? lesson.steps[active.index] : undefined;
@@ -191,7 +218,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         }
       } else {
         setCourse(current => current ? {
-          ...current, stage: 'done', passed: Array.from(new Set([...current.passed, lessonId])),
+          ...current, stage: 'independent', independentStep: 0,
         } : current);
       }
       return;
@@ -258,7 +285,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     const nextLesson = lessons.slice(index + 1).find(item => !course.passed.includes(item.id))
       || lessons.find(item => !course.passed.includes(item.id));
     if (!nextLesson) { setCourse({ ...course, stage: 'finished' }); setMenuOpen(true); return; }
-    setCourse({ ...course, lessonId: nextLesson.id, stage: 'learn', question: 0, reference: undefined });
+    setCourse({ ...course, lessonId: nextLesson.id, stage: 'learn', question: 0, independentStep: 0, reference: undefined });
     setSelectedAnswer(null);
     setQuizFeedback('');
     setMenuOpen(false);
@@ -268,7 +295,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     if (!lessons.some(item => item.id === lessonId)) return;
     setActive(null);
     setMenuOpen(false);
-    setCourse(current => current ? { ...current, lessonId, stage: 'learn', question: 0, reference: undefined } : {
+    setCourse(current => current ? { ...current, lessonId, stage: 'learn', question: 0, independentStep: 0, reference: undefined } : {
       lessonId, stage: 'learn', question: 0, passed: [],
     });
     setSelectedAnswer(null);
@@ -479,7 +506,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </>}
         {course.stage === 'done' && <>
           <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
-          <p>You finished the explanation, answered the quiz, and completed the required practice on the actual fictional app pages{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
+          <p>You finished the explanation, answered the quiz, and completed guided and independent practice on the actual fictional app pages{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
           <p>Done lessons can be repeated without removing earlier completion results.</p>
           <button type="button" className="ops-course-primary" data-testid="course-next-lesson"
             onClick={startNextLesson}>{lessonNumber < lessons.length ? 'Continue to Lesson ' + (lessonNumber + 1) + ' →' : 'Review completed lessons'}</button>
@@ -493,6 +520,13 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <p>The lesson is not finished yet. Reopen the guided steps to practise on the real fictional Operations pages.</p>
         <button type="button" className="ops-course-primary" onClick={() => setActive({ id: course.lessonId, index: 0 })}>Resume practical lesson →</button>
       </section>
+    </div>}
+    {course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
+      data-testid="course-independent-challenge" role="status">
+      <strong>Final practice · {1 + (course.independentStep || 0)} of 2 — No arrows</strong>
+      <span>{independentAction.title}: {independentAction.instruction}</span>
+      <small>You must use the real control on this page. Reading this instruction is not enough to pass.</small>
+      <button type="button" onClick={() => router.push(independentAction.path)}>Take me to the correct screen</button>
     </div>}
     {course?.stage === 'work' && <div className="ops-course-work-status" data-testid="course-await-work" role="status">
       <strong>Lesson {lessonNumber}: Actual-page practice</strong>

@@ -172,11 +172,12 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   },
 };
 
-export type CourseStage = 'learn' | 'quiz' | 'tour' | 'work' | 'done' | 'finished';
+export type CourseStage = 'learn' | 'quiz' | 'tour' | 'work' | 'independent' | 'done' | 'finished';
 export type CourseProgress = {
   lessonId: string;
   stage: CourseStage;
   question: number;
+  independentStep?: number;
   reference?: string;
   passed: string[];
 };
@@ -194,12 +195,13 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     const v = data as Record<string, unknown>;
     const allowed = new Set(lessons.map(lesson => lesson.id));
     const lessonId = typeof v.lessonId === 'string' && allowed.has(v.lessonId) ? v.lessonId : first;
-    const stage = ['learn','quiz','tour','work','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
+    const stage = ['learn','quiz','tour','work','independent','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
     const question = typeof v.question === 'number' && Number.isInteger(v.question) && v.question >= 0 && v.question <= 1 ? v.question : 0;
+    const independentStep = v.independentStep === 1 ? 1 : 0;
     const passed = Array.isArray(v.passed) ? v.passed.filter((id): id is string => typeof id === 'string' && allowed.has(id)).slice(0, lessons.length) : [];
     const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
     return { lessonId, stage: stage === 'work' && !reference ? 'learn' : stage,
-      question, ...(reference ? { reference } : {}), passed };
+      question, independentStep, ...(reference ? { reference } : {}), passed };
   } catch { return fallback; }
 }
 export const COURSE_STORAGE_PREFIX = 'ho-ops-structured-course-v2:';
