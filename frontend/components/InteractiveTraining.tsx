@@ -521,6 +521,10 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
         <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>
           <strong>Lesson {lessonNumber} of {lessons.length}</strong></div>
+        {capabilities.manage_department && <details className="ops-course-help">
+          <summary>Supervisor: review trainee progress without skipping your own lesson</summary>
+          <TrainerReports manager={user} />
+        </details>}
         <div className="ops-course-progress" aria-label="Lesson stages"><span className={course.stage === 'learn' ? 'current' : ''}>1. Learn</span>
           <span className={course.stage === 'quiz' ? 'current' : ''}>2. Check understanding</span>
           <span className={course.stage === 'done' ? 'current' : ''}>3. Actual-page practice</span></div>
