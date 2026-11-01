@@ -483,8 +483,13 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </header>
         {helpMessage && <p className="ops-guide-success" role="status">{helpMessage}</p>}
         <p className="ops-guide-safety"><strong>Safe practice:</strong> Lessons never save, approve, or publish automatically. Use only an isolated demo workspace to submit fictional practice records.</p>
+        <div className="ops-guide-course-summary" data-testid="course-progress-summary">
+          <strong>{course?.passed.length || 0} of {lessons.length} lessons completed</strong>
+          <p>Lessons are in order. Finished lessons can be repeated as often as needed.</p>
+        </div>
         <div className="ops-guide-lesson-grid">
-          {lessons.map(item => <button type="button" key={item.id} className="ops-guide-lesson"
+          {lessons.map(item => <div key={item.id} className="ops-guide-lesson-wrap">
+            <button type="button" className="ops-guide-lesson"
               disabled={Boolean(course && !course.passed.includes(item.id) && item.id !== course.lessonId)}
               onClick={() => {
                 if (course && course.stage === 'finished' && course.passed.includes(item.id)) begin(item.id);
@@ -497,7 +502,10 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
               : complete.includes(item.id) ? <span className="ops-guide-done">Tour viewed</span> : null}</span>
             <span className="ops-guide-lesson-description">{item.summary}</span>
             <span className="ops-guide-lesson-meta">{item.steps.length} real-screen steps · {course?.passed.includes(item.id) ? 'Review practical tour' : 'Learn, quiz, then practise'}</span>
-          </button>)}
+            </button>
+            {course?.passed.includes(item.id) && <button type="button" className="ops-guide-repeat-course"
+              onClick={() => repeatCourseLesson(item.id)}>↻ Repeat full lesson + quiz</button>}
+          </div>)}
         </div>
         <p className="ops-guide-footer-note"><button type="button" className="ops-guide-more" onClick={() => { setMenuOpen(false); router.push('/training'); }}>Optional: situational decision practice and progress</button></p>
         <p className="ops-guide-footer-note">Lessons are in order. Staff must finish the short quiz and actual-screen practice before moving to the next lesson. Local markers are not staff certification.</p>
