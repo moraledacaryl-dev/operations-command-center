@@ -418,7 +418,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       <span aria-hidden="true">?</span> Training
     </button>
 
-    {course && courseLesson && courseGuide && ['learn', 'quiz', 'done'].includes(course.stage) && <div
+    {course && courseLesson && courseGuide &&
+      (course.stage === 'done' || (['learn', 'quiz'].includes(course.stage) &&
+        (path === '/' || course.stage === 'quiz' || course.passed.length > 0))) && <div
       className="ops-course-backdrop" data-testid="required-training-course">
       <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
         <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>

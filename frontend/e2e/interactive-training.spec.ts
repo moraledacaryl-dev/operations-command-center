@@ -28,6 +28,12 @@ async function openMockWorkspace(page: import('@playwright/test').Page, role: Tr
     // The real-screen first-run tour has its own dedicated tests. This helper
     // opens the lesson library without that welcome tour covering the launcher.
     localStorage.setItem('ho-ops-real-screens-intro-v1:' + String(storedUser.id), 'started');
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(storedUser.id), JSON.stringify({
+      lessonId: 'orientation', stage: 'finished', question: 0,
+      passed: ['orientation', 'staff-handover', 'staff-rooms', 'staff-my-work',
+        'team-tasks', 'guest-matters', 'maintenance', 'requests', 'shift-writing',
+        'projects', 'marketing', 'management-review', 'accounts'],
+    }));
   }, user);
   await page.route('**/api/**', route => route.fulfill({
     status: 200, contentType: 'application/json',

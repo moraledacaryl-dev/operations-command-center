@@ -20,6 +20,21 @@ test('first training open starts on real dashboard and requires navigating actua
   await page.goto('/');
   await expect(page.locator('.today-workspace')).toBeVisible();
   const coach = page.locator('.ops-guide-tip');
+  const course = page.getByTestId('required-training-course');
+  await expect(course).toContainText('Getting around Operations');
+  await expect(coach).toHaveCount(0);
+  await page.getByTestId('course-start-quiz').click();
+  await expect(course).toContainText('Where do you go first');
+  // Wrong choices do not unlock the practical page.
+  await course.getByLabel('Rooms', { exact: true }).check();
+  await page.getByTestId('course-check-answer').click();
+  await expect(course).toContainText('Not yet');
+  await course.getByLabel('My Work', { exact: true }).check();
+  await page.getByTestId('course-check-answer').click();
+  await expect(course).toContainText('You read a notification');
+  await course.getByLabel('Read the linked work and check what action is still needed').check();
+  await page.getByTestId('course-check-answer').click();
+  await expect(course).toHaveCount(0);
   await expect(coach).toContainText('You are on the real training dashboard');
 
   await coach.getByRole('button', { name: /Next/ }).click();
@@ -43,10 +58,11 @@ test('first training open starts on real dashboard and requires navigating actua
   await expect(coach).toContainText('You know your way around');
   await coach.getByRole('button', { name: 'Finish lesson' }).click();
   await expect(coach).toHaveCount(0);
+  await expect(page.getByTestId('course-completed')).toContainText('Lesson 1 completed');
 
   await page.reload();
   await expect(coach).toHaveCount(0);
-  await page.getByTestId('interactive-training-open').click();
-  await page.getByRole('button', { name: /Getting around Operations/ }).click();
-  await expect(coach).toContainText('You are on the real training dashboard');
+  await expect(page.getByTestId('course-completed')).toBeVisible();
+  await page.getByTestId('course-repeat-lesson').click();
+  await expect(page.getByTestId('course-lesson-title')).toContainText('Getting around Operations');
 });
