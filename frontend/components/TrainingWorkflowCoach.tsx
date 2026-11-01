@@ -5,6 +5,7 @@ import { TrainingSpotlight } from '@/components/TrainingSpotlight';
 import { workflowFocus, currentWorkflowFocus } from '@/lib/training-workflow-focus';
 import type { WorkflowFocus } from '@/lib/training-workflow-focus';
 import { makeTrainingReference } from '@/lib/training-workflows';
+import { COURSE_STORAGE_PREFIX } from '@/lib/training-course';
 import { useCallback, useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
@@ -151,8 +152,22 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
     }
   }
 
+  function requiredCoursePractice() {
+    if (!session) return false;
+    try {
+      const course: unknown = JSON.parse(localStorage.getItem(COURSE_STORAGE_PREFIX + identity) || 'null');
+      if (!course || typeof course !== 'object' || Array.isArray(course)) return false;
+      const state = course as Record<string, unknown>;
+      return state.stage === 'work' && state.reference === session.reference;
+    } catch { return false; }
+  }
+
   function repeatWorkflow() {
     if (!session || busy) return;
+    if (requiredCoursePractice()) {
+      setMessage('This practice is required for the current lesson. Finish it first; you can repeat the whole lesson afterward without losing your earlier results.');
+      return;
+    }
     const next: TrainingWorkflowSession = {
       kind: session.kind, ownerId: identity,
       reference: makeTrainingReference(session.kind),
@@ -168,6 +183,10 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   }
 
   function endSession() {
+    if (requiredCoursePractice()) {
+      setMessage('You cannot skip this lesson’s saved-work practice. Continue on the highlighted page and choose Check saved work when ready.');
+      return;
+    }
     try { localStorage.removeItem(storageKey); } catch { /* no remote mutation */ }
     setSession(null);
     setMessage('');
