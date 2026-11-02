@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
 import { FIRST_ROOM, SECOND_ROOM, findPracticeIssue, readRoomMission } from '../lib/training-room-mission';
 
 test('room mission progress parser ignores forged/invalid stages', () => {
@@ -57,11 +58,14 @@ test('Front Desk employee completes guided Solace and independent Perch 1 on act
   await expect(mission).toContainText('Find Solace');
   await page.reload();
   await expect(mission).toContainText('Find Solace');
+  mkdirSync('test-results/ui-audit', { recursive: true });
+  await page.screenshot({ path: 'test-results/ui-audit/frontdesk-solace-guided-search.png', fullPage: true });
   await page.getByRole('textbox', { name: 'Search rooms and areas' }).fill('Solace');
   await expect(mission).toContainText('Open Solace');
   await page.getByRole('link', { name: 'Open Solace' }).click();
   await expect(page).toHaveURL(/\/rooms\/101$/);
   await expect(mission).toContainText('Read the saved guest report');
+  await page.screenshot({ path: 'test-results/ui-audit/frontdesk-solace-report-check.png', fullPage: true });
   await expect(page.getByText(FIRST_ROOM.title)).toBeVisible();
 
   await mission.getByLabel('What status is shown on the guest report?').selectOption('Done');
@@ -72,6 +76,7 @@ test('Front Desk employee completes guided Solace and independent Perch 1 on act
   await expect(page).toHaveURL(/\/rooms$/);
   await expect(mission).toContainText('Your turn: Find Perch 1');
   await expect(page.getByTestId('training-spotlight')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/ui-audit/frontdesk-perch-independent.png', fullPage: true });
 
   await page.getByRole('textbox', { name: 'Search rooms and areas' }).fill('Perch 1');
   await expect(mission).toContainText('Your turn: Open Perch 1');

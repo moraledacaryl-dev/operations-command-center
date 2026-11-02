@@ -335,7 +335,7 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
   if (session.kind === 'guest-ac') {
     return session.step === 0
       ? ['Open Guest Matters and choose New guest matter.', 'Put the practice number in the Matter title.',
-        'Choose Room or Complaint. Think about how soon the guest needs help, then choose the urgency. Choose Room 205 if it is in the room list.',
+        'Choose Room or Complaint. Think about how soon the guest needs help, then choose the urgency. Choose Solace if it is in the room list.',
         'In the note, describe the AC blowing warm air, the Maintenance check and when Reception will update the guest.',
         'Choose Save matter, then Check saved work.']
       : ['Find the same guest matter in Active.', 'Open it and choose Needs follow-up.',
