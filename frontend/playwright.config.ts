@@ -7,6 +7,10 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
+  // Stop after a handful of genuinely failing cases instead of letting dozens
+  // of blocked-click retries exhaust the hosted runner. A green run still
+  // executes the complete suite.
+  maxFailures: process.env.CI ? 6 : 0,
   workers: 1,
   reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'line',
   use: {
