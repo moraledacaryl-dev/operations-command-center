@@ -156,7 +156,7 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   await expect(coach).toContainText('Fill out the task');
   await coach.getByRole('button', { name: /Next/ }).click();
   await page.getByTestId('create-task-form').getByRole('button', { name: 'Cancel' }).click();
-  await expect(page.getByTestId('course-await-work')).toContainText('Practice in the app');
+  await expect(page.getByTestId('course-await-work')).toContainText('YOUR TURN · SAVE THE PRACTICE WORK');
   await expect(page.getByTestId('training-workflow-coach')).toBeVisible();
   await expect(page.getByTestId('course-completed')).toHaveCount(0);
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key) || 'null'), 'ho-ops-structured-course-v2:' + String(manager.id));
