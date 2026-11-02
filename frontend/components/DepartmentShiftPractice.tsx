@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { api, Entity } from '@/lib/api';
 import { COURSE_STORAGE_PREFIX } from '@/lib/training-course';
 import { TrainingSpotlight } from '@/components/TrainingSpotlight';
-import { SHIFT_MISSION_PREFIX, SHIFT_PRACTICE_EVENT, SHIFT_PRACTICE_FINISHED,
+import { SHIFT_MISSION_PREFIX, SHIFT_PRACTICE_FINISHED,
   departmentShiftTitle, parseShiftMission, verifyShiftRecord,
 } from '@/lib/training-shift-mission';
-import type { ShiftMissionProgress, ShiftMissionStage, ShiftPracticeAction } from '@/lib/training-shift-mission';
+import type { ShiftMissionProgress, ShiftMissionStage } from '@/lib/training-shift-mission';
 
 export function DepartmentShiftPractice({ user, path }: { user: Entity; path: string }) {
   const router = useRouter();
@@ -60,27 +60,42 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
   }, [key]);
 
   useEffect(() => {
-    if (!active) return;
-    const handle = (event: Event) => {
-      const action = (event as CustomEvent<ShiftPracticeAction>).detail;
-      if (!action || typeof action !== 'object') return;
-      if (stage === 'filter' && action.kind === 'filter' && action.value === 'Urgent') {
+    if (!active || path !== '/shift') return;
+    let attached = true;
+    const onClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const filter = target.closest('[aria-label="Shift note filters"] button');
+      if (stage === 'filter' && filter?.textContent?.trim() === 'Urgent') {
         moveTo({ stage: 'open' });
-        setFeedback('Good. Find the Night handover from your own department.');
-      } else if ((stage === 'open' || stage === 'solo-open') && action.kind === 'open') {
-        const expected = stage === 'open' ? guidedTitle : soloTitle;
-        if (action.title !== expected) {
-          setFeedback('This is a different handover. Close it and open “' + expected + '”.');
-          return;
-        }
-        moveTo(stage === 'open' ? { stage: 'answer', firstId: action.id }
-          : { ...progress, stage: 'solo-answer', secondId: action.id });
-        setFeedback('Read the saved note and the status shown on its details.');
+        setFeedback('Good. Find the Night handover from your department.');
+        return;
       }
+      if (stage !== 'open' && stage !== 'solo-open') return;
+      const card = target.closest('.ops-handover-card');
+      if (!card) return;
+      const clickedTitle = card.querySelector('.ops-handover-body > strong')?.textContent?.trim();
+      const expected = stage === 'open' ? guidedTitle : soloTitle;
+      if (clickedTitle !== expected) {
+        setFeedback('That is a different handover. Close it and open “' + expected + '”.');
+        return;
+      }
+      // Read the real authorized local training API. Clicking unrelated cards or
+      // entering guessed IDs cannot advance to the answer stage.
+      void api.listAll('shift-notes', { active: true, department_id: departmentId })
+        .then(async rows => {
+          const match = rows.find(row => row.title === expected && Number(row.department_id) === departmentId);
+          if (!match) throw new Error('Missing fictional shift note');
+          const found = verifyShiftRecord(await api.get('shift-notes', Number(match.id)), expected, departmentId);
+          if (!attached || !found) throw new Error('Practice note did not match');
+          moveTo(stage === 'open' ? { stage: 'answer', firstId: found.id }
+            : { ...progress, stage: 'solo-answer', secondId: found.id });
+          setFeedback('Read the saved status, then close the handover details and choose your answer.');
+        }).catch(() => { if (attached) setFeedback('Could not check this training note. Ask your trainer to check the practice data.'); });
     };
-    window.addEventListener(SHIFT_PRACTICE_EVENT, handle);
-    return () => window.removeEventListener(SHIFT_PRACTICE_EVENT, handle);
-  }, [active, stage, guidedTitle, soloTitle, progress, moveTo]);
+    document.addEventListener('click', onClick, true);
+    return () => { attached = false; document.removeEventListener('click', onClick, true); };
+  }, [active, stage, path, guidedTitle, soloTitle, departmentId, progress, moveTo]);
 
   async function checkAnswer() {
     if (!answer || busy) return;
@@ -102,11 +117,9 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
         moveTo({ stage: 'solo-open', firstId: id });
         setShowArrow(false);
         setFeedback('Correct. Now find the PM handover in your department on your own.');
-        window.dispatchEvent(new Event('ho-training-close-shift-detail'));
       } else {
         localStorage.removeItem(key);
         setActive(false);
-        window.dispatchEvent(new Event('ho-training-close-shift-detail'));
         window.dispatchEvent(new Event(SHIFT_PRACTICE_FINISHED));
       }
     } catch {
@@ -129,9 +142,9 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
     intro: 'A fictional shift note says that work is still unfinished. Learn to read a handover before taking over a task.',
     filter: 'Choose Urgent in the Shift note filters. The urgent Night note should be listed.',
     open: 'Find “' + guidedTitle + '” and click its card. Read what the previous shift recorded.',
-    answer: 'In the open handover details, read the status label. Then choose that same status here.',
+    answer: 'In the handover details, read the status label. Close the details, then choose that status here.',
     'solo-open': 'Without arrows, use PM or Unresolved to find “' + soloTitle + '”. Open its card.',
-    'solo-answer': 'Read the saved status for “' + soloTitle + '” and choose the same status here.',
+    'solo-answer': 'Read the status for “' + soloTitle + '”. Close the details, then choose the same status here.',
   };
   const number: Record<ShiftMissionStage,number> = {
     intro: 1, filter: 2, open: 3, answer: 4, 'solo-open': 5, 'solo-answer': 6,

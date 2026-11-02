@@ -63,6 +63,7 @@ for (const role of roles) {
     await expect(mission).toContainText('Open your department');
     await page.getByRole('button', { name: new RegExp(role.department + ' Night handover #3') }).click();
     await expect(mission).toContainText('Check the saved handover status');
+    await page.getByRole('button', { name: 'Close details' }).click();
     await mission.getByLabel('What status is shown on this handover?').selectOption('Done');
     await mission.getByRole('button', { name: 'Check my answer' }).click();
     await expect(mission).toContainText('does not match the saved record');
@@ -72,6 +73,7 @@ for (const role of roles) {
     await page.getByRole('button', { name: 'PM', exact: true }).click();
     await page.getByRole('button', { name: new RegExp(role.department + ' PM handover #2') }).click();
     await expect(mission).toContainText('Your turn: Read its status');
+    await page.getByRole('button', { name: 'Close details' }).click();
     await mission.getByLabel('What status is shown on this handover?').selectOption('Seen');
     await mission.getByRole('button', { name: 'Check my answer' }).click();
     await expect(page.getByTestId('course-completed')).toContainText('Lesson 2 completed');

@@ -53,11 +53,14 @@ async function completeReadOnlyLesson(page: import('@playwright/test').Page, les
       await expect(mission).toContainText('Open your department');
       await page.getByRole('button', { name: /Front Desk Night handover #3/ }).click();
       await expect(mission).toContainText('Check the saved handover status');
+      await page.getByRole('button', { name: 'Close details' }).click();
       await mission.getByLabel('What status is shown on this handover?').selectOption('Follow');
       await mission.getByRole('button', { name: 'Check my answer' }).click();
       await expect(mission).toContainText('Your turn: Find the PM handover');
       await page.getByRole('button', { name: 'PM', exact: true }).click();
       await page.getByRole('button', { name: /Front Desk PM handover #2/ }).click();
+      await expect(mission).toContainText('Your turn: Read its status');
+      await page.getByRole('button', { name: 'Close details' }).click();
       await mission.getByLabel('What status is shown on this handover?').selectOption('Seen');
       await mission.getByRole('button', { name: 'Check my answer' }).click();
     } else if (lesson.id === 'staff-rooms' && (await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}').role)) === 'staff') {
