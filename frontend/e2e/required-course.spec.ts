@@ -50,6 +50,23 @@ async function mockLogin(page: import('@playwright/test').Page) {
   }));
 }
 
+test('an incomplete stored finished marker resumes at the first incomplete lesson', async ({ page }) => {
+  const lessons = availableTrainingLessons({ manage_department: false, make_decisions: false, manage_accounts: false });
+  expect(lessons.length).toBeGreaterThan(1);
+  const stored = JSON.stringify({ lessonId: 'orientation', stage: 'finished', question: 0, passed: ['orientation'] });
+  const restored = readCourseProgress(stored, lessons);
+  expect(restored.stage).toBe('learn');
+  expect(restored.lessonId).toBe(lessons[1].id);
+  expect(restored.passed).toEqual(['orientation']);
+  await mockLogin(page);
+  await page.addInitScript(({ id, progress }) => {
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(id), progress);
+  }, { id: staff.id, progress: stored });
+  await page.goto('/');
+  await expect(page.getByTestId('required-training-course')).toBeVisible();
+  await expect(page.getByTestId('course-lesson-title')).toContainText(lessons[1].title);
+});
+
 test('first sign-in forces Lesson 1, quiz with correction, then actual-page practice', async ({ page }) => {
   await mockLogin(page);
   await page.goto('/');

@@ -238,6 +238,18 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
         };
       }
     }
+    // Local storage is a resume convenience, not proof of competency. A forged or
+    // interrupted "finished" marker must not bypass unfinished role-available lessons.
+    if (stage === 'finished') {
+      const nextUnfinished = lessons.find(lesson => !passed.includes(lesson.id));
+      if (nextUnfinished) return {
+        lessonId: nextUnfinished.id, stage: 'learn', question: 0, independentStep: 0,
+        passed, metrics,
+      };
+    }
+    if (stage === 'done' && !passed.includes(lessonId)) return {
+      lessonId, stage: 'learn', question: 0, independentStep: 0, passed, metrics,
+    };
     const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
     return { lessonId, stage: stage === 'work' && !reference ? 'learn' : stage,
       question, independentStep, ...(reference ? { reference } : {}), passed, metrics };

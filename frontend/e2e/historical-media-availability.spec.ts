@@ -6,7 +6,7 @@ const post = { id: 41, title: 'Historical creative', department_id: 3, status: '
 const missing = { id: 51, post_id: 41, version_no: 1, filename: 'historical.png', file_url: null, file_status: 'unavailable', note: 'Original version history' };
 
 async function seed(page: Page) {
-  await page.addInitScript(user => { localStorage.setItem('cc_user', JSON.stringify(user)); localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({lessonId:'orientation',stage:'finished',question:0,passed:['orientation']})); localStorage.setItem('cc_department_id', '3'); }, owner);
+  await page.addInitScript(user => { localStorage.setItem('cc_user', JSON.stringify(user)); localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({lessonId:'orientation',stage:'finished',question:0,passed:'orientation staff-handover staff-rooms staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' ')})); localStorage.setItem('cc_department_id', '3'); }, owner);
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     let body: unknown = [];

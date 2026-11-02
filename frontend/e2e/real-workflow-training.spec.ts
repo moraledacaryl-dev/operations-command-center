@@ -18,7 +18,7 @@ async function prepare(page: Page, actor = account) {
     localStorage.setItem('cc_user', JSON.stringify(user));
     // These established tests inspect fictional operational records, not first-login teaching.
     localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
-      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
     }));
     localStorage.setItem('cc_department_id', '41');
   }, actor);

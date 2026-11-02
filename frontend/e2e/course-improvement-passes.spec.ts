@@ -86,7 +86,7 @@ test('manager can restore read-only lesson history but must recheck saved record
 
 test('supervisor can import a report, see attempts, and record local-only observation', async ({page})=>{
   const manager={...trainee,id:8501,role:'manager',capabilities:{manage_department:true,make_decisions:true,view_all_operations:true}};
-  await init(page,manager,{lessonId:'accounts',stage:'finished',question:0,passed:['orientation']});
+  await init(page,manager,{lessonId:'accounts',stage:'finished',question:0,passed:Object.keys(COURSE_GUIDES)});
   await page.goto('/');
   await page.getByTestId('interactive-training-open').click();
   const dashboard=page.getByTestId('trainer-progress-dashboard');
