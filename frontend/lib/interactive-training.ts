@@ -46,10 +46,10 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     ],
   },
   {
-    id: 'staff-rooms', title: 'Rooms and guest information', summary: 'Find a room and read its earlier reports.',
+    id: 'staff-rooms', title: 'Rooms and guest information', summary: 'Find Solace and read its saved report before starting new work.',
     steps: [
       { path: '/rooms', selector: '[aria-label="Space type"] button', targetText: 'Guest rooms', title: 'Filter spaces', advanceOnClick: true, requiresAction: true, body: "Choose Guest rooms to see bedrooms. Choose Shared areas to see places such as the pool or café." },
-      { path: '/rooms', selector: '[aria-label="Search rooms and areas"]', title: 'Search for a specific room', body: "Type a room number or area name. Open the result to read earlier problems and work for that place." },
+      { path: '/rooms', selector: '[aria-label="Search rooms and areas"]', title: 'Search for a specific room', body: "Type a room name such as Solace. Open the result to read earlier problems and work for that place." },
       { path: '/rooms', selector: '.space-card, .ops-module', title: 'Review before escalating', body: "Check whether the same problem is already listed before asking someone to create another report." },
     ],
   },

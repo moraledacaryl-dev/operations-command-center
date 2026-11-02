@@ -132,11 +132,12 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                     is_primary=dept == primary), "memberships")
             credentials.append({"name": name, "role": role, "email": u.email, "password": password, "department": primary})
 
-        areas = [f"Room {n}" for n in (101,102,103,104,105,201,202,203,204,205,301,302)] + [
+        room_names = ["Solace", "Cafe Suite", "Perch 1", "Perch 2", "Crown", "Grandeur", "Skyroom", "Twinspire"]
+        areas = room_names + [
             "Lobby", "Front Desk", "Café", "Kitchen", "Pool", "Function Hall",
             "Garden", "Storage", "Parking", "Laundry", "Staff Area"]
-        rooms = {name: add(models.RoomArea(name=name, kind="room" if name.startswith("Room") else "area",
-            status="active", note="Fictional training area — not real property inventory."), "rooms_areas") for name in areas}
+        rooms = {name: add(models.RoomArea(name=name, kind="room" if name in room_names else "area",
+            status="active", note="Practice room name. Guest details and work records are fictional."), "rooms_areas") for name in areas}
 
         projects = {}
         for i, dept in enumerate(["Front Desk", "Housekeeping", "Café", "Kitchen", "Maintenance", "Marketing", "Management", "Security"]):
@@ -151,10 +152,10 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
 
         descriptions = {
             "Front Desk": ["Review arrivals","Confirm check-out notes","Update pending guest requests","Escalate complaint"],
-            "Housekeeping": ["Inspect Room 203","Count linen inventory","Confirm room readiness","Record missing amenities"],
+            "Housekeeping": ["Inspect Perch 2","Count linen inventory","Confirm room readiness","Record missing amenities"],
             "Café": ["Prepare counter checklist","Check available menu","Resolve service delay","Close café station"],
             "Kitchen": ["Check cold-storage temperatures","Complete prep list","Review food-handling incident","Close kitchen"],
-            "Maintenance": ["Inspect pool pump","Investigate Room 205 AC","Prepare repair evidence","Review defects"],
+            "Maintenance": ["Inspect pool pump","Investigate Solace AC","Prepare repair evidence","Review defects"],
             "Marketing": ["Draft promotional post","Review campaign caption","Submit artwork","Confirm scheduled content"],
             "Security": ["Inspect pool gate","Complete perimeter check","Review reported incident","Log visitor handover"],
             "Management": ["Review approvals","Allocate priorities","Review handover","Check department reports"],
@@ -180,21 +181,22 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 completed_at=now-timedelta(days=3), archived_at=now-timedelta(days=2)), "tasks")
 
         guest_titles = [
-            ("Late checkout request", "Room 203", "Checkout", "Open"),
-            ("Room 205 AC not cooling", "Room 205", "Room", "Follow"),
+            ("Late checkout request", "Perch 2", "Checkout", "Open"),
+            ("Solace AC not cooling", "Solace", "Room", "Follow"),
             ("Pool access complaint", "Pool", "Complaint", "Open"),
             ("Breakfast service delay", "Café", "Food", "Follow"),
             ("Lost room key", "Lobby", "Other", "Open"),
-            ("Noise concern", "Room 201", "Complaint", "Done"),
+            ("Noise concern", "Perch 1", "Complaint", "Done"),
             ("Function hall layout issue", "Function Hall", "Other", "Open"),
-            ("More towels requested", "Room 101", "Request", "Follow"),
-            ("Water pressure concern", "Room 302", "Room", "Open"),
-            ("Room cleaning follow-up", "Room 204", "Room", "Open"),
+            ("More towels requested", "Grandeur", "Request", "Follow"),
+            ("Water pressure concern", "Crown", "Room", "Open"),
+            ("Room cleaning follow-up", "Twinspire", "Room", "Open"),
             ("Pool towel shortage", "Pool", "Request", "Follow"),
             ("Parking access question", "Parking", "Complaint", "Done"),
             ("Check-in documentation", "Front Desk", "Request", "Open"),
             ("Allergy question", "Kitchen", "Food", "Open"),
-            ("Late room checkout dispute", "Room 202", "Checkout", "Open"),
+            ("Late room checkout dispute", "Skyroom", "Checkout", "Open"),
+            ("Perch 1 towel request", "Perch 1", "Request", "Open"),
         ]
         guests = []
         for i,(title,area,kind,status) in enumerate(guest_titles):
@@ -204,10 +206,12 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 assigned_to_id=users["frontdesk-lead"].id,
                 urgency="Urgent" if i in (1,8) else "Normal", status=status,
                 follow_up_date=now+timedelta(hours=3+i),
-                note="TRAINING ONLY — fictional guest concern."), "guest_notes")
+                note=("TRAINING ONLY — the air conditioner is not cooling. Maintenance must check it; Front Desk must update the guest." if area == "Solace" else
+                      "TRAINING ONLY — the guest requested extra towels. Housekeeping has not confirmed delivery." if title == "Perch 1 towel request" else
+                      "TRAINING ONLY — fictional guest concern.")), "guest_notes")
             guests.append(g)
-        fix_areas = ["Room 205","Pool","Room 302","Café","Kitchen","Function Hall",
-            "Room 201","Garden","Lobby","Laundry","Parking","Storage"]
+        fix_areas = ["Solace","Pool","Crown","Café","Kitchen","Function Hall",
+            "Perch 1","Garden","Lobby","Laundry","Parking","Storage"]
         fixes=[]
         for i,area in enumerate(fix_areas):
             status=["Working","Open","Done","Working","Open","Done","Verified"][i%7]

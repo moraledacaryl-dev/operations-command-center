@@ -55,12 +55,12 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'staff-rooms': {
-    explanation: 'The Rooms screen helps you find a guest room or shared area. Check the correct room number and any existing issues before reporting a new problem.',
-    example: 'A guest calls from Room 205. Search for Room 205 and check whether somebody has already reported the issue.',
-    remember: 'Confirm the room number. Never use one guest’s room information for another guest.',
+    explanation: 'The Rooms screen lists actual Hidden Oasis room names, with made-up practice reports. First find the correct room and check whether the problem has already been reported.',
+    example: 'A guest in Solace says the air conditioner is not cooling. Open Solace and check its saved guest report before creating another report.',
+    remember: 'Check the correct room name. Never mix one guest's information with another guest's report.',
     questions: [
-      q('Before reporting another problem for Room 205, what should you check?', ['Whether the issue is already recorded','Whether it is payday','Whether the café menu changed'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
-      q('Why should you confirm the room number?', ['To send the right team to the correct place','To make the record longer','To avoid telling the next shift anything'], 0, 'The correct room number prevents wasted trips and mistaken guest updates.'),
+      q('Before reporting another problem in Solace, what should you check?', ['Whether the issue is already recorded','Whether it is payday','Whether the café menu changed'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
+      q('Why should you confirm the room name?', ['To send the right team to the correct place','To make the record longer','To avoid telling the next shift anything'], 0, 'The correct room name prevents wasted trips and mistaken guest updates.'),
     ],
   },
   'staff-my-work': {

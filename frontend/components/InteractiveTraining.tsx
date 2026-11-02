@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { availableTrainingLessons, TRAINING_LESSONS } from '@/lib/interactive-training';
+import { ROOM_MISSION_PREFIX, ROOM_PRACTICE_FINISHED } from '@/lib/training-room-mission';
 import type { TrainingStep } from '@/lib/interactive-training';
 import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
 import type { CourseProgress } from '@/lib/training-course';
@@ -106,6 +107,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [tipPosition, setTipPosition] = useState<Position | null>(null);
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');
+  const isFrontDeskStaff = String(user.role).toLowerCase() === 'staff' &&
+    Array.isArray(user.departments) && user.departments.some((dept: Entity) =>
+      String(dept.name || '').toLowerCase() === 'front desk');
   const storageKey = COMPLETION_PREFIX + identity;
   const courseKey = COURSE_STORAGE_PREFIX + identity;
   const latestLessons = useRef(lessons);
@@ -187,8 +191,21 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   useEffect(() => {
     if (!course) return;
-    try { localStorage.setItem(courseKey, JSON.stringify(course)); } catch { /* no certificate */ }
+    try { localStorage.setItem(courseKey, JSON.stringify(course));
+      window.dispatchEvent(new Event('ho-training-course-changed')); } catch { /* no certificate */ }
   }, [courseKey, course]);
+
+  useEffect(() => {
+    const completeRoomPractice = () => setCourse(current => {
+      if (!current || current.lessonId !== 'staff-rooms' || current.stage !== 'room-practice') return current;
+      return { ...current, stage: 'done', passed: Array.from(new Set([...current.passed, 'staff-rooms'])),
+        metrics: { ...(current.metrics || {}), 'staff-rooms': {
+          ...(current.metrics?.['staff-rooms'] || {}), completedAt: new Date().toISOString(),
+        } } };
+    });
+    window.addEventListener(ROOM_PRACTICE_FINISHED, completeRoomPractice);
+    return () => window.removeEventListener(ROOM_PRACTICE_FINISHED, completeRoomPractice);
+  }, []);
 
   // A resumed tour displays an explicit Resume button; closing the coach
   // must never restart a tour unexpectedly or mark the practical complete.
@@ -317,6 +334,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setSelectedAnswer(null);
     setQuizFeedback('');
     setMenuOpen(false);
+    if (courseLesson.id === 'staff-rooms' && isFrontDeskStaff) {
+      setActive(null);
+      setCourse({ ...course, stage: 'room-practice', question: 0 });
+      router.push('/rooms');
+      return;
+    }
     setActive({ id: courseLesson.id, index: 0 });
     setCourse({ ...course, stage: 'tour', question: 0 });
     router.push(courseLesson.steps[0]?.path || '/');
@@ -360,6 +383,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   function repeatCourseLesson(lessonId: string) {
     if (!lessons.some(item => item.id === lessonId)) return;
+    if (lessonId === 'staff-rooms') {
+      try { localStorage.removeItem(ROOM_MISSION_PREFIX + identity); } catch { /* local only */ }
+    }
     setActive(null);
     setMenuOpen(false);
     setCourse(current => current ? { ...current, lessonId, stage: 'learn', question: 0, independentStep: 0, reference: undefined,
@@ -544,7 +570,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </details>}
         <div className="ops-course-progress" aria-label="Lesson stages"><span className={course.stage === 'learn' ? 'current' : ''}>1. Read</span>
           <span className={course.stage === 'quiz' ? 'current' : ''}>2. Answer</span>
-          <span className={course.stage === 'done' ? 'current' : ''}>3. Try it</span></div>
+          <span className={course.stage === 'done' ? 'current' : ''}>3. Do the task</span></div>
         {course.stage === 'learn' && <>
           <p className="ops-course-scroll-help">Read the lesson below, then choose Answer two questions. Scroll inside this panel if the button is below the screen.</p>
           <h2 data-testid="course-lesson-title">{courseLesson.title}</h2>
