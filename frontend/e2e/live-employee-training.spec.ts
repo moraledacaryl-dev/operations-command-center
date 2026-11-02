@@ -45,7 +45,7 @@ async function completeReadOnlyLesson(page: import('@playwright/test').Page, les
       await course.getByRole('radio', { name: question.choices[question.correct], exact: true }).check();
       await page.getByTestId('course-check-answer').click();
     }
-    if (lesson.id === 'staff-rooms') {
+    if (lesson.id === 'staff-rooms' && (await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}').role)) === 'staff') {
       const mission = page.getByTestId('frontdesk-room-mission');
       await expect(mission).toContainText('Solace');
       await mission.getByRole('button', { name: 'Help me do it' }).click();
