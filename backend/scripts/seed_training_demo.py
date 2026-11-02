@@ -478,6 +478,95 @@ def ensure_notification_practice_data(db_path: Path, state: Path) -> int:
     return inserted
 
 
+
+def ensure_room_practice_data(db_path: Path, state: Path) -> int:
+    """Add missing named rooms and two fictional reading exercises, without resets.
+
+    Only an already-initialized, private, synthetic desktop training DB qualifies.
+    Never edits or deletes an existing room, guest concern or employee record.
+    """
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from app import models
+    from app.database import SessionLocal
+
+    if os.environ.get("ENVIRONMENT") != "local" or os.environ.get("ALLOW_DEMO_SEED") != "false":
+        raise SystemExit("REFUSED: room practice upgrade is local training only")
+    if os.environ.get("ALLOW_DEFAULT_ADMIN_BOOTSTRAP") != "false":
+        raise SystemExit("REFUSED: default account bootstrap is not permitted")
+    state = state.resolve()
+    db_path = Path(db_path)
+    expected_data = state / "data"
+    if (db_path.is_symlink() or any(part.is_symlink() for part in db_path.parents) or
+            not db_path.is_file() or
+            db_path.parent.resolve() != expected_data.resolve() or
+            not db_path.name.startswith("operations_training_demo_") or db_path.suffix != ".sqlite"):
+        raise SystemExit("REFUSED: room practice upgrade requires private training SQLite")
+    configured = os.environ.get("DATABASE_URL", "")
+    if not configured.startswith("sqlite:///") or Path(configured[10:]).resolve() != db_path.resolve():
+        raise SystemExit("REFUSED: configured training database differs from room practice target")
+    marker = expected_data / ".initialized"
+    roster_file = state / "private" / "accounts" / "PRIVATE_training_accounts.json"
+    if (not marker.is_file() or marker.is_symlink() or
+            not roster_file.is_file() or roster_file.is_symlink()):
+        raise SystemExit("REFUSED: existing fictional installation and roster required")
+    roster = json.loads(roster_file.read_text(encoding="utf-8"))
+    expected_emails = {slug + "@training.invalid" for _, _, slug, _ in PEOPLE}
+    actual_roster_emails = {row.get("email") for row in roster.get("accounts", [])}
+    if roster.get("synthetic") is not True or actual_roster_emails != expected_emails:
+        raise SystemExit("REFUSED: account roster is not the expected fictional dataset")
+
+    inserted = 0
+    with SessionLocal() as db:
+        installed_emails = {email for (email,) in db.query(models.User.email).all()}
+        if not expected_emails.issubset(installed_emails) or any(
+            not isinstance(email, str) or not email.endswith("@training.invalid")
+            for email in installed_emails
+        ):
+            raise SystemExit("REFUSED: room practice target has non-fictional employee accounts")
+        department = db.query(models.Department).filter_by(name="Front Desk").one_or_none()
+        frontdesk = db.query(models.User).filter_by(email="frontdesk-lead@training.invalid").one_or_none()
+        if not department or not frontdesk:
+            raise SystemExit("REFUSED: fictional Front Desk training accounts missing")
+        room_names = ("Solace", "Cafe Suite", "Perch 1", "Perch 2",
+                      "Crown", "Grandeur", "Skyroom", "Twinspire")
+        rooms = {}
+        for name in room_names:
+            room = db.query(models.RoomArea).filter_by(name=name).one_or_none()
+            if room is not None and room.kind != "room":
+                raise SystemExit("REFUSED: existing practice room name belongs to a shared area")
+            if room is None:
+                room = models.RoomArea(name=name, kind="room", status="active",
+                                       note="Practice room name. Guest details and work records are fictional.")
+                db.add(room)
+                db.flush()
+                inserted += 1
+            rooms[name] = room
+        drills = (
+            ("Solace", "Solace AC not cooling", "Room", "Urgent", "Follow",
+             "TRAINING ONLY — the AC is not cooling. Maintenance must check it; Front Desk must update the guest."),
+            ("Perch 1", "Perch 1 towel request", "Request", "Normal", "Open",
+             "TRAINING ONLY — a guest asked for towels. Housekeeping has not confirmed delivery."),
+        )
+        for room_name, title, issue_type, urgency, status, note in drills:
+            title = PREFIX + title
+            existing = db.query(models.GuestNote).filter_by(title=title).one_or_none()
+            if existing is not None:
+                if existing.room_area_id != rooms[room_name].id:
+                    raise SystemExit("REFUSED: existing fictional report linked to wrong room")
+                continue
+            db.add(models.GuestNote(
+                title=title, guest_name="Demo Guest " + room_name,
+                department_id=department.id, room_area_id=rooms[room_name].id,
+                issue_type=issue_type, urgency=urgency, status=status,
+                assigned_to_id=frontdesk.id, follow_up_date=datetime.now(timezone.utc) + timedelta(hours=3),
+                note=note,
+            ))
+            inserted += 1
+        db.commit()
+    return inserted
+
+
 def main() -> None:
     parser=argparse.ArgumentParser()
     parser.add_argument("--confirm",required=True)
