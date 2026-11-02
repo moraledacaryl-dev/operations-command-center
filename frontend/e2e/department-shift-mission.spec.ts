@@ -59,7 +59,7 @@ for (const role of roles) {
     await mission.getByText('Show me an example').click();
     await expect(mission).toContainText('Night handover');
     await mission.getByRole('button', { name: 'Help me do it' }).click();
-    await page.getByRole('button', { name: 'Urgent', exact: true }).click();
+    await page.getByRole('tab', { name: 'Urgent', exact: true }).click();
     await expect(mission).toContainText('Open your department');
     await page.getByRole('button', { name: new RegExp(role.department + ' Night handover #3') }).click();
     await expect(mission).toContainText('Check the saved handover status');
@@ -70,7 +70,7 @@ for (const role of roles) {
     await mission.getByLabel('What status is shown on this handover?').selectOption('Follow');
     await mission.getByRole('button', { name: 'Check my answer' }).click();
     await expect(mission).toContainText('Your turn: Find the PM handover');
-    await page.getByRole('button', { name: 'PM', exact: true }).click();
+    await page.getByRole('tab', { name: 'PM', exact: true }).click();
     await page.getByRole('button', { name: new RegExp(role.department + ' PM handover #2') }).click();
     await expect(mission).toContainText('Your turn: Read its status');
     await page.getByRole('button', { name: 'Close details' }).click();
