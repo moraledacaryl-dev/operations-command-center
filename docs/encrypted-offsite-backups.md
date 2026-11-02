@@ -69,8 +69,10 @@ account caps and storage metrics. The first 10 GB offer is not unlimited free
 retention. Stop for an owner capacity/retention decision rather than raising caps,
 adding billing or deleting evidence automatically.
 
-Each successful job runs Restic's repository metadata/index check. It does not
-read every stored data block hourly or certify restoration. Keep separate actual
+Each successful job confirms the exact cloud snapshot identity. The 03:00 UTC
+source snapshot also runs Restic's repository metadata/index check once daily,
+after the Backblaze daily download-cap reset. The job does not read every stored
+data block or certify restoration. Keep separate actual
 cloud-restore evidence and an owner-approved exercise cadence/RPO/RTO. S3 lock
 removal can leave hidden object versions in B2; with no automatic deletion policy,
 monitor their storage usage as well. Backblaze/Restic's usual lifecycle cleanup

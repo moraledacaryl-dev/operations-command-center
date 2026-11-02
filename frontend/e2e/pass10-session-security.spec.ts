@@ -63,7 +63,10 @@ test('successful browser login persists metadata only and uses cookie transport'
   // Production lands on Today; the isolated native training build intentionally
   // lands directly on /training. Both must retain cookie-only authentication.
   await expect(page).toHaveURL(/\/(?:training)?$/);
-  if (new URL(page.url()).pathname === '/training') await page.goto('/');
+  if (new URL(page.url()).pathname === '/training') {
+    await expect(page.getByRole('heading', { name: 'Practice real decisions in a safe simulation' })).toBeVisible();
+    await page.goto('/');
+  }
   await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible();
 
   const browserStorage = await page.evaluate(() => ({
