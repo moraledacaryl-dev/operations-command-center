@@ -69,7 +69,7 @@ export function TrainerReports({manager}: {manager: Entity}) {
       <span>{records.length} imported trainee report{records.length===1?'':'s'} · {active?'Hide':'Open'} →</span>
     </button>
     {active && <>
-      <p>Ask each staff member to save their training report, then open it here. You can see finished lessons and add a note. Reports stay on this computer and do not change anyone's access.</p>
+      <p>Ask each staff member to save their training report, then open it here. You can see finished lessons and add a note. Reports stay on this computer and do not change anyone&apos;s access.</p>
       <label className="ops-trainer-import">Open a staff training report
         <input type="file" accept=".json,application/json" onChange={event => {
           void importReports(event.target.files?.[0]); event.target.value='';
@@ -89,7 +89,7 @@ export function TrainerReports({manager}: {manager: Entity}) {
         </details>
         <p><strong>Review note:</strong> {item.supervisorNote}</p>
         {item.reviewedAt && <small>Reviewed locally: {item.reviewedAt}</small>}
-        <label>Trainer's notes or practice needed
+        <label>Trainer&apos;s notes or practice needed
           <textarea rows={2} maxLength={600} value={notes[item.report.trainee.id] || ''}
             onChange={event=>setNotes(current=>({...current,[item.report.trainee.id]:event.target.value}))}
             placeholder="Example: Staff member wrote a clear handover note. Please practise maintenance urgency again." />

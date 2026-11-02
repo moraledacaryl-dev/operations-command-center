@@ -244,7 +244,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       </div>
     </>}
     {message && <p className="training-workflow-message" role="status" data-testid="training-workflow-message">{message}</p>}
-    <p className="training-workflow-safe">Use made-up names and details only. This guide checks what you saved in the training app. It cannot save work for you and does not connect to the resort's live system.</p>
+    <p className="training-workflow-safe">Use made-up names and details only. This guide checks what you saved in the training app. It cannot save work for you and does not connect to the resort&apos;s live system.</p>
     {showArrows && !finished && focus && <TrainingSpotlight
       key={session.reference + ':' + session.step + ':' + expectedPath}
       title={focus.title} description={focus.text}

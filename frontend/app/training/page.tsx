@@ -475,7 +475,7 @@ export default function PracticeTrainingPage() {
               ? 'Now choose the urgency below. Use what you noticed in the situation.'
               : 'First, think about what could happen. Then decide how long staff can safely wait.'}</p>
             <details><summary>Not sure? See examples</summary>
-              <p><strong>Routine:</strong> This can wait until normal work hours. Example: updating next week's event checklist.</p>
+              <p><strong>Routine:</strong> This can wait until normal work hours. Example: updating next week&apos;s event checklist.</p>
               <p><strong>High:</strong> This needs attention soon. Example: a guest room cannot be used until a repair is checked.</p>
               <p><strong>Critical:</strong> Someone may be in danger. Example: water near an electrical outlet. Keep people away and call the right person immediately.</p>
               <p><strong>If safety is uncertain:</strong> If something may be dangerous, keep people safe and call a supervisor while the risk is checked.</p>
@@ -518,7 +518,7 @@ export default function PracticeTrainingPage() {
               <input type="text" data-testid="scenario-owner" value={answers.owner || ''}
                 placeholder="e.g., On-duty Maintenance lead"
                 onChange={event => update('owner', event.target.value)} />
-              <small>Use a job title, not a real employee's name.</small>
+              <small>Use a job title, not a real employee&apos;s name.</small>
               {result?.errors.owner && <small className="practice-error" role="alert">{result.errors.owner}</small>}
             </label>
             <label>What should be checked next? Who will confirm it is done?
