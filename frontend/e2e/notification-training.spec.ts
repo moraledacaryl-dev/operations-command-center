@@ -66,7 +66,7 @@ test('ordinary staff mark an actual fictional notification read and verify saved
   await expect(page.getByTestId('notification-practice')).toContainText('Previously verified');
   expect(mutations).toBe(1);
   const downloadPending = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
   const file = await (await downloadPending).path();
   const csv = readFileSync(file!, 'utf8');
   expect(csv).toContain('"staff-notification-read","notification-mark-read","Personal"');

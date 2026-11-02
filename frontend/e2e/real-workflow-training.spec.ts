@@ -371,7 +371,7 @@ test('real linked Guest-to-Maintenance handoff requires both reciprocal links an
 
   await page.goto('/training');
   const downloadEvent = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
   const exported = await downloadEvent;
   expect(exported.suggestedFilename()).toContain('training-progress.csv');
   const csvPath = await exported.path();

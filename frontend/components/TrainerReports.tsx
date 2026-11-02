@@ -69,34 +69,34 @@ export function TrainerReports({manager}: {manager: Entity}) {
       <span>{records.length} imported trainee report{records.length===1?'':'s'} · {active?'Hide':'Open'} →</span>
     </button>
     {active && <>
-      <p>Ask each trainee to export their progress report. Import it here to review lessons, retries and recorded practice. Reports and notes stay on this supervisor device; no accounts or permissions are changed.</p>
-      <label className="ops-trainer-import">Import a trainee progress report
+      <p>Ask each staff member to save their training report, then open it here. You can see finished lessons and add a note. Reports stay on this computer and do not change anyone's access.</p>
+      <label className="ops-trainer-import">Open a staff training report
         <input type="file" accept=".json,application/json" onChange={event => {
           void importReports(event.target.files?.[0]); event.target.value='';
         }} />
       </label>
       {message && <p role="status" className="ops-trainer-message">{message}</p>}
-      {!records.length && <p>No reports imported yet. Open the trainee app, use Export my training progress report, and bring the JSON file here.</p>}
+      {!records.length && <p>No reports added yet. Ask the staff member to choose Save my training report and give you the saved JSON file.</p>}
       {records.map(item=><article key={item.report.trainee.id} className="ops-trainer-record">
         <h3>{item.report.trainee.name} <small>({item.report.trainee.role})</small></h3>
         <p><strong>{item.report.completedLessons.length} lessons reported complete</strong> · Latest: {item.report.currentLesson} ({item.report.currentStage})</p>
         <p>Quiz corrections: {Object.values(item.report.metrics).reduce((sum,m)=>sum+(m.incorrectAnswers||0),0)}
           {' · '}Lesson repeats: {Object.values(item.report.metrics).reduce((sum,m)=>sum+(m.repeats||0),0)}
           {' · '}Practice records reported: {item.report.verifiedPractice.length}</p>
-        <details><summary>Show lesson and practice details</summary>
+        <details><summary>See lessons and practice</summary>
           <p>Completed: {item.report.completedLessons.join(', ')||'None'}</p>
           {item.report.verifiedPractice.map(work=><p key={work.reference}>{work.kind}: {work.reference} ({work.stages} stages reported)</p>)}
         </details>
         <p><strong>Review note:</strong> {item.supervisorNote}</p>
         {item.reviewedAt && <small>Reviewed locally: {item.reviewedAt}</small>}
-        <label>Supervisor observation or additional practice required
+        <label>Trainer's notes or practice needed
           <textarea rows={2} maxLength={600} value={notes[item.report.trainee.id] || ''}
             onChange={event=>setNotes(current=>({...current,[item.report.trainee.id]:event.target.value}))}
-            placeholder="Example: Observed the trainee create a fictional handover correctly; needs another attempt on maintenance priority." />
+            placeholder="Example: Staff member wrote a clear handover note. Please practise maintenance urgency again." />
         </label>
         <button type="button" className="ops-trainer-save" onClick={()=>markReviewed(item.report)}>Save review note locally</button>
       </article>)}
-      <p><strong>Important:</strong> Imported JSON and local course completion markers are editable. A trainer must independently observe sensitive skills. This review never authorizes real work, approves purchases, or updates live payroll/HR.</p>
+      <p><strong>Please note:</strong> Training reports can be edited. Watch the staff member complete important tasks yourself. This review does not give permission to use live records or approve purchases.</p>
     </>}
   </section>;
 }

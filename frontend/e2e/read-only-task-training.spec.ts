@@ -62,7 +62,7 @@ test('ordinary staff inspect an actual saved fictional task without mutation per
   expect(detailReads).toBeGreaterThanOrEqual(2);
   expect(writes).toBe(0);
   const downloadPending = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
   const exported = await downloadPending;
   const file = await exported.path();
   expect(file).toBeTruthy();
@@ -197,7 +197,7 @@ test('staff inspect saved shift handovers in the real interface and export read-
   expect(writes).toBe(0);
 
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
   const file = await (await pending).path();
   const csv = readFileSync(file!, 'utf8');
   expect(csv).toContain('"read-only-handover-inspection","handover-status-urgency","41"');

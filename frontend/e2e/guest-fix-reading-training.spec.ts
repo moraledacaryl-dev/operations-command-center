@@ -63,7 +63,7 @@ test('front desk staff inspect a saved guest matter without editing operational 
   expect(writes).toBe(0);
   expect(reads).toBeGreaterThanOrEqual(2);
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
   const csv = readFileSync((await (await download).path())!, 'utf8');
   expect(csv).toContain('"read-only-guest-inspection","guest-status-urgency","41"');
   expect(csv).toContain('"901"');
@@ -126,7 +126,7 @@ test('maintenance staff inspect a saved work order without verify/repair privile
   expect(writes).toBe(0);
   expect(reads).toBeGreaterThanOrEqual(1);
   const pendingDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
   const csv = readFileSync((await (await pendingDownload).path())!, 'utf8');
   expect(csv).toContain('"read-only-fix-inspection","fix-status-urgency","43"');
   expect(csv).toContain('"902"');

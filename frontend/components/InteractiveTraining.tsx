@@ -526,22 +526,22 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>
           <strong>Lesson {lessonNumber} of {lessons.length}</strong></div>
         {capabilities.manage_department && <details className="ops-course-help">
-          <summary>Supervisor: review trainee progress without skipping your own lesson</summary>
+          <summary>Supervisor: view staff training results</summary>
           <TrainerReports manager={user} />
         </details>}
-        <div className="ops-course-progress" aria-label="Lesson stages"><span className={course.stage === 'learn' ? 'current' : ''}>1. Learn</span>
-          <span className={course.stage === 'quiz' ? 'current' : ''}>2. Check understanding</span>
-          <span className={course.stage === 'done' ? 'current' : ''}>3. Actual-page practice</span></div>
+        <div className="ops-course-progress" aria-label="Lesson stages"><span className={course.stage === 'learn' ? 'current' : ''}>1. Read</span>
+          <span className={course.stage === 'quiz' ? 'current' : ''}>2. Answer</span>
+          <span className={course.stage === 'done' ? 'current' : ''}>3. Try it</span></div>
         {course.stage === 'learn' && <>
           <h2 data-testid="course-lesson-title">{courseLesson.title}</h2>
           <p className="ops-course-explanation">{courseGuide.explanation}</p>
-          <h3>Example — what this looks like at work</h3>
+          <h3>Example at work</h3>
           <p className="ops-course-example">{currentExample}</p>
-          <h3>What not to do</h3>
+          <h3>A mistake to avoid</h3>
           <p className="ops-course-wrong-example">{courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'}</p>
-          <p><strong>Why that would be a problem:</strong> {courseGuide.whyIncorrect || 'Someone might rely on the wrong information or miss unfinished work. Always confirm what happened.'}</p>
+          <p><strong>Why it matters:</strong> {courseGuide.whyIncorrect || 'Check what happened before telling someone that the work is finished.'}</p>
           {courseGuide.branches?.[0] && <div className="ops-course-branch" data-testid="course-situation-branch">
-            <h3>What if the situation changes?</h3>
+            <h3>What would you do if this happened?</h3>
             <p>{courseGuide.branches[0].question}</p>
             <div className="ops-course-choices">{courseGuide.branches[0].choices.map((option,i) =>
               <label key={option} className={branchAnswer===i?'selected':''}>
@@ -550,20 +550,20 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
               </label>)}</div>
             {branchExplained && <p role="status">{branchAnswer===courseGuide.branches[0].correct?'Good thinking. ':'Think again: '}{courseGuide.branches[0].response}</p>}
             <button type="button" className="ops-course-quiet" disabled={branchAnswer===null}
-              onClick={()=>setBranchExplained(true)}>Explain this situation</button>
+              onClick={()=>setBranchExplained(true)}>Check this answer</button>
           </div>}
           <p><strong>Remember:</strong> {courseGuide.remember}</p>
-          <p className="ops-course-next-explainer">Next: Answer two short questions. Then practise on the actual fictional Operations pages. You must perform the actions yourself.</p>
+          <p className="ops-course-next-explainer">Next: Answer two questions. Then use the practice app yourself. Follow the arrows to find the right buttons.</p>
           <details className="ops-course-help">
-            <summary>Having trouble? Resume or restore on another computer</summary>
-            <p>Close and reopen the app to continue on this device. If a practice form gets stuck, restart this lesson; previously finished lessons stay recorded. Export a report to keep a local copy. On another device, read-only lessons can be restored, but tasks and other saved work must be redone.</p>
-            <label>Restore a report for this practice login
+            <summary>Need help with this lesson?</summary>
+            <p>You can close the app and continue later on this computer. If a page gets stuck, restart the lesson. Finished lessons are kept. You can save your report as a backup. On a different computer, you can bring back lessons you read, but you must practise saved work again.</p>
+            <label>Use a saved report for this login
               <input type="file" accept=".json,application/json" onChange={event=>{void restoreTrainingProgress(event.target.files?.[0]);event.target.value='';}} />
             </label>
             {restoreMessage && <p role="status">{restoreMessage}</p>}
           </details>
           <button type="button" className="ops-course-primary" data-testid="course-start-quiz"
-            onClick={() => { setCourse({ ...course, stage: 'quiz', question: 0 }); setQuizFeedback(''); }}>I understand — take the quiz →</button>
+            onClick={() => { setCourse({ ...course, stage: 'quiz', question: 0 }); setQuizFeedback(''); }}>Answer two questions →</button>
         </>}
         {course.stage === 'quiz' && quizItem && <>
           <h2>{courseLesson.title}</h2>
@@ -577,17 +577,17 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
             </label>)}</div>
           {quizFeedback && <p className="ops-course-feedback" role="alert">{quizFeedback}</p>}
           <button type="button" className="ops-course-primary" data-testid="course-check-answer"
-            disabled={selectedAnswer === null} onClick={answerQuiz}>Check my answer →</button>
-          <button type="button" className="ops-course-quiet" onClick={() => { setCourse({ ...course, stage: 'learn', question: 0 }); setSelectedAnswer(null); setQuizFeedback(''); }}>Read lesson again</button>
+            disabled={selectedAnswer === null} onClick={answerQuiz}>Check answer →</button>
+          <button type="button" className="ops-course-quiet" onClick={() => { setCourse({ ...course, stage: 'learn', question: 0 }); setSelectedAnswer(null); setQuizFeedback(''); }}>Read the lesson again</button>
         </>}
         {course.stage === 'done' && <>
           <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
-          <p>You finished the explanation, answered the quiz, and completed guided and independent practice on the actual fictional app pages{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
-          <p>Done lessons can be repeated without removing earlier completion results.</p>
+          <p>You finished the lesson, answered the questions, and practised using the app{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
+          <p>You can repeat this lesson at any time. Your earlier results will stay saved.</p>
           <button type="button" className="ops-course-quiet" data-testid="export-training-report"
-            onClick={exportTrainingProgress}>Export my progress report</button>
+            onClick={exportTrainingProgress}>Save my training report</button>
           <button type="button" className="ops-course-primary" data-testid="course-next-lesson"
-            onClick={startNextLesson}>{lessonNumber < lessons.length ? 'Continue to Lesson ' + (lessonNumber + 1) + ' →' : 'Review completed lessons'}</button>
+            onClick={startNextLesson}>{lessonNumber < lessons.length ? 'Go to Lesson ' + (lessonNumber + 1) + ' →' : 'See finished lessons'}</button>
           <button type="button" className="ops-course-quiet" data-testid="course-repeat-lesson" onClick={() => repeatCourseLesson(course.lessonId)}>↻ Repeat this lesson</button>
         </>}
       </section>
@@ -595,43 +595,43 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     {course?.stage === 'tour' && !active && <div className="ops-course-backdrop">
       <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
         <h2>Continue your actual-page practice</h2>
-        <p>The lesson is not finished yet. Reopen the guided steps to practise on the real fictional Operations pages.</p>
+        <p>You still have steps to finish. Open the practice screen and follow the arrows.</p>
         <button type="button" className="ops-course-primary" onClick={() => setActive({ id: course.lessonId, index: 0 })}>Resume practical lesson →</button>
       </section>
     </div>}
     {course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
       data-testid="course-independent-challenge" role="status">
-      <strong>Final practice · {1 + (course.independentStep || 0)} of 2 — No arrows</strong>
+      <strong>Your turn · {1 + (course.independentStep || 0)} of 2 — No arrows</strong>
       <span>{independentAction.title}: {independentAction.instruction}</span>
-      <small>You must use the real control on this page. Reading this instruction is not enough to pass.</small>
-      <button type="button" onClick={() => router.push(independentAction.path)}>Take me to the correct screen</button>
-      <button type="button" onClick={restartCurrentLessonSafely}>Restart this lesson from the beginning (no pass given)</button>
+      <small>Find and click the button yourself to finish this step.</small>
+      <button type="button" onClick={() => router.push(independentAction.path)}>Open the right screen</button>
+      <button type="button" onClick={restartCurrentLessonSafely}>Start this lesson again</button>
     </div>}
     {course?.stage === 'work' && <div className="ops-course-work-status" data-testid="course-await-work" role="status">
       <strong>Lesson {lessonNumber}: Actual-page practice</strong>
-      <span>Follow the arrows on the real form. Save your fictional work, then use Check saved work. The next lesson unlocks only after verification.</span>
-      <button type="button" className="ops-course-restart" onClick={restartCurrentLessonSafely}>Something is stuck? Restart this lesson safely</button>
+      <span>Follow the arrows and save your practice record. Then click Check saved work. You can go to the next lesson after the app checks your work.</span>
+      <button type="button" className="ops-course-restart" onClick={restartCurrentLessonSafely}>Page not working? Start lesson again</button>
     </div>}
     {menuOpen && !active && <div className="ops-guide-library-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setMenuOpen(false); }}>
       <section ref={libraryRef} className="ops-guide-library" role="dialog" aria-modal="true" aria-label="Interactive staff training" tabIndex={-1}>
         <header className="ops-guide-library-header">
-          <div><span className="ops-guide-eyebrow">OPERATIONS LEARNING CENTER</span><h2>Interactive training</h2><p>Follow highlighted controls on the real app. Your available lessons match your system permissions.</p></div>
+          <div><span className="ops-guide-eyebrow">HIDDEN OASIS · STAFF TRAINING</span><h2>Interactive training</h2><p>Choose a lesson. Follow the arrows and practise on the same screens you will use at work.</p></div>
           <button type="button" className="ops-guide-close" aria-label="Close training" onClick={() => setMenuOpen(false)}>×</button>
         </header>
         {helpMessage && <p className="ops-guide-success" role="status">{helpMessage}</p>}
-        <p className="ops-guide-safety"><strong>Safe practice:</strong> Lessons never save, approve, or publish automatically. Use only an isolated demo workspace to submit fictional practice records.</p>
+        <p className="ops-guide-safety"><strong>Practice only:</strong> Use made-up details. The lessons do not approve or publish anything for you, and nothing here changes live resort records.</p>
         <div className="ops-guide-course-summary" data-testid="course-progress-summary">
           <strong>{course?.passed.length || 0} of {lessons.length} lessons completed</strong>
-          <p>Lessons are in order. Finished lessons can be repeated as often as needed.</p>
+          <p>Start with your current lesson. You can repeat finished lessons whenever you want.</p>
         </div>
         <div className="ops-guide-report-actions">
           <button type="button" className="ops-guide-repeat-course" data-testid="export-training-progress"
-            onClick={exportTrainingProgress}>Export my training progress report</button>
-          <label className="ops-course-import">Restore from report (same practice login)
+            onClick={exportTrainingProgress}>Save my training report</button>
+          <label className="ops-course-import">Open a saved report (same login)
             <input type="file" accept=".json,application/json" data-testid="restore-training-progress"
               onChange={event=>{void restoreTrainingProgress(event.target.files?.[0]);event.target.value='';}} />
           </label>
-          <span>Exports can be shared with a trainer. Restoring only brings back read-only lesson history; saved-record skills require new practice on this device. This is not a certificate.</span>
+          <span>You can show the report to your trainer. It only brings back lessons you read; you must repeat saved-work practice on this computer. The report is not an approval to work on live records.</span>
           {restoreMessage && <p role="status" data-testid="restore-progress-feedback">{restoreMessage}</p>}
         </div>
         {capabilities.manage_department && <TrainerReports manager={user} />}
@@ -645,18 +645,18 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
                 else begin(item.id);
               }}>
             <span className="ops-guide-lesson-title">{item.title}{course?.passed.includes(item.id) ? <span className="ops-guide-done">Lesson complete</span>
-              : course?.lessonId === item.id ? <span className="ops-guide-done">Your current lesson</span>
-              : course ? <span className="ops-guide-done">Locked until previous lesson</span>
+              : course?.lessonId === item.id ? <span className="ops-guide-done">Start here</span>
+              : course ? <span className="ops-guide-done">Finish the earlier lesson first</span>
               : complete.includes(item.id) ? <span className="ops-guide-done">Tour viewed</span> : null}</span>
             <span className="ops-guide-lesson-description">{item.summary}</span>
-            <span className="ops-guide-lesson-meta">{item.steps.length} real-screen steps · {course?.passed.includes(item.id) ? 'Review practical tour' : 'Learn, quiz, then practise'}</span>
+            <span className="ops-guide-lesson-meta">{item.steps.length} steps · {course?.passed.includes(item.id) ? 'See the steps again' : 'Read, answer, then try'}</span>
             </button>
             {course?.passed.includes(item.id) && <button type="button" className="ops-guide-repeat-course"
-              onClick={() => repeatCourseLesson(item.id)}>↻ Repeat full lesson + quiz</button>}
+              onClick={() => repeatCourseLesson(item.id)}>↻ Repeat lesson</button>}
           </div>)}
         </div>
-        <p className="ops-guide-footer-note"><button type="button" className="ops-guide-more" onClick={() => { setMenuOpen(false); router.push('/training'); }}>Optional: situational decision practice and progress</button></p>
-        <p className="ops-guide-footer-note">Lessons are in order. Staff must finish the short quiz and actual-screen practice before moving to the next lesson. Local markers are not staff certification.</p>
+        <p className="ops-guide-footer-note"><button type="button" className="ops-guide-more" onClick={() => { setMenuOpen(false); router.push('/training'); }}>More practice: work situations</button></p>
+        <p className="ops-guide-footer-note">Finish each lesson and its practice before moving on. A training report is not approval to work on live records.</p>
       </section>
     </div>}
 
@@ -669,21 +669,21 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       </svg>}
       <section ref={tipRef} className="ops-guide-tip" role="dialog" aria-modal="false"
         aria-label={`Training step ${stepIndex + 1} of ${lesson.steps.length}`} style={popupStyle(position, tipPosition?.height)}>
-        <div className="ops-guide-tip-top"><span>REAL-PAGE PRACTICE · STEP {stepIndex + 1} / {lesson.steps.length}</span><button type="button" onClick={exit} aria-label="Exit walkthrough">Pause ×</button></div>
+        <div className="ops-guide-tip-top"><span>FOLLOW THE ARROW · STEP {stepIndex + 1} OF {lesson.steps.length}</span><button type="button" onClick={exit} aria-label="Exit walkthrough">Pause ×</button></div>
         <div className="ops-guide-progress" aria-hidden="true"><span style={{ width: `${(stepIndex + 1) / lesson.steps.length * 100}%` }} /></div>
         <h2>{step.title}</h2>
         <p>{step.body}</p>
         {path !== step.path ? <p className="ops-guide-hint">Opening the correct page…</p>
-          : !targetFound ? <p className="ops-guide-hint">This control is not visible yet. Check the page or continue to the next step.</p>
-          : step.requiresAction ? <p className="ops-guide-hint">↖ Click the highlighted link yourself to continue. This is how you will navigate at work.</p>
-          : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted control, or select Next to continue.</p>
-          : <p className="ops-guide-hint">↖ Look at the highlighted area, then select Next.</p>}
+          : !targetFound ? <p className="ops-guide-hint">The button is not showing yet. Check that you are on the right page.</p>
+          : step.requiresAction ? <p className="ops-guide-hint">↖ Click the highlighted link to continue.</p>
+          : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted button, or choose Next.</p>
+          : <p className="ops-guide-hint">↖ Look where the arrow points, then choose Next.</p>}
         <div className="ops-guide-actions">
           <button type="button" className="ops-guide-button-secondary" onClick={previous} disabled={stepIndex === 0}>Back</button>
           <button type="button" className="ops-guide-button-primary" onClick={() => next()}
             disabled={Boolean(step.requiresAction && (course?.stage === 'tour' || targetFound))}>{step.requiresAction ? 'Click highlighted link →' : atLastStep ? 'Finish practice' : 'Next →'}</button>
         </div>
-        <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>Lesson list (progress stays)</button>
+        <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>See lesson list</button>
       </section>
     </>}
   </>;

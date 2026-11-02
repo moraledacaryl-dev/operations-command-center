@@ -81,9 +81,9 @@ export function TrainingNotificationPractice({ user }: { user: Entity }) {
         try {
           sessionStorage.setItem(notificationTrainingKey(user) + ':pending', String(selected.id));
         } catch { /* The lesson can continue without a bookmark. */ }
-      } else setMessage('No unread fictional practice notice is available. If you already marked both read, your result remains saved. Otherwise reopen this training launcher to check the local sample data.');
+      } else setMessage('No unread fictional practice notice is available. If you finished this already, your result is saved. Otherwise close and reopen the training app.');
     } catch {
-      setMessage('Could not reach your fictional notification inbox. Check the local training service and your login.');
+      setMessage('Could not open practice notifications. Check that the training app is running and you are signed in.');
     } finally { setBusy(false); }
   }
 
@@ -94,15 +94,15 @@ export function TrainingNotificationPractice({ user }: { user: Entity }) {
     try {
       const updated = await findTrainingNotice(Number(notice.id));
       if (!updated) {
-        setMessage('The selected practice notice could not be retrieved. It may have been dismissed; start a new practice notice.');
+        setMessage('This notice is no longer available. Start another practice notice.');
       } else if (!updated.read_at || !Number.isFinite(Date.parse(String(updated.read_at)))) {
-        setMessage('The saved notice is still unread. Open Notifications, find the exact title, and click Mark read before checking again.');
+        setMessage('The notice is still unread. Open Notifications, find the title shown here, and click Mark read. Then check again.');
       } else {
         const evidence: NotificationTrainingEvidence = {
           notificationId: Number(notice.id), completedAt: new Date().toISOString(),
         };
         setCompleted(evidence);
-        setMessage('Verified: your fictional notification is marked read in the actual local Operations database.');
+        setMessage('Verified: this practice notice is saved as read.');
         try {
           localStorage.setItem(notificationTrainingKey(user), JSON.stringify(evidence));
           sessionStorage.removeItem(notificationTrainingKey(user) + ':pending');
@@ -110,25 +110,25 @@ export function TrainingNotificationPractice({ user }: { user: Entity }) {
         } catch { /* Evidence remains visible for this session. */ }
       }
     } catch {
-      setMessage('Unable to verify the saved notification. Check the local service and try again.');
+      setMessage('Could not check the notice. Make sure the training app is running and try again.');
     } finally { setBusy(false); }
   }
 
-  return <section className="practice-record-lookup" data-testid="notification-practice" aria-label="Notification acknowledgement practice">
-    <p className="practice-eyebrow">STAFF-SAFE SAVED ACTION</p>
-    <h2>Read and acknowledge a notification</h2>
-    <p>Use your own fictional staff account. This exercise changes only the <strong>read status</strong> of a fictional notice, not a work item or its approval.</p>
+  return <section className="practice-record-lookup" data-testid="notification-practice" aria-label="Practice reading a notification">
+    <p className="practice-eyebrow">PRACTICE · NOTIFICATIONS</p>
+    <h2>Read a notice and mark it read</h2>
+    <p>Use your own practice login. This changes only whether a made-up notice shows as read. It does not finish or approve a job.</p>
     {completed && <p className="practice-record-result" role="status">Previously verified: {new Date(completed.completedAt).toLocaleDateString('en-PH')}. You can repeat it if another unread practice notice remains.</p>}
     {notice ? <>
       <p><strong>Find this notice:</strong> <code data-testid="notification-practice-title">{String(notice.title)}</code></p>
-      <p>1. Open <Link href="/notifications" target="_blank" rel="noopener noreferrer">Notifications in a separate tab</Link>, find the exact notice, read it, and click <strong>Mark read</strong>.</p>
-      <p>2. Return here and check the saved read status. Do not dismiss the notice or use another employee&apos;s login.</p>
+      <p>1. Open <Link href="/notifications" target="_blank" rel="noopener noreferrer">Notifications in a separate tab</Link>, find this title, and click <strong>Mark read</strong>.</p>
+      <p>2. Come back here and click Check read status. Do not remove the notice or use another employee&apos;s login.</p>
       <div className="practice-actions">
-        <button type="button" className="practice-primary" data-testid="notification-practice-check" disabled={busy} onClick={() => void verify()}>{busy ? 'Checking saved notice…' : 'Verify saved read status'}</button>
+        <button type="button" className="practice-primary" data-testid="notification-practice-check" disabled={busy} onClick={() => void verify()}>{busy ? 'Checking notice…' : 'Check read status'}</button>
         <button type="button" className="practice-secondary" disabled={busy} onClick={() => void start()}>Choose another unread notice</button>
       </div>
-    </> : <button type="button" className="practice-primary" data-testid="notification-practice-start" disabled={busy} onClick={() => void start()}>{busy ? 'Opening practice…' : 'Start notification practice'}</button>}
+    </> : <button type="button" className="practice-primary" data-testid="notification-practice-start" disabled={busy} onClick={() => void start()}>{busy ? 'Opening practice…' : 'Start notice practice'}</button>}
     {message && <p className="practice-record-result" data-testid="notification-practice-feedback" role="status">{message}</p>}
-    <small>Database read-back confirms the notice&apos;s saved read status, but device-local completion is not a signed certification or proof of who clicked the button. Production is never contacted.</small>
+    <small>The app checks the saved notice. This is only practice on this computer; it does not approve anyone to use the live system.</small>
   </section>;
 }

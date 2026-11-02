@@ -240,3 +240,17 @@
 .practice-simple-words dl > div { background: #fff; border: 1px solid #d3e3d7; border-radius: 9px; padding: 10px 12px; }
 .practice-simple-words dt { font-weight: 800; color: #185b40; font-size: 14px; }
 .practice-simple-words dd { margin: 3px 0 0; line-height: 1.55; font-size: 13px; color: #35483d; }
+
+/* Keep the main practice page focused. Extra results are available on demand. */
+.practice-progress-more { font-size: 12px; color: #435b4f; }
+.practice-progress-more summary { cursor: pointer; font-weight: 700; padding: 7px 0; }
+.practice-progress-more small { display: block; padding: 3px 0 3px 9px; line-height: 1.45; }
+.practice-progress-more summary:focus-visible { outline: 3px solid #8dbfa5; outline-offset: 2px; }
+.practice-form label, .practice-record-answers label { line-height: 1.55; }
+.practice-form select, .practice-form input[type="text"], .practice-form textarea,
+.practice-record-answers select { font-size: 16px; }
+.practice-help summary, .practice-progress-more summary { min-height: 34px; }
+@media (max-width: 700px) {
+  .practice-steps span { font-size: 12px; padding: 9px; }
+  .practice-record-lookup button, .practice-actions .practice-primary { min-height: 48px; }
+}

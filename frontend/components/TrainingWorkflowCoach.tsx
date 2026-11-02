@@ -145,7 +145,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       setSession(next);
       window.dispatchEvent(new Event(WORKFLOW_CHANGED));
     } catch (err: unknown) {
-      setMessage('Training could not verify the saved record. Check that the local training service is open and that you are signed in, then try again. ' +
+      setMessage('We could not check the saved work. Make sure the training app is open and you are signed in, then try again. ' +
         (err instanceof Error ? err.message : ''));
     } finally {
       setBusy(false);
@@ -165,7 +165,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   function repeatWorkflow() {
     if (!session || busy) return;
     if (requiredCoursePractice()) {
-      setMessage('This practice is required for the current lesson. Finish it first; you can repeat the whole lesson afterward without losing your earlier results.');
+      setMessage('Finish this practice before starting again. Your earlier results will be kept.');
       return;
     }
     const next: TrainingWorkflowSession = {
@@ -177,14 +177,14 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       localStorage.setItem(storageKey, JSON.stringify(next));
       setSession(next);
       setShowArrows(true);
-      setMessage('Fresh lesson started. Use the NEW unique reference; previous results are preserved.');
+      setMessage('New practice started. Use the new practice number shown below. Your earlier results are saved.');
       window.dispatchEvent(new Event(WORKFLOW_CHANGED));
-    } catch { setMessage('Unable to restart the practice lesson because local storage is unavailable.'); }
+    } catch { setMessage('Could not restart this practice. Close and reopen the training app, then try again.'); }
   }
 
   function endSession() {
     if (requiredCoursePractice()) {
-      setMessage('You cannot skip this lesson’s saved-work practice. Continue on the highlighted page and choose Check saved work when ready.');
+      setMessage('This step is required. Follow the arrow and choose Check saved work after you finish.');
       return;
     }
     try { localStorage.removeItem(storageKey); } catch { /* no remote mutation */ }
@@ -194,24 +194,24 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   }
 
   return <section className="training-workflow-coach" data-testid="training-workflow-coach"
-    aria-label="Interactive practice coach">
+    aria-label="Practice step guide">
     <div className="training-workflow-header">
       <div>
-        <span className="training-workflow-kicker">FICTIONAL HANDS-ON TRAINING</span>
+        <span className="training-workflow-kicker">PRACTICE ONLY · MADE-UP RECORDS</span>
         <h2>{definition.name}</h2>
         <p>{finished
           ? 'All required record changes were verified in the local training database.'
           : `Stage ${session.step + 1} of ${definition.stages.length}: ${currentStage}`}</p>
       </div>
       <div className="training-workflow-header-actions">
-        <Link href="/training" className="btn small secondary">Training catalog</Link>
+        <Link href="/training" className="btn small secondary">All practice lessons</Link>
         <button type="button" className="btn small secondary" data-testid="repeat-real-workflow" onClick={repeatWorkflow} disabled={busy}>↻ Repeat lesson</button>
         <button type="button" className="btn small secondary" data-testid="show-workflow-arrows" onClick={() => setShowArrows(value => !value)}>{showArrows ? 'Hide arrows' : 'Show arrows'}</button>
         <button type="button" className="btn small secondary" onClick={endSession}>
-          {finished ? 'Close coach' : 'Exit exercise'}</button>
+          {finished ? 'Close guide' : 'Leave practice'}</button>
       </div>
     </div>
-    <p className="training-workflow-reference"><strong>Use this exact reference in the title:</strong>{' '}
+    <p className="training-workflow-reference"><strong>Put this practice number in the title:</strong>{' '}
       <code data-testid="training-workflow-reference">{session.reference}</code>
       <button type="button" className="btn small secondary" onClick={() => {
         if (navigator.clipboard?.writeText) {
@@ -219,20 +219,19 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         } else setMessage('Select and copy the reference shown above.');
       }}>Copy</button>
     </p>
-    {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>DO THIS NOW →</strong> {focus?.text}</p>}
+    {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>Next step:</strong> {focus?.text}</p>}
     {!finished && session.step === 0 && <p className="training-workflow-safe" data-testid="workflow-risk-explanation">
-      <strong>How to judge urgency:</strong> What is at stake if no one acts? How soon could the consequence happen? Routine can wait for planned work; High requires prompt ownership because the impact matters; Critical demands immediate protection or exceptional escalation. Actual form labels may vary (Normal / Urgent). Use the same thinking and seek qualified help for an uncertain safety hazard.
+      <strong>How urgent is it?</strong> What is at stake if no one acts? How soon could someone be affected? Routine can wait for planned work. High needs help soon. Critical means someone may be in danger: keep people safe and call a supervisor immediately. The form may say Normal or Urgent instead.
     </p>}
     {finished ? <p className="training-workflow-finished" role="status">
-      Verified practice complete. This is not an employment competency certification; supervisor sign-off and independent real-workflow testing remain separate.
+      Practice finished. The app checked your saved work. A supervisor still needs to check your skills before you use the live system.
     </p> : <>
       <ol className="training-workflow-instructions">
         {instructions.map(item => <li key={item}>{item}</li>)}
       </ol>
       <p className="training-workflow-modal-help">
-        After saving or updating an open record, select <strong>Close</strong> in its details panel.
-        Then use <strong>Check saved work</strong> here. Closing a details panel does not
-        undo your saved action.
+        After you save or change a record, click <strong>Close</strong> on its details.
+        Then click <strong>Check saved work</strong> here. Your saved changes will stay.
       </p>
       <div className="training-workflow-buttons">
         {!onModule ? <Link className="btn" data-testid="training-open-module" href={expectedPath}>
@@ -245,15 +244,15 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       </div>
     </>}
     {message && <p className="training-workflow-message" role="status" data-testid="training-workflow-message">{message}</p>}
-    <p className="training-workflow-safe">All records must be fictional. No production database, guest details or external integrations are permitted. The coach only reads records to verify your actions; it cannot save them for you.</p>
+    <p className="training-workflow-safe">Use made-up names and details only. This guide checks what you saved in the training app. It cannot save work for you and does not connect to the resort's live system.</p>
     {showArrows && !finished && focus && <TrainingSpotlight
       key={session.reference + ':' + session.step + ':' + expectedPath}
       title={focus.title} description={focus.text}
-      stepLabel={'REAL OPERATIONS • STAGE ' + (session.step + 1) + ' / ' + definition.stages.length}
+      stepLabel={'PRACTICE STEP ' + (session.step + 1) + ' OF ' + definition.stages.length}
       targets={focus.targets} onClose={() => setShowArrows(false)} />}
     {showArrows && finished && <TrainingSpotlight
-      title="Lesson finished — you can practise it again"
-      description="The saved record changes passed the training backend checks. You can repeat with a fresh fictional reference and your earlier completion remains recorded."
+      title="You finished this practice"
+      description="The app checked your changes. You can practise again with a new practice number. Your earlier results will stay saved."
       stepLabel="COMPLETED" targets={[{ selector: '[data-testid="repeat-real-workflow"]' }]}
       onRepeat={repeatWorkflow} onClose={() => setShowArrows(false)} />}
   </section>;

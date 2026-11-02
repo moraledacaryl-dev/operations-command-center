@@ -17,7 +17,7 @@ import type { TrainingInspectionKind } from '@/lib/training-observations';
 const DRILLS = {
   task: {
     resource: 'tasks', path: '/tasks', screen: 'Tasks',
-    title: 'Find and inspect a saved task', subject: 'task',
+    title: 'Find a saved task', subject: 'task',
     statuses: ['To Do', 'Doing', 'Review', 'Done'],
     values: ['Low', 'Normal', 'High', 'Urgent'],
     field: 'priority', valueLabel: 'Recorded priority',
@@ -25,7 +25,7 @@ const DRILLS = {
   },
   handover: {
     resource: 'shift-notes', path: '/shift', screen: 'Shift Handover',
-    title: 'Find and inspect a saved handover', subject: 'handover',
+    title: 'Find a handover note', subject: 'handover',
     statuses: ['New', 'Seen', 'Follow', 'Done'],
     values: ['Low', 'Normal', 'Urgent'],
     field: 'urgency', valueLabel: 'Recorded urgency',
@@ -33,7 +33,7 @@ const DRILLS = {
   },
   guest: {
     resource: 'guests', path: '/guests', screen: 'Guest Matters',
-    title: 'Inspect a real fictional guest concern', subject: 'guest matter',
+    title: 'Find a guest concern', subject: 'guest matter',
     statuses: ['Open', 'Follow', 'Done'],
     values: ['Low', 'Normal', 'High', 'Urgent'],
     field: 'urgency', valueLabel: 'Recorded urgency',
@@ -41,7 +41,7 @@ const DRILLS = {
   },
   fix: {
     resource: 'fixes', path: '/fixes', screen: 'Maintenance',
-    title: 'Inspect a saved maintenance work order', subject: 'maintenance work order',
+    title: 'Find a maintenance job', subject: 'maintenance work order',
     statuses: ['Open', 'Working', 'Done', 'Verified'],
     values: ['Low', 'Normal', 'High', 'Urgent'],
     field: 'urgency', valueLabel: 'Recorded urgency',
@@ -132,13 +132,13 @@ export function TrainingRecordLookup({
     try {
       const records = await api.listAll(drill.resource, { active: true, department_id: departmentId });
       if (getCurrentDepartmentId(user) !== departmentId) {
-        setFeedback('Department changed during the lookup. Start again in the selected workspace.');
+        setFeedback('You changed departments. Select the right department and start again.');
         return;
       }
       const available = records.filter(item => permittedTrainingRecord(item, departmentId, kind));
       if (!available.length) {
         setFeedback('No accessible fictional training ' + drill.subject +
-          ' was found in this department. Confirm the selected workspace or ask your trainer.');
+          ' was found in this department. Check the department or ask your trainer.');
         return;
       }
       const next = available[Math.floor(Math.random() * available.length)];
@@ -147,7 +147,7 @@ export function TrainingRecordLookup({
       setValue('');
       try { sessionStorage.setItem(key + ':record', String(next.id)); } catch { /* fine */ }
     } catch {
-      setFeedback('Could not read local training records. Confirm the training service is running and you are signed in.');
+      setFeedback('Could not open the practice records. Check that the training app is open and you are signed in.');
     } finally {
       setBusy(false);
     }
@@ -160,47 +160,47 @@ export function TrainingRecordLookup({
     try {
       const saved = await api.get(drill.resource, record.id);
       if (getCurrentDepartmentId(user) !== departmentId) {
-        setFeedback('The workspace changed while checking. Reopen the exercise in the selected department.');
+        setFeedback('You changed departments. Open the practice again in the correct department.');
         return;
       }
       if (!permittedTrainingRecord(saved, departmentId, kind) ||
           String(saved.title) !== String(record.title)) {
-        setFeedback('This record is no longer accessible or its details changed. Start a new investigation.');
+        setFeedback('This record changed or is no longer available. Start again with another record.');
         return;
       }
       if (status !== saved.status || value !== saved[drill.field]) {
         setFeedback('One or both details do not match the saved ' + drill.subject +
-          '. Reopen it in ' + drill.screen + ' and check again.');
+          '. Open it in ' + drill.screen + ' and check again.');
         return;
       }
       const now = new Date().toISOString();
       setCompletedAt(now);
       setFeedback('Correct: both answers match the actual saved fictional ' + drill.subject +
-        '. You inspected operational data without changing it.');
+        '. You checked the saved details without changing the record.');
       try {
         localStorage.setItem(key, JSON.stringify({ completedAt: now, recordId: saved.id }));
         window.dispatchEvent(new Event(TASK_INSPECTION_CHANGED));
       } catch { /* Progress stays visible in this session. */ }
     } catch {
-      setFeedback('Verification could not reach the training database. Retry after checking the training service.');
+      setFeedback('Could not check the answer. Make sure the training app is running, then try again.');
     } finally {
       setBusy(false);
     }
   }
 
-  return <section className="practice-record-lookup" data-testid={'training-' + (kind === 'task' ? 'record' : kind) + '-lookup'} aria-label={'Read-only ' + drill.subject + ' investigation'}>
+  return <section className="practice-record-lookup" data-testid={'training-' + (kind === 'task' ? 'record' : kind) + '-lookup'} aria-label={'Find a practice ' + drill.subject}>
     <div>
-      <p className="practice-eyebrow">STAFF-SAFE PRACTICAL EXERCISE</p>
+      <p className="practice-eyebrow">PRACTICE · READ A RECORD</p>
       <h2>{drill.title}</h2>
-      <p>Use the actual Operations {drill.screen} screen to investigate one fictional {drill.subject}. All roles can practise reading records; only authorized roles can edit them.</p>
+      <p>Open {drill.screen} and find a made-up {drill.subject}. Read its details, then answer two questions here. This practice does not change the record.</p>
       {completedAt ? <p className="practice-record-result" role="status">Previously completed: {new Date(completedAt).toLocaleDateString('en-PH')}. You can repeat the exercise.</p> : null}
     </div>
     {!record ? <button type="button" className="practice-primary" onClick={() => void start()} disabled={busy || !departmentId} data-testid={prefix + '-start'}>
-      {busy ? 'Finding a ' + drill.subject + '…' : 'Start ' + drill.subject + ' investigation'}
+      {busy ? 'Finding a ' + drill.subject + '…' : 'Find a ' + drill.subject}
     </button> : <>
-      <p><strong>Find this exact fictional {drill.subject}:</strong> <code data-testid={prefix + '-title'}>{String(record.title)}</code></p>
-      <p>1. Open <Link href={drill.path} target="_blank" rel="noopener noreferrer">{drill.screen} in a separate tab</Link> and find this title in the selected department. Open its card to inspect the record. If the item is completed or verified, choose the screen&apos;s All filter.</p>
-      <p>2. Return here. Choose the saved details, not what you think the values should be.</p>
+      <p><strong>Look for this {drill.subject}:</strong> <code data-testid={prefix + '-title'}>{String(record.title)}</code></p>
+      <p>1. Open <Link href={drill.path} target="_blank" rel="noopener noreferrer">{drill.screen} in a separate tab</Link>. Find this title in your department and open it. If it is not shown, choose the All filter.</p>
+      <p>2. Come back here and choose what the saved record says.</p>
       <div className="practice-record-answers">
         <label>Current {drill.subject} status
           <select data-testid={prefix + '-status'} value={status} onChange={event => setStatus(event.target.value)}>
@@ -217,12 +217,12 @@ export function TrainingRecordLookup({
       </div>
       <div className="practice-actions">
         <button type="button" className="practice-primary" data-testid={prefix + '-check'} disabled={!status || !value || busy} onClick={() => void check()}>
-          {busy ? 'Checking saved ' + drill.subject + '…' : 'Check against saved ' + drill.subject}
+          {busy ? 'Checking…' : 'Check my answers'}
         </button>
         <button type="button" className="practice-secondary" disabled={busy} onClick={() => void start()}>Try another {drill.subject}</button>
       </div>
     </>}
     {feedback ? <p className="practice-record-result" data-testid={prefix + '-feedback'} role="status">{feedback}</p> : null}
-    <small>This read-only drill does not certify that work was performed or that the record was opened. No fictional record is changed and no production data is accessed.</small>
+    <small>This practice checks whether your answers match. It does not change any records or give permission to use the live system.</small>
   </section>;
 }
