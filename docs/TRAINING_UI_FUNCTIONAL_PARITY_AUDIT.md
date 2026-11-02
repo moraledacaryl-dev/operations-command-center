@@ -61,3 +61,5 @@
 - General Operations browser regression tests explicitly seed a *fully completed fictional curriculum* to test underlying app features without the first-login teaching overlay. These fixtures **are not evidence** that a real trainee completed the five-stage course. The dedicated `required-course.spec.ts` covers actual first-use teaching and an incomplete finished-marker regression.
 - Course state and imported reports remain editable device-local learning history, **not cryptographically authenticated competency records**. Do not represent a local finish marker or CSV as tamper-proof certification; protected business actions still rely on backend permission checks.
 - Validate the entire seven-workflow CI matrix against the exact candidate head. Passing jobs or installer artifacts from an earlier commit are insufficient for staff distribution. Keep this PR draft until current-head green checks and hands-on Mac/Windows device acceptance are recorded.
+
+CI verification requested for the latest training changes on November 2, 2026.
