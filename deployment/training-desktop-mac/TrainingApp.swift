@@ -309,7 +309,7 @@ final class TrainingController: ObservableObject {
                     guard self.startupEpoch == attempt else { return }
                     self.isStarting = false
                     self.isRunning = true
-                    self.status = "Running locally • Practice data is saved"
+                    self.status = "Running on this computer • Your practice is saved"
                     NSWorkspace.shared.open(trainingURL)
                 }
             } catch {
@@ -334,7 +334,7 @@ final class TrainingController: ObservableObject {
         runtime.stop()
         isRunning = false
         isStarting = false
-        status = "Stopped • Practice data preserved"
+        status = "Stopped • Your practice is saved"
     }
 
     func openBrowser() {
@@ -345,8 +345,8 @@ final class TrainingController: ObservableObject {
         let path = runtime.trainerRosterURL()
         guard FileManager.default.fileExists(atPath: path.path) else { return }
         let alert = NSAlert()
-        alert.messageText = "Trainer-only fictional account roster"
-        alert.informativeText = "Share only one employee's assigned practice credentials, not the complete roster."
+        alert.messageText = "Trainer accounts"
+        alert.informativeText = "Give each employee only their own practice login. Keep the full account list private."
         alert.runModal()
         NSWorkspace.shared.open(path)
     }

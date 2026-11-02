@@ -62,7 +62,7 @@ test('ordinary staff inspect an actual saved fictional task without mutation per
   expect(detailReads).toBeGreaterThanOrEqual(2);
   expect(writes).toBe(0);
   const downloadPending = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results' }).click();
   const exported = await downloadPending;
   const file = await exported.path();
   expect(file).toBeTruthy();
@@ -91,7 +91,7 @@ test('staff task inspection handles missing department records without fake comp
   });
   await page.goto('/training');
   await page.getByTestId('record-lookup-start').click();
-  await expect(page.getByTestId('record-lookup-feedback')).toContainText('No accessible fictional training task');
+  await expect(page.getByTestId('record-lookup-feedback')).toContainText('No practice task');
   await expect(page.getByTestId('record-lookup-title')).toHaveCount(0);
 });
 
@@ -197,7 +197,7 @@ test('staff inspect saved shift handovers in the real interface and export read-
   expect(writes).toBe(0);
 
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results' }).click();
   const file = await (await pending).path();
   const csv = readFileSync(file!, 'utf8');
   expect(csv).toContain('"read-only-handover-inspection","handover-status-urgency","41"');

@@ -81,7 +81,7 @@ export function TrainingNotificationPractice({ user }: { user: Entity }) {
         try {
           sessionStorage.setItem(notificationTrainingKey(user) + ':pending', String(selected.id));
         } catch { /* The lesson can continue without a bookmark. */ }
-      } else setMessage('No unread fictional practice notice is available. If you finished this already, your result is saved. Otherwise close and reopen the training app.');
+      } else setMessage('No unread practice notice is available. If you finished this already, your result is saved. Otherwise close and reopen the training app.');
     } catch {
       setMessage('Could not open practice notifications. Check that the training app is running and you are signed in.');
     } finally { setBusy(false); }
@@ -102,7 +102,7 @@ export function TrainingNotificationPractice({ user }: { user: Entity }) {
           notificationId: Number(notice.id), completedAt: new Date().toISOString(),
         };
         setCompleted(evidence);
-        setMessage('Verified: this practice notice is saved as read.');
+        setMessage('Checked: this practice notice is saved as read.');
         try {
           localStorage.setItem(notificationTrainingKey(user), JSON.stringify(evidence));
           sessionStorage.removeItem(notificationTrainingKey(user) + ':pending');
@@ -118,7 +118,7 @@ export function TrainingNotificationPractice({ user }: { user: Entity }) {
     <p className="practice-eyebrow">PRACTICE · NOTIFICATIONS</p>
     <h2>Read a notice and mark it read</h2>
     <p>Use your own practice login. This changes only whether a made-up notice shows as read. It does not finish or approve a job.</p>
-    {completed && <p className="practice-record-result" role="status">Previously verified: {new Date(completed.completedAt).toLocaleDateString('en-PH')}. You can repeat it if another unread practice notice remains.</p>}
+    {completed && <p className="practice-record-result" role="status">Last completed: {new Date(completed.completedAt).toLocaleDateString('en-PH')}. You can repeat it if another unread practice notice remains.</p>}
     {notice ? <>
       <p><strong>Find this notice:</strong> <code data-testid="notification-practice-title">{String(notice.title)}</code></p>
       <p>1. Open <Link href="/notifications" target="_blank" rel="noopener noreferrer">Notifications in a separate tab</Link>, find this title, and click <strong>Mark read</strong>.</p>

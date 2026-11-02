@@ -23,7 +23,7 @@ export function workflowFocus(session: TrainingWorkflowSession, onModule: boolea
     fixes: 'fix', requests: 'request' } as const)[type];
   if (session.step === 0) return {
     title: 'Click New, fill in the form and save',
-    text: 'The orange outline points to the actual screen control. Open the form, enter fictional details and your unique reference, then save. Return to the coach and click Check saved work.',
+    text: 'Open the outlined button, enter made-up details and the practice number, then save. Close the details and choose Check saved work.',
     targets: [
       { selector: '[data-testid="create-' + create + '-form"]' },
       { selector: '[data-testid="create-' + create + '"]' },
@@ -42,8 +42,8 @@ export function workflowFocus(session: TrainingWorkflowSession, onModule: boolea
   })();
   return {
     title: 'Open the saved record and click ' + action,
-    text: 'Find the fictional record containing ' + session.reference +
-      '. Open it, complete the indicated action and close its details. The next stage unlocks only after Check saved work confirms the database change.',
+    text: 'Find the practice entry containing ' + session.reference +
+      '. Open it, choose the button shown above and close the details. Then choose Check saved work to continue.',
     targets: [
       { selector: '.drawer-backdrop button', containsText: action },
       { selector: '.maintenance-board-card', containsText: session.reference },
@@ -62,41 +62,41 @@ type FieldPrompt = { selector: string; label: string; help: string; expected?: s
 function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPrompt[] {
   const root = '[data-testid="create-' + type + '-form"]';
   const first = root + ' .form-grid > label:nth-child(1) input';
-  const reference = 'Write a descriptive fictional title that includes ' + session.reference + '.';
-  const title = { selector: first, label: 'Type the training record title', help: reference, minimum: session.reference.length + 8 };
+  const reference = 'Write a clear title that includes the practice number ' + session.reference + '.';
+  const title = { selector: first, label: 'Write the practice title', help: reference, minimum: session.reference.length + 8 };
   const field = (number: number, element: 'select' | 'input') =>
     root + ' .form-grid > label:nth-child(' + number + ') ' + element;
   const choice = (number: number, expected: string, label: string, guidance?: string): FieldPrompt =>
-    ({ selector: field(number, 'select'), label, help: guidance || 'Choose ' + expected + ' in this real menu.', expected });
+    ({ selector: field(number, 'select'), label, help: guidance || 'Choose ' + expected + ' from the menu.', expected });
   const note = (label: string): FieldPrompt => ({
     selector: root + ' label textarea', label,
-    help: 'Write concrete fictional actions, ownership and follow-up, not only “done.”', minimum: 35,
+    help: 'Write what happened, who should act next and what they need to check. Do not write only “done.”', minimum: 35,
   });
   if (type === 'task') return [
-    title, choice(3, 'High', 'Decide the task priority', 'An unassigned task needs clear ownership. Think about the consequence of delay, whether immediate danger is reported, and how quickly the issue needs action.'),
-    { selector: field(4, 'select'), label: 'Assign an actual fictional teammate',
-      help: 'Choose a fictional teammate from Assigned to. Do not leave this as Unassigned.', expected: '!empty' },
+    title, choice(3, 'High', 'Decide the task priority', 'A task with nobody assigned may be missed. Think about what could happen if staff wait, and whether anyone is in danger.'),
+    { selector: field(4, 'select'), label: 'Choose who will do the job',
+      help: 'Choose someone from Assigned to. Do not leave it Unassigned.', expected: '!empty' },
   ];
   if (type === 'shift') return [
-    title, choice(3, 'Guest', 'Choose Guest category'), choice(4, 'Urgent', 'Decide how urgent the handover is', 'The guest has no update and nobody owns the follow-up. Think about whether this can wait in the normal queue or needs timely shift coordination.'),
-    note('Write the actionable shift handover'),
+    title, choice(3, 'Guest', 'Choose Guest category'), choice(4, 'Urgent', 'Decide how urgent the handover is', 'The guest is waiting and nobody has been asked to call back. Think about whether the next shift needs to act soon.'),
+    note('Write what the next shift needs to do'),
   ];
   if (type === 'request') return [
-    title, choice(2, 'Equipment', 'Choose Equipment type'), choice(3, 'Urgent', 'Decide the request urgency', 'The equipment need deserves a timely review, but price and quotation still need verification. Decide urgency from impact and timing, not from pressure to approve.'),
-    note('Document budget, quotation status and operational reason'),
+    title, choice(2, 'Equipment', 'Choose Equipment type'), choice(3, 'Urgent', 'Decide the request urgency', 'The team needs equipment, but the price and supplier quote still need checking. Think about how soon the team needs an answer.'),
+    note('Write the cost, quote details and reason'),
   ];
   if (type === 'fix') return [
-    title, choice(3, 'High', 'Assess the failed light', 'Think about how this fault could affect people using the corridor and how soon it requires a qualified inspection. Do not assume a repair is complete.'),
-    { selector: field(4, 'select'), label: 'Assign a fictional technician',
+    title, choice(3, 'High', 'Assess the failed light', 'Think about who uses this corridor and how soon a qualified person should check the light. Do not assume it is fixed.'),
+    { selector: field(4, 'select'), label: 'Choose a practice technician',
       help: 'Select the technician responsible for this practice fault.', expected: '!empty' },
     note('Describe the failed corridor light and impact'),
   ];
   return [
     title,
     { selector: field(4, 'select'), label: 'Choose Room or Complaint type',
-      help: 'This guest matter must be classified as a Room issue or Complaint.', expected: 'Room|Complaint' },
-    choice(5, 'High', 'Assess the guest matter', 'The guest is affected by an unresolved room fault. Consider the cost of waiting for inspection and the next guest update; distinguish significant disruption from confirmed immediate danger.'),
-    note('Describe the fault, required inspection and guest callback'),
+      help: 'Choose Room or Complaint to describe this guest problem.', expected: 'Room|Complaint' },
+    choice(5, 'High', 'Assess the guest matter', 'The guest’s room has a problem that has not been checked. Think about what could happen if staff wait, and when the guest needs an update.'),
+    note('Write the problem, next check and guest update'),
   ];
 }
 
@@ -119,8 +119,8 @@ export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule:
   const form = document.querySelector(root);
   if (!form) {
     if (savedTrainingCard(session)) return {
-      title: 'Saved! Verify your practice record',
-      text: 'Your training reference is visible in the saved list. Click Check saved work to verify the record and unlock the next step.',
+      title: 'Saved. Check your work',
+      text: 'Your practice entry appears in the list. Choose Check saved work to continue.',
       targets: [{ selector: '[data-testid="training-check-work"]' }],
     };
     return basic;
@@ -132,7 +132,7 @@ export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule:
     // If a particular form differs, focus the form rather than silently giving
     // a false visual completion.
     if (!control) return { title: 'Complete the highlighted form',
-      text: 'Find the matching labeled field inside this form, enter the fictional details, and save.',
+      text: 'Fill in this field with made-up details, then save.',
       targets: [{ selector: root }] };
     const value = control.value.trim();
     const passed = prompt.expected === '!empty' ? value.length > 0
@@ -142,10 +142,10 @@ export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule:
         ? value.includes(session.reference) && value.length >= (prompt.minimum || 0)
         : value.length >= (prompt.minimum || 0);
     if (!passed) return { title: prompt.label,
-      text: prompt.help + ' After completing this field, the orange arrow moves automatically.',
+      text: prompt.help + ' The arrow moves when you fill in this field.',
       targets: [{ selector: prompt.selector }] };
   }
-  return { title: 'Now save the fictional record',
-    text: 'Click the outlined Save/Create/Publish button. Then use Check saved work in the coach. Merely typing into the form does not finish the stage.',
+  return { title: 'Save your practice entry',
+    text: 'Choose the outlined Save, Create or Publish button. Then choose Check saved work. Typing into the form does not save it.',
     targets: [{ selector: root + ' .toolbar button:not(.secondary)' }] };
 }

@@ -283,7 +283,7 @@ internal sealed class TrainingWindow : Form
             MessageBox.Show("Training accounts are not ready yet.");
             return;
         }
-        MessageBox.Show("These are fictional accounts for TRAINERS ONLY. Do not distribute all passwords to staff.",
+        MessageBox.Show("Keep this account list private. Give each employee only their own practice login.",
             "Trainer account access", MessageBoxButtons.OK, MessageBoxIcon.Information);
         try { Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\"") { UseShellExecute = true }); }
         catch { MessageBox.Show("Open this private file: " + path); }
@@ -326,6 +326,6 @@ internal sealed class TrainingWindow : Form
         if (closing) return;
         stop.Enabled = false; stop.Text = "Stop";
         browser.Enabled = false; accounts.Enabled = false;
-        status.Text = "Stopped • Practice records are safely preserved.";
+        status.Text = "Stopped • Your practice is saved.";
     }
 }

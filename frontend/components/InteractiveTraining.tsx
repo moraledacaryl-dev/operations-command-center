@@ -136,7 +136,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         stage:nextLesson?'learn':'finished', question:0, independentStep:0,
         reference:undefined, passed:credits, metrics:report.metrics,
       }:current);
-      setRestoreMessage('Imported read-only lessons from this practice account. Lessons with saved task/guest/maintenance records must be practised and verified again on this device. This is not a skills certificate.');
+      setRestoreMessage('Your reading lessons have been restored. Lessons with saved task/guest/maintenance records must be practised and checked again on this computer. Your trainer still needs to check your skills.');
     } catch { setRestoreMessage('This file could not be read. Export a fresh training report and try again.'); }
   }
 
@@ -284,7 +284,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       return;
     }
     setMenuOpen(true);
-    setHelpMessage('Tour viewed. Your course completion still requires the lesson, quiz and practical exercise.');
+    setHelpMessage('Tour finished. Finish the lesson, questions and practice to complete this course.');
   }, [storageKey, course, courseGuide, capabilities.manage_department, capabilities.make_decisions, user, router]);
 
   const next = useCallback((fromActualClick = false) => {
@@ -596,7 +596,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </>}
         {course.stage === 'done' && <>
           <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
-          <p>You finished the lesson, answered the questions, and practised using the app{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
+          <p>You answered the questions and finished the practice.{courseGuide.handsOn && course.reference ? ' The app checked your saved work.' : ''}</p>
           <p>You can repeat this lesson at any time. Your earlier results will stay saved.</p>
           <button type="button" className="ops-course-quiet" data-testid="export-training-report"
             onClick={exportTrainingProgress}>Save my training report</button>
@@ -608,7 +608,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     </div>}
     {course?.stage === 'tour' && !active && <div className="ops-course-backdrop">
       <section ref={courseDialogRef} tabIndex={-1} className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
-        <h2>Continue your actual-page practice</h2>
+        <h2>Continue your practice</h2>
         <p>You still have steps to finish. Open the practice screen and follow the arrows.</p>
         <button type="button" className="ops-course-primary" onClick={() => { setActive({ id: course.lessonId, index: 0 }); router.push(courseLesson?.steps[0]?.path || '/'); }}>Resume practical lesson →</button>
       </section>
@@ -617,19 +617,19 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       data-testid="course-independent-challenge" role="status">
       <strong>Your turn · {1 + (course.independentStep || 0)} of 2 — No arrows</strong>
       <span>{independentAction.title}: {independentAction.instruction}</span>
-      <small>Find and click the button yourself to finish this step. On a small screen, open the menu or More to find links that are hidden.</small>
+      <small>Find and choose the button yourself to finish this step. On a small screen, open the menu or More to find links that are hidden.</small>
       <button type="button" onClick={() => router.push(independentAction.path)}>Open the right screen</button>
       <button type="button" onClick={restartCurrentLessonSafely}>Start this lesson again</button>
     </div>}
     {course?.stage === 'work' && <div className="ops-course-work-status" data-testid="course-await-work" role="status">
-      <strong>Lesson {lessonNumber}: Actual-page practice</strong>
+      <strong>Lesson {lessonNumber}: Practice in the app</strong>
       <span>Follow the arrows and save your practice record. Then click Check saved work. You can go to the next lesson after the app checks your work.</span>
       <button type="button" className="ops-course-restart" onClick={restartCurrentLessonSafely}>Page not working? Start lesson again</button>
     </div>}
     {menuOpen && !active && <div className="ops-guide-library-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setMenuOpen(false); }}>
       <section ref={libraryRef} className="ops-guide-library" role="dialog" aria-modal="true" aria-label="Interactive staff training" tabIndex={-1}>
         <header className="ops-guide-library-header">
-          <div><span className="ops-guide-eyebrow">HIDDEN OASIS · STAFF TRAINING</span><h2>Interactive training</h2><p>Choose a lesson. Follow the arrows and practise on the same screens you will use at work.</p></div>
+          <div><span className="ops-guide-eyebrow">HIDDEN OASIS · STAFF TRAINING</span><h2>Interactive training</h2><p>Choose a lesson. Follow the arrows and practise on the screens you will use at work.</p></div>
           <button type="button" className="ops-guide-close" aria-label="Close training" onClick={() => setMenuOpen(false)}>×</button>
         </header>
         {helpMessage && <p className="ops-guide-success" role="status">{helpMessage}</p>}

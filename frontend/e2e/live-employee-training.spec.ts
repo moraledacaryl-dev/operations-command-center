@@ -102,7 +102,7 @@ test('fresh manager learns the first five lessons and saves, starts and submits 
   const record = await created.json();
   await page.getByTestId('training-check-work').click();
   await expect(coach).toContainText('Stage 2 of 3');
-  for (const [button, state, stage] of [['Start work', 'Doing', 'Stage 3 of 3'], ['Submit for review', 'Review', 'All required record changes were verified']]) {
+  for (const [button, state, stage] of [['Start work', 'Doing', 'Stage 3 of 3'], ['Submit for review', 'Review', 'Your changes were saved and checked']]) {
     await page.getByText(title, { exact: true }).click();
     await page.getByRole('button', { name: button, exact: true }).click();
     await expect.poll(async () => {

@@ -146,7 +146,7 @@ test('Guest Matters exercise cannot pass until a real fictional case is saved an
   await form.getByLabel('Type').selectOption('Room');
   await form.getByLabel('Urgency').selectOption('High');
   await form.getByLabel('Recovery action / context').fill(
-    'The AC blows warm air; Maintenance must inspect the problem and Front Desk will update the fictional guest.',
+    'The AC blows warm air; Maintenance must inspect the problem and Front Desk will update the practice guest.',
   );
   await form.getByRole('button', { name: 'Save matter' }).click();
   await expect.poll(() => database.guests.length).toBe(1);
@@ -160,7 +160,7 @@ test('Guest Matters exercise cannot pass until a real fictional case is saved an
   await expect.poll(() => database.guests[0]?.status).toBe('Follow');
   await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
-  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Your changes were saved and checked');
   const result = await page.evaluate(() => {
     const key = 'ho-ops-workflow-results-v1:9701';
     return JSON.parse(localStorage.getItem(key) || '{}');
@@ -201,7 +201,7 @@ test('Task exercise verifies High/assigned, then Doing, then Review via actual s
   await expect.poll(() => database.tasks[0]?.status).toBe('Review');
   await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
-  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Your changes were saved and checked');
   const result = await page.evaluate(() => JSON.parse(localStorage.getItem('ho-ops-workflow-results-v1:9701') || '{}'));
   expect(result['shared-no-owner'].recordId).toBe(601);
   expect(result['shared-no-owner'].steps).toHaveLength(3);
@@ -231,7 +231,7 @@ test('Shift Handover requires published record and actual Carry forward transiti
   await page.getByRole('button', { name: 'Carry forward' }).click();
   await expect.poll(() => database.shiftNotes[0]?.status).toBe('Follow');
   await page.getByTestId('training-check-work').click();
-  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Your changes were saved and checked');
 });
 
 test('Maintenance exercise checks saved technician, urgency and all four workflow stages', async ({ page }) => {
@@ -275,7 +275,7 @@ test('Maintenance exercise checks saved technician, urgency and all four workflo
   await expect.poll(() => database.fixes[0]?.status).toBe('Verified');
   await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
-  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Your changes were saved and checked');
 });
 
 test('Manager equipment request exercise checks documentary controls and only Review status, not approval', async ({ page }) => {
@@ -305,7 +305,7 @@ test('Manager equipment request exercise checks documentary controls and only Re
   await page.getByRole('button', { name: 'Send for review' }).click();
   await expect.poll(() => database.requests[0]?.status).toBe('Review');
   await page.getByTestId('training-check-work').click();
-  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Your changes were saved and checked');
   expect(database.requests[0].status).not.toBe('Approved');
   expect(database.approvals[0]).toMatchObject({ id: 951, source_type: 'ops_need',
     source_id: 901, department_id: 41, status: 'Pending' });
@@ -332,7 +332,7 @@ test('real linked Guest-to-Maintenance handoff requires both reciprocal links an
   await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 2 of 5');
 
   await page.getByTestId('training-check-work').click();
-  await expect(page.getByTestId('training-workflow-message')).toContainText('not yet linked');
+  await expect(page.getByTestId('training-workflow-message')).toContainText('no matching linked repair');
   await page.getByText('Room 210 shower fault ' + ref).first().click();
   await page.getByRole('button', { name: 'Create maintenance' }).click();
   await expect.poll(() => database.guests[0]?.linked_fix_id).toBe(702);
@@ -362,7 +362,7 @@ test('real linked Guest-to-Maintenance handoff requires both reciprocal links an
   await page.getByRole('button', { name: 'Verify work' }).click();
   await page.getByRole('button', { name: 'Close details' }).click();
   await page.getByTestId('training-check-work').click();
-  await expect(page.getByTestId('training-workflow-coach')).toContainText('All required record changes were verified');
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Your changes were saved and checked');
   expect(database.guests[0].status).toBe('Done');
   expect(database.fixes[0].status).toBe('Verified');
   const result = await page.evaluate(() =>
@@ -371,7 +371,7 @@ test('real linked Guest-to-Maintenance handoff requires both reciprocal links an
 
   await page.goto('/training');
   const downloadEvent = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results' }).click();
   const exported = await downloadEvent;
   expect(exported.suggestedFilename()).toContain('training-progress.csv');
   const csvPath = await exported.path();

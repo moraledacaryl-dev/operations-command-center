@@ -54,12 +54,12 @@ test('first open makes Start obvious, then moves the orange focus after real use
   await page.getByTestId('scenario-decision').selectOption('Assign and follow up');
   await expect(page.getByTestId('scenario-note')).toHaveAttribute('data-training-spotlight-target', 'true');
   await page.getByTestId('scenario-note').fill(
-    'DEMO-HANDOVER-014 remains unresolved. Assign the Front Desk lead as owner, verify what happened, and update the fictional guest before handover.',
+    'DEMO-HANDOVER-014 remains unresolved. Assign the Front Desk lead as owner, verify what happened, and update the practice guest before handover.',
   );
   await expect(page.getByTestId('scenario-submit')).toHaveAttribute('data-training-spotlight-target', 'true');
   await page.getByTestId('scenario-submit').click();
   await expect(page.getByTestId('scenario-complete')).toBeVisible();
-  await expect(page.getByTestId('training-spotlight')).toContainText('You passed this lesson');
+  await expect(page.getByTestId('training-spotlight')).toContainText('Practice finished');
   await page.getByRole('button', { name: 'Repeat this lesson' }).click();
   await expect(page.getByTestId('scenario-triage')).toBeVisible();
   await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \d+$/);
@@ -95,7 +95,7 @@ test('actual Tasks module highlights New, then the real form, and Repeat creates
   const first = await page.getByTestId('training-workflow-reference').innerText();
   await form.locator('input').first().fill('Repair fictional room lighting ' + first);
   await expect(form.locator('select').first()).toHaveAttribute('data-training-spotlight-target', 'true');
-  await expect(page.getByTestId('workflow-risk-explanation')).toContainText('What is at stake');
+  await expect(page.getByTestId('workflow-risk-explanation')).toContainText('What could happen if nobody helps?');
   await expect(page.getByTestId('training-spotlight')).not.toContainText('Choose High in this real menu');
   await form.locator('select').first().selectOption('High');
   await expect(form.locator('select').nth(1)).toHaveAttribute('data-training-spotlight-target', 'true');

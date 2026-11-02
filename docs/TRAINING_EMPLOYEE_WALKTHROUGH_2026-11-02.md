@@ -49,7 +49,7 @@ The focused training workflow now also runs a real-backend employee walkthrough 
 | Final training browser regression | **79 passed**, 2 opt-in live tests skipped in this mocked run |
 | Real-backend fresh employee walkthroughs | **6 passed**: both receptionist and manager flows repeated three times; no mocked API or pre-completed course state |
 | Backend suite | **800 passed**, 3 skipped; the 9 socket tests blocked by the sandbox passed separately with the required local-socket permission (**809 passed in total**) |
-| Full browser inventory, accessibility and operational regression | Initial run: **647 passed**, 1 opt-in live test skipped, 4 failures. All four affected tests were corrected and passed in the final training regression. The entire broad suite was not repeated after those training fixes. |
+| Local full browser inventory, accessibility and operational regression | Initial run: **647 passed**, 1 opt-in live test skipped, 4 failures. All four affected tests were corrected and passed in the final training regression. The entire broad suite was not repeated after those training fixes. |
 | Frontend build, lint and TypeScript | **PASS**; standalone assets packaged; lint has no warnings |
 | Operations module/API source parity | **PASS** for the same paths guarded by training CI; no business workflow/backend source changed |
 | CI workflow syntax/isolation checks | **PASS**; the added live job creates its own temporary training database and private fictional roster |
@@ -78,3 +78,21 @@ npx playwright test --config=playwright.training-live.config.ts
 ```
 
 Use `PLAYWRIGHT_USE_SYSTEM_CHROME=true` when using an installed Chrome instead of Playwright Chromium. The test refuses a non-local page, does not print passwords, and disables traces for the credential flow. The live tests are skipped in the ordinary mocked browser suite unless the explicit private-roster environment variable is present.
+
+## Plain-language follow-up
+
+The wording review covers lesson instructions, course explanations, all 117 situations, feedback, form guidance, saved-work instructions, downloads and the trainer report view. It uses short sentences and names the next action. Button and status names stay the same as the app. Trainer reports show lesson names and clear progress labels instead of internal lesson IDs.
+
+| Earlier wording | Employee-facing wording |
+| --- | --- |
+| Validate the persisted Review state | Close the details and choose Check saved work. Its saved status should be Review. |
+| Document budget, quotation status and operational reason | Write the cost, quote details and reason. |
+| Assign an actual fictional teammate | Choose who will do the job. |
+| Write concrete fictional actions, ownership and follow-up | Write what happened, who should act next and what they need to check. |
+| Save my results (CSV) | Save my results — Give this spreadsheet file to your trainer. |
+
+The cases remain practice exercises. Safety instructions, permissions, required saved statuses and approval rules are preserved.
+
+The wording follow-up passed 23 focused checks covering all six saved-work exercises, trainer reports, form guidance and the 117 model answers. Both fresh-account real-backend walkthroughs passed again with the simpler text. Frontend build, lint and TypeScript also passed. The earlier functional commit (`0ddcd08`) passed every required GitHub check, including full browser regression and Mac/Windows packaging; the updated wording is sent through those same checks in the PR.
+
+GitHub subsequently completed the full browser/accessibility suite on functional commit `0ddcd08`: **654 passed, 2 opt-in skips** ([CI run](https://github.com/moraledacaryl-dev/operations-command-center/actions/runs/41440448920)). The final plain-language completion screens were captured after both real-backend walkthroughs passed again.

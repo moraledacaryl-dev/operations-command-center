@@ -92,7 +92,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await page.getByTestId('course-check-answer').click();
   await expect(panel).toHaveCount(0);
   const coach = page.locator('.ops-guide-tip');
-  await expect(coach).toContainText('real training dashboard');
+  await expect(coach).toContainText('practice dashboard');
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Find My Work');
   await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
@@ -105,7 +105,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(page.getByTestId('course-lesson-title')).toHaveCount(0);
   await expect(page.getByRole('dialog', { name: 'Resume required training' })).toBeVisible();
   await page.getByRole('button', { name: /Resume practical lesson/ }).click();
-  await expect(coach).toContainText('real training dashboard');
+  await expect(coach).toContainText('practice dashboard');
 });
 
 test('finished curriculum unlocks its completed tour without giving unearned staff write permissions', async ({ page }) => {
@@ -156,7 +156,7 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   await expect(coach).toContainText('Fill out the task');
   await coach.getByRole('button', { name: /Next/ }).click();
   await page.getByTestId('create-task-form').getByRole('button', { name: 'Cancel' }).click();
-  await expect(page.getByTestId('course-await-work')).toContainText('Actual-page practice');
+  await expect(page.getByTestId('course-await-work')).toContainText('Practice in the app');
   await expect(page.getByTestId('training-workflow-coach')).toBeVisible();
   await expect(page.getByTestId('course-completed')).toHaveCount(0);
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key) || 'null'), 'ho-ops-structured-course-v2:' + String(manager.id));

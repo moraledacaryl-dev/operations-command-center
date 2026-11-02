@@ -98,7 +98,7 @@ test('supervisor can import a report, see attempts, and record local-only observ
   await expect(dashboard).toContainText('Fictional Practice Staff');
   await expect(dashboard).toContainText('Quiz corrections: 2');
   await dashboard.locator('textarea').fill('Practised guest communication but needs one more realistic handover scenario.');
-  await dashboard.getByRole('button',{name:'Save review note locally'}).click();
+  await dashboard.getByRole('button',{name:'Save review note'}).click();
   await expect(dashboard).toContainText('Your review note was saved on this computer only');
   const saved=await page.evaluate(()=>localStorage.getItem('ho-ops-local-trainer-reports-v1:8501'));
   expect(saved).toContain('Practised guest communication');

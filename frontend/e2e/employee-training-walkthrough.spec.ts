@@ -119,7 +119,7 @@ test('the final case has a clear finish and exports the trainee response even du
   await page.getByTestId('scenario-department').selectOption('Front Desk');
   await page.getByTestId('scenario-check-assessment').click();
   await page.getByTestId('scenario-decision').selectOption('Assign and follow up');
-  const example = '=DEMO-HANDOVER-014: Front Desk must call the fictional guest, assign an owner and update the next shift on the unresolved concern.';
+  const example = '=DEMO-HANDOVER-014: Front Desk must call the practice guest, assign an owner and update the next shift on the unresolved concern.';
   await page.getByTestId('scenario-note').fill(example);
   await page.getByTestId('scenario-submit').click();
   await expect(page.getByRole('heading', { name: `All ${available.length} situations finished` })).toBeVisible();
@@ -128,7 +128,7 @@ test('the final case has a clear finish and exports the trainee response even du
   await expect(page.getByTestId('scenario-triage')).toBeVisible();
   await page.reload();
   const downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results' }).click();
   const { readFileSync } = await import('node:fs');
   const csv = readFileSync((await (await downloaded).path())!, 'utf8');
   expect(csv).toContain('"trainee_name"');

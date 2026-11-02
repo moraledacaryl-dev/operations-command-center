@@ -51,7 +51,7 @@ test('ordinary staff mark an actual fictional notification read and verify saved
   await expect(page.getByTestId('notification-practice-title')).toHaveText(title);
   await page.getByTestId('notification-practice-check').click();
   await expect(page.getByTestId('notification-practice-feedback')).toContainText('still unread');
-  await expect(page.getByTestId('notification-practice')).not.toContainText('Previously verified');
+  await expect(page.getByTestId('notification-practice')).not.toContainText('Last completed');
 
   const pendingPopup = page.waitForEvent('popup');
   await page.getByRole('link', { name: 'Notifications in a separate tab' }).click();
@@ -62,18 +62,18 @@ test('ordinary staff mark an actual fictional notification read and verify saved
   await tab.close();
 
   await page.getByTestId('notification-practice-check').click();
-  await expect(page.getByTestId('notification-practice-feedback')).toContainText('Verified');
-  await expect(page.getByTestId('notification-practice')).toContainText('Previously verified');
+  await expect(page.getByTestId('notification-practice-feedback')).toContainText('Checked:');
+  await expect(page.getByTestId('notification-practice')).toContainText('Last completed');
   expect(mutations).toBe(1);
   const downloadPending = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results' }).click();
   const file = await (await downloadPending).path();
   const csv = readFileSync(file!, 'utf8');
   expect(csv).toContain('"staff-notification-read","notification-mark-read","Personal"');
   expect(csv).toContain('"501"');
 
   await page.reload();
-  await expect(page.getByTestId('notification-practice')).toContainText('Previously verified');
+  await expect(page.getByTestId('notification-practice')).toContainText('Last completed');
 });
 
 test('a staff account without accessible fictional unread notices cannot claim verification', async ({ page }) => {
@@ -93,6 +93,6 @@ test('a staff account without accessible fictional unread notices cannot claim v
   }));
   await page.goto('/training');
   await page.getByTestId('notification-practice-start').click();
-  await expect(page.getByTestId('notification-practice-feedback')).toContainText('No unread fictional practice notice');
-  await expect(page.getByTestId('notification-practice')).not.toContainText('Previously verified');
+  await expect(page.getByTestId('notification-practice-feedback')).toContainText('No unread practice notice');
+  await expect(page.getByTestId('notification-practice')).not.toContainText('Last completed');
 });

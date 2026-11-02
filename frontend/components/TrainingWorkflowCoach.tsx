@@ -13,7 +13,7 @@ import { getCurrentDepartmentId } from '@/lib/session';
 import {
   parseWorkflowSession, verifyWorkflowStep, workflowInstructions, workflowStagePath,
   workflowOwnerId, workflowSessionKey, workflowResultsKey,
-  WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS,
+  WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, workflowStageLabel,
 } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults } from '@/lib/training-workflows';
 
@@ -87,7 +87,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const finished = session.step >= definition.stages.length;
   const expectedPath = workflowStagePath(session);
   const onModule = path === expectedPath;
-  const currentStage = definition.stages[session.step];
+  const currentStage = workflowStageLabel(definition.stages[session.step]);
   const instructions = finished ? [] : workflowInstructions(session);
   const focus = !finished ? liveFocus || workflowFocus(session, onModule) : null;
 
@@ -145,7 +145,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       setSession(next);
       window.dispatchEvent(new Event(WORKFLOW_CHANGED));
     } catch (err: unknown) {
-      setMessage('We could not check the saved work. Make sure the training app is open and you are signed in, then try again. ' +
+      setMessage('Could not check your work. Make sure the training app is running and you are signed in, then try again. ' +
         (err instanceof Error ? err.message : ''));
     } finally {
       setBusy(false);
@@ -200,7 +200,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         <span className="training-workflow-kicker">PRACTICE ONLY · MADE-UP RECORDS</span>
         <h2>{definition.name}</h2>
         <p>{finished
-          ? 'All required record changes were verified in the local training database.'
+          ? 'Practice finished. Your changes were saved and checked.'
           : `Stage ${session.step + 1} of ${definition.stages.length}: ${currentStage}`}</p>
       </div>
       <div className="training-workflow-header-actions">
@@ -221,7 +221,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
     </p>
     {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>Next step:</strong> {focus?.text}</p>}
     {!finished && session.step === 0 && <p className="training-workflow-safe" data-testid="workflow-risk-explanation">
-      <strong>How urgent is it?</strong> What is at stake if no one acts? How soon could someone be affected? Routine can wait for planned work. High needs help soon. Critical means someone may be in danger: keep people safe and call a supervisor immediately. The form may say Normal or Urgent instead.
+      <strong>How urgent is it?</strong> What could happen if nobody helps? How soon should someone act? Routine can wait for planned work. High needs help soon. Critical means someone may be in danger: keep people safe and call a supervisor immediately. The form may say Normal or Urgent instead.
     </p>}
     {finished ? <p className="training-workflow-finished" role="status">
       Practice finished. The app checked your saved work. A supervisor still needs to check your skills before you use the live system.
@@ -244,7 +244,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       </div>
     </>}
     {message && <p className="training-workflow-message" role="status" data-testid="training-workflow-message">{message}</p>}
-    <p className="training-workflow-safe">Use made-up names and details only. This guide checks what you saved in the training app. It cannot save work for you and does not connect to the resort&apos;s live system.</p>
+    <p className="training-workflow-safe">Use made-up names and details. You must save the work yourself, then choose Check saved work. This practice does not change live resort records.</p>
     {showArrows && !finished && focus && <TrainingSpotlight
       key={session.reference + ':' + session.step + ':' + expectedPath}
       title={focus.title} description={focus.text}

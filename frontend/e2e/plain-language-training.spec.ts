@@ -52,7 +52,7 @@ test('a new staff trainee sees a concrete situation and its vocabulary before ch
   await expect(page.getByRole('heading', { name: 'Practice common work situations' })).toBeVisible();
   await expect(page.getByTestId('scenario-training')).toContainText('FOR PRACTICE ONLY.');
   await expect(page.locator('.practice-progress-more')).not.toHaveAttribute('open');
-  await expect(page.getByRole('button', { name: 'Save my results (CSV)' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save my results' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Check my choices' })).toBeVisible();
 
   await expect(page.getByTestId('scenario-case-brief')).toContainText('guest has waited 30 minutes');
