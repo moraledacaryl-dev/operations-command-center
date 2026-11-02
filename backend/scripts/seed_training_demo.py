@@ -180,6 +180,20 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 status="Done", hidden_from_active=True, archive_reason="Training sample",
                 completed_at=now-timedelta(days=3), archived_at=now-timedelta(days=2)), "tasks")
 
+        # Every fictional frontline login needs work to read during orientation,
+        # including the PM accounts (not only the department's primary worker).
+        for _, role, slug, dept in PEOPLE:
+            if role != "staff" or slug == PRIMARY_WORKER[dept]:
+                continue
+            for i, (status, days) in enumerate([("To Do", -1), ("Doing", 0), ("Review", 1)]):
+                add(models.Task(title=PREFIX+descriptions[dept][i]+" — PM practice",
+                    department_id=departments[dept].id, assigned_to_id=users[slug].id,
+                    owner_id=users[LEADS[dept]].id, status=status,
+                    priority="High" if i == 0 else "Normal", due_date=now+timedelta(days=days),
+                    note="TRAINING ONLY — read the instructions and saved status. "
+                         "For this made-up job, tell your lead what is still needed. "
+                         "Waiting means another team has not confirmed its part; Review means the lead must check the work."), "tasks")
+
         guest_titles = [
             ("Late checkout request", "Perch 2", "Checkout", "Open"),
             ("Solace AC not cooling", "Solace", "Room", "Follow"),
@@ -227,13 +241,33 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
             if linked: linked.linked_fix_id=fix.id
             fixes.append(fix)
 
+        handover_topics = {
+            "Front Desk": ("Solace AC is still warm", "Perch 1 needs two extra towels", "Maintenance", "Housekeeping"),
+            "Housekeeping": ("Twinspire bathroom still needs inspection", "Grandeur linen count is short by two towels", "Housekeeping", "Laundry"),
+            "Café": ("A breakfast order is delayed at table 3", "The coffee station is waiting for clean cups", "Kitchen", "Café"),
+            "Kitchen": ("Cold-storage temperature needs a qualified check", "The allergy order needs ingredient confirmation", "Maintenance", "Kitchen"),
+            "Maintenance": ("Solace AC inspection is unfinished", "The pool pump inspection needs a part", "Maintenance", "Maintenance"),
+            "Marketing": ("The weekend caption still needs the lead's review", "The draft photo needs the correct room name", "Marketing", "Marketing"),
+            "Security": ("The pool gate latch has not been checked", "The parking visitor log needs a handover check", "Maintenance", "Security"),
+            "Management": ("A department request is waiting for evidence", "A repair needs an authorized final check", "Management", "Maintenance"),
+            "Admin": ("A practice account access question is unresolved", "The department roster needs the lead's confirmation", "Admin", "Admin"),
+        }
         for dept in DEPARTMENTS:
+            night, afternoon, night_team, pm_team = handover_topics[dept]
             for i,status in enumerate(["New","Seen","Follow","Done"]):
+                topic, team = (night, night_team) if i == 2 else (afternoon, pm_team)
+                handover_note = (
+                    "TRAINING ONLY — " + topic + ". "
+                    + ("The previous shift confirmed the check was completed. No follow-up remains." if status == "Done" else
+                       "The work is not confirmed complete. " + users[LEADS[dept]].name +
+                       " is responsible for contacting " + team + ". The incoming shift should check with the lead "
+                       "within 30 minutes and record the update. Do not tell the guest or next team it is finished without confirmation.")
+                )
                 add(models.ShiftNote(title=PREFIX+f"{dept} {'AM PM Night PM'.split()[i]} handover #{i+1}",
                     shift=["AM","PM","Night","PM"][i], category="Other",
                     department_id=departments[dept].id, submitted_by_id=users[PRIMARY_WORKER[dept]].id,
                     urgency="Urgent" if i==2 else "Normal", status=status,
-                    note="TRAINING ONLY — record responsible person and pending follow-up."), "shift_notes")
+                    note=handover_note), "shift_notes")
             for i in range(3):
                 add(models.Request(title=PREFIX+f"{dept} operational request #{i+1}",
                     department_id=departments[dept].id, requested_by_id=users[LEADS[dept]].id,

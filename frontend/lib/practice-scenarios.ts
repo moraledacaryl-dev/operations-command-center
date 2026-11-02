@@ -129,7 +129,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
     id: 'kitchen-allergy', level: 4, department: 'Kitchen',
     title: 'Possible allergen cross-contact',
-    situation: 'A order DEMO-KITCHEN-052 may have been prepared with an ingredient the guest declared as an allergen.',
+    situation: 'An order DEMO-KITCHEN-052 may have been prepared with an ingredient the guest declared as an allergen.',
     goal: 'Prioritize guest safety over speed and notify the correct personnel.',
     context: ['Reference: DEMO-KITCHEN-052', 'Ingredient safety has not been verified', 'The plate has not yet been served'],
     priority: 'Critical', route: 'Kitchen', decision: 'Escalate immediately', reference: 'DEMO-KITCHEN-052',
@@ -216,13 +216,13 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     situation: 'The same guest has reported the DEMO-GUEST-012 service failure twice after a promised resolution.',
     goal: 'Take responsibility for the problem and check that it is fixed before closing it.',
     context: ['Reference: DEMO-GUEST-012', 'Guest previously received an unfulfilled promise', 'Root cause is not yet verified'],
-    priority: 'Critical', route: 'Management', decision: 'Escalate immediately', reference: 'DEMO-GUEST-012',
+    priority: 'High', route: 'Management', decision: 'Escalate immediately', reference: 'DEMO-GUEST-012',
     noteChecks: [
       { label: "reviewing the failed recovery and assigning action", alternatives: ["prior", "review", "verify", "remedy", "recovery", "lead"] },
       { label: "guest confirmation or follow-up", alternatives: ["guest", "follow up", "document", "confirm", "closure"] },
     ],
     example: 'DEMO-GUEST-012: review prior attempts, assign a named lead, confirm the remedy with the guest and track documented verification before closure.',
-    why: 'A manager needs to take charge, arrange help for the guest and check that the problem is fixed.',
+    why: 'The repeated service failure needs a manager to take charge soon. No immediate danger is described. Arrange help for the guest and check that the problem is fixed.',
   },
   ...EXTENDED_PRACTICE_SCENARIOS,
 ];

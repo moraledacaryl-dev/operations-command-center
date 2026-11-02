@@ -33,6 +33,10 @@ test('every role-available lesson has two clear teaching checks and example befo
 
 test('lesson progress parser rejects invalid lesson ids and incomplete practice state', () => {
   const lessons = availableTrainingLessons({ manage_department: false, make_decisions: false, manage_accounts: false });
+  for (const tourStep of [-1, 99, 1.5, '2']) {
+    expect(readCourseProgress(JSON.stringify({lessonId: 'orientation', stage: 'tour', tourStep}), lessons).tourStep).toBe(0);
+  }
+  expect(readCourseProgress(JSON.stringify({lessonId: 'orientation', stage: 'tour', tourStep: 2}), lessons).tourStep).toBe(2);
   expect(readCourseProgress(null, lessons)).toMatchObject({ stage: 'learn', lessonId: 'orientation' });
   expect(readCourseProgress('{"lessonId":"no-such-lesson","stage":"finished"}', lessons).lessonId).toBe('orientation');
   expect(readCourseProgress('{"lessonId":"team-tasks","stage":"work","question":2}', lessons).stage).toBe('learn');
@@ -83,7 +87,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(page.getByTestId('course-start-quiz')).toHaveCount(0);
   await panel.getByLabel('Rooms', { exact: true }).check();
   await page.getByTestId('course-check-answer').click();
-  await expect(panel).toContainText('Not quite.');
+  await expect(panel).toContainText('Not quite. My Work shows assignments for your own account. Try again.');
   await expect(page.locator('.ops-guide-tip')).toHaveCount(0);
   await panel.getByLabel('My Work', { exact: true }).check();
   await page.getByTestId('course-check-answer').click();
@@ -105,7 +109,8 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(page.getByTestId('course-lesson-title')).toHaveCount(0);
   await expect(page.getByRole('dialog', { name: 'Resume required training' })).toBeVisible();
   await page.getByRole('button', { name: /Resume practical lesson/ }).click();
-  await expect(coach).toContainText('practice dashboard');
+  await expect(coach).toContainText('Review your assigned work');
+  await expect(page).toHaveURL(/\/my-work$/);
 });
 
 test('finished curriculum unlocks its completed tour without giving unearned staff write permissions', async ({ page }) => {
@@ -165,4 +170,36 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   await page.getByTestId('repeat-real-workflow').click();
   await expect(page.getByTestId('training-workflow-message')).toContainText('Finish this practice before starting again');
   await expect(page.getByTestId('course-completed')).toHaveCount(0);
+});
+
+test('a non-reception room lesson keeps the opened room visible and describes navigation evidence accurately', async ({ page }) => {
+  const user = { ...staff, id: 92817, departments: [{ id: 42, name: 'Housekeeping', is_primary: true }], primary_department_id: 42 };
+  await page.addInitScript(user => {
+    localStorage.setItem('cc_user', JSON.stringify(user));
+    localStorage.setItem('cc_department_id', '42');
+    localStorage.setItem('ho-ops-structured-course-v2:' + user.id, JSON.stringify({
+      lessonId: 'staff-rooms', stage: 'tour', tourStep: 1, question: 0, passed: ['orientation', 'staff-handover'],
+    }));
+  }, user);
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    const room = { id: 101, name: 'Solace', kind: 'room', status: 'active' };
+    const body = path.endsWith('/rooms') ? { items: [room] }
+      : path.endsWith('/rooms/101/memory') ? { room, guests: [], fixes: [] }
+      : { items: [], counts: {}, unread_count: 0 };
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.goto('/rooms');
+  await page.getByRole('button', { name: /Resume practical lesson/ }).click();
+  await page.getByRole('textbox', { name: 'Search rooms and areas' }).fill('Solace');
+  await page.getByRole('link', { name: 'Open Solace' }).click();
+  await expect(page).toHaveURL(/\/rooms\/101$/);
+  await expect(page.locator('.ops-guide-tip')).toContainText('Review before escalating');
+  await page.reload();
+  await page.getByRole('button', { name: /Resume practical lesson/ }).click();
+  // Resume opens the room list for this review step; opening a room remains allowed.
+  await page.getByRole('link', { name: 'Open Solace' }).click();
+  await expect(page).toHaveURL(/\/rooms\/101$/);
+  await page.getByRole('button', { name: 'Finish practice', exact: true }).click();
+  await expect(page.getByTestId('course-independent-challenge')).toContainText('Switch between Guest rooms and Shared areas');
 });

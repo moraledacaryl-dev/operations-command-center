@@ -102,7 +102,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     whyIncorrect: 'Promising a result that has not been checked can mislead the guest and hide an unfinished repair.',
     branches: [{question:'What if the guest says the room is too hot to stay in?',
       choices:['Ignore the new information','Ask the lead about safe immediate assistance or a room option and update the guest','Say maintenance will arrive at a made-up time'],
-      correct:1, response:'New information can change the response. Ask an authorized lead for an way to help the guest now.'}],
+      correct:1, response:'New information can change the response. Ask an authorized lead for a way to help the guest now.'}],
     handsOn: 'guest-ac',
     questions: [
       q('A guest says the AC is not cooling. What is a useful first step?', ['Record the fault and ask for inspection','Mark it repaired immediately','Promise it will never happen again'], 0, 'The team needs a clear report before the repair and follow-up can be checked.'),
@@ -130,7 +130,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   },
   requests: {
     explanation: 'A request asks for something to be purchased or changed. Explain what is needed, why it matters and whether the price or quotation has been verified. Requesting approval is not approving your own request.',
-    example: 'A department needs equipment but the supplier quotation is missing. Save the truthful reason and send it to an person allowed to review it.',
+    example: 'A department needs equipment but the supplier quotation is missing. Save the truthful reason and send it to a person allowed to review it.',
     repeatVariant: { example:'The kitchen requests replacement equipment but only has an estimate, not a supplier quote. Clearly describe what is missing before asking for review.', questions:[
       q('The supplier has not sent a price. What should the request say?', ['Quotation still pending','Exact final price confirmed','Management already approved'],0,'Missing information must be reported accurately.'),
       q('What does Send for review mean?', ['The item was delivered','The request is waiting for an authorized decision','The supplier has been paid'],1,'Submitting does not grant approval.'),
@@ -203,6 +203,7 @@ export type CourseProgress = {
   stage: CourseStage;
   question: number;
   independentStep?: number;
+  tourStep?: number;
   reference?: string;
   passed: string[];
   metrics?: Record<string, { incorrectAnswers?: number; repeats?: number; completedAt?: string; hintsViewed?: number }>;
@@ -223,6 +224,9 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     const lessonId = typeof v.lessonId === 'string' && allowed.has(v.lessonId) ? v.lessonId : first;
     const stage = ['learn','quiz','tour','room-practice','shift-practice','work','independent','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
     const question = typeof v.question === 'number' && Number.isInteger(v.question) && v.question >= 0 && v.question <= 1 ? v.question : 0;
+    const steps = lessons.find(lesson => lesson.id === lessonId)?.steps.length || 1;
+    const tourStep = typeof v.tourStep === 'number' && Number.isInteger(v.tourStep)
+      && v.tourStep >= 0 && v.tourStep < steps ? v.tourStep : 0;
     const independentStep = v.independentStep === 1 ? 1 : 0;
     const passed = Array.isArray(v.passed) ? v.passed.filter((id): id is string => typeof id === 'string' && allowed.has(id)).slice(0, lessons.length) : [];
     const metrics: NonNullable<CourseProgress['metrics']> = {};
@@ -259,7 +263,7 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     };
     const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
     return { lessonId, stage: stage === 'work' && !reference ? 'learn' : stage,
-      question, independentStep, ...(reference ? { reference } : {}), passed, metrics };
+      question, independentStep, tourStep, ...(reference ? { reference } : {}), passed, metrics };
   } catch { return fallback; }
 }
 export const COURSE_STORAGE_PREFIX = 'ho-ops-structured-course-v2:';

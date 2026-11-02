@@ -51,7 +51,6 @@ function closeEnough(a: Position | null, b: Position) {
 
 function popupStyle(position: Position | null, measuredTipHeight?: number): React.CSSProperties {
   if (!position || typeof window === 'undefined') return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-  if (window.innerWidth < 640) return { left: 12, right: 12, bottom: 80 };
 
   const margin = 14;
   const gap = 18;
@@ -98,7 +97,6 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [quizFeedback, setQuizFeedback] = useState('');
   const [restoreMessage, setRestoreMessage] = useState('');
-  const [quizErrors, setQuizErrors] = useState(0);
   const [branchAnswer, setBranchAnswer] = useState<number | null>(null);
   const [branchExplained, setBranchExplained] = useState(false);
   const observedNode = useRef<HTMLElement | null>(null);
@@ -118,7 +116,16 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   latestLessons.current = lessons;
   const courseLesson = course && lessons.find(item => item.id === course.lessonId);
   const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
-  const practicePlan = courseLesson ? PRACTICE_PLANS[courseLesson.id] : undefined;
+  const basePlan = courseLesson ? PRACTICE_PLANS[courseLesson.id] : undefined;
+  const practicePlan = basePlan && courseLesson?.id === 'staff-rooms' && !isFrontDeskStaff
+    ? { ...basePlan, goal: 'Find guest rooms and shared areas.',
+        show: 'Choose Guest rooms, search Solace, and open its room details. Read the records available to your department.',
+        self: 'Switch between Guest rooms and Shared areas without arrows.',
+        checks: 'This lesson checks your navigation. It does not verify a guest report or a completed repair.' }
+    : basePlan && courseLesson?.id === 'staff-handover' && user.role !== 'staff'
+      ? { ...basePlan, self: 'Find Urgent and Unresolved handovers without arrows.',
+          checks: 'This lesson checks navigation. The later writing exercise checks a saved fictional handover.' }
+      : basePlan;
   const repeatVariant = courseGuide?.repeatVariant && (course?.metrics?.[course?.lessonId || '']?.repeats || 0) % 2 === 1
     ? courseGuide.repeatVariant : undefined;
   const currentExample = repeatVariant?.example || courseGuide?.example;
@@ -154,7 +161,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       catch { /* Course cannot pass without saved work regardless. */ }
     }
     setActive(null); setMenuOpen(false); setQuizFeedback(''); setSelectedAnswer(null);
-    setCourse({ ...course, stage:'learn', question:0, independentStep:0, reference:undefined });
+    setCourse({ ...course, stage:'learn', question:0, independentStep:0, tourStep:0, reference:undefined });
   }
 
   function exportTrainingProgress() {
@@ -225,6 +232,13 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     };
   }, []);
 
+  // Keep the current guided step across pause, refresh and app restart.
+  useEffect(() => {
+    if (!active) return;
+    setCourse(current => current?.stage === 'tour' && current.lessonId === active.id
+      && current.tourStep !== active.index ? { ...current, tourStep: active.index } : current);
+  }, [active]);
+
   // A resumed tour displays an explicit Resume button; closing the coach
   // must never restart a tour unexpectedly or mark the practical complete.
 
@@ -290,6 +304,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const step: TrainingStep | undefined = lesson && active ? lesson.steps[active.index] : undefined;
   const stepIndex = active?.index || 0;
   const atLastStep = Boolean(lesson && stepIndex === lesson.steps.length - 1);
+  const readingRoomDetail = lesson?.id === 'staff-rooms' && stepIndex > 0 && /^\/rooms\/\d+$/.test(path);
+  const onStepPage = Boolean(step && (path === step.path || readingRoomDetail));
 
   const finish = useCallback((lessonId: string) => {
     setComplete(current => {
@@ -373,7 +389,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       return;
     }
     setActive({ id: courseLesson.id, index: 0 });
-    setCourse({ ...course, stage: 'tour', question: 0 });
+    setCourse({ ...course, stage: 'tour', question: 0, tourStep: 0 });
     router.push(courseLesson.steps[0]?.path || '/');
   }
 
@@ -384,15 +400,11 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         [current.lessonId]: { ...(current.metrics?.[current.lessonId] || {}),
           incorrectAnswers: (current.metrics?.[current.lessonId]?.incorrectAnswers || 0) + 1 },
       } } : current);
-      setQuizErrors(v => v + 1);
-      setQuizFeedback(quizErrors === 0
-        ? 'Not quite. Read the situation again. What would the next employee need to do, and what has actually been confirmed? Try again.'
-        : 'Try again. ' + quizItem.explanation);
+      setQuizFeedback('Not quite. ' + quizItem.explanation + ' Try again.');
       setSelectedAnswer(null);
       return;
     }
     setQuizFeedback('');
-    setQuizErrors(0);
     setSelectedAnswer(null);
     if (course.question < (currentQuestions?.length || 0) - 1) {
       setCourse({ ...course, question: course.question + 1 });
@@ -405,7 +417,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     const nextLesson = lessons.slice(index + 1).find(item => !course.passed.includes(item.id))
       || lessons.find(item => !course.passed.includes(item.id));
     if (!nextLesson) { setCourse({ ...course, stage: 'finished' }); setMenuOpen(true); return; }
-    setCourse({ ...course, lessonId: nextLesson.id, stage: 'learn', question: 0, independentStep: 0, reference: undefined });
+    setCourse({ ...course, lessonId: nextLesson.id, stage: 'learn', question: 0, independentStep: 0, tourStep: 0, reference: undefined });
     setSelectedAnswer(null);
     setQuizFeedback('');
     setBranchAnswer(null);
@@ -423,7 +435,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     }
     setActive(null);
     setMenuOpen(false);
-    setCourse(current => current ? { ...current, lessonId, stage: 'learn', question: 0, independentStep: 0, reference: undefined,
+    setCourse(current => current ? { ...current, lessonId, stage: 'learn', question: 0, independentStep: 0, tourStep: 0, reference: undefined,
       metrics: { ...(current.metrics || {}), [lessonId]: { ...(current.metrics?.[lessonId] || {}),
         repeats: (current.metrics?.[lessonId]?.repeats || 0) + 1 } } } : {
       lessonId, stage: 'learn', question: 0, passed: [],
@@ -448,7 +460,14 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   }, [active, lesson, lessons, exit]);
 
   useEffect(() => {
-    if (!step || path === step.path) return;
+    if (!step) return;
+    // Opening a real room is part of reading it, not a reason to return to the
+    // list. Move from the search instruction to reviewing that room's details.
+    if (readingRoomDetail) {
+      if (active?.index === 1) setActive({ id: active.id, index: 2 });
+      return;
+    }
+    if (path === step.path) return;
     setTargetFound(false);
     setPosition(null);
     if (step.requiresAction) {
@@ -459,10 +478,10 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       return;
     }
     router.push(step.path);
-  }, [path, router, step, lesson, active, next]);
+  }, [path, router, step, lesson, active, next, readingRoomDetail]);
 
   useEffect(() => {
-    if (!step || path !== step.path) return;
+    if (!step || !onStepPage) return;
     let cancelled = false;
     let lastNode: HTMLElement | null = null;
     let scrolled = false;
@@ -504,7 +523,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       window.removeEventListener('scroll', queueRefresh, true);
       window.removeEventListener('resize', queueRefresh);
     };
-  }, [step, path]);
+  }, [step, path, onStepPage]);
 
   useEffect(() => {
     if (!step?.advanceOnClick || path !== step.path || !active) return;
@@ -530,7 +549,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   }, [active, next, previous, exit]);
 
   useEffect(() => {
-    if (!position || !step || path !== step.path) { setTipPosition(null); return; }
+    if (!position || !step || !onStepPage) { setTipPosition(null); return; }
     const frame = requestAnimationFrame(() => {
       const node = tipRef.current;
       if (!node) return;
@@ -538,7 +557,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       setTipPosition(current => closeEnough(current, nextPosition) ? current : nextPosition);
     });
     return () => cancelAnimationFrame(frame);
-  }, [active, position, step, path, targetFound]);
+  }, [active, position, step, path, targetFound, onStepPage]);
 
   const arrow = position && tipPosition && typeof window !== 'undefined' ? (() => {
     const tx = Math.min(window.innerWidth - 20, Math.max(20, position.left + position.width / 2));
@@ -578,7 +597,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     return () => { window.removeEventListener('keydown', trapTab); previous?.focus(); };
   }, [menuOpen]);
 
-  const spotlight = position && path === step?.path ? {
+  const spotlight = position && onStepPage ? {
     top: Math.max(0, position.top - 6),
     left: Math.max(0, position.left - 6),
     width: position.width + 12,
@@ -677,7 +696,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       <section ref={courseDialogRef} tabIndex={-1} className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
         <h2>Continue your practice</h2>
         <p>You still have steps to finish. Open the practice screen and follow the arrows.</p>
-        <button type="button" className="ops-course-primary" onClick={() => { setActive({ id: course.lessonId, index: 0 }); router.push(courseLesson?.steps[0]?.path || '/'); }}>Resume practical lesson →</button>
+        <button type="button" className="ops-course-primary" onClick={() => { const index = course.tourStep || 0; setActive({ id: course.lessonId, index }); router.push(courseLesson?.steps[index]?.path || '/'); }}>Resume practical lesson →</button>
       </section>
     </div>}
     {course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
@@ -686,7 +705,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       {practicePlan && <p className="ops-practice-self-goal">{practicePlan.self}</p>}
       <span>{independentAction.title}: {independentAction.instruction}</span>
       <small>Do this on the real practice screen. The next step appears after the correct action. Nothing is approved or saved for you.</small>
-      {practicePlan && <details className="ops-practice-show-help"><summary>Need help?</summary><p>{practicePlan.help}</p><p>{practicePlan.checks}</p></details>}
+      {practicePlan && <details className="ops-practice-show-help"><summary>Need help?</summary><p>{independentAction.instruction} On a phone, open the navigation menu first if the link is hidden.</p><p>{practicePlan.checks}</p></details>}
       <button type="button" onClick={() => router.push(independentAction.path)}>Open the right screen</button>
       <button type="button" onClick={restartCurrentLessonSafely}>Start this lesson again</button>
     </div>}
@@ -709,17 +728,6 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           <strong>{course?.passed.length || 0} of {lessons.length} lessons completed</strong>
           <p>Start with your current lesson. You can repeat finished lessons whenever you want.</p>
         </div>
-        <div className="ops-guide-report-actions">
-          <button type="button" className="ops-guide-repeat-course" data-testid="export-training-progress"
-            onClick={exportTrainingProgress}>Save my training report</button>
-          <label className="ops-course-import">Open a saved report (same login)
-            <input type="file" accept=".json,application/json" data-testid="restore-training-progress"
-              onChange={event=>{void restoreTrainingProgress(event.target.files?.[0]);event.target.value='';}} />
-          </label>
-          <span>You can show the report to your trainer. It only brings back lessons you read; you must repeat saved-work practice on this computer. The report is not an approval to work on live records.</span>
-          {restoreMessage && <p role="status" data-testid="restore-progress-feedback">{restoreMessage}</p>}
-        </div>
-        {capabilities.manage_department && <TrainerReports manager={user} />}
         <div className="ops-guide-lesson-grid">
           {lessons.map(item => <div key={item.id} className="ops-guide-lesson-wrap">
             <button type="button" className="ops-guide-lesson"
@@ -740,6 +748,19 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
               onClick={() => repeatCourseLesson(item.id)}>↻ Repeat lesson</button>}
           </div>)}
         </div>
+        <details className="ops-practice-show-help"><summary>Save or open a training report</summary>
+        <div className="ops-guide-report-actions">
+          <button type="button" className="ops-guide-repeat-course" data-testid="export-training-progress"
+            onClick={exportTrainingProgress}>Save my training report</button>
+          <label className="ops-course-import">Open a saved report (same login)
+            <input type="file" accept=".json,application/json" data-testid="restore-training-progress"
+              onChange={event=>{void restoreTrainingProgress(event.target.files?.[0]);event.target.value='';}} />
+          </label>
+          <span>You can show the report to your trainer. It only brings back lessons you read; you must repeat saved-work practice on this computer. The report is not an approval to work on live records.</span>
+          {restoreMessage && <p role="status" data-testid="restore-progress-feedback">{restoreMessage}</p>}
+        </div>
+        </details>
+        {capabilities.manage_department && <TrainerReports manager={user} />}
         <p className="ops-guide-footer-note"><button type="button" className="ops-guide-more" onClick={() => { setMenuOpen(false); router.push('/training'); }}>More practice: work situations</button></p>
         <p className="ops-guide-footer-note">Finish each lesson and its practice before moving on. A training report is not approval to work on live records.</p>
       </section>
@@ -758,12 +779,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <div className="ops-guide-progress" aria-hidden="true"><span style={{ width: `${(stepIndex + 1) / lesson.steps.length * 100}%` }} /></div>
         <h2>{step.title}</h2>
         <p>{step.body}</p>
-        {path !== step.path ? <p className="ops-guide-hint">Opening the correct page…</p>
+        {!onStepPage ? <p className="ops-guide-hint">Opening the correct page…</p>
           : needsNavigation ? <p className="ops-guide-hint">Open the highlighted navigation menu, then find the link named above. The lesson continues after you select that link.</p>
           : !targetFound ? <p className="ops-guide-hint">The control is not showing yet. Check the page has loaded, or go Back to reopen the form. You can also pause and resume this lesson; finished lessons are kept.</p>
           : step.requiresAction ? <p className="ops-guide-hint">↖ Click the highlighted link to continue.</p>
           : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted button, or choose Next.</p>
-          : <p className="ops-guide-hint">↖ Read the highlighted section, then choose I checked this.</p>}
+          : <p className="ops-guide-hint">↖ Read the highlighted section, then choose {atLastStep ? 'Finish practice' : 'Next'}.</p>}
         <div className="ops-guide-actions">
           <button type="button" className="ops-guide-button-secondary" onClick={previous} disabled={stepIndex === 0}>Back</button>
           <button type="button" className="ops-guide-button-primary" onClick={() => next()}
