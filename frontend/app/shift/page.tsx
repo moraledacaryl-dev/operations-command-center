@@ -8,6 +8,7 @@ import { Pill } from '@/components/Pill';
 import { Top } from '@/components/Top';
 import { Icon } from '@/components/Icon';
 import { WorkspaceStats } from '@/components/WorkspaceStats';
+import { sendShiftPracticeAction } from '@/lib/training-shift-mission';
 
 import { LoadingPanel } from '@/components/LoadingPanel';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
@@ -59,6 +60,12 @@ export default function ShiftPage() {
   }, [beginRequest, departmentId, hydrated]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return;
+    const close = () => setSelected(null);
+    window.addEventListener('ho-training-close-shift-detail', close);
+    return () => window.removeEventListener('ho-training-close-shift-detail', close);
+  }, []);
 
   const visible = useMemo(() => items.filter(item => {
     if (filter === 'Unresolved') return !['Done'].includes(String(item.status));
@@ -113,9 +120,9 @@ export default function ShiftPage() {
       <label className="label">Handover detail<textarea className="textarea" value={note} onChange={e => setNote(e.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim() || !note.trim()} onClick={createNote}>{busy ? 'Saving…' : 'Publish handover'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
-    <Tabs values={['Unresolved','Urgent','AM','PM','Night','All']} active={filter} onChange={setFilter} label="Shift note filters" />
+    <Tabs values={['Unresolved','Urgent','AM','PM','Night','All']} active={filter} onChange={value => { setFilter(value); sendShiftPracticeAction({ kind: 'filter', value }); }} label="Shift note filters" />
     <div className="ops-handover-list">
-      {visible.map(item => <button type="button" className="ops-handover-card" key={item.id} onClick={async () => { try { setActionNote(''); setSelected(await api.get('shift-notes', item.id)); } catch (err: any) { setError(err.message || 'Handover note could not be opened.'); } }}>
+      {visible.map(item => <button type="button" className="ops-handover-card" key={item.id} onClick={async () => { try { setActionNote(''); setSelected(await api.get('shift-notes', item.id)); sendShiftPracticeAction({ kind: 'open', id: Number(item.id), title: String(item.title) }); } catch (err: any) { setError(err.message || 'Handover note could not be opened.'); } }}>
         <span className={`ops-shift-stamp ${item.shift === 'Night' ? 'ops-shift-night' : ''}`}><Icon name={item.shift === 'Night' ? 'clock' : 'sun'} /><strong>{item.shift || 'Shift'}</strong></span>
         <span className="ops-handover-body"><span className="ops-handover-meta"><span>{formatStamp(item.created_at || item.updated_at)}</span><span><Pill value={item.status} />{item.urgency === 'Urgent' ? <Pill value="Urgent" /> : null}</span></span><strong>{item.title}</strong><span className="ops-work-card-description">{item.note || 'Open this handover for details.'}</span><span className="ops-handover-footer">{item.category || 'Other'}{item.created_by_name ? ` · ${item.created_by_name}` : ''}<span>Read handover <Icon name="arrow" /></span></span></span>
       </button>)}

@@ -261,3 +261,14 @@
 .practice-example p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .practice-workspace > h2:focus { outline: 3px solid #9ac8b1; outline-offset: 4px; border-radius: 3px; }
 .training-spotlight-popover { box-sizing: border-box; overflow-y: auto; }
+
+/* Every practice case starts with one example, guided help, and an independent decision. */
+.practice-three-stage { display: grid; gap: 10px; padding: 12px;
+  margin: 11px 0 16px; border: 1px solid #bcd9c8; border-radius: 12px; background: #f5f9f6; }
+.practice-three-stage > div, .practice-show-example { padding: 10px 12px; background: #fff;
+  border: 1px solid #d9e8df; border-radius: 9px; }
+.practice-three-stage strong, .practice-show-example summary { font-weight: 750; color: #244f36; }
+.practice-show-example summary { min-height: 33px; padding: 7px 0; cursor: pointer; }
+.practice-three-stage p { margin: 7px 0 0; line-height: 1.5; }
+.practice-three-stage summary:focus-visible { outline: 3px solid #91bea1; outline-offset: 2px; }
+@media(min-width:850px) { .practice-three-stage { grid-template-columns:repeat(3,minmax(0,1fr)); } }

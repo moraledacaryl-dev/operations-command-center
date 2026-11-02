@@ -456,6 +456,13 @@ export default function PracticeTrainingPage() {
           </details>
           <label className="practice-mode"><input type="checkbox" checked={guided} onChange={event => { setGuided(event.target.checked); setShowTip(false); }} /> Show helpful hints</label>
         </div>
+        <section className="practice-three-stage" data-testid="scenario-three-stage" aria-label="Practice steps">
+          <details className="practice-show-example"><summary>1. Show me an example</summary>
+            <p><strong>Different example:</strong> A fictional guest in Perch 1 asks for extra towels. First check whether Housekeeping has already received the request. Tell the right team, leave a note for the next shift, and check whether delivery was confirmed. Do not mark it done just because someone was asked.</p>
+          </details>
+          <div><strong>2. Help me do it</strong><p>Read the clues below. If unsure, choose Need a hint? or Show me how to answer.</p></div>
+          <div><strong>3. Your turn</strong><p>Choose the action and write your own note. The app checks each answer, then explains what to correct.</p></div>
+        </section>
         <h2 ref={exerciseHeading} tabIndex={-1}>{selected.title}</h2>
         <p className="practice-situation">{selected.situation}</p>
         <p className="practice-skill"><strong>What you will learn:</strong> {selected.skill || 'Choosing the right next action'}</p>
@@ -500,7 +507,7 @@ export default function PracticeTrainingPage() {
         </div>
 
         {phase === 'assess' && <form className="practice-form" onSubmit={triage} data-testid="scenario-triage">
-          <p className="practice-instruction">Think about <strong>what could happen</strong> and <strong>how soon someone needs to help</strong>.</p>
+          <p className="practice-instruction"><strong>Your turn — Step 1:</strong> Think about what could happen and how soon someone needs to help. Choose an urgency and a team.</p>
           <section className="practice-judgment" data-testid="judgment-lens" aria-label="Two-question urgency guide">
             <h3>Check what matters most</h3>
             <p>Answer these two questions to help you choose the right urgency. These questions are not graded.</p>
@@ -553,7 +560,7 @@ export default function PracticeTrainingPage() {
         {phase === 'document' && <form className="practice-form" onSubmit={submit} data-testid="scenario-document">
           <p className="practice-instruction">You chose the right urgency and team. Here is why:</p>
           <p className="practice-judgment-explanation" data-testid="priority-debrief">{reasoningDebrief(selected.priority)}</p>
-          <p className="practice-instruction">Choose the next action. Then write a note the next employee can follow.</p>
+          <p className="practice-instruction"><strong>Your turn — Step 2:</strong> Choose the next action. Then write a note the next employee can follow.</p>
           <label>Choose the next action
             <select value={answers.decision} required onChange={e => update('decision', e.target.value as PracticeAnswers['decision'])} data-testid="scenario-decision">
               <option value="">Select action…</option>{DECISIONS.map(option => <option key={option} value={option}>{option}</option>)}
@@ -593,7 +600,7 @@ export default function PracticeTrainingPage() {
         {phase === 'complete' && <section className="practice-success" role="status" data-testid="scenario-complete">
           <p className="practice-success-mark" aria-hidden="true">✓</p>
           <h3>Practice finished</h3>
-          <p>You chose who should help, what to do next, and what the next shift needs to know.</p>
+          <p>Your answers passed the practice checks. You chose who should help, what to do next, and what the next shift needs to know.</p>
           <p><strong>Tries:</strong> {attempts} · <strong>Changes made:</strong> {mistakesMade} · <strong>Hints used:</strong> {hintsUsed}</p>
           <p><strong>Why this urgency fits:</strong> {reasoningDebrief(selected.priority)}</p>
           <p><strong>Why this response works:</strong> {selected.why}</p>

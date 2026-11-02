@@ -45,7 +45,22 @@ async function completeReadOnlyLesson(page: import('@playwright/test').Page, les
       await course.getByRole('radio', { name: question.choices[question.correct], exact: true }).check();
       await page.getByTestId('course-check-answer').click();
     }
-    if (lesson.id === 'staff-rooms' && (await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}').role)) === 'staff') {
+    if (lesson.id === 'staff-handover' && (await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}').role)) === 'staff') {
+      const mission = page.getByTestId('department-shift-practice');
+      await expect(mission).toContainText('Read a real-looking handover');
+      await mission.getByRole('button', { name: 'Help me do it' }).click();
+      await page.getByRole('button', { name: 'Urgent', exact: true }).click();
+      await expect(mission).toContainText('Open your department');
+      await page.getByRole('button', { name: /Front Desk Night handover #3/ }).click();
+      await expect(mission).toContainText('Check the saved handover status');
+      await mission.getByLabel('What status is shown on this handover?').selectOption('Follow');
+      await mission.getByRole('button', { name: 'Check my answer' }).click();
+      await expect(mission).toContainText('Your turn: Find the PM handover');
+      await page.getByRole('button', { name: 'PM', exact: true }).click();
+      await page.getByRole('button', { name: /Front Desk PM handover #2/ }).click();
+      await mission.getByLabel('What status is shown on this handover?').selectOption('Seen');
+      await mission.getByRole('button', { name: 'Check my answer' }).click();
+    } else if (lesson.id === 'staff-rooms' && (await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}').role)) === 'staff') {
       const mission = page.getByTestId('frontdesk-room-mission');
       await expect(mission).toContainText('Solace');
       await mission.getByRole('button', { name: 'Help me do it' }).click();
