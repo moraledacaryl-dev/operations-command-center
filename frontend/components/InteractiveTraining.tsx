@@ -172,6 +172,10 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   }
   const independentActions = course ? INDEPENDENT_CHECKS[course.lessonId] : null;
   const independentAction = course && independentActions?.[course.independentStep || 0];
+  // Keep a click listener mounted before navigation. Installing the listener
+  // after each route change can miss a fast employee click on a real link.
+  const independentStateRef = useRef({ course, action: independentAction, path });
+  independentStateRef.current = { course, action: independentAction, path };
 
   useEffect(() => {
     try {
@@ -233,32 +237,40 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     };
   }, [course, courseGuide, user]);
 
-  // This is an unguided check using real, safe Operations controls. No
-  // spotlight, Next button, or simulated click can pass it.
+  // Observe real clicks throughout the lesson lifetime, including navigation.
+  // No Next button, synthetic click or just opening a screen awards completion.
   useEffect(() => {
-    if (!course || course.stage !== 'independent' || !independentAction) return;
-    if (path !== independentAction.path) {
-      router.push(independentAction.path);
-      return;
-    }
     const onInteraction = (event: Event) => {
+      const { course: expected, action, path: currentPath } = independentStateRef.current;
+      if (!expected || expected.stage !== 'independent' || !action || currentPath !== action.path) return;
       const target = event.target;
       if (!(target instanceof Element) ||
-        !independentActionMatches(independentAction, target, event.type as 'click'|'input')) return;
+        !independentActionMatches(action, target, event.type as 'click' | 'input')) return;
       setCourse(current => {
         if (!current || current.stage !== 'independent' ||
-          current.lessonId !== course.lessonId || (current.independentStep || 0) !== (course.independentStep || 0)) return current;
+          current.lessonId !== expected.lessonId ||
+          (current.independentStep || 0) !== (expected.independentStep || 0)) return current;
         if ((current.independentStep || 0) === 0) return { ...current, independentStep: 1 };
         return { ...current, stage: 'done', independentStep: 0,
           passed: Array.from(new Set([...current.passed, current.lessonId])),
           metrics: { ...(current.metrics || {}), [current.lessonId]: {
-            ...(current.metrics?.[current.lessonId] || {}), completedAt:new Date().toISOString(),
+            ...(current.metrics?.[current.lessonId] || {}), completedAt: new Date().toISOString(),
           } } };
       });
     };
-    document.addEventListener(independentAction.type || 'click', onInteraction, true);
-    return () => document.removeEventListener(independentAction.type || 'click', onInteraction, true);
-  }, [course, independentAction, path, router]);
+    document.addEventListener('click', onInteraction, true);
+    document.addEventListener('input', onInteraction, true);
+    return () => {
+      document.removeEventListener('click', onInteraction, true);
+      document.removeEventListener('input', onInteraction, true);
+    };
+  }, []);
+
+  // The practice remains on the actual screen for the current real action.
+  useEffect(() => {
+    if (course?.stage !== 'independent' || !independentAction) return;
+    if (path !== independentAction.path) router.push(independentAction.path);
+  }, [course?.stage, course?.lessonId, course?.independentStep, independentAction, path, router]);
 
   const lesson = active ? TRAINING_LESSONS.find(entry => entry.id === active.id) : undefined;
   const step: TrainingStep | undefined = lesson && active ? lesson.steps[active.index] : undefined;

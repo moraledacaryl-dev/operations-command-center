@@ -75,6 +75,9 @@ async function completeReadOnlyLesson(page: import('@playwright/test').Page, les
       }
       for (const action of INDEPENDENT_CHECKS[lesson.id]) {
       await expect(page.getByTestId('course-independent-challenge')).toContainText(action.title);
+      // The last tour click can navigate while the independent stage is opening.
+      // Click only after its real target screen is active.
+      await expect.poll(() => new URL(page.url()).pathname).toBe(action.path);
       let target = page.locator(action.selector).filter({ visible: true });
       if (action.containsText) target = target.filter({ hasText: action.containsText });
       if (action.type === 'input') await target.first().fill('repair');
