@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTrainingDialogFocus } from '@/lib/training-dialog-focus';
 import { useRouter } from 'next/navigation';
 import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
@@ -21,13 +22,12 @@ const COMPLETION_PREFIX = 'ho-ops-training-complete-v1:';
 // Lesson explanations, quiz state, and practical outcomes live together. Only
 // the verified local workflow database may confirm a record-editing practical.
 
-function targetFor(selector: string): HTMLElement | null {
+function targetFor(selector: string, text?: string): HTMLElement | null {
   try {
     // Do not highlight hidden desktop/mobile duplicates or closed navigation groups.
     return Array.from(document.querySelectorAll<HTMLElement>(selector))
       .find(node => {
-        const rect = node.getBoundingClientRect();
-        return node.getClientRects().length > 0
+        return (!text || node.textContent?.trim() === text) && node.getClientRects().length > 0
           && window.getComputedStyle(node).visibility !== 'hidden'
           && window.getComputedStyle(node).display !== 'none';
       }) || null;
@@ -101,6 +101,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const observedNode = useRef<HTMLElement | null>(null);
   const tipRef = useRef<HTMLElement | null>(null);
   const libraryRef = useRef<HTMLElement | null>(null);
+  const courseDialogRef = useRef<HTMLElement | null>(null);
+  const [needsNavigation, setNeedsNavigation] = useState(false);
   const [tipPosition, setTipPosition] = useState<Position | null>(null);
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');
@@ -115,6 +117,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const currentExample = repeatVariant?.example || courseGuide?.example;
   const currentQuestions = repeatVariant?.questions || courseGuide?.questions;
   const quizItem = currentQuestions?.[course?.question || 0];
+  const courseModalOpen = Boolean(course && (['learn', 'quiz', 'done'].includes(course.stage) || (course.stage === 'tour' && !active)));
+  useTrainingDialogFocus(courseDialogRef, courseModalOpen, `${course?.lessonId}:${course?.stage}:${course?.question}`);
   const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
 
   async function restoreTrainingProgress(file: File | undefined) {
@@ -175,7 +179,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   // Begin lesson one automatically on sign-in; repeat / resume does not skip
   // the explanation or the quiz. Store only convenience progress, not a credential.
   useEffect(() => {
-    if (!lessons.length) return;
+    if (!latestLessons.current.length) return;
     let saved: string | null = null;
     try { saved = localStorage.getItem(courseKey); } catch { /* in-memory fallback */ }
     setCourse(readCourseProgress(saved, latestLessons.current));
@@ -289,7 +293,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setHelpMessage('');
     setPosition(null);
     if (atLastStep) finish(lesson.id);
-    else setActive({ id: lesson.id, index: active.index + 1 });
+    else setActive(current => current?.id === active.id && current.index === active.index
+      ? { id: lesson.id, index: active.index + 1 } : current);
   }, [active, lesson, atLastStep, finish, step, targetFound, course?.stage]);
 
   const previous = useCallback(() => {
@@ -373,7 +378,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setHelpMessage('');
     setPosition(null);
     setActive({ id: lessonId, index: 0 });
-  }, []);
+    const first = TRAINING_LESSONS.find(item => item.id === lessonId)?.steps[0];
+    if (first) router.push(first.path);
+  }, [router]);
 
   useEffect(() => {
     if (active && (!lesson || !lessons.some(item => item.id === lesson.id))) exit();
@@ -402,9 +409,14 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
     const refresh = () => {
       if (cancelled) return;
-      const node = targetFor(step.selector);
+      const actualTarget = targetFor(step.selector, step.targetText);
+      const hiddenNavigation = !actualTarget && Array.from(document.querySelectorAll(step.selector))
+        .some(node => node.closest('.ops-sidebar'));
+      const menu = hiddenNavigation ? targetFor('button[aria-label="Open navigation"]') : null;
+      const node = actualTarget || menu;
+      setNeedsNavigation(Boolean(menu));
       observedNode.current = node;
-      setTargetFound(Boolean(node));
+      setTargetFound(Boolean(actualTarget));
       if (!node) { setPosition(null); return; }
       if (node !== lastNode) { lastNode = node; scrolled = false; }
       if (!scrolled) {
@@ -435,11 +447,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   useEffect(() => {
     if (!step?.advanceOnClick || path !== step.path || !active) return;
-    const node = targetFor(step.selector);
+    const node = targetFor(step.selector, step.targetText);
     if (!node) return;
-    const click = () => { window.setTimeout(() => { if (document.body.contains(node) || step.advanceOnClick) next(true); }, 100); };
+    let pending = 0;
+    const click = () => { pending = window.setTimeout(() => next(true), 0); };
     node.addEventListener('click', click, { once: true });
-    return () => node.removeEventListener('click', click);
+    return () => { window.clearTimeout(pending); node.removeEventListener('click', click); };
   }, [active, path, step, targetFound, next]);
 
   useEffect(() => {
@@ -522,7 +535,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
     {course && courseLesson && courseGuide && ['learn','quiz','done'].includes(course.stage) && <div
       className="ops-course-backdrop" data-testid="required-training-course">
-      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
+      <section ref={courseDialogRef} tabIndex={-1} className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
         <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>
           <strong>Lesson {lessonNumber} of {lessons.length}</strong></div>
         {capabilities.manage_department && <details className="ops-course-help">
@@ -533,6 +546,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           <span className={course.stage === 'quiz' ? 'current' : ''}>2. Answer</span>
           <span className={course.stage === 'done' ? 'current' : ''}>3. Try it</span></div>
         {course.stage === 'learn' && <>
+          <p className="ops-course-scroll-help">Read the lesson below, then choose Answer two questions. Scroll inside this panel if the button is below the screen.</p>
           <h2 data-testid="course-lesson-title">{courseLesson.title}</h2>
           <p className="ops-course-explanation">{courseGuide.explanation}</p>
           <h3>Example at work</h3>
@@ -593,17 +607,17 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       </section>
     </div>}
     {course?.stage === 'tour' && !active && <div className="ops-course-backdrop">
-      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
+      <section ref={courseDialogRef} tabIndex={-1} className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
         <h2>Continue your actual-page practice</h2>
         <p>You still have steps to finish. Open the practice screen and follow the arrows.</p>
-        <button type="button" className="ops-course-primary" onClick={() => setActive({ id: course.lessonId, index: 0 })}>Resume practical lesson →</button>
+        <button type="button" className="ops-course-primary" onClick={() => { setActive({ id: course.lessonId, index: 0 }); router.push(courseLesson?.steps[0]?.path || '/'); }}>Resume practical lesson →</button>
       </section>
     </div>}
     {course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
       data-testid="course-independent-challenge" role="status">
       <strong>Your turn · {1 + (course.independentStep || 0)} of 2 — No arrows</strong>
       <span>{independentAction.title}: {independentAction.instruction}</span>
-      <small>Find and click the button yourself to finish this step.</small>
+      <small>Find and click the button yourself to finish this step. On a small screen, open the menu or More to find links that are hidden.</small>
       <button type="button" onClick={() => router.push(independentAction.path)}>Open the right screen</button>
       <button type="button" onClick={restartCurrentLessonSafely}>Start this lesson again</button>
     </div>}
@@ -674,7 +688,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <h2>{step.title}</h2>
         <p>{step.body}</p>
         {path !== step.path ? <p className="ops-guide-hint">Opening the correct page…</p>
-          : !targetFound ? <p className="ops-guide-hint">The button is not showing yet. Check that you are on the right page.</p>
+          : needsNavigation ? <p className="ops-guide-hint">Open the highlighted navigation menu, then find the link named above. The lesson continues after you select that link.</p>
+          : !targetFound ? <p className="ops-guide-hint">The control is not showing yet. Check the page has loaded, or go Back to reopen the form. You can also pause and resume this lesson; finished lessons are kept.</p>
           : step.requiresAction ? <p className="ops-guide-hint">↖ Click the highlighted link to continue.</p>
           : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted button, or choose Next.</p>
           : <p className="ops-guide-hint">↖ Look where the arrow points, then choose Next.</p>}

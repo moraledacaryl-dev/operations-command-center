@@ -4,6 +4,7 @@ export type TrainingStep = {
   body: string;
   path: string;
   selector: string;
+  targetText?: string;
   /** Only safe, reversible clicks (opening a form, switching a tab). */
   advanceOnClick?: boolean;
   /** The trainee must click this real navigation control before the lesson advances. */
@@ -39,7 +40,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
   {
     id: 'staff-handover', title: 'Reading a shift handover', summary: 'Understand what the previous shift left for you.',
     steps: [
-      { path: '/shift', selector: '[aria-label="Shift note filters"] button', title: 'Find outstanding handovers', advanceOnClick: true, requiresAction: true, body: 'Choose Unresolved or Urgent to focus on notes needing action. Completed records may be in History.' },
+      { path: '/shift', selector: '[aria-label="Shift note filters"] button', targetText: 'Urgent', title: 'Find outstanding handovers', advanceOnClick: true, requiresAction: true, body: 'Choose Unresolved or Urgent to focus on notes needing action. Completed records may be in History.' },
       { path: '/shift', selector: '.ops-handover-card, .ops-module', title: 'Read the full note', body: 'Open a handover card and check its category, shift, priority, and exact instructions. Do not assume a note is resolved just because it has been read.' },
       { path: '/shift', selector: '.ops-module', title: 'Escalate what you cannot finish', body: 'If your account does not have a follow-up or resolve button, inform your Supervisor. Never use someone else\'s login to close work.' },
     ],
@@ -47,7 +48,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
   {
     id: 'staff-rooms', title: 'Rooms and guest information', summary: 'Find rooms, spaces, and related operational issues.',
     steps: [
-      { path: '/rooms', selector: '[aria-label="Space type"] button', title: 'Filter spaces', advanceOnClick: true, requiresAction: true, body: 'Select Guest rooms or Shared areas to narrow the list.' },
+      { path: '/rooms', selector: '[aria-label="Space type"] button', targetText: 'Guest rooms', title: 'Filter spaces', advanceOnClick: true, requiresAction: true, body: 'Select Guest rooms or Shared areas to narrow the list.' },
       { path: '/rooms', selector: '[aria-label="Search rooms and areas"]', title: 'Search for a specific room', body: 'Enter a room or area name. Open a matching card to review its operational history and linked matters.' },
       { path: '/rooms', selector: '.space-card, .ops-module', title: 'Review before escalating', body: 'Use the room page to find existing maintenance or guest issues before reporting a suspected duplicate.' },
     ],

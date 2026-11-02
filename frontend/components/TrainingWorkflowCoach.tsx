@@ -76,7 +76,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       document.removeEventListener('input', schedule, true);
       document.removeEventListener('change', schedule, true);
     };
-  }, [path, session?.kind, session?.reference, session?.step, session?.ownerId]);
+  }, [path, session]);
 
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true' ||
     !session || !hasCapability(user, 'manage_department') ||

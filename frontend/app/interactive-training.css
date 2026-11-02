@@ -236,3 +236,8 @@
 @media (prefers-reduced-motion: reduce) {
  .ops-guide-spotlight, .ops-guide-progress span { transition: none; }
 }
+.ops-course-panel:focus { outline: none; }
+.ops-course-panel :focus-visible { outline: 3px solid #176d5d; outline-offset: 3px; }
+.training-login-help { color: #405247; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+
+.ops-course-scroll-help { font-size: 12px; line-height: 1.5; color: #435b4f; padding: 9px 12px; background: #edf4ef; border-radius: 8px; }

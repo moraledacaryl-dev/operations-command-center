@@ -1,3 +1,6 @@
+import { DECISIONS, DEPARTMENTS, PRIORITIES } from './practice-scenarios';
+import type { PracticeAnswers } from './practice-scenarios';
+
 /** Validate untrusted device-local progress before counting completed cases.
  * This protects against storage corruption, not intentional result forgery;
  * scenario drills are not a signed certification.
@@ -8,6 +11,7 @@ export type ScenarioProgressRecord = {
   hints?: number;
   mistakes?: number;
   firstTry?: boolean;
+  response?: PracticeAnswers;
 };
 export type ScenarioProgress = Record<string, ScenarioProgressRecord>;
 
@@ -26,11 +30,19 @@ export function parseScenarioProgress(raw: unknown, allowedScenarioIds: readonly
         typeof attempts !== 'number' || !Number.isSafeInteger(attempts) || attempts < 1 ||
         typeof hints !== 'number' || !Number.isSafeInteger(hints) || hints < 0 ||
         typeof mistakes !== 'number' || !Number.isSafeInteger(mistakes) || mistakes < 0 ||
-        mistakes > attempts || hints > attempts ||
+        mistakes > attempts ||
         (item.firstTry !== undefined && typeof item.firstTry !== 'boolean')) continue;
     // Old progress may not include the optional firstTry field. Never
     // advertise unassisted if any earlier corrections or hints are recorded.
-    safe[id] = { attempts, completedAt: item.completedAt, hints, mistakes,
+    let response: PracticeAnswers | undefined;
+    if (item.response && typeof item.response === 'object' && !Array.isArray(item.response)) {
+      const a = item.response as Record<string, unknown>;
+      if (PRIORITIES.includes(a.priority as never) && DEPARTMENTS.includes(a.department as never)
+        && DECISIONS.includes(a.decision as never) && typeof a.note === 'string' && a.note.length <= 4000
+        && (a.owner === undefined || (typeof a.owner === 'string' && a.owner.length <= 200))
+        && (a.followUp === undefined || (typeof a.followUp === 'string' && a.followUp.length <= 1500))) response = a as PracticeAnswers;
+    }
+    safe[id] = { ...(response ? { response } : {}), attempts, completedAt: item.completedAt, hints, mistakes,
       firstTry: item.firstTry === true && mistakes === 0 && hints === 0 };
   }
   return safe;

@@ -7,10 +7,17 @@ on:
       - 'frontend/app/training/page.tsx'
       - 'frontend/app/practice-training.css'
       - 'frontend/lib/practice-scenarios.ts'
+      - 'frontend/lib/training-scenario-drafts.ts'
+      - 'frontend/lib/training-dialog-focus.ts'
+      - 'frontend/lib/training-progress.ts'
+      - 'frontend/e2e/employee-training-walkthrough.spec.ts'
+      - 'frontend/e2e/live-employee-training.spec.ts'
+      - 'frontend/playwright.training-live.config.ts'
       - 'frontend/lib/extended-practice-scenarios.ts'
       - 'frontend/lib/training-workflows.ts'
       - 'frontend/lib/training-observations.ts'
       - 'frontend/components/TrainingWorkflowCoach.tsx'
+      - 'frontend/components/TrainingSpotlight.tsx'
       - 'frontend/e2e/real-workflow-training.spec.ts'
       - 'frontend/e2e/read-only-task-training.spec.ts'
       - 'frontend/components/TrainingRecordLookup.tsx'
@@ -94,7 +101,7 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Run guided tours, role-scoped scenarios and API-verified real workflows
-        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts e2e/real-workflow-training.spec.ts e2e/training-workflow-integrity.spec.ts e2e/read-only-task-training.spec.ts e2e/notification-training.spec.ts e2e/guest-fix-reading-training.spec.ts e2e/required-course.spec.ts e2e/course-improvement-passes.spec.ts e2e/real-screen-orientation.spec.ts --reporter=line
+        run: npx playwright test --config=playwright.config.ts e2e/interactive-training.spec.ts e2e/hands-on-training.spec.ts e2e/real-workflow-training.spec.ts e2e/training-workflow-integrity.spec.ts e2e/read-only-task-training.spec.ts e2e/notification-training.spec.ts e2e/guest-fix-reading-training.spec.ts e2e/required-course.spec.ts e2e/course-improvement-passes.spec.ts e2e/real-screen-orientation.spec.ts e2e/employee-training-walkthrough.spec.ts e2e/guided-spotlight.spec.ts e2e/practice-rubric-integrity.spec.ts e2e/training-progress-integrity.spec.ts e2e/training-login-layout.spec.ts --reporter=line
       - name: Publish guided walkthrough screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -104,5 +111,81 @@ jobs:
             frontend/test-results/ui-audit/interactive-training-*
             frontend/test-results/**/test-failed-*.png
             frontend/test-results/**/trace.zip
+          if-no-files-found: warn
+          retention-days: 7
+
+  employee-live-walkthrough:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ENVIRONMENT: local
+      ALLOW_DEMO_SEED: 'false'
+      ALLOW_DEFAULT_ADMIN_BOOTSTRAP: 'false'
+      DATABASE_URL: sqlite:////tmp/operations_training_demo_employee_ci.sqlite
+      SESSION_SECRET: ephemeral-ci-training-walkthrough-only-do-not-use-in-deployment-20261102
+      UPLOAD_DIR: /tmp/employee-training-uploads
+      ALLOWED_HOSTS: 127.0.0.1,localhost
+      ALLOWED_ORIGINS: http://127.0.0.1:3407
+      TRAINING_WALKTHROUGH_ROSTER: /tmp/employee-training-private/PRIVATE_training_accounts.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install the real backend and pinned browser tools
+        run: |
+          pip install -r backend/requirements.txt
+          cd frontend
+          npm ci
+          npm install --no-save --package-lock=false @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Create a new disposable fictional training database
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          test ! -e /tmp/operations_training_demo_employee_ci.sqlite
+          mkdir -p "$UPLOAD_DIR"
+          alembic upgrade head
+          python scripts/seed_training_demo.py --confirm ISOLATED_TRAINING_DATABASE_ONLY --private-output /tmp/employee-training-private
+      - name: Start the isolated backend
+        working-directory: backend
+        run: |
+          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8407 > /tmp/employee-training-backend.log 2>&1 &
+      - name: Build the actual training frontend and start its local proxy
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_TRAINING_MODE: 'true'
+          OPERATIONS_API_ORIGIN: http://127.0.0.1:8407
+        run: |
+          npm run build
+          PORT=3407 HOSTNAME=127.0.0.1 nohup node .next/standalone/server.js > /tmp/employee-training-frontend.log 2>&1 &
+      - name: Wait for the disposable app to be ready
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3407/api/readyz > /tmp/employee-training-readiness.json; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo 'The disposable training app did not become ready.'
+          exit 1
+      - name: Complete fresh staff and manager lessons without mocked APIs or pre-completed markers
+        working-directory: frontend
+        run: npx playwright test --config=playwright.training-live.config.ts
+      - name: Preserve fictional walkthrough screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: employee-live-walkthrough-screenshots
+          path: |
+            frontend/test-results/ui-audit/interactive-training-live-*.png
+            frontend/test-results/**/test-failed-*.png
           if-no-files-found: warn
           retention-days: 7

@@ -10,3 +10,6 @@ uploads/*
 .env
 .env.local
 .DS_Store
+
+frontend/test-results/
+frontend/playwright-report/

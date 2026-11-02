@@ -254,3 +254,10 @@
   .practice-steps span { font-size: 12px; padding: 9px; }
   .practice-record-lookup button, .practice-actions .practice-primary { min-height: 48px; }
 }
+.practice-save-note { font-size: 12px; line-height: 1.6; color: #435b4f; margin: 12px 0 18px; }
+.practice-finished { padding: 18px 22px; background: #edf7ef; border: 1px solid #bdd4c6; border-radius: 14px; margin-bottom: 18px; }
+.practice-finished h2 { font-size: 20px; margin: 0 0 8px; }
+.practice-finished p { margin: 0; line-height: 1.6; }
+.practice-example p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.practice-workspace > h2:focus { outline: 3px solid #9ac8b1; outline-offset: 4px; border-radius: 3px; }
+.training-spotlight-popover { box-sizing: border-box; overflow-y: auto; }
