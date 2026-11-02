@@ -756,12 +756,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         aria-label={`Training step ${stepIndex + 1} of ${lesson.steps.length}`} style={popupStyle(position, tipPosition?.height)}>
         <div className="ops-guide-tip-top"><span>HELP ME DO IT · STEP {stepIndex + 1} OF {lesson.steps.length}</span><button type="button" onClick={exit} aria-label="Exit walkthrough">Pause ×</button></div>
         <div className="ops-guide-progress" aria-hidden="true"><span style={{ width: `${(stepIndex + 1) / lesson.steps.length * 100}%` }} /></div>
-        {PRACTICE_PLANS[lesson.id] && <span className="ops-practice-mission-label" data-testid="guided-practice-goal">{PRACTICE_PLANS[lesson.id].goal}</span>}
         <h2>{step.title}</h2>
         <p>{step.body}</p>
-        {PRACTICE_PLANS[lesson.id] && <details className="ops-practice-show-help"><summary>Show me an example</summary>
-          <p>{PRACTICE_PLANS[lesson.id].show}</p><p>{PRACTICE_PLANS[lesson.id].help}</p>
-        </details>}
         {path !== step.path ? <p className="ops-guide-hint">Opening the correct page…</p>
           : needsNavigation ? <p className="ops-guide-hint">Open the highlighted navigation menu, then find the link named above. The lesson continues after you select that link.</p>
           : !targetFound ? <p className="ops-guide-hint">The control is not showing yet. Check the page has loaded, or go Back to reopen the form. You can also pause and resume this lesson; finished lessons are kept.</p>
@@ -771,7 +767,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <div className="ops-guide-actions">
           <button type="button" className="ops-guide-button-secondary" onClick={previous} disabled={stepIndex === 0}>Back</button>
           <button type="button" className="ops-guide-button-primary" onClick={() => next()}
-            disabled={Boolean(step.requiresAction && (course?.stage === 'tour' || targetFound))}>{step.requiresAction ? 'Click the highlighted link' : atLastStep ? 'Finish practice' : 'Next →'}</button>
+            disabled={Boolean(step.requiresAction && (course?.stage === 'tour' || targetFound))}>{step.requiresAction ? 'Click highlighted link →' : atLastStep ? 'Finish practice' : 'Next →'}</button>
         </div>
         <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>See lesson list</button>
       </section>
