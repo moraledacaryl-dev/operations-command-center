@@ -35,6 +35,9 @@ type QueueKind = 'submissions' | 'posts' | 'external';
 async function setup(page: Page, user: typeof manager, kind: QueueKind, item: Item) {
   await page.addInitScript(({ person }) => {
     localStorage.setItem('cc_user', JSON.stringify(person));
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(person.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '1');
   }, { person: user });
 

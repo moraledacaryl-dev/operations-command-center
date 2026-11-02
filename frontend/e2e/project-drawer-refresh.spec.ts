@@ -10,6 +10,9 @@ const owner = {
 async function setup(page: Page, holdMutation = false) {
   await page.addInitScript(user => {
     localStorage.setItem('cc_user', JSON.stringify(user));
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '1');
   }, owner);
   let moved = false;

@@ -17,6 +17,9 @@ async function setup(page: Page, manager: boolean) {
   let reads = 0;
   await page.addInitScript(value => {
     localStorage.setItem('cc_user', JSON.stringify(value));
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(value.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '1');
   }, user);
   await page.route('**/api/**', async route => {
