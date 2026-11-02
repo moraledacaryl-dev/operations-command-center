@@ -62,7 +62,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(page.getByTestId('course-start-quiz')).toHaveCount(0);
   await panel.getByLabel('Rooms', { exact: true }).check();
   await page.getByTestId('course-check-answer').click();
-  await expect(panel).toContainText('Not yet');
+  await expect(panel).toContainText('Not quite.');
   await expect(page.locator('.ops-guide-tip')).toHaveCount(0);
   await panel.getByLabel('My Work', { exact: true }).check();
   await page.getByTestId('course-check-answer').click();
