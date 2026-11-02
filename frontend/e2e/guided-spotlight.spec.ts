@@ -11,6 +11,11 @@ const fictional = {
 async function startDemo(page: import('@playwright/test').Page, withWorkflow = false) {
   await page.addInitScript(({ user, workflow }) => {
     localStorage.setItem('cc_user', JSON.stringify(user));
+    // Spotlight tests intentionally start with a completed fictional course;
+    // first-sign-in lesson requirements are verified in required-course.spec.ts.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:['orientation'],
+    }));
     localStorage.setItem('cc_department_id', '41');
     if (workflow) localStorage.setItem('ho-ops-verified-workflow-v1:' + String(user.id), JSON.stringify({
       kind: 'shared-no-owner', ownerId: String(user.id), step: 0,
