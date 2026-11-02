@@ -682,7 +682,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     </div>}
     {course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
       data-testid="course-independent-challenge" role="status">
-      <strong>YOUR TURN · {1 + (course.independentStep || 0)} OF 2</strong>
+      <strong>YOUR TURN · {1 + (course.independentStep || 0)} OF 2 — No arrows</strong>
       {practicePlan && <p className="ops-practice-self-goal">{practicePlan.self}</p>}
       <span>{independentAction.title}: {independentAction.instruction}</span>
       <small>Do this on the real practice screen. The next step appears after the correct action. Nothing is approved or saved for you.</small>
