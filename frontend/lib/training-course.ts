@@ -247,6 +247,13 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
         passed, metrics,
       };
     }
+    // Keep the next unfinished lesson in sequence. Completed lessons may still be
+    // opened for legitimate review; an incomplete later lesson is never unlocked.
+    const nextUnfinished = lessons.find(lesson => !passed.includes(lesson.id));
+    if (nextUnfinished && lessonId !== nextUnfinished.id && !passed.includes(lessonId)) return {
+      lessonId: nextUnfinished.id, stage: 'learn', question: 0, independentStep: 0,
+      passed, metrics,
+    };
     if (stage === 'done' && !passed.includes(lessonId)) return {
       lessonId, stage: 'learn', question: 0, independentStep: 0, passed, metrics,
     };

@@ -37,6 +37,10 @@ test('lesson progress parser rejects invalid lesson ids and incomplete practice 
   expect(readCourseProgress('{"lessonId":"no-such-lesson","stage":"finished"}', lessons).lessonId).toBe('orientation');
   expect(readCourseProgress('{"lessonId":"team-tasks","stage":"work","question":2}', lessons).stage).toBe('learn');
   expect(readCourseProgress('{"lessonId":"orientation","stage":"work","question":2}', lessons).stage).toBe('learn');
+  expect(readCourseProgress(JSON.stringify({ lessonId: 'staff-rooms', stage: 'independent', passed: ['orientation'] }), lessons)).toMatchObject({
+    stage: 'learn', lessonId: 'staff-handover', passed: ['orientation'],
+  });
+  expect(readCourseProgress(JSON.stringify({ lessonId: 'orientation', stage: 'done', passed: [] }), lessons).stage).toBe('learn');
 });
 
 async function mockLogin(page: import('@playwright/test').Page) {
