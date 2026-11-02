@@ -28,7 +28,7 @@ internal sealed class TrainingWindow : Form
     readonly Label status = new() { Text = "Not running", AutoSize = false, Width = 600, Height = 32 };
     readonly Label guidance = new()
     {
-        Text = "TRAINING ONLY  •  Fictional hotel and café records  •  Stored only on this computer",
+        Text = "TRAINING ONLY  •  Made-up guest and work records  •  Saved on this computer",
         AutoSize = false, Width = 600, Height = 45
     };
     readonly HttpClient client = new() { Timeout = TimeSpan.FromSeconds(3) };
@@ -59,7 +59,7 @@ internal sealed class TrainingWindow : Form
             Location = new Point(26, 18), Size = new Size(560, 45)
         };
         var subtitle = new Label {
-            Text = "OPERATIONS  /  ROLE-BASED TRAINING",
+            Text = "STAFF TRAINING",
             Font = new Font("Segoe UI Semibold", 10),
             ForeColor = Color.FromArgb(80, 106, 95),
             Location = new Point(30, 67), Size = new Size(580, 26)
@@ -205,7 +205,7 @@ internal sealed class TrainingWindow : Form
             Directory.CreateDirectory(Path.Combine(dataRoot, "private"));
             var config = LoadSettings();
             var env = Env(config);
-            SetStatus("Preparing fictional training records...");
+            SetStatus("Getting your practice ready...");
             // Track first-launch initialization as a child process, too.
             // Closing the desktop window must cancel it rather than allowing
             // an invisible demo seeder to keep running after the app exits.
@@ -224,7 +224,7 @@ internal sealed class TrainingWindow : Form
                 initializer = null;
             }
             if (closing || cancelled) return;
-            SetStatus("Starting training backend...");
+            SetStatus("Starting the practice app...");
             backend = Launch(ApiExe, "serve", Path.GetDirectoryName(ApiExe)!, env, "backend.log");
             // Next.js standalone server has the proxy destination baked into its build.
             env["HOSTNAME"] = "127.0.0.1";
@@ -262,7 +262,7 @@ internal sealed class TrainingWindow : Form
         {
             if (cancelled || closing) { StopTraining(); return; }
             StopTraining();
-            SetStatus("Could not start • Check the local training logs.");
+            SetStatus("Could not start • Click Training logs for help.");
             if (!closing) MessageBox.Show(exc.Message + "\n\nTraining logs: " + Path.Combine(dataRoot,"logs"),
                 "Training startup failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }

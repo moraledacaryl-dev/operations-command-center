@@ -294,7 +294,7 @@ final class TrainingController: ObservableObject {
         let attempt = startupEpoch
         let expectedGeneration = runtime.cancellationGeneration()
         isStarting = true
-        status = "Preparing training..."
+        status = "Getting your practice ready..."
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             do {
@@ -318,7 +318,7 @@ final class TrainingController: ObservableObject {
                     self.runtime.stop()
                     self.isStarting = false
                     self.isRunning = false
-                    self.status = "Startup failed • No production data affected"
+                    self.status = "Could not start • Live resort records are safe"
                     let alert = NSAlert()
                     alert.messageText = "Could not start staff training"
                     alert.informativeText = error.localizedDescription +
@@ -365,10 +365,10 @@ struct TrainingView: View {
             Text("Hidden Oasis")
                 .font(.system(size: 32, weight: .semibold, design: .rounded))
                 .foregroundColor(teal)
-            Text("OPERATIONS  /  ROLE-BASED STAFF TRAINING")
+            Text("STAFF TRAINING")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.secondary)
-            Text("TRAINING ONLY  •  Fictional hotel and café records")
+            Text("TRAINING ONLY  •  Made-up guest and work records")
                 .font(.system(size: 13))
             Divider()
             HStack(spacing: 10) {
@@ -391,7 +391,7 @@ struct TrainingView: View {
                     .disabled(!controller.isRunning)
                 Button("Training logs") { controller.openLogs() }
             }
-            Text("No connection to your live Operations, POS, Accounting, Staff or Inventory systems.")
+            Text("This practice app does not change live resort records.")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
         }
