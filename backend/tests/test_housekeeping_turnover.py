@@ -14,7 +14,9 @@ from app.routers.housekeeping import (
 
 
 @pytest.fixture
-def state():
+def state(monkeypatch):
+    from datetime import datetime, timezone
+    monkeypatch.setattr("app.routers.housekeeping.utc_now", lambda: datetime(2026, 11, 6, tzinfo=timezone.utc))
     engine = create_engine("sqlite:///:memory:", future=True)
     Base.metadata.create_all(engine)
     db = sessionmaker(bind=engine, autoflush=False, future=True)()
