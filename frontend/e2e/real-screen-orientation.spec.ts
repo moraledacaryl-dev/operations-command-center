@@ -39,7 +39,7 @@ test('first training open starts on real dashboard and requires navigating actua
 
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Open My Work');
-  await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
+  await expect(coach.getByText('Select the highlighted item to continue.', { exact: true })).toBeVisible();
 
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
   await expect(page).toHaveURL(/\/my-work$/);

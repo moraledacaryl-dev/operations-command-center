@@ -20,7 +20,7 @@ export const INDEPENDENT_CHECKS: Record<string, readonly [IndependentAction,Inde
     tab('/shift','Shift note filters','Unresolved','Find unfinished handovers')],
   'staff-rooms': [tab('/rooms','Space type','Guest rooms','Find the guest rooms'),
     tab('/rooms','Space type','Shared areas','Find shared areas')],
-  'staff-my-work': [back, home],
+  'staff-my-work': [home, back],
   'team-tasks': [tab('/tasks','Task view','List','Switch tasks to List'),
     tab('/tasks','Task view','Board','Switch back to Board')],
   'guest-matters': [tab('/guests','Guest matter filters','Urgent','Find urgent guest issues'),

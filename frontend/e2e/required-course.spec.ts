@@ -99,7 +99,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(coach).toContainText('Your start page');
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Open My Work');
-  await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
+  await expect(coach.getByText('Select the highlighted item to continue.', { exact: true })).toBeVisible();
   await page.keyboard.press('ArrowRight');
   await expect(coach).toContainText('Open My Work');
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
@@ -156,7 +156,7 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   await coach.getByRole('button', { name: /Next/ }).click();
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Open New task');
-  await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
+  await expect(coach.getByText('Select the highlighted item to continue.', { exact: true })).toBeVisible();
   await page.getByTestId('create-task').click();
   await expect(coach).toContainText('Describe the task');
   await coach.getByRole('button', { name: /Next/ }).click();

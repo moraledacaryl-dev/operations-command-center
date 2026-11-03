@@ -59,6 +59,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
       { path: '/my-work', selector: '.ops-agenda-overdue, .ops-agenda', title: "Check overdue tasks", body: "Read the task and due date. Tell your lead if you need help meeting the deadline." },
       { path: '/my-work', selector: '.ops-agenda-today, .ops-agenda', title: "Plan today's work", body: "Open each task to see what needs doing during your shift." },
       { path: '/my-work', selector: '.ops-agenda-waiting, .ops-agenda', title: "Check waiting tasks", body: "A task in Review or Waiting may still need a supervisor's decision." },
+      { path: '/my-work', selector: 'a.ops-brand[href="/"]', title: "Return to Today", body: "Select the Hidden Oasis logo to return to Today.", advanceOnClick: true, requiresAction: true },
     ],
   },
   {

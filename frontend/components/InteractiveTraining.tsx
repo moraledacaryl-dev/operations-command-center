@@ -799,13 +799,13 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         {!onStepPage ? <p className="ops-guide-hint">Opening the correct page…</p>
           : needsNavigation ? <p className="ops-guide-hint">Open the highlighted navigation menu, then find the link named above. The lesson continues after you select that link.</p>
           : !targetFound ? <p className="ops-guide-hint">The control is not showing yet. Check the page has loaded, or go Back to reopen the form. You can also pause and resume this lesson; finished lessons are kept.</p>
-          : step.requiresAction ? <p className="ops-guide-hint">↖ Click the highlighted link to continue.</p>
+          : step.requiresAction ? <p className="ops-guide-hint">↖ Select the highlighted item to continue.</p>
           : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted button, or choose Next.</p>
           : <p className="ops-guide-hint">↖ Read the highlighted section, then choose {atLastStep ? 'Finish practice' : 'Next'}.</p>}
         <div className="ops-guide-actions">
           <button type="button" className="ops-guide-button-secondary" onClick={previous} disabled={stepIndex === 0}>Back</button>
           {step.requiresAction && (course?.stage === 'tour' || targetFound)
-            ? <span className="ops-guide-action-instruction">Select the highlighted link to continue.</span>
+            ? <span className="ops-guide-action-instruction">Select the highlighted item to continue.</span>
             : <button type="button" className="ops-guide-button-primary" onClick={() => next()}>{atLastStep ? 'Finish practice' : 'Next →'}</button>}
         </div>
         <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>See lesson list</button>
