@@ -16,7 +16,7 @@ function isPresent(value: unknown) {
 }
 
 function shouldShowDetail(key: string, value: unknown) {
-  if (hidden.has(key) || !detailLabels[key] || !isPresent(value)) return false;
+  if (hidden.has(key) || !Object.prototype.hasOwnProperty.call(detailLabels, key) || !isPresent(value)) return false;
   return ['string', 'number', 'boolean'].includes(typeof value);
 }
 
@@ -25,6 +25,7 @@ function detailLabel(key: string) {
 }
 
 function detailValue(key: string, value: unknown) {
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'string' && (key.endsWith('_at') || key.endsWith('_date'))) {
     const date = new Date(value);
