@@ -24,6 +24,10 @@ const loginUser = {
 test('successful browser login persists metadata only and uses cookie transport', async ({ page }) => {
   const protectedHeaders: Array<{ authorization?: string; cookie?: string }> = [];
 
+  // Background requests must not reach a real backend with this fake cookie.
+  await page.route('**/api/**', route => route.fulfill({status:200, contentType:'application/json',
+    body:JSON.stringify({items:[],counts:{},unread_count:0,configured:false})}));
+
   await page.route('**/api/auth/login', async route => {
     await route.fulfill({
       status: 200,

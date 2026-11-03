@@ -1,0 +1,4592 @@
+[
+  {
+    "id": "shift-unresolved",
+    "level": 2,
+    "department": "Everyone",
+    "title": "Guest still waiting when Reception staff change shifts",
+    "situation": "A guest in Twinspire called Reception 30 minutes ago because the toilet will not flush. Reception wrote down the problem, but nobody was asked to fix it or call the guest back. The next receptionist starts in five minutes.",
+    "goal": "Make sure someone helps the guest, tells them what happens next, and passes the unfinished problem to the new receptionist.",
+    "context": [
+      "Reference: DEMO-HANDOVER-014",
+      "The guest has waited 30 minutes. Nobody has called back to explain what the staff will do.",
+      "The next receptionist starts in five minutes, and no staff member has been told to handle the problem."
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-HANDOVER-014",
+    "noteChecks": [
+      {
+        "label": "who is responsible for handling the problem",
+        "alternatives": [
+          "assign",
+          "owner",
+          "ownership",
+          "responsib"
+        ]
+      },
+      {
+        "label": "telling the guest what happens next or informing the next shift",
+        "alternatives": [
+          "update",
+          "call back",
+          "callback",
+          "follow up"
+        ]
+      }
+    ],
+    "example": "DEMO-HANDOVER-014: Twinspire guest says the toilet will not flush. Assign the Front Desk lead as owner to contact Maintenance and call the guest with an update. Tell the next receptionist that the repair is still waiting for inspection.",
+    "why": "The guest is still waiting and a new receptionist starts soon. Someone must contact the right team, tell the guest what is happening, and make sure the next shift knows who is responsible."
+  },
+  {
+    "id": "guest-ac",
+    "level": 3,
+    "department": "Front Desk",
+    "title": "Guest says air-conditioning is not cooling",
+    "situation": "A guest in Solace calls to report that the air-conditioning is blowing warm air.",
+    "goal": "Record the guest’s problem, ask Maintenance to check it and arrange a guest update.",
+    "context": [
+      "Reference: DEMO-SOLACE-205",
+      "Guest is still in the room",
+      "A maintenance assessment has not yet happened"
+    ],
+    "priority": "High",
+    "route": "Maintenance",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SOLACE-205",
+    "noteChecks": [
+      {
+        "label": "the inspection or maintenance action",
+        "alternatives": [
+          "maintenance",
+          "inspect",
+          "technician",
+          "repair"
+        ]
+      },
+      {
+        "label": "the next guest update",
+        "alternatives": [
+          "update",
+          "callback",
+          "call back",
+          "notify"
+        ]
+      }
+    ],
+    "example": "DEMO-SOLACE-205: guest reports warm air from AC. Log the concern, alert Maintenance and tell the guest when Front Desk will call back.",
+    "why": "Do not mark the room fixed without evidence. Front Desk updates the guest while Maintenance checks the AC."
+  },
+  {
+    "id": "arrival-room",
+    "level": 2,
+    "department": "Front Desk",
+    "title": "Early arrival for an unready room",
+    "situation": "A guest arrives early for Perch 2, but Housekeeping has not marked the room ready.",
+    "goal": "Avoid promising room readiness without confirmation.",
+    "context": [
+      "Reference: DEMO-PERCH2-203",
+      "Housekeeping has not confirmed completion",
+      "The guest requests an exact check-in time"
+    ],
+    "priority": "Routine",
+    "route": "Housekeeping",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-PERCH2-203",
+    "noteChecks": [
+      {
+        "label": "confirming room readiness with Housekeeping",
+        "alternatives": [
+          "housekeeping",
+          "cleaning",
+          "readiness",
+          "verify room"
+        ]
+      },
+      {
+        "label": "an accurate guest response",
+        "alternatives": [
+          "guest",
+          "update",
+          "confirm",
+          "follow up"
+        ]
+      }
+    ],
+    "example": "DEMO-PERCH2-203: verify readiness with Housekeeping, communicate an accurate update to the guest and log the next follow-up.",
+    "why": "Check the facts before promising the guest that a room is ready."
+  },
+  {
+    "id": "housekeeping-turnover",
+    "level": 2,
+    "department": "Housekeeping",
+    "title": "Missing room item during turnover",
+    "situation": "During Twinspire turnover, the standard towels are missing and an incoming guest is expected.",
+    "goal": "Document the missing item and communicate whether the room is ready.",
+    "context": [
+      "Reference: DEMO-TWINSPIRE-204",
+      "Towels are still missing",
+      "The room should not be marked ready yet"
+    ],
+    "priority": "High",
+    "route": "Housekeeping",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-TWINSPIRE-204",
+    "noteChecks": [
+      {
+        "label": "the missing supplies and replenishment",
+        "alternatives": [
+          "towel",
+          "linen",
+          "replenish",
+          "missing"
+        ]
+      },
+      {
+        "label": "room readiness or Front Desk notification",
+        "alternatives": [
+          "front desk",
+          "ready",
+          "readiness",
+          "verify"
+        ]
+      }
+    ],
+    "example": "DEMO-TWINSPIRE-204: towels missing at turnover. Assign replenishment, notify Front Desk that room is not ready and update when confirmed.",
+    "why": "The room is ready only after the missing items have been replaced and checked. Tell the next shift what is missing and who will replace it."
+  },
+  {
+    "id": "housekeeping-lost-found",
+    "level": 3,
+    "department": "Housekeeping",
+    "title": "Found property after checkout",
+    "situation": "A housekeeping employee finds a wallet in Cafe Suite after checkout.",
+    "goal": "Secure and document found property and record who received it.",
+    "context": [
+      "Reference: DEMO-CAFE-SUITE-207",
+      "A wallet is found, with no verified owner present",
+      "Avoid recording sensitive card numbers"
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-CAFE-SUITE-207",
+    "noteChecks": [
+      {
+        "label": "securing the wallet and custody",
+        "alternatives": [
+          "wallet",
+          "secure",
+          "custody",
+          "lost and found"
+        ]
+      },
+      {
+        "label": "the authorized handover or log",
+        "alternatives": [
+          "security",
+          "handover",
+          "log",
+          "record"
+        ]
+      }
+    ],
+    "example": "DEMO-CAFE-SUITE-207: secure the wallet, log who found it and who received it, then inform Security and Front Desk.",
+    "why": "Never copy private payment information into a training note. Record the handoff and person keeping the item safe."
+  },
+  {
+    "id": "cafe-delay",
+    "level": 3,
+    "department": "Café",
+    "title": "Café order delayed during a rush",
+    "situation": "A table has been waiting 35 minutes for order DEMO-CAFE-118.",
+    "goal": "Communicate the delay, check kitchen status and avoid losing the request.",
+    "context": [
+      "Reference: DEMO-CAFE-118",
+      "Guest has already asked twice for an update",
+      "No confirmed completion time"
+    ],
+    "priority": "High",
+    "route": "Café",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-CAFE-118",
+    "noteChecks": [
+      {
+        "label": "checking the delayed order",
+        "alternatives": [
+          "kitchen",
+          "order status",
+          "queue",
+          "check order"
+        ]
+      },
+      {
+        "label": "the guest update or verified estimate",
+        "alternatives": [
+          "guest",
+          "table",
+          "update",
+          "estimate"
+        ]
+      }
+    ],
+    "example": "DEMO-CAFE-118 delayed 35 minutes. Check the kitchen queue, apologize, update the guest with a confirmed estimate and record who follows up.",
+    "why": "Ask one person to handle the delay and tell the guest what is happening. Changing a status does not deliver the order."
+  },
+  {
+    "id": "kitchen-allergy",
+    "level": 4,
+    "department": "Kitchen",
+    "title": "Guest food allergy needs checking",
+    "situation": "The guest reported a food allergy. Order DEMO-KITCHEN-052 may contain an ingredient the guest cannot safely eat.",
+    "goal": "Keep the plate from being served. Ask the Kitchen lead to check its ingredients.",
+    "context": [
+      "Reference: DEMO-KITCHEN-052",
+      "Ingredient safety has not been verified",
+      "The plate has not yet been served"
+    ],
+    "priority": "Critical",
+    "route": "Kitchen",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-KITCHEN-052",
+    "noteChecks": [
+      {
+        "label": "holding the potentially unsafe plate",
+        "alternatives": [
+          "hold",
+          "stop",
+          "do not serve",
+          "remake",
+          "quarantine"
+        ]
+      },
+      {
+        "label": "kitchen lead escalation or ingredient check",
+        "alternatives": [
+          "lead",
+          "verify",
+          "notify",
+          "check ingredients"
+        ]
+      }
+    ],
+    "example": "DEMO-KITCHEN-052: hold service of the potentially affected plate, alert the kitchen lead and Front Desk/Café, verify ingredients and remake safely under protocol.",
+    "why": "Do not serve an unverified allergen risk. Immediate escalation prevents an avoidable guest safety incident."
+  },
+  {
+    "id": "security-access",
+    "level": 4,
+    "department": "Security",
+    "title": "Unverified visitor at the property gate",
+    "situation": "A visitor requests entry to a restricted maintenance area without a verified appointment.",
+    "goal": "Maintain site access control and record who was told and what happened next.",
+    "context": [
+      "Reference: DEMO-GATE-009",
+      "No verified authorization appears in the visitor log",
+      "Visitor requests immediate access"
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-GATE-009",
+    "noteChecks": [
+      {
+        "label": "restricting access pending authorization",
+        "alternatives": [
+          "do not admit",
+          "deny",
+          "restrict",
+          "authorization",
+          "verify access"
+        ]
+      },
+      {
+        "label": "the security handoff or log",
+        "alternatives": [
+          "lead",
+          "log",
+          "document",
+          "notify"
+        ]
+      }
+    ],
+    "example": "DEMO-GATE-009: do not admit visitor to restricted area until authorization is verified. Notify Security lead and document time and outcome.",
+    "why": "Permission must be verified before access. Never rely on claimed authority alone."
+  },
+  {
+    "id": "maintenance-leak",
+    "level": 4,
+    "department": "Maintenance",
+    "title": "Water leak near an electrical outlet",
+    "situation": "A fictional maintenance report places water close to an electrical outlet in Crown.",
+    "goal": "Recognize the combined water and electrical hazard, prevent exposure and escalate.",
+    "context": [
+      "Reference: DEMO-CROWN-209",
+      "Water is present near an outlet",
+      "Electrical safety has not been assessed"
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-CROWN-209",
+    "noteChecks": [
+      {
+        "label": "controlling the water and electrical hazard",
+        "alternatives": [
+          "keep people away",
+          "restrict",
+          "isolate",
+          "hazard"
+        ]
+      },
+      {
+        "label": "qualified escalation or room coordination",
+        "alternatives": [
+          "lead",
+          "notify",
+          "front desk",
+          "qualified"
+        ]
+      }
+    ],
+    "example": "DEMO-CROWN-209: keep people away from the affected area, notify the maintenance lead, isolate hazards through qualified staff and coordinate room restrictions with Front Desk.",
+    "why": "Potential electrical hazards require immediate control by qualified personnel, not routine work completion."
+  },
+  {
+    "id": "marketing-wrong-date",
+    "level": 3,
+    "department": "Marketing",
+    "title": "Incorrect event date in a scheduled post",
+    "situation": "A Halloween poster DEMO-POST-031 shows the wrong event date but has not been published.",
+    "goal": "Stop incorrect content from going live and request a corrected version.",
+    "context": [
+      "Reference: DEMO-POST-031",
+      "Post remains scheduled, not published",
+      "The date must be verified against the approved event plan"
+    ],
+    "priority": "High",
+    "route": "Marketing",
+    "decision": "Return for changes",
+    "reference": "DEMO-POST-031",
+    "noteChecks": [
+      {
+        "label": "pausing or correcting the scheduled post",
+        "alternatives": [
+          "pause",
+          "stop",
+          "hold",
+          "date",
+          "correct"
+        ]
+      },
+      {
+        "label": "the corrected approval or review",
+        "alternatives": [
+          "review",
+          "resubmit",
+          "approval",
+          "verified"
+        ]
+      }
+    ],
+    "example": "DEMO-POST-031: pause publication, cite the unverified event date, request a corrected creative, and resubmit for review.",
+    "why": "Content should be returned with a concrete correction request rather than approved with a known error."
+  },
+  {
+    "id": "supervisor-cover",
+    "level": 3,
+    "department": "Management",
+    "supervisorOnly": true,
+    "title": "A staff member misses an assigned shift",
+    "situation": "Your team reports that the staff member scheduled for shift DEMO-SHIFT-064 has not arrived.",
+    "goal": "Maintain coverage and document the handover without inventing attendance data.",
+    "context": [
+      "Reference: DEMO-SHIFT-064",
+      "Coverage gap is affecting front operations",
+      "Reason for absence is not verified"
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SHIFT-064",
+    "noteChecks": [
+      {
+        "label": "arranging authorized shift coverage",
+        "alternatives": [
+          "cover",
+          "replacement",
+          "arrange",
+          "temporary",
+          "shift"
+        ]
+      },
+      {
+        "label": "logging or escalating the coverage gap",
+        "alternatives": [
+          "handover",
+          "escalate",
+          "record",
+          "notify"
+        ]
+      }
+    ],
+    "example": "DEMO-SHIFT-064: confirm employee status through approved channels, arrange authorized temporary coverage, record the handover and escalate staffing risk.",
+    "why": "Maintain service coverage, but do not fabricate biometric, attendance or payroll records."
+  },
+  {
+    "id": "manager-evidence",
+    "level": 4,
+    "department": "Management",
+    "managerOnly": true,
+    "title": "Approval request without supporting evidence",
+    "situation": "A repair purchase DEMO-REQ-088 requires approval, but it lacks a quotation and clear justification.",
+    "goal": "Check the request before deciding. Write what information is missing.",
+    "context": [
+      "Reference: DEMO-REQ-088",
+      "No quotation is attached",
+      "Amount and necessity are not confirmed"
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-REQ-088",
+    "noteChecks": [
+      {
+        "label": "returning the request for supporting evidence",
+        "alternatives": [
+          "return",
+          "quotation",
+          "quote",
+          "evidence",
+          "request changes"
+        ]
+      },
+      {
+        "label": "the missing amount or justification",
+        "alternatives": [
+          "amount",
+          "cost",
+          "justification",
+          "necessary",
+          "requester"
+        ]
+      }
+    ],
+    "example": "DEMO-REQ-088: return the request for a quotation, itemized amount, urgency justification and responsible requester before approval.",
+    "why": "Ask for the missing information before approving the request."
+  },
+  {
+    "id": "manager-guest-recovery",
+    "level": 5,
+    "department": "Management",
+    "managerOnly": true,
+    "title": "Repeated unresolved guest complaint",
+    "situation": "The same guest has reported the DEMO-GUEST-012 service failure twice after a promised resolution.",
+    "goal": "Take responsibility for the problem and check that it is fixed before closing it.",
+    "context": [
+      "Reference: DEMO-GUEST-012",
+      "Guest previously received an unfulfilled promise",
+      "Root cause is not yet verified"
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-GUEST-012",
+    "noteChecks": [
+      {
+        "label": "reviewing the failed recovery and assigning action",
+        "alternatives": [
+          "prior",
+          "review",
+          "verify",
+          "remedy",
+          "recovery",
+          "lead"
+        ]
+      },
+      {
+        "label": "guest confirmation or follow-up",
+        "alternatives": [
+          "guest",
+          "follow up",
+          "document",
+          "confirm",
+          "closure"
+        ]
+      }
+    ],
+    "example": "DEMO-GUEST-012: review prior attempts, assign a named lead, confirm the remedy with the guest and track documented verification before closure.",
+    "why": "The repeated service failure needs a manager to take charge soon. No immediate danger is described. Arrange help for the guest and check that the problem is fixed."
+  },
+  {
+    "id": "shared-no-owner",
+    "department": "Everyone",
+    "level": 2,
+    "skill": "Choosing what to do next",
+    "title": "A task due today has no one assigned",
+    "situation": "A task is due today, but nobody has been asked to do it.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-NO-OWNER",
+      "A task is due today, but nobody has been asked to do it."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SHARED-NO-OWNER",
+    "example": "DEMO-SHARED-NO-OWNER: Assign someone who is allowed to do the job and explain what needs doing. Confirm that the person accepts the task and record when they will update you.",
+    "why": "Assign someone who is allowed to do the job and explain what needs doing. Confirm that the person accepts the task and record when they will update you.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "assign",
+          "owner",
+          "responsible"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "confirm",
+          "follow up",
+          "update"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-duplicate",
+    "department": "Everyone",
+    "level": 3,
+    "skill": "Choosing what to do next",
+    "title": "Possible duplicate incident reports",
+    "situation": "Two employees separately filed reports about the same broken door; neither knows about the other report.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-DUPLICATE",
+      "Two employees separately filed reports about the same broken door; neither knows about the other report."
+    ],
+    "priority": "Routine",
+    "route": "Maintenance",
+    "decision": "Document and monitor",
+    "reference": "DEMO-SHARED-DUPLICATE",
+    "example": "DEMO-SHARED-DUPLICATE: Compare both reports and reference the original case. Notify the responsible lead and avoid conflicting fixes.",
+    "why": "Compare both reports and reference the original case. Notify the responsible lead and avoid conflicting fixes.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "duplicate",
+          "compare",
+          "link"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "notify",
+          "lead",
+          "avoid conflicting"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-wrong-room",
+    "department": "Everyone",
+    "level": 3,
+    "skill": "Choosing what to do next",
+    "title": "A report may name the wrong room",
+    "situation": "A handover note says Cafe Suite, but the attached photo label says Perch 1.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-WRONG-ROOM",
+      "A handover note says Cafe Suite, but the attached photo label says Perch 1."
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Return for changes",
+    "reference": "DEMO-SHARED-WRONG-ROOM",
+    "example": "DEMO-SHARED-WRONG-ROOM: Verify the room before routing the report. Correct the reference and notify the next shift.",
+    "why": "Verify the room before routing the report. Correct the reference and notify the next shift.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "verify",
+          "confirm",
+          "check"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "correct",
+          "notify",
+          "handover"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-private-data",
+    "department": "Everyone",
+    "level": 4,
+    "skill": "Choosing what to do next",
+    "title": "Personal ID photographed for an incident",
+    "situation": "Someone attaches a photo of an ID card with all personal details visible to a shift note that everyone can read.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-PRIVATE-DATA",
+      "Someone attaches a photo of an ID card with all personal details visible to a shift note that everyone can read."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-SHARED-PRIVATE-DATA",
+    "example": "DEMO-SHARED-PRIVATE-DATA: Restrict who can see the personal details and report the issue. Notify the authorized manager and use the approved private channel.",
+    "why": "Restrict who can see the personal details and report the issue. Notify the authorized manager and use the approved private channel.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "restrict",
+          "remove",
+          "protect",
+          "privacy"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "manager",
+          "notify",
+          "private"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-network-outage",
+    "department": "Everyone",
+    "level": 3,
+    "skill": "Choosing what to do next",
+    "title": "Operations workspace is temporarily offline",
+    "situation": "The local network is unavailable during a busy shift; several guest-related matters must be recorded later.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-NETWORK-OUTAGE",
+      "The local network is unavailable during a busy shift; several guest-related matters must be recorded later."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SHARED-NETWORK-OUTAGE",
+    "example": "DEMO-SHARED-NETWORK-OUTAGE: Follow the approved offline process; do not invent entries. Write a handover for the pending cases. Check them against saved records when the app works again.",
+    "why": "Follow the approved offline process; do not invent entries. Write a handover for the pending cases. Check them against saved records when the app works again.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "offline",
+          "contingency",
+          "manual"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "reconcil",
+          "handover",
+          "service returns"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-false-complete",
+    "department": "Everyone",
+    "level": 3,
+    "skill": "Choosing what to do next",
+    "title": "Task marked done without evidence",
+    "situation": "A cleaning issue is marked Completed, but no verification note or photo exists.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-FALSE-COMPLETE",
+      "A cleaning issue is marked Completed, but no verification note or photo exists."
+    ],
+    "priority": "High",
+    "route": "Housekeeping",
+    "decision": "Return for changes",
+    "reference": "DEMO-SHARED-FALSE-COMPLETE",
+    "example": "DEMO-SHARED-FALSE-COMPLETE: Request proof that the task was actually finished. Keep the issue open for verification by the responsible lead.",
+    "why": "Request proof that the task was actually finished. Keep the issue open for verification by the responsible lead.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "evidence",
+          "proof",
+          "verify"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "lead",
+          "open",
+          "check"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-incorrect-dept",
+    "department": "Everyone",
+    "level": 2,
+    "skill": "Choosing what to do next",
+    "title": "A work item appears in the wrong queue",
+    "situation": "A refrigerator repair request has been sent to Marketing instead of Maintenance.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-INCORRECT-DEPT",
+      "A refrigerator repair request has been sent to Marketing instead of Maintenance."
+    ],
+    "priority": "Routine",
+    "route": "Maintenance",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SHARED-INCORRECT-DEPT",
+    "example": "DEMO-SHARED-INCORRECT-DEPT: Route the repair to Maintenance with its original reference. Confirm a responsible owner and tell the requester.",
+    "why": "Route the repair to Maintenance with its original reference. Confirm a responsible owner and tell the requester.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "route",
+          "reassign",
+          "maintenance"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "owner",
+          "confirm",
+          "requester"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-unread-urgent",
+    "department": "Everyone",
+    "level": 4,
+    "skill": "Choosing what to do next",
+    "title": "Critical alert is unread at shift change",
+    "situation": "An urgent hazard report remains unread while the employee starting the next shift is about to leave the property.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-UNREAD-URGENT",
+      "An urgent hazard report remains unread while the employee starting the next shift is about to leave the property."
+    ],
+    "priority": "Critical",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-SHARED-UNREAD-URGENT",
+    "example": "DEMO-SHARED-UNREAD-URGENT: Contact the on-duty supervisor immediately using approved channels. Document acknowledgment and the person taking over the work.",
+    "why": "Contact the on-duty supervisor immediately using approved channels. Document acknowledgment and the person taking over the work.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "contact",
+          "call",
+          "alert",
+          "escalate"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "acknowledg",
+          "responsible",
+          "receiv"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-verbal-instruction",
+    "department": "Everyone",
+    "level": 2,
+    "skill": "Choosing what to do next",
+    "title": "A task was given only verbally",
+    "situation": "A supervisor asked for a follow-up verbally but no one documented the request or due time.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-VERBAL-INSTRUCTION",
+      "A supervisor asked for a follow-up verbally but no one documented the request or due time."
+    ],
+    "priority": "Routine",
+    "route": "Management",
+    "decision": "Document and monitor",
+    "reference": "DEMO-SHARED-VERBAL-INSTRUCTION",
+    "example": "DEMO-SHARED-VERBAL-INSTRUCTION: Create a clear fictional task or handover note. Confirm responsible person and due time with the supervisor.",
+    "why": "Create a clear fictional task or handover note. Confirm responsible person and due time with the supervisor.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "document",
+          "record",
+          "task"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "due",
+          "deadline",
+          "confirm"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-shift-overlap",
+    "department": "Everyone",
+    "level": 2,
+    "skill": "Choosing what to do next",
+    "title": "Two shifts think the other will call",
+    "situation": "The morning and afternoon shifts both assume the other will contact the waiting guest.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-SHIFT-OVERLAP",
+      "The morning and afternoon shifts both assume the other will contact the waiting guest."
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SHARED-SHIFT-OVERLAP",
+    "example": "DEMO-SHARED-SHIFT-OVERLAP: Select one named follow-up owner immediately. Set a guest update time and record who confirmed they received the message.",
+    "why": "Select one named follow-up owner immediately. Set a guest update time and record who confirmed they received the message.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "owner",
+          "assign",
+          "responsib"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "time",
+          "update",
+          "acknowledg"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-conflicting-updates",
+    "department": "Everyone",
+    "level": 3,
+    "skill": "Choosing what to do next",
+    "title": "Different status reports for one task",
+    "situation": "A board says In Progress, a chat says Done, and no one can show the result.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-CONFLICTING-UPDATES",
+      "A board says In Progress, a chat says Done, and no one can show the result."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-SHARED-CONFLICTING-UPDATES",
+    "example": "DEMO-SHARED-CONFLICTING-UPDATES: Check the work itself and its supporting details instead of relying on chat messages. Correct the official record after confirmation from the person responsible.",
+    "why": "Check the work itself and its supporting details instead of relying on chat messages. Correct the official record after confirmation from the person responsible.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "check",
+          "verify",
+          "evidence"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "correct",
+          "record",
+          "confirm"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "shared-critical-priority",
+    "department": "Everyone",
+    "level": 4,
+    "skill": "Choosing what to do next",
+    "title": "An unsafe issue called routine",
+    "situation": "A shift note describes exposed electrical wiring but the priority was set to Routine.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SHARED-CRITICAL-PRIORITY",
+      "A shift note describes exposed electrical wiring but the priority was set to Routine."
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-SHARED-CRITICAL-PRIORITY",
+    "example": "DEMO-SHARED-CRITICAL-PRIORITY: Flag the exposed wiring as a safety hazard and restrict access. Alert qualified Maintenance and the duty supervisor.",
+    "why": "Flag the exposed wiring as a safety hazard and restrict access. Alert qualified Maintenance and the duty supervisor.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "hazard",
+          "restrict",
+          "isolate"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "maintenance",
+          "supervisor",
+          "alert"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-booking-conflict",
+    "department": "Front Desk",
+    "level": 3,
+    "skill": "Front Desk work",
+    "title": "Two arrivals assigned the same room",
+    "situation": "Two booking entries appear assigned to Crown for overlapping nights.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-BOOKING-CONFLICT",
+      "Two booking entries appear assigned to Crown for overlapping nights."
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-FD-BOOKING-CONFLICT",
+    "example": "DEMO-FD-BOOKING-CONFLICT: Verify the booking records and stop promising either room. Escalate the room assignment problem and update affected guests.",
+    "why": "Verify the booking records and stop promising either room. Escalate the room assignment problem and update affected guests.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "verify",
+          "check",
+          "booking"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "update",
+          "guests",
+          "escalate"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-payment-unverified",
+    "department": "Front Desk",
+    "level": 3,
+    "skill": "Front Desk work",
+    "title": "Guest claims transfer without confirmation",
+    "situation": "A guest shows a screenshot of a bank transfer, but the authorized payment record is not confirmed.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-PAYMENT-UNVERIFIED",
+      "A guest shows a screenshot of a bank transfer, but the authorized payment record is not confirmed."
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-FD-PAYMENT-UNVERIFIED",
+    "example": "DEMO-FD-PAYMENT-UNVERIFIED: Verify payment through the approved payment-checking process. Keep payment status unconfirmed and advise the responsible supervisor.",
+    "why": "Verify payment through the approved payment-checking process. Keep payment status unconfirmed and advise the responsible supervisor.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "verify",
+          "reconcil",
+          "confirm"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "unconfirmed",
+          "supervisor",
+          "pending"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-room-key",
+    "department": "Front Desk",
+    "level": 3,
+    "skill": "Front Desk work",
+    "title": "Lost key request without identity verification",
+    "situation": "A person asks for access to Skyroom but cannot establish that they are the registered guest.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-ROOM-KEY",
+      "A person asks for access to Skyroom but cannot establish that they are the registered guest."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-FD-ROOM-KEY",
+    "example": "DEMO-FD-ROOM-KEY: Do not issue a replacement key until identity and authorization are confirmed. Contact the front desk lead or Security and log the outcome.",
+    "why": "Do not issue a replacement key until identity and authorization are confirmed. Contact the front desk lead or Security and log the outcome.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "do not issue",
+          "verify",
+          "identity",
+          "authorization"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "security",
+          "lead",
+          "log"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-early-guest",
+    "department": "Front Desk",
+    "level": 2,
+    "skill": "Front Desk work",
+    "title": "Guest checks in before room turnover",
+    "situation": "A guest arrives early and wants to go to Grandeur while cleaning is underway.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-EARLY-GUEST",
+      "A guest arrives early and wants to go to Grandeur while cleaning is underway."
+    ],
+    "priority": "Routine",
+    "route": "Housekeeping",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-FD-EARLY-GUEST",
+    "example": "DEMO-FD-EARLY-GUEST: Confirm cleaning status and do not release a room that is not ready. Give the guest a verified update after Housekeeping confirms.",
+    "why": "Confirm cleaning status and do not release a room that is not ready. Give the guest a verified update after Housekeeping confirms.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "confirm",
+          "clean",
+          "ready"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "update",
+          "housekeeping",
+          "verified"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-late-checkout",
+    "department": "Front Desk",
+    "level": 2,
+    "skill": "Front Desk work",
+    "title": "Late checkout affects next arrival",
+    "situation": "A guest requests late checkout while another booking is due to arrive that afternoon.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-LATE-CHECKOUT",
+      "A guest requests late checkout while another booking is due to arrive that afternoon."
+    ],
+    "priority": "Routine",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-FD-LATE-CHECKOUT",
+    "example": "DEMO-FD-LATE-CHECKOUT: Check room assignments and policy before promising an extension. Coordinate with Housekeeping and confirm the actual decision.",
+    "why": "Check room assignments and policy before promising an extension. Coordinate with Housekeeping and confirm the actual decision.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "check",
+          "policy",
+          "allocation"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "housekeeping",
+          "confirm",
+          "decision"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-noisy-room",
+    "department": "Front Desk",
+    "level": 3,
+    "skill": "Front Desk work",
+    "title": "Second noise complaint from neighboring room",
+    "situation": "A guest calls a second time about loud noise after an earlier verbal warning.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-NOISY-ROOM",
+      "A guest calls a second time about loud noise after an earlier verbal warning."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-FD-NOISY-ROOM",
+    "example": "DEMO-FD-NOISY-ROOM: Document the repeat complaint and ask Security to handle the noise under the property’s rules. Check whether disturbance stopped and update the reporting guest.",
+    "why": "Document the repeat complaint and ask Security to handle the noise under the property’s rules. Check whether disturbance stopped and update the reporting guest.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "noise",
+          "complaint",
+          "security"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "follow up",
+          "check",
+          "guest"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-broken-shower",
+    "department": "Front Desk",
+    "level": 3,
+    "skill": "Front Desk work",
+    "title": "Shower has no hot water",
+    "situation": "Perch 2 reports no hot water; Maintenance has not inspected the fault.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-BROKEN-SHOWER",
+      "Perch 2 reports no hot water; Maintenance has not inspected the fault."
+    ],
+    "priority": "High",
+    "route": "Maintenance",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-FD-BROKEN-SHOWER",
+    "example": "DEMO-FD-BROKEN-SHOWER: Record the room issue and request an inspection. Set a Front Desk guest callback after a confirmed update.",
+    "why": "Record the room issue and request an inspection. Set a Front Desk guest callback after a confirmed update.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "inspection",
+          "maintenance",
+          "inspect"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "callback",
+          "guest",
+          "update"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-privacy-call",
+    "department": "Front Desk",
+    "level": 4,
+    "skill": "Front Desk work",
+    "title": "Caller requests another guest’s room",
+    "situation": "An unknown caller asks the receptionist which room a named guest occupies.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-PRIVACY-CALL",
+      "An unknown caller asks the receptionist which room a named guest occupies."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-FD-PRIVACY-CALL",
+    "example": "DEMO-FD-PRIVACY-CALL: Do not disclose guest occupancy or room information. Follow the identity and privacy procedure and inform the lead.",
+    "why": "Do not disclose guest occupancy or room information. Follow the identity and privacy procedure and inform the lead.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "do not disclose",
+          "privacy",
+          "confidential"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "lead",
+          "procedure",
+          "verify"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-odor",
+    "department": "Front Desk",
+    "level": 4,
+    "skill": "Front Desk work",
+    "title": "Strong chemical odor near occupied room",
+    "situation": "A guest reports a strong unknown chemical smell in the corridor outside Twinspire.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-ODOR",
+      "A guest reports a strong unknown chemical smell in the corridor outside Twinspire."
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-FD-ODOR",
+    "example": "DEMO-FD-ODOR: Keep guests away from the affected area and urgently escalate the odor. Notify the duty supervisor and qualified responders before reopening.",
+    "why": "Keep guests away from the affected area and urgently escalate the odor. Notify the duty supervisor and qualified responders before reopening.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "away",
+          "restrict",
+          "evacuat",
+          "isolate"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "supervisor",
+          "qualified",
+          "respond"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-missing-reservation",
+    "department": "Front Desk",
+    "level": 3,
+    "skill": "Front Desk work",
+    "title": "Arrival not found in room assignments",
+    "situation": "A guest has a booking confirmation but the front desk list does not show the reservation.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-MISSING-RESERVATION",
+      "A guest has a booking confirmation but the front desk list does not show the reservation."
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-FD-MISSING-RESERVATION",
+    "example": "DEMO-FD-MISSING-RESERVATION: Check the authorized booking source and booking numbers. Escalate anything that does not match and avoid promising availability.",
+    "why": "Check the authorized booking source and booking numbers. Escalate anything that does not match and avoid promising availability.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "booking",
+          "verify",
+          "check"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "escalate",
+          "availability",
+          "promise"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-special-request",
+    "department": "Front Desk",
+    "level": 2,
+    "skill": "Front Desk work",
+    "title": "Unconfirmed extra bed request",
+    "situation": "A family requests an extra bed and the inventory of approved bedding is not confirmed.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-SPECIAL-REQUEST",
+      "A family requests an extra bed and the inventory of approved bedding is not confirmed."
+    ],
+    "priority": "Routine",
+    "route": "Housekeeping",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-FD-SPECIAL-REQUEST",
+    "example": "DEMO-FD-SPECIAL-REQUEST: Check bed availability and room capacity before agreeing. Confirm any approved arrangement and document the guest update.",
+    "why": "Check bed availability and room capacity before agreeing. Confirm any approved arrangement and document the guest update.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "check",
+          "capacity",
+          "availability"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "confirm",
+          "guest",
+          "document"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-checkout-damage",
+    "department": "Front Desk",
+    "level": 3,
+    "skill": "Front Desk work",
+    "title": "Possible damaged room item at checkout",
+    "situation": "Housekeeping reports a cracked fixture, but there is no confirmed before-and-after evidence.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-CHECKOUT-DAMAGE",
+      "Housekeeping reports a cracked fixture, but there is no confirmed before-and-after evidence."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-FD-CHECKOUT-DAMAGE",
+    "example": "DEMO-FD-CHECKOUT-DAMAGE: Record the damage and request supporting evidence without assigning blame. Refer any proposed charge to authorized management review.",
+    "why": "Record the damage and request supporting evidence without assigning blame. Refer any proposed charge to authorized management review.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "evidence",
+          "photo",
+          "inspect",
+          "document"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "management",
+          "review",
+          "charge"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-pool-slip",
+    "department": "Front Desk",
+    "level": 4,
+    "skill": "Front Desk work",
+    "title": "Guest slips beside wet pool tiles",
+    "situation": "A guest falls beside the pool; the condition and any injury have not been assessed.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-POOL-SLIP",
+      "A guest falls beside the pool; the condition and any injury have not been assessed."
+    ],
+    "priority": "Critical",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-FD-POOL-SLIP",
+    "example": "DEMO-FD-POOL-SLIP: Request immediate appropriate assistance and secure the hazard. Notify the duty manager and document facts and follow-up.",
+    "why": "Request immediate appropriate assistance and secure the hazard. Notify the duty manager and document facts and follow-up.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "assist",
+          "help",
+          "secure",
+          "hazard"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "manager",
+          "notify",
+          "document"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "fd-repeat-failure",
+    "department": "Front Desk",
+    "level": 5,
+    "skill": "Front Desk work",
+    "title": "A promise to relocate was missed",
+    "situation": "A guest was promised a suitable room alternative but the second shift never checked availability.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-FD-REPEAT-FAILURE",
+      "A guest was promised a suitable room alternative but the second shift never checked availability."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-FD-REPEAT-FAILURE",
+    "example": "DEMO-FD-REPEAT-FAILURE: Acknowledge the missed commitment and verify alternatives. Assign management ownership and give a truthful follow-up time.",
+    "why": "Acknowledge the missed commitment and verify alternatives. Assign management ownership and give a truthful follow-up time.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "acknowledge",
+          "verify",
+          "alternative"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "management",
+          "owner",
+          "update"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-linen-stain",
+    "department": "Housekeeping",
+    "level": 2,
+    "skill": "Housekeeping work",
+    "title": "Stained linen in a supposedly ready room",
+    "situation": "During final inspection, Grandeur still has stained bedding.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-LINEN-STAIN",
+      "During final inspection, Grandeur still has stained bedding."
+    ],
+    "priority": "High",
+    "route": "Housekeeping",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-HK-LINEN-STAIN",
+    "example": "DEMO-HK-LINEN-STAIN: Remove the stained bedding and complete cleaning again. Reinspect the room before changing readiness status.",
+    "why": "Remove the stained bedding and complete cleaning again. Reinspect the room before changing readiness status.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "replace",
+          "remove",
+          "linen",
+          "clean"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "reinspect",
+          "verify",
+          "ready"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-hazmat",
+    "department": "Housekeeping",
+    "level": 4,
+    "skill": "Housekeeping work",
+    "title": "Unknown substance found under a bed",
+    "situation": "A cleaner finds an unknown powder and a sharp object while servicing Cafe Suite.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-HAZMAT",
+      "A cleaner finds an unknown powder and a sharp object while servicing Cafe Suite."
+    ],
+    "priority": "Critical",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-HK-HAZMAT",
+    "example": "DEMO-HK-HAZMAT: Stop handling unknown material and restrict the area. Contact the authorized supervisor for safe specialist response.",
+    "why": "Stop handling unknown material and restrict the area. Contact the authorized supervisor for safe specialist response.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "stop",
+          "do not touch",
+          "restrict"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "supervisor",
+          "specialist",
+          "safe"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-room-swap",
+    "department": "Housekeeping",
+    "level": 3,
+    "skill": "Housekeeping work",
+    "title": "Reception changes the next priority room",
+    "situation": "A room is halfway cleaned when Front Desk urgently changes the arrival priority.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-ROOM-SWAP",
+      "A room is halfway cleaned when Front Desk urgently changes the arrival priority."
+    ],
+    "priority": "High",
+    "route": "Housekeeping",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-HK-ROOM-SWAP",
+    "example": "DEMO-HK-ROOM-SWAP: Confirm the new priority and reassign cleaning safely. Notify Front Desk of realistic completion status and times.",
+    "why": "Confirm the new priority and reassign cleaning safely. Notify Front Desk of realistic completion status and times.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "priority",
+          "reassign",
+          "confirm"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "front desk",
+          "notify",
+          "status"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-found-phone",
+    "department": "Housekeeping",
+    "level": 3,
+    "skill": "Housekeeping work",
+    "title": "Phone discovered inside pillowcase",
+    "situation": "A guest’s phone is found after checkout and the team wants to use it to identify the owner.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-FOUND-PHONE",
+      "A guest’s phone is found after checkout and the team wants to use it to identify the owner."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-HK-FOUND-PHONE",
+    "example": "DEMO-HK-FOUND-PHONE: Secure the phone without accessing its private contents. Log custody and hand over to the person allowed to look after found property.",
+    "why": "Secure the phone without accessing its private contents. Log custody and hand over to the person allowed to look after found property.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "secure",
+          "do not access",
+          "privacy"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "custody",
+          "handover",
+          "log"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-bathroom-leak",
+    "department": "Housekeeping",
+    "level": 4,
+    "skill": "Housekeeping work",
+    "title": "Bathroom water reaches corridor",
+    "situation": "Water is spilling from Skyroom toward a corridor where guests are walking.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-BATHROOM-LEAK",
+      "Water is spilling from Skyroom toward a corridor where guests are walking."
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-HK-BATHROOM-LEAK",
+    "example": "DEMO-HK-BATHROOM-LEAK: Block access to the wet hazard and report the leak. Notify Maintenance and Front Desk about any room restriction.",
+    "why": "Block access to the wet hazard and report the leak. Notify Maintenance and Front Desk about any room restriction.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "block",
+          "wet",
+          "leak",
+          "restrict"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "maintenance",
+          "front desk",
+          "room"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-stockout",
+    "department": "Housekeeping",
+    "level": 2,
+    "skill": "Housekeeping work",
+    "title": "Amenities running out before arrival rush",
+    "situation": "Fresh towel stock is below the required number for several scheduled turnovers.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-STOCKOUT",
+      "Fresh towel stock is below the required number for several scheduled turnovers."
+    ],
+    "priority": "High",
+    "route": "Housekeeping",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-HK-STOCKOUT",
+    "example": "DEMO-HK-STOCKOUT: Count available towels and request approved replenishment. Escalate affected room readiness and confirm delivery.",
+    "why": "Count available towels and request approved replenishment. Escalate affected room readiness and confirm delivery.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "count",
+          "stock",
+          "replenish",
+          "request"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "readiness",
+          "confirm",
+          "delivery"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-do-not-disturb",
+    "department": "Housekeeping",
+    "level": 3,
+    "skill": "Housekeeping work",
+    "title": "Do-not-disturb room flagged for turnover",
+    "situation": "A room remains occupied and shows a Do Not Disturb instruction, yet the work queue says clean now.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-DO-NOT-DISTURB",
+      "A room remains occupied and shows a Do Not Disturb instruction, yet the work queue says clean now."
+    ],
+    "priority": "Routine",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-HK-DO-NOT-DISTURB",
+    "example": "DEMO-HK-DO-NOT-DISTURB: Respect the occupied-room instruction and confirm authorization. Contact Front Desk to correct the task and reschedule.",
+    "why": "Respect the occupied-room instruction and confirm authorization. Contact Front Desk to correct the task and reschedule.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "do not disturb",
+          "authorization",
+          "respect"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "front desk",
+          "reschedule",
+          "correct"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-unlogged-clean",
+    "department": "Housekeeping",
+    "level": 2,
+    "skill": "Housekeeping work",
+    "title": "Room cleaned but status not updated",
+    "situation": "A room inspection is signed on paper but the fictional system still shows In Progress.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-UNLOGGED-CLEAN",
+      "A room inspection is signed on paper but the fictional system still shows In Progress."
+    ],
+    "priority": "Routine",
+    "route": "Housekeeping",
+    "decision": "Document and monitor",
+    "reference": "DEMO-HK-UNLOGGED-CLEAN",
+    "example": "DEMO-HK-UNLOGGED-CLEAN: Verify the inspection result before updating the record. Record completion evidence and notify Front Desk of readiness.",
+    "why": "Verify the inspection result before updating the record. Record completion evidence and notify Front Desk of readiness.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "inspection",
+          "verify",
+          "status"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "front desk",
+          "notify",
+          "evidence"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-guest-property",
+    "department": "Housekeeping",
+    "level": 3,
+    "skill": "Housekeeping work",
+    "title": "Guest item moved during cleaning",
+    "situation": "A personal item was relocated during cleaning and the guest now cannot find it.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-GUEST-PROPERTY",
+      "A personal item was relocated during cleaning and the guest now cannot find it."
+    ],
+    "priority": "High",
+    "route": "Housekeeping",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-HK-GUEST-PROPERTY",
+    "example": "DEMO-HK-GUEST-PROPERTY: Report the handling accurately and search only under approved procedure. Notify the lead and document outcome without assumptions.",
+    "why": "Report the handling accurately and search only under approved procedure. Notify the lead and document outcome without assumptions.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "report",
+          "handling",
+          "search"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "lead",
+          "document",
+          "outcome"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "hk-chemical-mix",
+    "department": "Housekeeping",
+    "level": 4,
+    "skill": "Housekeeping work",
+    "title": "Improper chemical mixture suspected",
+    "situation": "Two cleaning products were combined and a worker reports respiratory irritation.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-HK-CHEMICAL-MIX",
+      "Two cleaning products were combined and a worker reports respiratory irritation."
+    ],
+    "priority": "Critical",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-HK-CHEMICAL-MIX",
+    "example": "DEMO-HK-CHEMICAL-MIX: Stop work and move people away from exposure. Seek appropriate medical/emergency assistance and alert the supervisor.",
+    "why": "Stop work and move people away from exposure. Seek appropriate medical/emergency assistance and alert the supervisor.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "stop",
+          "away",
+          "exposure",
+          "evacuat"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "medical",
+          "emergency",
+          "supervisor"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-wrong-table",
+    "department": "Café",
+    "level": 3,
+    "skill": "Café work",
+    "title": "Meal brought to the wrong table",
+    "situation": "Food intended for fictional Table 4 was served at Table 6 and the correct guest is waiting.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-WRONG-TABLE",
+      "Food intended for fictional Table 4 was served at Table 6 and the correct guest is waiting."
+    ],
+    "priority": "High",
+    "route": "Café",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-CAFE-WRONG-TABLE",
+    "example": "DEMO-CAFE-WRONG-TABLE: Stop treating the misserved plate as ready for the original table. Verify the correct order with Kitchen and inform both tables.",
+    "why": "Stop treating the misserved plate as ready for the original table. Verify the correct order with Kitchen and inform both tables.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "wrong table",
+          "misserv",
+          "remake",
+          "replace"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "kitchen",
+          "inform",
+          "verify"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-bill-dispute",
+    "department": "Café",
+    "level": 3,
+    "skill": "Café work",
+    "title": "Customer disputes a bill line",
+    "situation": "A café guest says the printed bill includes an item they never ordered.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-BILL-DISPUTE",
+      "A café guest says the printed bill includes an item they never ordered."
+    ],
+    "priority": "High",
+    "route": "Café",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-CAFE-BILL-DISPUTE",
+    "example": "DEMO-CAFE-BILL-DISPUTE: Review the order record and verify the disputed line. Escalate authorized adjustments and issue a corrected explanation.",
+    "why": "Review the order record and verify the disputed line. Escalate authorized adjustments and issue a corrected explanation.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "review",
+          "verify",
+          "order"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "adjust",
+          "correct",
+          "explain"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-split-bill",
+    "department": "Café",
+    "level": 2,
+    "skill": "Café work",
+    "title": "Split bill requested mid-payment",
+    "situation": "A group requests a split bill after one payment has already been initiated.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-SPLIT-BILL",
+      "A group requests a split bill after one payment has already been initiated."
+    ],
+    "priority": "Routine",
+    "route": "Café",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-CAFE-SPLIT-BILL",
+    "example": "DEMO-CAFE-SPLIT-BILL: Confirm the payment state before changing the bill. Check each part of the split bill and explain how it will be paid.",
+    "why": "Confirm the payment state before changing the bill. Check each part of the split bill and explain how it will be paid.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "payment",
+          "check",
+          "verify"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "reconcil",
+          "split",
+          "settlement"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-spill",
+    "department": "Café",
+    "level": 4,
+    "skill": "Café work",
+    "title": "Hot drink spilled near a child",
+    "situation": "A hot beverage spills beside a table, and the child may have been splashed.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-SPILL",
+      "A hot beverage spills beside a table, and the child may have been splashed."
+    ],
+    "priority": "Critical",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-CAFE-SPILL",
+    "example": "DEMO-CAFE-SPILL: Assist the guest appropriately and secure the spill area. Alert the manager and document the injury concern and follow-up.",
+    "why": "Assist the guest appropriately and secure the spill area. Alert the manager and document the injury concern and follow-up.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "assist",
+          "help",
+          "secure",
+          "spill"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "manager",
+          "injury",
+          "follow up"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-unavailable-item",
+    "department": "Café",
+    "level": 2,
+    "skill": "Café work",
+    "title": "Popular pastry sold out",
+    "situation": "The last pastry has sold but the menu still displays it as available.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-UNAVAILABLE-ITEM",
+      "The last pastry has sold but the menu still displays it as available."
+    ],
+    "priority": "Routine",
+    "route": "Café",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-CAFE-UNAVAILABLE-ITEM",
+    "example": "DEMO-CAFE-UNAVAILABLE-ITEM: Confirm the stock shortage and notify the authorized catalog owner. Offer an accurate alternative and update the guest.",
+    "why": "Confirm the stock shortage and notify the authorized catalog owner. Offer an accurate alternative and update the guest.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "stock",
+          "sold out",
+          "unavailable"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "alternative",
+          "update",
+          "guest"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-delayed-drink",
+    "department": "Café",
+    "level": 3,
+    "skill": "Café work",
+    "title": "Order marked ready but drink missing",
+    "situation": "The kitchen order says Ready; the guest’s drink has never reached the table.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-DELAYED-DRINK",
+      "The kitchen order says Ready; the guest’s drink has never reached the table."
+    ],
+    "priority": "High",
+    "route": "Café",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-CAFE-DELAYED-DRINK",
+    "example": "DEMO-CAFE-DELAYED-DRINK: Check beverage preparation and whether the drink reached the table. Tell the guest what is verified and assign delivery ownership.",
+    "why": "Check beverage preparation and whether the drink reached the table. Tell the guest what is verified and assign delivery ownership.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "drink",
+          "check",
+          "verify"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "guest",
+          "deliver",
+          "owner"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-discount",
+    "department": "Café",
+    "level": 3,
+    "skill": "Café work",
+    "title": "Customer requests an unauthorized discount",
+    "situation": "A guest claims a promised discount but no authorized promotion or approval can be found.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-DISCOUNT",
+      "A guest claims a promised discount but no authorized promotion or approval can be found."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-CAFE-DISCOUNT",
+    "example": "DEMO-CAFE-DISCOUNT: Verify the offer terms and do not invent an approval. Ask an authorized manager before adjusting the amount.",
+    "why": "Verify the offer terms and do not invent an approval. Ask an authorized manager before adjusting the amount.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "verify",
+          "discount",
+          "approval"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "manager",
+          "authorized",
+          "adjust"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-drink-allergen",
+    "department": "Café",
+    "level": 4,
+    "skill": "Café work",
+    "title": "Milk alternative may be incorrect",
+    "situation": "A dairy-free drink may have been made with regular milk; the guest has indicated an allergy.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-DRINK-ALLERGEN",
+      "A dairy-free drink may have been made with regular milk; the guest has indicated an allergy."
+    ],
+    "priority": "Critical",
+    "route": "Kitchen",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-CAFE-DRINK-ALLERGEN",
+    "example": "DEMO-CAFE-DRINK-ALLERGEN: Hold the drink and prevent service until ingredients are verified. Escalate to the responsible lead and safely remake if needed.",
+    "why": "Hold the drink and prevent service until ingredients are verified. Escalate to the responsible lead and safely remake if needed.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "hold",
+          "stop",
+          "do not serve"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "lead",
+          "remake",
+          "verify"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-cash-drawer",
+    "department": "Café",
+    "level": 3,
+    "skill": "Café work",
+    "title": "Drawer count differs from recorded sales",
+    "situation": "At turnover, the café cash count does not agree with the approved POS record.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-CASH-DRAWER",
+      "At turnover, the café cash count does not agree with the approved POS record."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-CAFE-CASH-DRAWER",
+    "example": "DEMO-CAFE-CASH-DRAWER: Recount the cash and record the difference. Do not change past sales. Notify the manager so they can check the difference.",
+    "why": "Recount the cash and record the difference. Do not change past sales. Notify the manager so they can check the difference.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "recount",
+          "variance",
+          "document"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "manager",
+          "reconcil",
+          "notify"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "cafe-staff-rude",
+    "department": "Café",
+    "level": 4,
+    "skill": "Café work",
+    "title": "Guest reports disrespectful service",
+    "situation": "A guest says an employee used hostile language and requests a supervisor.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-CAFE-STAFF-RUDE",
+      "A guest says an employee used hostile language and requests a supervisor."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-CAFE-STAFF-RUDE",
+    "example": "DEMO-CAFE-STAFF-RUDE: Listen and record factual details without arguing or blaming. Escalate to a supervisor and document guest recovery follow-up.",
+    "why": "Listen and record factual details without arguing or blaming. Escalate to a supervisor and document guest recovery follow-up.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "listen",
+          "document",
+          "apolog"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "supervisor",
+          "follow up",
+          "guest"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-cold-food",
+    "department": "Kitchen",
+    "level": 3,
+    "skill": "Kitchen work",
+    "title": "Cooked item waiting at unsafe temperature",
+    "situation": "A prepared dish has sat unattended and its holding conditions are unknown.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-COLD-FOOD",
+      "A prepared dish has sat unattended and its holding conditions are unknown."
+    ],
+    "priority": "Critical",
+    "route": "Kitchen",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-KT-COLD-FOOD",
+    "example": "DEMO-KT-COLD-FOOD: Hold service and follow food-safety disposal or verification protocol. Notify kitchen lead and log action to fix the problem.",
+    "why": "Hold service and follow food-safety disposal or verification protocol. Notify kitchen lead and log action to fix the problem.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "hold",
+          "do not serve",
+          "temperature"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "lead",
+          "corrective",
+          "log"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-raw-contact",
+    "department": "Kitchen",
+    "level": 4,
+    "skill": "Kitchen work",
+    "title": "Raw poultry contacts ready-to-eat station",
+    "situation": "A worker uses a surface that just held raw chicken to plate ready-to-eat food.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-RAW-CONTACT",
+      "A worker uses a surface that just held raw chicken to plate ready-to-eat food."
+    ],
+    "priority": "Critical",
+    "route": "Kitchen",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-KT-RAW-CONTACT",
+    "example": "DEMO-KT-RAW-CONTACT: Stop plating and prevent cross-contaminated food from service. Sanitize under protocol and inform the kitchen lead.",
+    "why": "Stop plating and prevent cross-contaminated food from service. Sanitize under protocol and inform the kitchen lead.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "stop",
+          "cross-contaminat",
+          "hold"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "sanitiz",
+          "lead",
+          "notify"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-power-loss",
+    "department": "Kitchen",
+    "level": 3,
+    "skill": "Kitchen work",
+    "title": "Refrigerator temperature rises after outage",
+    "situation": "A refrigerator loses power and ingredients may be outside approved holding temperatures.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-POWER-LOSS",
+      "A refrigerator loses power and ingredients may be outside approved holding temperatures."
+    ],
+    "priority": "Critical",
+    "route": "Kitchen",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-KT-POWER-LOSS",
+    "example": "DEMO-KT-POWER-LOSS: Check and quarantine potentially affected stock. Log times and temperatures and get lead decision about what to do with the stock before service.",
+    "why": "Check and quarantine potentially affected stock. Log times and temperatures and get lead decision about what to do with the stock before service.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "quarantine",
+          "hold",
+          "temperature"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "log",
+          "lead",
+          "discard"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-missing-ingredient",
+    "department": "Kitchen",
+    "level": 2,
+    "skill": "Kitchen work",
+    "title": "Key ingredient unavailable after ordering",
+    "situation": "The kitchen learns a pasta order cannot be completed with current stock.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-MISSING-INGREDIENT",
+      "The kitchen learns a pasta order cannot be completed with current stock."
+    ],
+    "priority": "High",
+    "route": "Café",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-KT-MISSING-INGREDIENT",
+    "example": "DEMO-KT-MISSING-INGREDIENT: Tell Café promptly about the actual availability problem. Offer a verified substitute or authorized cancellation to the guest.",
+    "why": "Tell Café promptly about the actual availability problem. Offer a verified substitute or authorized cancellation to the guest.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "tell",
+          "notify",
+          "inform"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "substitut",
+          "cancel",
+          "guest"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-modifier-missed",
+    "department": "Kitchen",
+    "level": 3,
+    "skill": "Kitchen work",
+    "title": "Special preparation instruction not followed",
+    "situation": "An order requests no peanuts, but the ticket was prepared without checking the modification.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-MODIFIER-MISSED",
+      "An order requests no peanuts, but the ticket was prepared without checking the modification."
+    ],
+    "priority": "Critical",
+    "route": "Kitchen",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-KT-MODIFIER-MISSED",
+    "example": "DEMO-KT-MODIFIER-MISSED: Hold the dish and verify allergy instructions before service. Alert the lead and arrange preparation that follows the allergy instructions.",
+    "why": "Hold the dish and verify allergy instructions before service. Alert the lead and arrange preparation that follows the allergy instructions.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "hold",
+          "stop",
+          "verify"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "lead",
+          "remake",
+          "prepar"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-burner-fault",
+    "department": "Kitchen",
+    "level": 4,
+    "skill": "Kitchen work",
+    "title": "Burner appears to leak gas",
+    "situation": "A worker smells gas by a stove and wants to continue cooking.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-BURNER-FAULT",
+      "A worker smells gas by a stove and wants to continue cooking."
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-KT-BURNER-FAULT",
+    "example": "DEMO-KT-BURNER-FAULT: Stop using the affected equipment and move people away. Alert the duty lead and qualified emergency responders under protocol.",
+    "why": "Stop using the affected equipment and move people away. Alert the duty lead and qualified emergency responders under protocol.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "stop",
+          "do not use",
+          "away"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "lead",
+          "emergency",
+          "qualified"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-missing-ticket",
+    "department": "Kitchen",
+    "level": 3,
+    "skill": "Kitchen work",
+    "title": "Guest waiting but kitchen has no ticket",
+    "situation": "Café claims an order was submitted, while Kitchen cannot locate an accepted ticket.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-MISSING-TICKET",
+      "Café claims an order was submitted, while Kitchen cannot locate an accepted ticket."
+    ],
+    "priority": "High",
+    "route": "Café",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-KT-MISSING-TICKET",
+    "example": "DEMO-KT-MISSING-TICKET: Verify the source order before preparing unconfirmed food. Coordinate a corrected ticket and update the guest on the delay.",
+    "why": "Verify the source order before preparing unconfirmed food. Coordinate a corrected ticket and update the guest on the delay.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "ticket",
+          "verify",
+          "order"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "café",
+          "update",
+          "guest"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-wrong-doneness",
+    "department": "Kitchen",
+    "level": 3,
+    "skill": "Kitchen work",
+    "title": "Returned item not prepared as requested",
+    "situation": "A guest returned a meal because it was not cooked as ordered.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-WRONG-DONENESS",
+      "A guest returned a meal because it was not cooked as ordered."
+    ],
+    "priority": "High",
+    "route": "Kitchen",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-KT-WRONG-DONENESS",
+    "example": "DEMO-KT-WRONG-DONENESS: Check the original order and remake according to food-safety policy. Confirm with Café that the replacement reaches the guest.",
+    "why": "Check the original order and remake according to food-safety policy. Confirm with Café that the replacement reaches the guest.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "check",
+          "remake",
+          "replacement"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "café",
+          "confirm",
+          "guest"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-staff-injury",
+    "department": "Kitchen",
+    "level": 4,
+    "skill": "Kitchen work",
+    "title": "Cook is injured during service",
+    "situation": "A kitchen worker suffers a cut requiring immediate attention in the food preparation area.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-STAFF-INJURY",
+      "A kitchen worker suffers a cut requiring immediate attention in the food preparation area."
+    ],
+    "priority": "Critical",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-KT-STAFF-INJURY",
+    "example": "DEMO-KT-STAFF-INJURY: Stop affected work and provide appropriate first aid assistance. Secure potentially contaminated food and notify the supervisor.",
+    "why": "Stop affected work and provide appropriate first aid assistance. Secure potentially contaminated food and notify the supervisor.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "stop",
+          "first aid",
+          "assist"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "contaminat",
+          "supervisor",
+          "notify"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-stock-expired",
+    "department": "Kitchen",
+    "level": 3,
+    "skill": "Kitchen work",
+    "title": "Expired ingredient found during prep",
+    "situation": "A box of sauce has passed its marked use date and another portion was opened.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-STOCK-EXPIRED",
+      "A box of sauce has passed its marked use date and another portion was opened."
+    ],
+    "priority": "Critical",
+    "route": "Kitchen",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-KT-STOCK-EXPIRED",
+    "example": "DEMO-KT-STOCK-EXPIRED: Isolate the expired lot and stop using affected stock. Trace any usage and ask the lead to document decision about what to do with the stock.",
+    "why": "Isolate the expired lot and stop using affected stock. Trace any usage and ask the lead to document decision about what to do with the stock.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "isolate",
+          "expired",
+          "stop"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "trace",
+          "lead",
+          "document"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "kt-rush-priority",
+    "department": "Kitchen",
+    "level": 2,
+    "skill": "Kitchen work",
+    "title": "Large group order competes with room service",
+    "situation": "A banquet order and a room meal request overlap without an agreed production sequence.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-KT-RUSH-PRIORITY",
+      "A banquet order and a room meal request overlap without an agreed production sequence."
+    ],
+    "priority": "High",
+    "route": "Kitchen",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-KT-RUSH-PRIORITY",
+    "example": "DEMO-KT-RUSH-PRIORITY: Review order times and assign a clear order for the jobs and the person responsible. Tell service teams verified completion estimates.",
+    "why": "Review order times and assign a clear order for the jobs and the person responsible. Tell service teams verified completion estimates.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "priority",
+          "plan",
+          "review"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "service",
+          "estimate",
+          "inform"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-aircon-recurrence",
+    "department": "Maintenance",
+    "level": 3,
+    "skill": "Maintenance work",
+    "title": "AC fails again after being marked repaired",
+    "situation": "Solace AC is reported broken again a few hours after a completed work order.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-AIRCON-RECURRENCE",
+      "Solace AC is reported broken again a few hours after a completed work order."
+    ],
+    "priority": "High",
+    "route": "Maintenance",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MT-AIRCON-RECURRENCE",
+    "example": "DEMO-MT-AIRCON-RECURRENCE: Reopen or link the repeat fault and check why it happened again. Notify Front Desk of verified repair findings and status.",
+    "why": "Reopen or link the repeat fault and check why it happened again. Notify Front Desk of verified repair findings and status.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "reopen",
+          "repeat",
+          "inspect"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "front desk",
+          "verify",
+          "status"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-burned-breaker",
+    "department": "Maintenance",
+    "level": 4,
+    "skill": "Maintenance work",
+    "title": "Breaker overheats in electrical panel",
+    "situation": "An electrical breaker gives off a burning smell near occupied areas.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-BURNED-BREAKER",
+      "An electrical breaker gives off a burning smell near occupied areas."
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-MT-BURNED-BREAKER",
+    "example": "DEMO-MT-BURNED-BREAKER: Keep unqualified people clear and involve qualified electrical responders. Alert management and document isolation and inspection evidence.",
+    "why": "Keep unqualified people clear and involve qualified electrical responders. Alert management and document isolation and inspection evidence.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "clear",
+          "isolate",
+          "qualified"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "management",
+          "inspect",
+          "evidence"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-pool-pump",
+    "department": "Maintenance",
+    "level": 3,
+    "skill": "Maintenance work",
+    "title": "Pool pump stops during use",
+    "situation": "The pool circulation pump stops unexpectedly while guests are nearby.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-POOL-PUMP",
+      "The pool circulation pump stops unexpectedly while guests are nearby."
+    ],
+    "priority": "High",
+    "route": "Maintenance",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MT-POOL-PUMP",
+    "example": "DEMO-MT-POOL-PUMP: Assess equipment status and restrict affected facilities as required. Notify management and document verified operating condition before reopening.",
+    "why": "Assess equipment status and restrict affected facilities as required. Notify management and document verified operating condition before reopening.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "inspect",
+          "assess",
+          "restrict"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "management",
+          "verify",
+          "reopen"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-light-fault",
+    "department": "Maintenance",
+    "level": 2,
+    "skill": "Maintenance work",
+    "title": "Hallway lighting remains off",
+    "situation": "A corridor light is out and an earlier routine work order is still unassigned.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-LIGHT-FAULT",
+      "A corridor light is out and an earlier routine work order is still unassigned."
+    ],
+    "priority": "High",
+    "route": "Maintenance",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MT-LIGHT-FAULT",
+    "example": "DEMO-MT-LIGHT-FAULT: Assign prompt investigation and arrange safe temporary lighting. Verify corrected lighting and report completion to Front Desk.",
+    "why": "Assign prompt investigation and arrange safe temporary lighting. Verify corrected lighting and report completion to Front Desk.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "assign",
+          "inspect",
+          "lighting"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "verify",
+          "front desk",
+          "completion"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-water-pressure",
+    "department": "Maintenance",
+    "level": 3,
+    "skill": "Maintenance work",
+    "title": "Water pressure drops across several rooms",
+    "situation": "Three rooms report low water pressure at the same time.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-WATER-PRESSURE",
+      "Three rooms report low water pressure at the same time."
+    ],
+    "priority": "High",
+    "route": "Maintenance",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MT-WATER-PRESSURE",
+    "example": "DEMO-MT-WATER-PRESSURE: Investigate the shared supply instead of isolated unverified repairs. Coordinate affected rooms and provide status to Front Desk.",
+    "why": "Investigate the shared supply instead of isolated unverified repairs. Coordinate affected rooms and provide status to Front Desk.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "investigat",
+          "supply",
+          "check"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "rooms",
+          "front desk",
+          "status"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-roof-leak",
+    "department": "Maintenance",
+    "level": 4,
+    "skill": "Maintenance work",
+    "title": "Ceiling dripping above power equipment",
+    "situation": "Rainwater is dripping from a ceiling near equipment connected to power in the service area.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-ROOF-LEAK",
+      "Rainwater is dripping from a ceiling near equipment connected to power in the service area."
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-MT-ROOF-LEAK",
+    "example": "DEMO-MT-ROOF-LEAK: Restrict access and arrange qualified staff to isolate the hazard. Notify management and verify safety before using the area again.",
+    "why": "Restrict access and arrange qualified staff to isolate the hazard. Notify management and verify safety before using the area again.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "restrict",
+          "isolate",
+          "hazard"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "management",
+          "verify",
+          "safe"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-parts-delay",
+    "department": "Maintenance",
+    "level": 3,
+    "skill": "Maintenance work",
+    "title": "Repair awaiting unavailable replacement part",
+    "situation": "An essential repair is blocked by a part that has not arrived.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-PARTS-DELAY",
+      "An essential repair is blocked by a part that has not arrived."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MT-PARTS-DELAY",
+    "example": "DEMO-MT-PARTS-DELAY: Document the blocked state and request permission to order the part. Provide a temporary plan to reduce the risk and realistic progress updates.",
+    "why": "Document the blocked state and request permission to order the part. Provide a temporary plan to reduce the risk and realistic progress updates.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "part",
+          "procure",
+          "blocked"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "mitigat",
+          "update",
+          "status"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-false-close",
+    "department": "Maintenance",
+    "level": 3,
+    "skill": "Maintenance work",
+    "title": "Repair closed without test to check that it works",
+    "situation": "A fictional repair is marked Done, but nobody has tested whether the device works.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-FALSE-CLOSE",
+      "A fictional repair is marked Done, but nobody has tested whether the device works."
+    ],
+    "priority": "High",
+    "route": "Maintenance",
+    "decision": "Return for changes",
+    "reference": "DEMO-MT-FALSE-CLOSE",
+    "example": "DEMO-MT-FALSE-CLOSE: Perform or request a test to check that it works before marking the repair Verified. Attach test evidence and notify the requester.",
+    "why": "Perform or request a test to check that it works before marking the repair Verified. Attach test evidence and notify the requester.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "test",
+          "verify",
+          "functional"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "evidence",
+          "notify",
+          "requester"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-external-worker",
+    "department": "Maintenance",
+    "level": 3,
+    "skill": "Maintenance work",
+    "title": "Contractor arrives without safety briefing",
+    "situation": "A contractor is ready to start work but has not completed site access and safety authorization.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-EXTERNAL-WORKER",
+      "A contractor is ready to start work but has not completed site access and safety authorization."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MT-EXTERNAL-WORKER",
+    "example": "DEMO-MT-EXTERNAL-WORKER: Verify contractor authorization and required safety briefing. Inform the supervisor and document permission to enter before work.",
+    "why": "Verify contractor authorization and required safety briefing. Inform the supervisor and document permission to enter before work.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "authorization",
+          "briefing",
+          "verify"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "supervisor",
+          "clearance",
+          "document"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mt-water-shutdown",
+    "department": "Maintenance",
+    "level": 3,
+    "skill": "Maintenance work",
+    "title": "Planned water interruption not communicated",
+    "situation": "A required maintenance shutdown would affect occupied rooms, but Reception was not told.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MT-WATER-SHUTDOWN",
+      "A required maintenance shutdown would affect occupied rooms, but Reception was not told."
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MT-WATER-SHUTDOWN",
+    "example": "DEMO-MT-WATER-SHUTDOWN: Coordinate the time to turn off the water with affected departments. Inform guests through approved channels and confirm restoration.",
+    "why": "Coordinate the time to turn off the water with affected departments. Inform guests through approved channels and confirm restoration.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "coordinate",
+          "shutdown",
+          "plan"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "guests",
+          "notify",
+          "restor"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-fire-exit",
+    "department": "Security",
+    "level": 4,
+    "skill": "Security work",
+    "title": "Emergency exit blocked by supplies",
+    "situation": "Delivery boxes obstruct a marked emergency exit beside the kitchen.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-FIRE-EXIT",
+      "Delivery boxes obstruct a marked emergency exit beside the kitchen."
+    ],
+    "priority": "Critical",
+    "route": "Security",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-SC-FIRE-EXIT",
+    "example": "DEMO-SC-FIRE-EXIT: Clear or secure the obstruction without putting anyone at risk. Report it to management and verify the exit remains usable.",
+    "why": "Clear or secure the obstruction without putting anyone at risk. Report it to management and verify the exit remains usable.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "exit",
+          "clear",
+          "obstruct"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "management",
+          "verify",
+          "usable"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-night-gate",
+    "department": "Security",
+    "level": 3,
+    "skill": "Security work",
+    "title": "After-hours gate left unsecured",
+    "situation": "At shift turnover, an access gate is found open with no authorized activity logged.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-NIGHT-GATE",
+      "At shift turnover, an access gate is found open with no authorized activity logged."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SC-NIGHT-GATE",
+    "example": "DEMO-SC-NIGHT-GATE: Secure the access point and review authorized activity. Notify supervisor and document who verified the gate.",
+    "why": "Secure the access point and review authorized activity. Notify supervisor and document who verified the gate.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "secure",
+          "gate",
+          "check"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "supervisor",
+          "log",
+          "verify"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-unattended-child",
+    "department": "Security",
+    "level": 4,
+    "skill": "Security work",
+    "title": "Child alone near the pool",
+    "situation": "A young child is unattended close to the pool edge.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-UNATTENDED-CHILD",
+      "A young child is unattended close to the pool edge."
+    ],
+    "priority": "Critical",
+    "route": "Security",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-SC-UNATTENDED-CHILD",
+    "example": "DEMO-SC-UNATTENDED-CHILD: Act immediately under child-safety procedure to prevent the child from reaching the water. Contact the responsible adult and on-duty manager.",
+    "why": "Act immediately under child-safety procedure to prevent the child from reaching the water. Contact the responsible adult and on-duty manager.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "pool",
+          "prevent",
+          "assist",
+          "protect"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "adult",
+          "manager",
+          "notify"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-guest-threat",
+    "department": "Security",
+    "level": 4,
+    "skill": "Security work",
+    "title": "Visitor threatens staff member",
+    "situation": "A visitor raises their voice and threatens to strike a staff member at the entrance.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-GUEST-THREAT",
+      "A visitor raises their voice and threatens to strike a staff member at the entrance."
+    ],
+    "priority": "Critical",
+    "route": "Security",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-SC-GUEST-THREAT",
+    "example": "DEMO-SC-GUEST-THREAT: Protect people, maintain distance and use the emergency response procedure. Request authorized assistance and report facts without confrontation.",
+    "why": "Protect people, maintain distance and use the emergency response procedure. Request authorized assistance and report facts without confrontation.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "protect",
+          "distance",
+          "emergency"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "assist",
+          "report",
+          "supervisor"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-cctv-request",
+    "department": "Security",
+    "level": 3,
+    "skill": "Security work",
+    "title": "Employee asks for unauthorized CCTV footage",
+    "situation": "A coworker requests a video clip involving a guest for personal use.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-CCTV-REQUEST",
+      "A coworker requests a video clip involving a guest for personal use."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-SC-CCTV-REQUEST",
+    "example": "DEMO-SC-CCTV-REQUEST: Do not release footage without documented authorization. Refer the request to the manager responsible for privacy and security.",
+    "why": "Do not release footage without documented authorization. Refer the request to the manager responsible for privacy and security.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "do not release",
+          "authoriz",
+          "privacy"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "custodian",
+          "manager",
+          "approve"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-lost-wallet",
+    "department": "Security",
+    "level": 3,
+    "skill": "Security work",
+    "title": "Property handoff lacks custody signature",
+    "situation": "Housekeeping turns over a wallet, but the record of who handed it over and who received it is unsigned.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-LOST-WALLET",
+      "Housekeeping turns over a wallet, but the record of who handed it over and who received it is unsigned."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SC-LOST-WALLET",
+    "example": "DEMO-SC-LOST-WALLET: Secure the wallet and record who is responsible for keeping it safe. Get confirmation of who received the handover without exposing contents.",
+    "why": "Secure the wallet and record who is responsible for keeping it safe. Get confirmation of who received the handover without exposing contents.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "wallet",
+          "secure",
+          "custody"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "acknowledg",
+          "handover",
+          "record"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-unknown-vehicle",
+    "department": "Security",
+    "level": 3,
+    "skill": "Security work",
+    "title": "Unrecognized vehicle parked in restricted bay",
+    "situation": "A vehicle is in a staff-only area without any registered permission.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-UNKNOWN-VEHICLE",
+      "A vehicle is in a staff-only area without any registered permission."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SC-UNKNOWN-VEHICLE",
+    "example": "DEMO-SC-UNKNOWN-VEHICLE: Verify authorization and follow property access rules. Notify the responsible supervisor and log the resolution.",
+    "why": "Verify authorization and follow property access rules. Notify the responsible supervisor and log the resolution.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "verify",
+          "authorization",
+          "parking"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "supervisor",
+          "log",
+          "resolve"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-night-handover",
+    "department": "Security",
+    "level": 2,
+    "skill": "Security work",
+    "title": "Night patrol issue omitted from turnover",
+    "situation": "One exterior light is broken but the next guard’s handover says no outstanding issues.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-NIGHT-HANDOVER",
+      "One exterior light is broken but the next guard’s handover says no outstanding issues."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-SC-NIGHT-HANDOVER",
+    "example": "DEMO-SC-NIGHT-HANDOVER: Correct the shift handover with the unresolved hazard. Notify Maintenance and verify confirmation from the next guard.",
+    "why": "Correct the shift handover with the unresolved hazard. Notify Maintenance and verify confirmation from the next guard.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "handover",
+          "correct",
+          "light"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "maintenance",
+          "acknowledg",
+          "guard"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-fire-alarm",
+    "department": "Security",
+    "level": 4,
+    "skill": "Security work",
+    "title": "Fire alarm activates without a confirmed cause",
+    "situation": "An alarm sounds in a building while guests are inside; cause is unknown.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-FIRE-ALARM",
+      "An alarm sounds in a building while guests are inside; cause is unknown."
+    ],
+    "priority": "Critical",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-SC-FIRE-ALARM",
+    "example": "DEMO-SC-FIRE-ALARM: Initiate the approved emergency evacuation and response protocol. Alert emergency services and managers as required; account for people.",
+    "why": "Initiate the approved emergency evacuation and response protocol. Alert emergency services and managers as required; account for people.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "evacuat",
+          "emergency",
+          "alarm"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "account",
+          "manager",
+          "service"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "sc-unattended-bag",
+    "department": "Security",
+    "level": 4,
+    "skill": "Security work",
+    "title": "Unattended bag in busy lobby",
+    "situation": "A bag of unknown ownership is discovered in a high-traffic guest area.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-SC-UNATTENDED-BAG",
+      "A bag of unknown ownership is discovered in a high-traffic guest area."
+    ],
+    "priority": "High",
+    "route": "Security",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-SC-UNATTENDED-BAG",
+    "example": "DEMO-SC-UNATTENDED-BAG: Keep guests clear and follow the suspicious-item protocol without handling it. Notify the authorized security lead and document the scene.",
+    "why": "Keep guests clear and follow the suspicious-item protocol without handling it. Notify the authorized security lead and document the scene.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "clear",
+          "do not touch",
+          "protocol"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "security",
+          "lead",
+          "notify"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mk-promo-price",
+    "department": "Marketing",
+    "level": 3,
+    "skill": "Marketing work",
+    "title": "Poster contains unapproved room price",
+    "situation": "A scheduled promotion shows a rate different from the approved room pricing.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MK-PROMO-PRICE",
+      "A scheduled promotion shows a rate different from the approved room pricing."
+    ],
+    "priority": "High",
+    "route": "Marketing",
+    "decision": "Return for changes",
+    "reference": "DEMO-MK-PROMO-PRICE",
+    "example": "DEMO-MK-PROMO-PRICE: Pause the post and verify the approved pricing source. Correct the creative and send it back for approval.",
+    "why": "Pause the post and verify the approved pricing source. Correct the creative and send it back for approval.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "pause",
+          "verify",
+          "rate",
+          "price"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "correct",
+          "approval",
+          "resubmit"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mk-expired-promo",
+    "department": "Marketing",
+    "level": 2,
+    "skill": "Marketing work",
+    "title": "Expired promotion still pinned",
+    "situation": "A social post advertises an offer that ended yesterday.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MK-EXPIRED-PROMO",
+      "A social post advertises an offer that ended yesterday."
+    ],
+    "priority": "High",
+    "route": "Marketing",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MK-EXPIRED-PROMO",
+    "example": "DEMO-MK-EXPIRED-PROMO: Remove or clearly correct the expired promotion. Inform reception of the correction and log publication status.",
+    "why": "Remove or clearly correct the expired promotion. Inform reception of the correction and log publication status.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "remove",
+          "expired",
+          "correct"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "reception",
+          "log",
+          "status"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mk-guest-photo",
+    "department": "Marketing",
+    "level": 4,
+    "skill": "Marketing work",
+    "title": "Guest image proposed without permission",
+    "situation": "A marketer wants to publish a recognizable guest photo with no recorded consent.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MK-GUEST-PHOTO",
+      "A marketer wants to publish a recognizable guest photo with no recorded consent."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-MK-GUEST-PHOTO",
+    "example": "DEMO-MK-GUEST-PHOTO: Pause publication until proper guest authorization is confirmed. Escalate privacy review and use approved different images if needed.",
+    "why": "Pause publication until proper guest authorization is confirmed. Escalate privacy review and use approved different images if needed.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "hold",
+          "consent",
+          "authorization"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "privacy",
+          "review",
+          "alternate"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mk-duplicate-post",
+    "department": "Marketing",
+    "level": 3,
+    "skill": "Marketing work",
+    "title": "Two people scheduled the same announcement",
+    "situation": "Two different versions of an event announcement are set to publish minutes apart.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MK-DUPLICATE-POST",
+      "Two different versions of an event announcement are set to publish minutes apart."
+    ],
+    "priority": "Routine",
+    "route": "Marketing",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MK-DUPLICATE-POST",
+    "example": "DEMO-MK-DUPLICATE-POST: Review the schedule and remove duplication. Confirm which approved version remains scheduled.",
+    "why": "Review the schedule and remove duplication. Confirm which approved version remains scheduled.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "duplicate",
+          "schedule",
+          "review"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "version",
+          "approved",
+          "confirm"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mk-wrong-location",
+    "department": "Marketing",
+    "level": 3,
+    "skill": "Marketing work",
+    "title": "Poster directs customers to wrong venue",
+    "situation": "A design shows an incorrect address for a pool event.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MK-WRONG-LOCATION",
+      "A design shows an incorrect address for a pool event."
+    ],
+    "priority": "High",
+    "route": "Marketing",
+    "decision": "Return for changes",
+    "reference": "DEMO-MK-WRONG-LOCATION",
+    "example": "DEMO-MK-WRONG-LOCATION: Stop the incorrect design and verify location details. Correct the address and request renewed approval.",
+    "why": "Stop the incorrect design and verify location details. Correct the address and request renewed approval.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "stop",
+          "location",
+          "address"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "correct",
+          "approval",
+          "review"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mk-unapproved-copy",
+    "department": "Marketing",
+    "level": 3,
+    "skill": "Marketing work",
+    "title": "Unreviewed wording added before publishing",
+    "situation": "A staff member changes conditions in the event caption after manager approval.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MK-UNAPPROVED-COPY",
+      "A staff member changes conditions in the event caption after manager approval."
+    ],
+    "priority": "High",
+    "route": "Marketing",
+    "decision": "Return for changes",
+    "reference": "DEMO-MK-UNAPPROVED-COPY",
+    "example": "DEMO-MK-UNAPPROVED-COPY: Pause publication and compare the new wording with approved terms. Submit the revised version for approval before publishing.",
+    "why": "Pause publication and compare the new wording with approved terms. Submit the revised version for approval before publishing.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "hold",
+          "compare",
+          "terms"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "revision",
+          "approval",
+          "publish"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mk-event-cancel",
+    "department": "Marketing",
+    "level": 4,
+    "skill": "Marketing work",
+    "title": "Event canceled after announcement",
+    "situation": "An event is canceled while an earlier announcement is still visible online.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MK-EVENT-CANCEL",
+      "An event is canceled while an earlier announcement is still visible online."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MK-EVENT-CANCEL",
+    "example": "DEMO-MK-EVENT-CANCEL: Coordinate a clear cancellation notice with management. Update all scheduled channels and tell teams who speak with guests.",
+    "why": "Coordinate a clear cancellation notice with management. Update all scheduled channels and tell teams who speak with guests.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "cancel",
+          "notice",
+          "management"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "channels",
+          "reception",
+          "teams"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "mk-content-review",
+    "department": "Marketing",
+    "level": 2,
+    "skill": "Marketing work",
+    "title": "Creative approval thread has no decision",
+    "situation": "A revised poster was uploaded but no person who can approve it has accepted it.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MK-CONTENT-REVIEW",
+      "A revised poster was uploaded but no person who can approve it has accepted it."
+    ],
+    "priority": "Routine",
+    "route": "Marketing",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MK-CONTENT-REVIEW",
+    "example": "DEMO-MK-CONTENT-REVIEW: Request a review by someone who can approve it rather than assuming approval. Record the approver and decision before publishing.",
+    "why": "Request a review by someone who can approve it rather than assuming approval. Record the approver and decision before publishing.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "review",
+          "approve",
+          "authorization"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "decision",
+          "record",
+          "publish"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": false
+  },
+  {
+    "id": "lead-late-handover",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Handover lacks follow-up owner",
+    "situation": "Two employees leave an unresolved VIP guest concern without specifying who will call.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-LEAD-LATE-HANDOVER",
+      "Two employees leave an unresolved VIP guest concern without specifying who will call."
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-LEAD-LATE-HANDOVER",
+    "example": "DEMO-LEAD-LATE-HANDOVER: Assign one employee responsible for the callback. Verify the update was delivered and review the handover.",
+    "why": "Assign one employee responsible for the callback. Verify the update was delivered and review the handover.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "assign",
+          "owner",
+          "callback"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "verify",
+          "guest",
+          "handover"
+        ]
+      }
+    ],
+    "supervisorOnly": true,
+    "managerOnly": false
+  },
+  {
+    "id": "lead-absence",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Unreported absence creates coverage gap",
+    "situation": "One shift has no assigned cashier and the reason for absence is unconfirmed.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-LEAD-ABSENCE",
+      "One shift has no assigned cashier and the reason for absence is unconfirmed."
+    ],
+    "priority": "High",
+    "route": "Café",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-LEAD-ABSENCE",
+    "example": "DEMO-LEAD-ABSENCE: Arrange authorized staffing coverage without inventing time logs. Report coverage and employee-contact status to management.",
+    "why": "Arrange authorized staffing coverage without inventing time logs. Report coverage and employee-contact status to management.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "coverage",
+          "assign",
+          "shift"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "management",
+          "status",
+          "attendance"
+        ]
+      }
+    ],
+    "supervisorOnly": true,
+    "managerOnly": false
+  },
+  {
+    "id": "lead-task-overdue",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Overdue high priority task has no update",
+    "situation": "A team member has not updated a time-sensitive repair request after the deadline.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-LEAD-TASK-OVERDUE",
+      "A team member has not updated a time-sensitive repair request after the deadline."
+    ],
+    "priority": "High",
+    "route": "Maintenance",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-LEAD-TASK-OVERDUE",
+    "example": "DEMO-LEAD-TASK-OVERDUE: Contact the task owner to verify real progress. Update the due plan and escalate continued risk.",
+    "why": "Contact the task owner to verify real progress. Update the due plan and escalate continued risk.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "contact",
+          "verify",
+          "progress"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "due",
+          "escalat",
+          "update"
+        ]
+      }
+    ],
+    "supervisorOnly": true,
+    "managerOnly": false
+  },
+  {
+    "id": "lead-crossdept",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Two departments reject ownership",
+    "situation": "Front Desk and Housekeeping each believe the other owns a room readiness complaint.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-LEAD-CROSSDEPT",
+      "Front Desk and Housekeeping each believe the other owns a room readiness complaint."
+    ],
+    "priority": "High",
+    "route": "Front Desk",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-LEAD-CROSSDEPT",
+    "example": "DEMO-LEAD-CROSSDEPT: Define a clear person to update the guest and a person to arrange cleaning. Confirm responsibilities in the shared handover.",
+    "why": "Define a clear person to update the guest and a person to arrange cleaning. Confirm responsibilities in the shared handover.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "owner",
+          "responsib",
+          "assign"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "confirm",
+          "handover",
+          "shared"
+        ]
+      }
+    ],
+    "supervisorOnly": true,
+    "managerOnly": false
+  },
+  {
+    "id": "lead-guest-abuse",
+    "department": "Management",
+    "level": 4,
+    "skill": "Management work",
+    "title": "Employee reports repeated guest harassment",
+    "situation": "A guest is insulting a worker, who asks to step away from the desk.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-LEAD-GUEST-ABUSE",
+      "A guest is insulting a worker, who asks to step away from the desk."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-LEAD-GUEST-ABUSE",
+    "example": "DEMO-LEAD-GUEST-ABUSE: Protect the worker and arrange appropriate help from a supervisor. Document facts and assign a safe follow-up contact.",
+    "why": "Protect the worker and arrange appropriate help from a supervisor. Document facts and assign a safe follow-up contact.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "protect",
+          "supervisor",
+          "interven"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "document",
+          "follow up",
+          "safe"
+        ]
+      }
+    ],
+    "supervisorOnly": true,
+    "managerOnly": false
+  },
+  {
+    "id": "lead-no-proof",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Repeated unverifiable completion updates",
+    "situation": "Three consecutive maintenance tasks were closed with “done” but without photographs or checks.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-LEAD-NO-PROOF",
+      "Three consecutive maintenance tasks were closed with “done” but without photographs or checks."
+    ],
+    "priority": "High",
+    "route": "Maintenance",
+    "decision": "Return for changes",
+    "reference": "DEMO-LEAD-NO-PROOF",
+    "example": "DEMO-LEAD-NO-PROOF: Require a proper check for the affected work. Coach responsible staff and document the review outcome.",
+    "why": "Require a proper check for the affected work. Coach responsible staff and document the review outcome.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "verification",
+          "verify",
+          "require"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "coach",
+          "review",
+          "document"
+        ]
+      }
+    ],
+    "supervisorOnly": true,
+    "managerOnly": false
+  },
+  {
+    "id": "lead-critical-report",
+    "department": "Management",
+    "level": 4,
+    "skill": "Management work",
+    "title": "Hazard buried inside routine note",
+    "situation": "An employee reports sparking equipment in a regular handover rather than an urgent issue.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-LEAD-CRITICAL-REPORT",
+      "An employee reports sparking equipment in a regular handover rather than an urgent issue."
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-LEAD-CRITICAL-REPORT",
+    "example": "DEMO-LEAD-CRITICAL-REPORT: Escalate the electrical hazard at once and keep people away. Verify supervisor acknowledgment and action to fix the problem.",
+    "why": "Escalate the electrical hazard at once and keep people away. Verify supervisor acknowledgment and action to fix the problem.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "hazard",
+          "isolate",
+          "electrical"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "supervisor",
+          "acknowledg",
+          "corrective"
+        ]
+      }
+    ],
+    "supervisorOnly": true,
+    "managerOnly": false
+  },
+  {
+    "id": "lead-rescheduled",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Rest day changed without confirming employee",
+    "situation": "A supervisor proposes a shift exchange but affected staff have not acknowledged the new schedule.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-LEAD-RESCHEDULED",
+      "A supervisor proposes a shift exchange but affected staff have not acknowledged the new schedule."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-LEAD-RESCHEDULED",
+    "example": "DEMO-LEAD-RESCHEDULED: Confirm employee agreement and the rules for changing shifts. Record the approved revision without altering past attendance records.",
+    "why": "Confirm employee agreement and the rules for changing shifts. Record the approved revision without altering past attendance records.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "confirm",
+          "agreement",
+          "schedule"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "approval",
+          "record",
+          "attendance"
+        ]
+      }
+    ],
+    "supervisorOnly": true,
+    "managerOnly": false
+  },
+  {
+    "id": "lead-escalation-order",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Routine disagreement escalated to all-staff chat",
+    "situation": "A team member posted an unresolved coworker dispute to an all-staff group before speaking to a supervisor.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-LEAD-ESCALATION-ORDER",
+      "A team member posted an unresolved coworker dispute to an all-staff group before speaking to a supervisor."
+    ],
+    "priority": "Routine",
+    "route": "Management",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-LEAD-ESCALATION-ORDER",
+    "example": "DEMO-LEAD-ESCALATION-ORDER: Redirect the issue through the responsible supervisor calmly. Document the follow-up privately and communicate expected channels.",
+    "why": "Redirect the issue through the responsible supervisor calmly. Document the follow-up privately and communicate expected channels.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "supervisor",
+          "redirect",
+          "channel"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "private",
+          "document",
+          "follow up"
+        ]
+      }
+    ],
+    "supervisorOnly": true,
+    "managerOnly": false
+  },
+  {
+    "id": "mgr-unbudgeted",
+    "department": "Management",
+    "level": 4,
+    "skill": "Management work",
+    "title": "Nonurgent purchase exceeds approved budget",
+    "situation": "An equipment request exceeds the budget and gives no written justification.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-UNBUDGETED",
+      "An equipment request exceeds the budget and gives no written justification."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-MGR-UNBUDGETED",
+    "example": "DEMO-MGR-UNBUDGETED: Request a cost breakdown, why it is needed and which budget will pay for it. Route any exception through authorized approval.",
+    "why": "Request a cost breakdown, why it is needed and which budget will pay for it. Route any exception through authorized approval.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "budget",
+          "cost",
+          "justification"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "approval",
+          "authorize",
+          "exception"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  },
+  {
+    "id": "mgr-safety-versus-cost",
+    "department": "Management",
+    "level": 5,
+    "skill": "Management work",
+    "title": "Critical electrical work deferred to save money",
+    "situation": "An unsafe fixture remains in use because the repair quote is considered expensive.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-SAFETY-VERSUS-COST",
+      "An unsafe fixture remains in use because the repair quote is considered expensive."
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-MGR-SAFETY-VERSUS-COST",
+    "example": "DEMO-MGR-SAFETY-VERSUS-COST: Restrict unsafe operation and authorize a check by qualified staff. Record urgent steps to reduce the risk and management follow-up.",
+    "why": "Restrict unsafe operation and authorize a check by qualified staff. Record urgent steps to reduce the risk and management follow-up.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "restrict",
+          "unsafe",
+          "qualified"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "mitigat",
+          "management",
+          "follow up"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  },
+  {
+    "id": "mgr-guest-comp",
+    "department": "Management",
+    "level": 4,
+    "skill": "Management work",
+    "title": "Staff promises compensation without authority",
+    "situation": "A guest was promised a free night, but no manager has authorized the remedy.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-GUEST-COMP",
+      "A guest was promised a free night, but no manager has authorized the remedy."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-MGR-GUEST-COMP",
+    "example": "DEMO-MGR-GUEST-COMP: Review the service failure and the promise that was made. Make and document a decision about how to help the guest, made by someone with permission.",
+    "why": "Review the service failure and the promise that was made. Make and document a decision about how to help the guest, made by someone with permission.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "review",
+          "verify",
+          "commitment"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "authorized",
+          "decision",
+          "document"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  },
+  {
+    "id": "mgr-inconsistent-review",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Review queue decision contradicts evidence",
+    "situation": "A purchase request is marked approved even though the cited quotation is for another item.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-INCONSISTENT-REVIEW",
+      "A purchase request is marked approved even though the cited quotation is for another item."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-MGR-INCONSISTENT-REVIEW",
+    "example": "DEMO-MGR-INCONSISTENT-REVIEW: Hold the approval and examine the supporting details that do not match. Request corrected documents and keep a record of earlier decisions.",
+    "why": "Hold the approval and examine the supporting details that do not match. Request corrected documents and keep a record of earlier decisions.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "hold",
+          "quotation",
+          "evidence"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "correct",
+          "history",
+          "document"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  },
+  {
+    "id": "mgr-multiple-rooms",
+    "department": "Management",
+    "level": 5,
+    "skill": "Management work",
+    "title": "Several occupied rooms lose water",
+    "situation": "Multiple occupied rooms report no running water at the same time.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-MULTIPLE-ROOMS",
+      "Multiple occupied rooms report no running water at the same time."
+    ],
+    "priority": "Critical",
+    "route": "Maintenance",
+    "decision": "Escalate immediately",
+    "reference": "DEMO-MGR-MULTIPLE-ROOMS",
+    "example": "DEMO-MGR-MULTIPLE-ROOMS: Coordinate Maintenance work and help for the affected guests. Confirm affected rooms, guest updates and whether water has been restored.",
+    "why": "Coordinate Maintenance work and help for the affected guests. Confirm affected rooms, guest updates and whether water has been restored.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "coordinat",
+          "maintenance",
+          "water"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "rooms",
+          "guest",
+          "restor"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  },
+  {
+    "id": "mgr-staff-conflict",
+    "department": "Management",
+    "level": 4,
+    "skill": "Management work",
+    "title": "Repeated disrespect reported between employees",
+    "situation": "A supervisor requests disciplinary action based only on one side of a staff disagreement.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-STAFF-CONFLICT",
+      "A supervisor requests disciplinary action based only on one side of a staff disagreement."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MGR-STAFF-CONFLICT",
+    "example": "DEMO-MGR-STAFF-CONFLICT: Collect accounts of what happened and apply a fair review process. Document decisions confidentially and communicate expectations.",
+    "why": "Collect accounts of what happened and apply a fair review process. Document decisions confidentially and communicate expectations.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "facts",
+          "accounts",
+          "fair",
+          "review"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "confidential",
+          "document",
+          "expectation"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  },
+  {
+    "id": "mgr-integration-alert",
+    "department": "Management",
+    "level": 4,
+    "skill": "Management work",
+    "title": "External sync status is inconclusive",
+    "situation": "A practice connection-status page shows no recent deliveries, and a manager assumes all systems are broken.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-INTEGRATION-ALERT",
+      "A practice connection-status page shows no recent deliveries, and a manager assumes all systems are broken."
+    ],
+    "priority": "Routine",
+    "route": "Management",
+    "decision": "Document and monitor",
+    "reference": "DEMO-MGR-INTEGRATION-ALERT",
+    "example": "DEMO-MGR-INTEGRATION-ALERT: Check the connection status and error messages before declaring failure. Investigate only if a confirmed problem needs action.",
+    "why": "Check the connection status and error messages before declaring failure. Investigate only if a confirmed problem needs action.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "liveness",
+          "evidence",
+          "check"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "discrepan",
+          "confirmed",
+          "investig"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  },
+  {
+    "id": "mgr-project-delay",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Project milestone missed with no owner",
+    "situation": "A terrace improvement milestone is overdue and dependencies were never assigned.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-PROJECT-DELAY",
+      "A terrace improvement milestone is overdue and dependencies were never assigned."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MGR-PROJECT-DELAY",
+    "example": "DEMO-MGR-PROJECT-DELAY: Find which tasks are waiting on other work and assign someone to each job. Set a new target date and share a realistic status update.",
+    "why": "Find which tasks are waiting on other work and assign someone to each job. Set a new target date and share a realistic status update.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "dependenc",
+          "owner",
+          "assign"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "milestone",
+          "status",
+          "forecast"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  },
+  {
+    "id": "mgr-unsafe-close",
+    "department": "Management",
+    "level": 5,
+    "skill": "Management work",
+    "title": "Injury case requested closed without resolution",
+    "situation": "An incident involving a fall has an open action to fix the problem, but the reporting staff asks to archive it.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-UNSAFE-CLOSE",
+      "An incident involving a fall has an open action to fix the problem, but the reporting staff asks to archive it."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Return for changes",
+    "reference": "DEMO-MGR-UNSAFE-CLOSE",
+    "example": "DEMO-MGR-UNSAFE-CLOSE: Do not close while corrective evidence is missing. Verify responsible action and documented guest follow-up before closure.",
+    "why": "Do not close while corrective evidence is missing. Verify responsible action and documented guest follow-up before closure.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "do not close",
+          "corrective",
+          "evidence"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "verify",
+          "follow up",
+          "closure"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  },
+  {
+    "id": "mgr-approval-delegation",
+    "department": "Management",
+    "level": 3,
+    "skill": "Management work",
+    "title": "Approval sent to employee without authority",
+    "situation": "A spending request is assigned to a staff member who can view it but lacks approval rights.",
+    "goal": "Choose what to do next, who should do it and what they need to check.",
+    "context": [
+      "Reference: DEMO-MGR-APPROVAL-DELEGATION",
+      "A spending request is assigned to a staff member who can view it but lacks approval rights."
+    ],
+    "priority": "High",
+    "route": "Management",
+    "decision": "Assign and follow up",
+    "reference": "DEMO-MGR-APPROVAL-DELEGATION",
+    "example": "DEMO-MGR-APPROVAL-DELEGATION: Route approval to a person allowed to approve the request. Confirm the person has permission and keep the approval history.",
+    "why": "Route approval to a person allowed to approve the request. Confirm the person has permission and keep the approval history.",
+    "noteChecks": [
+      {
+        "label": "what staff should do now",
+        "alternatives": [
+          "authorized",
+          "approver",
+          "route"
+        ]
+      },
+      {
+        "label": "who should check the result and what to check",
+        "alternatives": [
+          "permission",
+          "audit",
+          "confirm"
+        ]
+      }
+    ],
+    "supervisorOnly": false,
+    "managerOnly": true
+  }
+]

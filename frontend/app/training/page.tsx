@@ -43,14 +43,14 @@ const RISK_QUESTIONS = [
 ];
 function riskClues(scenario: { context: readonly string[]; situation: string }): string[] {
   const facts = scenario.context.filter(item => !/^reference:/i.test(item.trim()));
-  return facts.length ? facts.slice(0, 2) : [scenario.situation];
+  return [scenario.situation, ...facts.filter(item => !/^(use made-up|check that the work)/i.test(item))].slice(0, 2);
 }
 function reasoningFeedback(scenario: { context: readonly string[]; situation: string; priority: string }, chosen: string): string {
   const clue = riskClues(scenario)[0];
   const order = ['Routine', 'High', 'Critical'];
   const tooSlow = order.indexOf(chosen) < order.indexOf(scenario.priority);
   return 'Focus on this clue: “' + clue + '”. ' +
-    (tooSlow ? 'What happens if staff leave this problem until the next day? Who needs to handle it before the guest is left waiting even longer?' :
+    (tooSlow ? 'What could happen if staff wait until tomorrow? Think about the risk or deadline in this situation and which team can act in time.' :
       'Does the story actually say someone is in immediate danger? Or can the right team handle the problem promptly without treating it like an emergency?');
 }
 function reasoningDebrief(priority: string): string {
@@ -483,7 +483,7 @@ export default function PracticeTrainingPage() {
             {({ 'guest-ac': ' Guest Matters', 'shared-no-owner': ' Tasks',
               'shift-unresolved': ' Shift Handover', 'mt-light-fault': ' Maintenance',
               'manager-evidence': ' Requests', 'fd-broken-shower': ' Guest Matters and Maintenance' } as const)[workflowKind]}.
-            Create a practice record, update it, and check that it saved. Use made-up details only.</p>
+            {canRunWorkflow(workflowKind) ? ' Create a practice record, update it, and check that it saved. Use made-up details only.' : ' You can read the records your login is allowed to see.'}</p>
           {verifiedWorkflows[workflowKind]
             ? <p className="practice-real-workflow-verified" role="status">
               ✓ The app checked this practice on {new Date(verifiedWorkflows[workflowKind]?.completedAt || '').toLocaleDateString('en-PH')}. You can repeat it.
@@ -493,10 +493,8 @@ export default function PracticeTrainingPage() {
                 onClick={() => startWorkflow(workflowKind)}>
                 {verifiedWorkflows[workflowKind] ? 'Try this practice again' : 'Open practice screen'}</button>
             : <p className="practice-real-workflow-restricted">
-                This login can read the lessons but cannot save or change records.
-                {['mt-light-fault', 'fd-broken-shower'].includes(workflowKind)
-                  ? 'A manager or owner practice login is needed to check the final step. You can still practise writing and passing on notes.'
-                  : 'Ask your trainer for the correct supervisor or manager practice login. Your usual access will not change.'}
+                You can finish this written exercise with your own login. This exercise checks your answer, not a saved work record.
+                Saved-work exercises are for employees with permission to do those actions. Ask your trainer to demonstrate any action outside your role; keep using your own account.
               </p>}
         </section>}
 

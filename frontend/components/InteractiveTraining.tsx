@@ -125,7 +125,10 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     : basePlan && courseLesson?.id === 'staff-handover' && user.role !== 'staff'
       ? { ...basePlan, self: 'Find Urgent and Unresolved handovers without arrows.',
           checks: 'This lesson checks navigation. The later writing exercise checks a saved fictional handover.' }
-      : basePlan;
+      : basePlan && courseLesson?.id === 'maintenance' && !capabilities.make_decisions
+        ? { ...basePlan, self: 'Find Urgent and Active repairs without arrows.',
+            checks: 'This lesson checks navigation. Only a manager or owner can complete the saved repair verification exercise.' }
+        : basePlan;
   const repeatVariant = courseGuide?.repeatVariant && (course?.metrics?.[course?.lessonId || '']?.repeats || 0) % 2 === 1
     ? courseGuide.repeatVariant : undefined;
   const currentExample = repeatVariant?.example || courseGuide?.example;
@@ -254,6 +257,13 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         setCourse(current => current && current.stage === 'work' && current.reference === evidence.reference
           ? { ...current, stage: 'independent', independentStep: 0 }
           : current);
+        // The verified result is kept separately. Remove this finished coach so
+        // the next navigation exercise or lesson has only its own instructions.
+        const session = JSON.parse(localStorage.getItem(workflowSessionKey(user)) || 'null');
+        if (session?.reference === evidence.reference) {
+          localStorage.removeItem(workflowSessionKey(user));
+          window.dispatchEvent(new Event(WORKFLOW_CHANGED));
+        }
       } catch { /* An invalid local marker never completes a practical. */ }
     };
     check();
@@ -525,15 +535,22 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     };
   }, [step, path, onStepPage]);
 
+  // Listen before a step changes. Binding a listener to the next button in a
+  // later effect could miss a quick, valid click and leave an open form behind
+  // an instruction that still says to open it.
+  const guidedClickRef = useRef({ active, step, path, next });
+  guidedClickRef.current = { active, step, path, next };
   useEffect(() => {
-    if (!step?.advanceOnClick || path !== step.path || !active) return;
-    const node = targetFor(step.selector, step.targetText);
-    if (!node) return;
-    let pending = 0;
-    const click = () => { pending = window.setTimeout(() => next(true), 0); };
-    node.addEventListener('click', click, { once: true });
-    return () => { window.clearTimeout(pending); node.removeEventListener('click', click); };
-  }, [active, path, step, targetFound, next]);
+    const click = (event: MouseEvent) => {
+      const state = guidedClickRef.current;
+      if (!state.active || !state.step?.advanceOnClick || state.path !== state.step.path ||
+          !(event.target instanceof Element)) return;
+      const node = targetFor(state.step.selector, state.step.targetText);
+      if (node && (node === event.target || node.contains(event.target))) state.next(true);
+    };
+    document.addEventListener('click', click, true);
+    return () => document.removeEventListener('click', click, true);
+  }, []);
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {

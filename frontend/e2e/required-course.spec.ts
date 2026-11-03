@@ -163,6 +163,8 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   await page.getByTestId('create-task-form').getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByTestId('course-await-work')).toContainText('YOUR TURN · SAVE THE PRACTICE WORK');
   await expect(page.getByTestId('training-workflow-coach')).toBeVisible();
+  await expect(page.getByTestId('training-spotlight')).toHaveCount(0);
+  await expect(page.getByTestId('workflow-practice-facts')).toContainText('due today');
   await expect(page.getByTestId('course-completed')).toHaveCount(0);
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key) || 'null'), 'ho-ops-structured-course-v2:' + String(manager.id));
   expect(saved.stage).toBe('work');

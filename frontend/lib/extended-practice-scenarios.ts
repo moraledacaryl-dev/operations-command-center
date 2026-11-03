@@ -153,8 +153,7 @@ export const EXTENDED_PRACTICE_SCENARIOS: readonly PracticeScenario[] = CASES.ma
     goal: 'Choose what to do next, who should do it and what they need to check.',
     context: [
       'Reference: ' + reference,
-      'Use made-up names and details for this practice',
-      'Check that the work was done before marking it finished',
+      situation,
     ],
     priority, route, decision, reference,
     example: reference + ': ' + immediateAction + ' ' + followUp,

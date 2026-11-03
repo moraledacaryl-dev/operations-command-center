@@ -130,7 +130,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     steps: [
       { path: '/posts', selector: '[aria-label="Marketing status"]', title: 'Find content awaiting work', body: "Use the status filters to find posts that need work or a decision. Posted means a post has been published." },
       { path: '/posts', selector: '.ops-content-heading, .ops-module', title: 'Understand creative review', body: "A post in Review needs a decision. A post in Fix needs changes before it can be approved." },
-      { path: '/posts/editor', selector: '.ops-module, main', title: 'Annotation Studio', body: "Open a design and add arrows, text or highlights to show what needs changing. Saving creates a new version." },
+      { path: '/posts/editor', selector: '.ops-module, main', title: 'Annotation Studio', body: "Find the tools for arrows, text and highlights. They help explain changes to a design. This lesson only checks navigation; you do not need to load or save an image." },
       { path: '/posts/editor', selector: 'a.ops-brand[href="/"]', title: 'Return after reviewing', body: "Choose the Hidden Oasis logo to return to Today. You do not need to publish anything in this lesson.", advanceOnClick: true, requiresAction: true },
     ],
   },

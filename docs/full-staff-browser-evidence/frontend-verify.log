@@ -1,0 +1,70 @@
+
+> operations-command-center-frontend@3.0.0 verify
+> npm run lint && npm run typecheck && npm run build
+
+
+> operations-command-center-frontend@3.0.0 lint
+> eslint app components lib middleware.ts --no-cache
+
+
+> operations-command-center-frontend@3.0.0 typecheck
+> tsc --noEmit
+
+
+> operations-command-center-frontend@3.0.0 build
+> next build && npm run package:standalone
+
+   ▲ Next.js 15.5.28
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 954ms
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/2) ...
+ ✓ Generating static pages (2/2)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /                                    3.66 kB         114 kB
+├ ƒ /_not-found                            134 B         103 kB
+├ ƒ /account                             1.51 kB         108 kB
+├ ƒ /admin/appearance                    1.89 kB         105 kB
+├ ƒ /admin/approve                         134 B         103 kB
+├ ƒ /admin/health                        5.38 kB         112 kB
+├ ƒ /admin/users                         7.43 kB         110 kB
+├ ƒ /approvals                           5.31 kB         115 kB
+├ ƒ /approve                               134 B         103 kB
+├ ƒ /departments                         5.36 kB         115 kB
+├ ƒ /fixes                               2.84 kB         117 kB
+├ ƒ /guests                              6.49 kB         116 kB
+├ ƒ /history                             2.09 kB         109 kB
+├ ƒ /login                               4.32 kB         107 kB
+├ ƒ /my-work                             3.35 kB         113 kB
+├ ƒ /notifications                       2.01 kB         112 kB
+├ ƒ /posts                               11.6 kB         122 kB
+├ ƒ /posts/editor                        11.5 kB         118 kB
+├ ƒ /projects                            7.23 kB         117 kB
+├ ƒ /projects/[id]                       9.42 kB         119 kB
+├ ƒ /requests                            2.74 kB         117 kB
+├ ƒ /review                              5.91 kB         116 kB
+├ ƒ /rooms                                3.5 kB         113 kB
+├ ƒ /rooms/[id]                          3.66 kB         114 kB
+├ ƒ /shift                               6.01 kB         116 kB
+├ ƒ /tasks                               6.65 kB         117 kB
+└ ƒ /training                              36 kB         149 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/1255-dc3ddf72a1dc71a7.js      46.6 kB
+  ├ chunks/4bd1b696-f785427dddbba9fb.js  54.2 kB
+  └ other shared chunks (total)          1.97 kB
+
+
+ƒ Middleware                             34.3 kB
+
+ƒ  (Dynamic)  server-rendered on demand
+
+
+> operations-command-center-frontend@3.0.0 package:standalone
+> node scripts/package-standalone.mjs
+
+PASS | standalone Next.js assets packaged

@@ -1,0 +1,30 @@
+(node:86027) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 14 tests using 1 worker
+
+[1A[2K(node:86028) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:86028) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+
+[1A[2K(node:86028) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/14] e2e/guided-spotlight.spec.ts:30:5 › first open makes Start obvious, then moves the orange focus after real user input
+[1A[2K[2/14] e2e/guided-spotlight.spec.ts:69:5 › dismissal is optional, and any trainee can restart the guided lesson
+[1A[2K[3/14] e2e/guided-spotlight.spec.ts:83:5 › actual Tasks module highlights New, then the real form, and Repeat creates a fresh reference
+[1A[2K[4/14] e2e/plain-language-training.spec.ts:5:5 › first situation explains exactly what the guest reported and what staff failed to do
+[1A[2K[5/14] e2e/plain-language-training.spec.ts:23:5 › each practice lesson offers immediate simple definitions without changing its graded answers
+[1A[2K[6/14] e2e/plain-language-training.spec.ts:34:5 › a new staff trainee sees a concrete situation and its vocabulary before choosing urgency
+[1A[2K[7/14] e2e/plain-language-training.spec.ts:69:5 › staff can find an allergy case, receive factual clues and keep their own login for written practice
+[1A[2K[8/14] e2e/required-course.spec.ts:11:5 › every role-available lesson has two clear teaching checks and example before practice
+[1A[2K[9/14] e2e/required-course.spec.ts:34:5 › lesson progress parser rejects invalid lesson ids and incomplete practice state
+[1A[2K[10/14] e2e/required-course.spec.ts:61:5 › an incomplete stored finished marker resumes at the first incomplete lesson
+[1A[2K[11/14] e2e/required-course.spec.ts:78:5 › first sign-in forces Lesson 1, quiz with correction, then actual-page practice
+[1A[2K[12/14] e2e/required-course.spec.ts:116:5 › finished curriculum unlocks its completed tour without giving unearned staff write permissions
+[1A[2K[13/14] e2e/required-course.spec.ts:131:5 › manager must leave the taught task tour for an API-verified saved-work exercise, not a fake pass
+[1A[2K[14/14] e2e/required-course.spec.ts:177:5 › a non-reception room lesson keeps the opened room visible and describes navigation evidence accurately
+[1A[2K  14 passed (14.1s)

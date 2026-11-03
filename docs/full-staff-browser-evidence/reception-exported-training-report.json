@@ -1,0 +1,45 @@
+{
+  "schema": "hidden-oasis-course-report-v1",
+  "source": "isolated-training-device",
+  "exportedAt": "2026-11-03T06:51:08.360Z",
+  "trainee": {
+    "id": "12",
+    "name": "Demo Jonas Sy",
+    "role": "staff"
+  },
+  "currentLesson": "staff-my-work",
+  "currentStage": "finished",
+  "completedLessons": [
+    "orientation",
+    "staff-handover",
+    "staff-rooms",
+    "staff-my-work"
+  ],
+  "metrics": {
+    "orientation": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:40:07.478Z"
+    },
+    "staff-handover": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:40:47.256Z"
+    },
+    "staff-rooms": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:41:10.543Z"
+    },
+    "staff-my-work": {
+      "incorrectAnswers": 2,
+      "hintsViewed": 0,
+      "repeats": 1,
+      "completedAt": "2026-11-03T06:42:32.522Z"
+    }
+  },
+  "verifiedPractice": []
+}

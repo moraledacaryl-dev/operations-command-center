@@ -67,6 +67,16 @@ export const WORKFLOW_DEFINITIONS = {
   },
 } as const;
 
+/** Facts for the independent saved-record exercise, not a pre-filled answer. */
+export const WORKFLOW_PRACTICE_SITUATIONS: Record<TrainingWorkflowKind, string> = {
+  'guest-ac': 'The Solace AC is blowing warm air and the guest is waiting. Nobody has inspected it yet. Arrange an inspection and a Front Desk update during this shift.',
+  'shared-no-owner': 'A shared task is due today, but nobody is assigned. It needs an owner and attention during this shift; no immediate danger is described.',
+  'shift-unresolved': 'The Twinspire guest has waited 30 minutes for a toilet repair. The next receptionist starts in five minutes and needs to know who will arrange the repair and call the guest.',
+  'mt-light-fault': 'One hallway light is out, while the other corridor lights are working. Arrange prompt inspection and safe temporary lighting. Nobody has checked the fault yet.',
+  'manager-evidence': 'The Front Desk radio has failed and a replacement is needed before the next shift today. The fictional estimate is PHP 2500. A supplier quotation has not arrived; say that clearly in the request.',
+  'fd-broken-shower': 'The Perch 2 guest reports no hot water. Nobody has inspected the fault. Arrange a Maintenance check and a Front Desk update without promising that the shower is repaired.',
+};
+
 /** Display labels are separate so existing saved progress keeps its original step IDs. */
 export function workflowStageLabel(stage: string): string {
   const labels: Record<string, string> = {
@@ -307,14 +317,14 @@ export function verifyWorkflowStep(
 export function workflowInstructions(session: TrainingWorkflowSession): string[] {
   if (session.kind === 'fd-broken-shower') {
     if (session.step === 0) return [
-      'Open Guest Matters and choose New guest matter. Put the practice number in the Matter title.',
+      'Open Guest Matters and choose New guest matter. Put the practice number in Matter.',
       'Choose Room or Complaint. Think about how soon the guest needs help, then choose the urgency. In the note, describe the shower problem, the Maintenance check and when Reception will call the guest.',
       'Choose Save matter. Close the details, then choose Check saved work.',
     ];
     if (session.step === 1) return [
       'Open the same Guest Matter and choose Create maintenance. The app links the guest report and repair for you.',
       'The repair stays in the Guest Matter’s department. Linking it does not automatically send it to the Maintenance department.',
-      'Close the details and choose Check saved work. Do not create a separate repair for the same problem.',
+      'If the details are still open, close them. Then choose Check saved work. Do not create a separate repair for the same problem.',
     ];
     if (session.step === 2) return [
       'Open Maintenance and find the linked repair with the same practice number.',
@@ -323,7 +333,7 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
     ];
     if (session.step === 3) return [
       'Open the same repair in Maintenance and choose Mark done for this practice.',
-      'Close the details and choose Check saved work. This does not mean a real shower has been repaired.',
+      'If the details are still open, close them. Then choose Check saved work. This does not mean a real shower has been repaired.',
     ];
     return [
       'A manager or owner with permission to verify repairs must do this step. A lead or supervisor cannot verify it.',
@@ -334,21 +344,21 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
   }
   if (session.kind === 'guest-ac') {
     return session.step === 0
-      ? ['Open Guest Matters and choose New guest matter.', 'Put the practice number in the Matter title.',
+      ? ['Open Guest Matters and choose New guest matter.', 'Put the practice number in Matter.',
         'Choose Room or Complaint. Think about how soon the guest needs help, then choose the urgency. Choose Solace if it is in the room list.',
         'In the note, describe the AC blowing warm air, the Maintenance check and when Reception will update the guest.',
         'Choose Save matter, then Check saved work.']
       : ['Find the same guest matter in Active.', 'Open it and choose Needs follow-up.',
-        'Close the details and choose Check saved work. Do not mark the AC fixed before it has been checked.'];
+        'If the details are still open, close them. Then choose Check saved work. Do not mark the AC fixed before it has been checked.'];
   }
   if (session.kind === 'manager-evidence') {
     return session.step === 0
-      ? ['Open Requests and choose New request.', 'Put the practice number in the Request title.',
+      ? ['Open Requests and choose New request.', 'Put the practice number in Request.',
         'Choose Equipment. Think about how soon the item is needed, then choose the urgency.',
         'In Business reason, write the estimated cost, whether you have a supplier quote and why the item is needed. Use made-up details.',
         'Choose Create draft, then Check saved work. This does not approve a purchase.']
       : ['Open the same Draft request.', 'Check the reason. Do not say a quote is attached when it is missing.',
-        'Choose Send for review.', 'Close the details and choose Check saved work. There should be a Pending Approval for the same request and department. Do not approve it yourself.'];
+        'Choose Send for review.', 'If the details are still open, close them. Then choose Check saved work. There should be a Pending Approval for the same request and department. Do not approve it yourself.'];
   }
   if (session.kind === 'shift-unresolved') {
     return session.step === 0
@@ -357,14 +367,14 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
         'In Handover detail, write the problem, who will handle it and when to update the guest.',
         'Choose Publish handover, then Check saved work.']
       : ['Open the same unfinished handover.', 'Choose Carry forward so the next shift knows what still needs doing.',
-        'Close the details and choose Check saved work. Its saved status should be Follow.'];
+        'If the details are still open, close them. Then choose Check saved work. Its saved status should be Follow.'];
   }
   if (session.kind === 'mt-light-fault') {
     if (session.step === 0) return ['Open Maintenance and choose Report issue.',
       'Put the practice number in Work item.', 'Think about how soon the light needs attention, choose the urgency and assign a practice technician.',
       'In Problem / scope, say which light is not working and who is affected.', 'Choose Create work item, then Check saved work.'];
-    if (session.step === 1) return ['Open the same lighting repair.', 'Choose Start work and wait for Working.', 'Close the details and choose Check saved work.'];
-    if (session.step === 2) return ['After the practice check, choose Mark done.', 'Close the details and choose Check saved work. A manager still needs to check the result.'];
+    if (session.step === 1) return ['Open the same lighting repair.', 'Choose Start work and wait for Working.', 'If the details are still open, close them. Then choose Check saved work.'];
+    if (session.step === 2) return ['After the practice check, choose Mark done.', 'If the details are still open, close them. Then choose Check saved work. A manager still needs to check the result.'];
     return ['Open the same repair in To verify.', 'In Verification note, write what was tested and the result. Use made-up details.',
       'Choose Verify work, then Check saved work. This practice does not prove that a real electrical repair was done.'];
   }
@@ -374,7 +384,7 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
     'Choose Create task. Check that it appears in the list, then choose Check saved work.',
   ];
   if (session.step === 1) return ['Open the same task in To Do.', 'Choose Start work and wait for Doing.',
-    'Close the details and choose Check saved work.'];
+    'If the details are still open, close them. Then choose Check saved work.'];
   return ['Open the same Doing task.', 'Choose Submit for review. Someone still needs to check the work.',
-    'Close the details and choose Check saved work. Its saved status should be Review.'];
+    'If the details are still open, close them. Then choose Check saved work. Its saved status should be Review.'];
 }

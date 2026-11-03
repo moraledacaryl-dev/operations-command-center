@@ -65,3 +65,33 @@ test('a new staff trainee sees a concrete situation and its vocabulary before ch
   await expect(page.getByTestId('scenario-priority')).toHaveValue('');
   await expect(page.getByTestId('open-real-screens')).toHaveAttribute('href', '/');
 });
+
+test('staff can find an allergy case, receive factual clues and keep their own login for written practice', async ({ page }) => {
+  const user = { id: 7141, role: 'staff', name: 'Fictional Kitchen Trainee',
+    email: 'cook@training.invalid', departments: [{ id: 43, name: 'Kitchen', is_primary: true }],
+    primary_department_id: 43, capabilities: { manage_department: false, make_decisions: false } };
+  await page.addInitScript(user => {
+    localStorage.setItem('cc_user', JSON.stringify(user));
+    localStorage.setItem('cc_department_id', '43');
+    // Regression fixture only: the real employee walkthrough completes these through the UI.
+    localStorage.setItem('ho-ops-structured-course-v2:' + user.id, JSON.stringify({
+      lessonId:'staff-my-work', stage:'finished', question:0,
+      passed:['orientation','staff-handover','staff-rooms','staff-my-work'],
+    }));
+  }, user);
+  await page.route('**/api/**', route => route.fulfill({status:200,contentType:'application/json',
+    body:JSON.stringify({items:[],counts:{},unread_count:0})}));
+  await page.goto('/training');
+  await expect(page.getByTestId('real-workflow-invite')).toContainText('finish this written exercise with your own login');
+  await expect(page.getByTestId('real-workflow-invite')).not.toContainText('Create a practice record');
+  await page.getByRole('searchbox', { name: 'Search situations' }).fill('allergy');
+  await page.getByRole('button', { name: /Guest food allergy needs checking/ }).click();
+  await page.getByTestId('scenario-priority').selectOption('Routine');
+  await page.getByTestId('scenario-department').selectOption('Kitchen');
+  await page.getByRole('button', { name: /Check my choices/ }).click();
+  await expect(page.getByTestId('scenario-triage')).toContainText('The guest reported a food allergy');
+  await expect(page.getByTestId('scenario-triage')).not.toContainText('guest is left waiting even longer');
+  await page.getByRole('searchbox', { name: 'Search situations' }).fill('raw');
+  await page.getByRole('button', { name: /Raw poultry contacts ready-to-eat station/ }).click();
+  await expect(page.getByTestId('scenario-triage')).not.toContainText('Use made-up names and details for this practice');
+});

@@ -126,6 +126,7 @@ test('fresh manager learns the first five lessons and saves, starts and submits 
   }
   const coach = page.getByTestId('training-workflow-coach');
   await expect(coach).toContainText('Stage 1 of 3');
+  await expect(page.getByTestId('training-spotlight')).toHaveCount(0);
   const reference = (await page.getByTestId('training-workflow-reference').innerText()).trim();
   await page.getByTestId('training-check-work').click();
   await expect(page.getByTestId('training-workflow-message')).toContainText('No saved record');
@@ -156,7 +157,10 @@ test('fresh manager learns the first five lessons and saves, starts and submits 
     }).toBe(state);
     await page.getByRole('button', { name: 'Close details' }).click();
     await page.getByTestId('training-check-work').click();
-    await expect(coach).toContainText(stage);
+    if (state === 'Review') {
+      await expect(coach).toHaveCount(0);
+      await expect(page.getByTestId('course-independent-challenge')).toBeVisible();
+    } else await expect(coach).toContainText(stage);
   }
   for (const action of INDEPENDENT_CHECKS['team-tasks']) {
     await expect(page.getByTestId('course-independent-challenge')).toContainText(action.title);

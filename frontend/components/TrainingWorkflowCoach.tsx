@@ -13,7 +13,7 @@ import { getCurrentDepartmentId } from '@/lib/session';
 import {
   parseWorkflowSession, verifyWorkflowStep, workflowInstructions, workflowStagePath,
   workflowOwnerId, workflowSessionKey, workflowResultsKey,
-  WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, workflowStageLabel,
+  WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, WORKFLOW_PRACTICE_SITUATIONS, workflowStageLabel,
 } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults } from '@/lib/training-workflows';
 
@@ -29,7 +29,8 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const [session, setSession] = useState<TrainingWorkflowSession | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [showArrows, setShowArrows] = useState(true);
+  // Saved-work practice is the independent attempt. Employees can request arrows.
+  const [showArrows, setShowArrows] = useState(false);
   const [liveFocus, setLiveFocus] = useState<WorkflowFocus | null>(null);
 
   const refresh = useCallback(() => {
@@ -219,9 +220,10 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         } else setMessage('Select and copy the reference shown above.');
       }}>Copy</button>
     </p>
-    {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>Next step:</strong> {focus?.text}</p>}
+    {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>Next step:</strong> {showArrows ? focus?.text : session.step === 0 ? 'Use the facts below to create the practice record. Save it yourself, then choose Check saved work.' : 'Open the same practice record and do the next step below. Then choose Check saved work.'}</p>}
+    {!finished && session.step === 0 && <p className="training-workflow-safe" data-testid="workflow-practice-facts"><strong>Practice situation:</strong> {WORKFLOW_PRACTICE_SITUATIONS[session.kind]}</p>}
     {!finished && session.step === 0 && <p className="training-workflow-safe" data-testid="workflow-risk-explanation">
-      <strong>How urgent is it?</strong> What could happen if nobody helps? How soon should someone act? Routine can wait for planned work. High needs help soon. Critical means someone may be in danger: keep people safe and call a supervisor immediately. The form may say Normal or Urgent instead.
+      <strong>How urgent is it?</strong> What could happen if nobody helps? How soon should someone act? Routine work can use Normal. High means attention is needed soon; choose High where available, or Urgent if the form only offers Normal and Urgent. Critical means someone may be in danger: protect people and call a supervisor immediately.
     </p>}
     {finished ? <p className="training-workflow-finished" role="status">
       Practice finished. The app checked your saved work. A supervisor still needs to check your skills before you use the live system.
@@ -230,8 +232,8 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         {instructions.map(item => <li key={item}>{item}</li>)}
       </ol>
       <p className="training-workflow-modal-help">
-        After you save or change a record, click <strong>Close</strong> on its details.
-        Then click <strong>Check saved work</strong> here. Your saved changes will stay.
+        After you save or change a record, close its details if they are still open.
+        Then choose <strong>Check saved work</strong> here. Your saved changes will stay.
       </p>
       <div className="training-workflow-buttons">
         {!onModule ? <Link className="btn" data-testid="training-open-module" href={expectedPath}>

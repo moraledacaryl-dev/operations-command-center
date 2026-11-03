@@ -180,13 +180,13 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 status="Done", hidden_from_active=True, archive_reason="Training sample",
                 completed_at=now-timedelta(days=3), archived_at=now-timedelta(days=2)), "tasks")
 
-        # Every fictional frontline login needs work to read during orientation,
-        # including the PM accounts (not only the department's primary worker).
+        # Every fictional login needs work to read during orientation, including
+        # supervisors and PM accounts, not only the primary department worker.
         for _, role, slug, dept in PEOPLE:
-            if role != "staff" or slug == PRIMARY_WORKER[dept]:
+            if slug == PRIMARY_WORKER[dept]:
                 continue
             for i, (status, days) in enumerate([("To Do", -1), ("Doing", 0), ("Review", 1)]):
-                add(models.Task(title=PREFIX+descriptions[dept][i]+" — PM practice",
+                add(models.Task(title=PREFIX+descriptions[dept][i]+" — assigned practice",
                     department_id=departments[dept].id, assigned_to_id=users[slug].id,
                     owner_id=users[LEADS[dept]].id, status=status,
                     priority="High" if i == 0 else "Normal", due_date=now+timedelta(days=days),
@@ -258,6 +258,8 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 topic, team = (night, night_team) if i == 2 else (afternoon, pm_team)
                 handover_note = (
                     "TRAINING ONLY — " + topic + ". "
+                    + ("Keep affected food out of service and alert the Kitchen lead now. " if dept == "Kitchen" and status != "Done" else
+                       "Keep guests away from the unchecked gate and alert the Security lead now. " if dept == "Security" and i == 2 else "")
                     + ("The previous shift confirmed the check was completed. No follow-up remains." if status == "Done" else
                        "The work is not confirmed complete. " + users[LEADS[dept]].name +
                        " is responsible for contacting " + team + ". The incoming shift should check with the lead "

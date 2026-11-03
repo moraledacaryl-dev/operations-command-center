@@ -84,6 +84,8 @@ test('actual Tasks module highlights New, then the real form, and Repeat creates
   await startDemo(page, true);
   await page.goto('/tasks');
   await expect(page.getByTestId('training-workflow-coach')).toBeVisible();
+  await expect(page.getByTestId('training-spotlight')).toHaveCount(0);
+  await page.getByTestId('show-workflow-arrows').click();
   await expect(page.getByTestId('training-spotlight')).toContainText('Click New');
   // Guidance must never physically block the underlying application buttons.
   await expect(page.locator('.training-spotlight-popover')).toHaveCSS('pointer-events', 'none');

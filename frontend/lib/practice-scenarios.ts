@@ -128,9 +128,9 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   },
   {
     id: 'kitchen-allergy', level: 4, department: 'Kitchen',
-    title: 'Possible allergen cross-contact',
-    situation: 'An order DEMO-KITCHEN-052 may have been prepared with an ingredient the guest declared as an allergen.',
-    goal: 'Prioritize guest safety over speed and notify the correct personnel.',
+    title: 'Guest food allergy needs checking',
+    situation: 'The guest reported a food allergy. Order DEMO-KITCHEN-052 may contain an ingredient the guest cannot safely eat.',
+    goal: 'Keep the plate from being served. Ask the Kitchen lead to check its ingredients.',
     context: ['Reference: DEMO-KITCHEN-052', 'Ingredient safety has not been verified', 'The plate has not yet been served'],
     priority: 'Critical', route: 'Kitchen', decision: 'Escalate immediately', reference: 'DEMO-KITCHEN-052',
     noteChecks: [
