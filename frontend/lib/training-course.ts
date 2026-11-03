@@ -37,7 +37,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     whyIncorrect: 'A notification is a message, not confirmation that a task was finished. Open the related task to see what still needs doing.',
     questions: [
       q('Where do you go first to see tasks assigned to you?', ['My Work','Rooms','Marketing'], 0, 'My Work shows assignments for your own account.'),
-      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the linked work and check what action is still needed','Change another employee’s password'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
+      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the related task and check what still needs doing','Change another employee’s password'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
     ],
   },
   'staff-handover': {
@@ -81,7 +81,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'A shared job has no owner. Assign the right fictional teammate, start the work, and submit the saved task for review.',
     repeatVariant: { example:'A staff member reports a broken hallway sign but nobody is assigned. Find whether the job exists, assign the right fictional teammate, and follow its progress.', questions:[
       q('A task already exists for the same sign. What should you do?', ['Create a second copy','Review the existing task and update it if appropriate','Ignore both'],1,'Duplicate tasks confuse ownership.'),
-      q('When can a task be submitted for review?', ['After it actually reaches the required work stage','The moment it is created without work','By changing the title only'],0,'The saved workflow needs the real work stages.'),
+      q('When can a task be submitted for review?', ['After it actually reaches the required work stage','The moment it is created without work','By changing the title only'],0,'Complete each step and save your changes.'),
     ] },
     remember: 'Your practice only counts after the app confirms your saved task really changed through the required stages.',
     handsOn: 'shared-no-owner',
@@ -180,7 +180,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   'management-review': {
     explanation: 'A manager reviews the underlying evidence before approving, rejecting or asking for changes. A request that lacks proof should not be approved just to clear the queue.',
     example: 'A purchase request has no reliable price quotation. Ask for the missing information instead of guessing.',
-    remember: 'Approval is a real permission; training never creates an approval without the authorized fictional workflow.',
+    remember: 'Only the person allowed to approve a request can make that decision.',
     questions: [
       q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Approve without looking','Ignore the missing details'], 0, 'Authorized reviewers need adequate evidence.'),
       q('A request is approved. Does this prove the item was delivered?', ['No, delivery or implementation must be checked separately','Yes, always','Only if the reviewer was busy'], 0, 'The approval decision is not proof that the work was carried out.'),

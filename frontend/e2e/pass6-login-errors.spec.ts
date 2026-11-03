@@ -4,7 +4,7 @@ const cases = [
   { status: 401, detail: 'Invalid login', expected: 'Invalid email or password.' },
   { status: 403, detail: 'Password is not set for this account yet.', expected: 'This account cannot sign in yet. Contact an administrator.' },
   { status: 429, detail: 'Too many failed sign-in attempts. Try again later.', expected: 'Too many failed sign-in attempts. Please try again later.' },
-  { status: 503, detail: 'Unavailable', expected: 'The service is temporarily unavailable. Please try again.' },
+  { status: 503, detail: 'Unavailable', expected: 'The app is unavailable. Please try again in a moment.' },
 ];
 
 for (const item of cases) {

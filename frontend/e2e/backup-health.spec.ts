@@ -22,10 +22,10 @@ for (const width of [1440, 1024, 768, 390, 320]) {
         await route.fulfill({ status: 200, json: body });
       });
       await page.goto('/admin/health');
-      const card = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Local backups', exact: true }) });
-      await expect(card).toContainText(status);
-      if (status === 'current') await expect(card).toContainText('backups are current');
-      if (status === 'failed') await expect(card).toContainText('last backup attempt failed');
+      const card = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Recent backups', exact: true }) });
+      await expect(card).toContainText(({current:'Up to date',failed:'Needs attention',stale:'Overdue',unknown:'Not checked'} as Record<string,string>)[status]);
+      if (status === 'current') await expect(card).toContainText('work and files have been backed up');
+      if (status === 'failed') await expect(card).toContainText('last backup failed');
       if (status === 'stale') await expect(card).toContainText('backup is overdue');
       if (status === 'unknown') await expect(card).toContainText('Not available');
       else await expect(card).toContainText(/Oct 25|25 Oct/);

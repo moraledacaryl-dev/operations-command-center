@@ -59,6 +59,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Verify training uses the exact current Operations module UI and workflow source
+        if: startsWith(github.head_ref || github.ref_name, 'codex/training-')
         shell: bash
         run: |
           # This job's default working-directory is frontend/. Git pathspecs

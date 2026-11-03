@@ -92,7 +92,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await page.getByTestId('course-check-answer').click();
   await expect(panel).toHaveCount(0);
   const coach = page.locator('.ops-guide-tip');
-  await expect(coach).toContainText('real training dashboard');
+  await expect(coach).toContainText('Your start page');
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Find My Work');
   await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
@@ -105,7 +105,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(page.getByTestId('course-lesson-title')).toHaveCount(0);
   await expect(page.getByRole('dialog', { name: 'Resume required training' })).toBeVisible();
   await page.getByRole('button', { name: /Resume practical lesson/ }).click();
-  await expect(coach).toContainText('real training dashboard');
+  await expect(coach).toContainText('Your start page');
 });
 
 test('finished curriculum unlocks its completed tour without giving unearned staff write permissions', async ({ page }) => {

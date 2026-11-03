@@ -62,7 +62,7 @@ test('scheduled multi-platform concept appears in calendar and opens its concept
   await expect(drawer.getByRole('heading', { name: 'Poolside weekend' })).toBeVisible();
   await expect(drawer.getByRole('paragraph').filter({ hasText: 'One concept for multiple channels' })).toBeVisible();
   await expect(drawer.getByText('v1 · pool-hero.png')).toBeVisible();
-  await expect(drawer.getByRole('link', { name: 'Annotate' })).toHaveAttribute('href', '/posts/editor?conceptId=51&assetId=81&versionId=91');
+  await expect(drawer.getByRole('link', { name: 'Edit image' })).toHaveAttribute('href', '/posts/editor?conceptId=51&assetId=81&versionId=91');
 });
 
 test('creative upload confirms success and refreshes the version list', async ({ page }) => {
@@ -71,7 +71,7 @@ test('creative upload confirms success and refreshes the version list', async ({
   await page.goto('/posts');
   await page.getByRole('button', { name: /Poolside weekend Facebook · Planned/ }).click();
   const drawer = page.getByRole('dialog');
-  await drawer.getByLabel('Upload creative').setInputFiles({ name: 'new-creative.png', mimeType: 'image/png', buffer: tinyPng });
+  await drawer.getByLabel('Add file').setInputFiles({ name: 'new-creative.png', mimeType: 'image/png', buffer: tinyPng });
   await expect(drawer.getByRole('status')).toHaveText('Uploaded new-creative.png successfully.');
   await expect(drawer.getByText('v1 · new-creative.png')).toBeVisible();
 });
@@ -79,7 +79,7 @@ test('creative upload confirms success and refreshes the version list', async ({
 test('new concept uses campaign dropdown, multiple platforms, and creative upload', async ({ page }) => {
   await seed(page);
   await page.goto('/posts');
-  await page.getByRole('button', { name: 'New concept' }).click();
+  await page.getByRole('button', { name: 'New post' }).click();
   const campaignSelect = page.getByRole('combobox', { name: 'Campaign' });
   await expect(campaignSelect).toBeVisible();
   await expect(campaignSelect).toHaveValue('41');
@@ -87,7 +87,7 @@ test('new concept uses campaign dropdown, multiple platforms, and creative uploa
   await expect(page.getByRole('checkbox', { name: 'Facebook' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Instagram' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'TikTok' })).not.toBeChecked();
-  await expect(page.getByLabel('Creative asset')).toHaveAttribute('accept', /image\/png/);
+  await expect(page.getByLabel('Image or file')).toHaveAttribute('accept', /image\/png/);
 });
 
 test('calendar date is clickable and prefills canonical concept publishing date', async ({ page }) => {
@@ -98,9 +98,9 @@ test('calendar date is clickable and prefills canonical concept publishing date'
   const dateButton = page.getByRole('button', { name: 'Plan content on September 12, 2026' });
   await expect(dateButton).toBeEnabled();
   await dateButton.click();
-  await expect(page.getByRole('heading', { name: 'Create multi-platform concept' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'New post for several platforms' })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Campaign' })).toHaveValue('41');
-  await expect(page.getByRole('textbox', { name: 'Concept title' })).toBeFocused();
+  await expect(page.getByRole('textbox', { name: 'Post title' })).toBeFocused();
   await expect(page.getByLabel('Publishing date')).toHaveValue('2026-09-12');
 });
 
@@ -108,14 +108,14 @@ test('Annotation Studio auto-fits and supports direct text and image overlays', 
   await page.setViewportSize({ width: 1280, height: 900 });
   await seed(page);
   await page.goto('/posts/editor?conceptId=51&assetId=81&versionId=91');
-  await expect(page.getByRole('heading', { name: 'Annotation studio' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Edit image' })).toBeVisible();
   await expect(page.getByText('Poolside weekend')).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'Creative image version' })).toHaveValue('91');
+  await expect(page.getByRole('combobox', { name: 'Image version' })).toHaveValue('91');
   await expect(page.getByText('pool-hero.png', { exact: true })).toBeVisible();
-  await expect(page.getByText('No creative loaded')).toHaveCount(0);
+  await expect(page.getByText('No image open')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Fit · \d+%/ })).toBeEnabled();
 
-  const stage = page.getByRole('region', { name: 'Creative annotation canvas' });
+  const stage = page.getByRole('region', { name: 'Image editor' });
   const baseCanvas = page.locator('canvas').first();
   const stageBox = await stage.boundingBox();
   const canvasBox = await baseCanvas.boundingBox();
@@ -134,9 +134,9 @@ test('Annotation Studio auto-fits and supports direct text and image overlays', 
     expect(canvasBox.y + canvasBox.height).toBeLessThanOrEqual(stageBox.y + stageBox.height);
   }
 
-  await expect(page.getByLabel('Overlay image')).toBeEnabled();
+  await expect(page.getByLabel('Image to add')).toBeEnabled();
   await expect(page.getByLabel('Text font size')).toHaveValue('48');
-  await page.getByLabel('Overlay image').setInputFiles({ name: 'logo-overlay.png', mimeType: 'image/png', buffer: tinyPng });
+  await page.getByLabel('Image to add').setInputFiles({ name: 'logo-overlay.png', mimeType: 'image/png', buffer: tinyPng });
   await expect(page.getByText('pool-hero.png', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'T Text' }).click();
   const annotationCanvas = page.locator('canvas').nth(1);
@@ -149,5 +149,5 @@ test('Annotation Studio auto-fits and supports direct text and image overlays', 
   await inlineText.fill('Pool note');
   await inlineText.press('Enter');
   await expect(inlineText).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Save annotated version' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Save edits' })).toBeEnabled();
 });

@@ -35,7 +35,7 @@ test('first training open starts on real dashboard and requires navigating actua
   await course.getByLabel('Read the linked work and check what action is still needed').check();
   await page.getByTestId('course-check-answer').click();
   await expect(course).toHaveCount(0);
-  await expect(coach).toContainText('You are on the real training dashboard');
+  await expect(coach).toContainText('Your start page');
 
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Find My Work in the actual navigation');

@@ -28,11 +28,11 @@ for (const width of [1440, 1024, 768, 390, 320]) {
     const drawer = page.getByRole('dialog');
     await expect(drawer.getByText('historical.png', { exact: true })).toBeVisible();
     await expect(drawer.getByText('Original version history')).toBeVisible();
-    await expect(drawer.getByText('File unavailable. Version history is preserved.')).toBeVisible();
-    await expect(drawer.getByRole('link', { name: 'Open asset', exact: true })).toHaveCount(0);
-    await expect(drawer.getByRole('link', { name: 'Annotate', exact: true })).toHaveCount(0);
+    await expect(drawer.getByText('This file cannot be opened.')).toBeVisible();
+    await expect(drawer.getByRole('link', { name: 'Open file', exact: true })).toHaveCount(0);
+    await expect(drawer.getByRole('link', { name: 'Edit image', exact: true })).toHaveCount(0);
     expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual([]);
-    await drawer.getByText('File unavailable. Version history is preserved.').scrollIntoViewIfNeeded();
+    await drawer.getByText('This file cannot be opened.').scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath(`historical-media-owner-${width}.png`) });
   });
 }
@@ -42,9 +42,9 @@ test('direct annotation link does not request an unavailable historical file', a
   let downloads = 0;
   page.on('request', request => { if (request.url().endsWith('/versions/51/download')) downloads++; });
   await page.goto('/posts/editor?postId=41&versionId=51');
-  await expect(page.getByRole('heading', { name: 'Annotation studio' })).toBeVisible();
-  await expect(page.getByText('Some historical files are unavailable. Their version history is preserved.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Edit image' })).toBeVisible();
+  await expect(page.getByText('Some older files cannot be opened. You can still see their saved versions.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open version', exact: true })).toBeDisabled();
-  await expect(page.getByRole('combobox', { name: 'Creative image version' })).toBeDisabled();
+  await expect(page.getByRole('combobox', { name: 'Image version' })).toBeDisabled();
   expect(downloads).toBe(0);
 });

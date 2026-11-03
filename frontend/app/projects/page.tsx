@@ -1,5 +1,6 @@
 'use client';
 
+import { displayWorkText } from '@/lib/work-display';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -153,7 +154,7 @@ export default function ProjectsPage() {
         overdue_tasks: linked.filter(task => !task.hidden_from_active && task.status !== 'Done' && isOverduePropertyDay(task.due_date)).length,
       } : current);
     } catch (err: any) {
-      setError(err.message || 'Linked task could not be created.');
+      setError(err.message || 'Could not create the task.');
     } finally {
       setBusy(false);
     }
@@ -201,7 +202,7 @@ export default function ProjectsPage() {
     <div className="ops-project-grid">
       {visible.map(project => <Link className="ops-project-card" key={project.id} href={`/projects/${project.id}`}>
         <span className={`ops-project-cover ${project.overdue_tasks ? 'ops-cover-sand' : ''}`}><span className="ops-project-emblem"><Icon name="projects" /></span><Pill value={project.status || 'Planned'} /><span className="ops-cover-lines" aria-hidden="true" /></span>
-        <span className="ops-project-content"><span className="ops-project-kicker">{project.overdue_tasks ? `${project.overdue_tasks} overdue task${project.overdue_tasks === 1 ? '' : 's'}` : project.priority + ' priority'}</span><strong>{project.title}</strong>{project.note ? <span className="ops-work-card-description">{project.note}</span> : null}
+        <span className="ops-project-content"><span className="ops-project-kicker">{project.overdue_tasks ? `${project.overdue_tasks} overdue task${project.overdue_tasks === 1 ? '' : 's'}` : project.priority + ' priority'}</span><strong>{displayWorkText(project.title)}</strong>{project.note ? <span className="ops-work-card-description">{displayWorkText(project.note)}</span> : null}
         <span className="ops-progress-label"><span>{project.linked_tasks.filter((t: Entity) => t.status === 'Done').length} of {project.linked_tasks.length} tasks done</span><b>{project.progress}%</b></span>
         <span className="ops-progress-track" role="progressbar" aria-label={`${project.title} task completion`} aria-valuenow={project.progress} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${project.progress}%` }} /></span>
         <span className="ops-work-card-footer"><span><Icon name="clock" />{project.due_date ? `Due ${formatDate(project.due_date)}` : 'No due date'}</span><Icon name="arrow" /></span></span>
@@ -222,11 +223,11 @@ export default function ProjectsPage() {
           </> : <p className="muted">No project transition is available for your role and this state.</p>}
         </section>
         <section className="panel">
-          <h2>Linked tasks</h2>
-          {canManage ? <div className="form" style={{ marginTop: 12 }}><textarea className="textarea" placeholder="Describe the next project action" value={taskNote} onChange={event => setTaskNote(event.target.value)} /><button className="btn secondary" disabled={busy} onClick={createLinkedTask}>Create linked task</button></div> : null}
+          <h2>Project tasks</h2>
+          {canManage ? <div className="form" style={{ marginTop: 12 }}><textarea className="textarea" placeholder="Describe the next project action" value={taskNote} onChange={event => setTaskNote(event.target.value)} /><button className="btn secondary" disabled={busy} onClick={createLinkedTask}>Create task</button></div> : null}
           <div className="grid" style={{ marginTop: 12 }}>
             {selected.linked_tasks.map((task: Entity) => <div className="card" key={task.id}><strong>{task.title}</strong><div className="card-line"><Pill value={task.status} />{task.hidden_from_active ? <Pill value="Archived" /> : null}<Pill value={task.priority || 'Normal'} /></div><span className="muted">Due {formatDate(task.due_date)}</span></div>)}
-            {!selected.linked_tasks.length ? <div className="empty">No linked tasks yet.</div> : null}
+            {!selected.linked_tasks.length ? <div className="empty">No tasks yet.</div> : null}
           </div>
         </section>
         <Link className="btn" style={{ marginTop: 16 }} href={`/projects/${selected.id}`}>Discussion & purchase list</Link>

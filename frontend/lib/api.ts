@@ -1,3 +1,5 @@
+import { workErrorText } from './work-display';
+
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export type Entity = Record<string, any>;
@@ -20,9 +22,10 @@ export class ApiError extends Error {
 function endpointFailureMessage(path: string, status: number) {
   if (path.startsWith('/review/queue')) return 'Review could not be loaded.';
   if (status === 403) return 'You do not have permission to complete this action.';
-  if (status === 404) return 'The requested record could not be found.';
-  if (status === 429) return 'Too many requests. Please try again shortly.';
-  if (status >= 500) return 'The service is temporarily unavailable.';
+  if (status === 404) return 'This item could not be found.';
+  if (status === 429) return 'Please wait a moment, then try again.';
+  if (status === 422) return 'Check the form and try again.';
+  if (status >= 500) return 'The app is unavailable. Please try again in a moment.';
   return 'The request could not be completed.';
 }
 
@@ -53,7 +56,7 @@ async function normalizedError(res: Response, path: string) {
   }
 
   const safeMessage = detail && res.status < 500 && res.status !== 422
-    ? detail
+    ? workErrorText(detail)
     : endpointFailureMessage(path, res.status);
   return new ApiError(safeMessage, res.status, requestId, detail);
 }

@@ -57,7 +57,7 @@ test('staff have read-only lessons with guided spotlights', async ({ page }) => 
   await expect(library).not.toContainText('Creating and managing a task');
   await library.getByRole('button', { name: /Getting around Operations/ }).click();
   const step = page.getByRole('dialog', { name: /Training step/ });
-  await expect(step).toContainText('You are on the real training dashboard');
+  await expect(step).toContainText('Your start page');
   await expect(page.locator('.ops-guide-spotlight')).toBeVisible();
   await expect(page.locator('.ops-guide-arrow')).toBeVisible();
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-staff-spotlight.png' });

@@ -132,7 +132,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         stage:nextLesson?'learn':'finished', question:0, independentStep:0,
         reference:undefined, passed:credits, metrics:report.metrics,
       }:current);
-      setRestoreMessage('Imported read-only lessons from this practice account. Lessons with saved task/guest/maintenance records must be practised and verified again on this device. This is not a skills certificate.');
+      setRestoreMessage('Lessons restored. Repeat any hands-on practice that needs saved work on this device.');
     } catch { setRestoreMessage('This file could not be read. Export a fresh training report and try again.'); }
   }
 

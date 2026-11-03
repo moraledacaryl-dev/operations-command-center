@@ -191,7 +191,7 @@ internal sealed class TrainingWindow : Form
         if (starting || backend is { HasExited: false } || frontend is { HasExited: false }) return;
         if (PortTaken(3401) || PortTaken(8401))
         {
-            MessageBox.Show("Port 3401 or 8401 is already in use. Close the other program before starting training.\n\nNothing was changed.",
+            MessageBox.Show("Close the other training window, then try again.\n\nNothing was changed.",
                 "Training cannot start", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -216,7 +216,7 @@ internal sealed class TrainingWindow : Form
                 await initializer.WaitForExitAsync(timeout.Token);
                 if (closing || cancelled) return;
                 if (initializer.ExitCode != 0)
-                    throw new Exception("Could not initialize demo data. See the training logs.");
+                    throw new Exception("Could not prepare your practice. Ask your trainer for help.");
             }
             finally
             {
@@ -252,10 +252,10 @@ internal sealed class TrainingWindow : Form
                 }
                 catch { /* services may still be starting */ }
             }
-            if (!healthy) throw new Exception("Training service did not become ready.");
+            if (!healthy) throw new Exception("Training could not open. Try again or ask your trainer for help.");
             stop.Enabled = true; stop.Text = "Stop";
             browser.Enabled = true; accounts.Enabled = true;
-            SetStatus("Running locally • Your practice records are saved.");
+            SetStatus("Training is open • Your practice is saved");
             OpenBrowser();
         }
         catch (Exception exc)
@@ -283,7 +283,7 @@ internal sealed class TrainingWindow : Form
             MessageBox.Show("Training accounts are not ready yet.");
             return;
         }
-        MessageBox.Show("These are fictional accounts for TRAINERS ONLY. Do not distribute all passwords to staff.",
+        MessageBox.Show("Trainers only: give each employee only their own practice login.",
             "Trainer account access", MessageBoxButtons.OK, MessageBoxIcon.Information);
         try { Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\"") { UseShellExecute = true }); }
         catch { MessageBox.Show("Open this private file: " + path); }
@@ -326,6 +326,6 @@ internal sealed class TrainingWindow : Form
         if (closing) return;
         stop.Enabled = false; stop.Text = "Stop";
         browser.Enabled = false; accounts.Enabled = false;
-        status.Text = "Stopped • Practice records are safely preserved.";
+        status.Text = "Stopped • Your practice is saved";
     }
 }

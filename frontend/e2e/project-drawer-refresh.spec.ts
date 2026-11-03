@@ -65,7 +65,7 @@ for (const width of [1440, 1024, 768, 390, 320]) {
     } finally { control.release(); }
     // Pause still requires a reason; a different enabled action confirms the
     // held refresh finished and the shared mutation lock was released.
-    await expect(dialog.getByRole('button', { name: 'Create linked task', exact: true })).toBeEnabled();
+    await expect(dialog.getByRole('button', { name: 'Create task', exact: true })).toBeEnabled();
     await expect(dialog.getByRole('button', { name: 'Pause', exact: true })).toBeDisabled();
     await expect(dialog.getByRole('button', { name: 'Close details' })).toBeFocused();
     expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);

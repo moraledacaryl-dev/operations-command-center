@@ -250,7 +250,7 @@ export default function MarketingPage() {
   const allowedActions: string[] = selected?.allowed_actions || [];
 
   return <div className="ops-module">
-    <Top title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Annotation studio</Link>{canManage && departmentId ? <button className="btn" onClick={openCreate}><Icon name="plus" />New content</button> : null}</div>} />
+    <Top title="Marketing" right={<div className="toolbar"><Link className="btn secondary" href="/posts/editor">Edit image</Link>{canManage && departmentId ? <button className="btn" onClick={openCreate}><Icon name="plus" />New content</button> : null}</div>} />
     {departmentId ? <MarketingWorkspace departmentId={departmentId} canManage={canManage} createIntentKey={canonicalCreateIntent} /> : null}
     <div className="ops-content-heading"><span className="ops-record-icon"><Icon name="palette" /></span><div><h2>Individual posts</h2></div></div>
     <WorkspaceStats items={[
@@ -313,11 +313,11 @@ export default function MarketingPage() {
           <div className="form" style={{ marginTop: 12 }}>
             <div className="form-grid"><label className="label">File<input className="input" type="file" onChange={event => setFile(event.target.files?.[0] || null)} /></label><label className="label">Asset URL<input className="input" value={version.file_url} onChange={event => setVersion({ ...version, file_url: event.target.value })} /></label></div>
             <label className="label">Display name<input className="input" value={version.filename} onChange={event => setVersion({ ...version, filename: event.target.value })} /></label>
-            <label className="label">Caption snapshot<textarea className="textarea" value={version.caption_snapshot} onChange={event => setVersion({ ...version, caption_snapshot: event.target.value })} /></label>
+            <label className="label">Caption for this version<textarea className="textarea" value={version.caption_snapshot} onChange={event => setVersion({ ...version, caption_snapshot: event.target.value })} /></label>
             <label className="label">Version note<textarea className="textarea" value={version.note} onChange={event => setVersion({ ...version, note: event.target.value })} /></label>
             <button className="btn secondary" disabled={busy} onClick={addVersion}>Add version</button>
           </div>
-          <div className="grid" style={{ marginTop: 12 }}>{versions.map(item => <div className="card" key={item.id}><strong>V{item.version_no}{item.is_current ? ' · Current' : ''}</strong><span>{item.filename || 'Creative asset'}</span>{item.file_status === 'unavailable' ? <p className="muted" role="status">File unavailable. Version history is preserved.</p> : <div className="toolbar">{item.file_url ? <a className="btn small secondary" href={assetHref(item.file_url)} target="_blank" rel="noreferrer">Open asset</a> : null}{isAnnotatableAsset(item) ? <Link className="btn small" href={`/posts/editor?postId=${selected.id}&versionId=${item.id}`}>Annotate</Link> : null}</div>}<span className="muted">{item.note}</span></div>)}{!versions.length ? <div className="empty">No creative versions uploaded.</div> : null}</div>
+          <div className="grid" style={{ marginTop: 12 }}>{versions.map(item => <div className="card" key={item.id}><strong>V{item.version_no}{item.is_current ? ' · Current' : ''}</strong><span>{item.filename || 'Image or file'}</span>{item.file_status === 'unavailable' ? <p className="muted" role="status">This file cannot be opened.</p> : <div className="toolbar">{item.file_url ? <a className="btn small secondary" href={assetHref(item.file_url)} target="_blank" rel="noreferrer">Open file</a> : null}{isAnnotatableAsset(item) ? <Link className="btn small" href={`/posts/editor?postId=${selected.id}&versionId=${item.id}`}>Edit image</Link> : null}</div>}<span className="muted">{item.note}</span></div>)}{!versions.length ? <div className="empty">No files added yet.</div> : null}</div>
         </section>
         <section className="panel">
           <h2>Review conversation</h2>

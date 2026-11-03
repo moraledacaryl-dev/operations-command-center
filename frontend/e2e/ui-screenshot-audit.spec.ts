@@ -113,7 +113,7 @@ async function captureMarketing(page: Page, name: string) {
   const newContent = page.getByRole('button', { name: 'New content' });
   await expect(newContent).toBeVisible();
   await newContent.click();
-  await expect(page.getByRole('heading', { name: 'Create multi-platform concept' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'New post for several platforms' })).toBeVisible();
   const campaignSelect = page.getByRole('combobox', { name: 'Campaign' });
   await expect(campaignSelect).toHaveValue('41');
   await expect(page.getByRole('checkbox', { name: 'Facebook' })).toBeChecked();
@@ -123,14 +123,14 @@ async function captureMarketing(page: Page, name: string) {
 
 async function captureAnnotation(page: Page, name: string) {
   await page.goto('/posts/editor?postId=101&versionId=501');
-  await expect(page.getByRole('heading', { name: 'Annotation studio' })).toBeVisible();
-  const versionSelect = page.getByRole('combobox', { name: 'Creative image version' });
+  await expect(page.getByRole('heading', { name: 'Edit image' })).toBeVisible();
+  const versionSelect = page.getByRole('combobox', { name: 'Image version' });
   await expect(versionSelect).toHaveValue('501');
   await page.getByRole('button', { name: 'Open version' }).click();
-  await expect(page.getByRole('button', { name: 'Export PNG' })).toBeEnabled();
-  await expect(page.getByRole('button', { name: 'Save annotated version' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Download image' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Save edits' })).toBeEnabled();
   await expect(page.getByText('Open a creative to start annotating')).toHaveCount(0);
-  const canvasRegion = page.getByRole('region', { name: 'Creative annotation canvas' });
+  const canvasRegion = page.getByRole('region', { name: 'Image editor' });
   await expect(canvasRegion.locator('canvas').first()).toBeVisible();
   await expect(canvasRegion.locator('canvas').first()).toHaveAttribute('width', '320');
   await expect(canvasRegion.locator('canvas').first()).toHaveAttribute('height', '180');

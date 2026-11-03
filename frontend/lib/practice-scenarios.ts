@@ -82,7 +82,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
       { label: "an accurate guest response", alternatives: ["guest", "update", "confirm", "follow up"] },
     ],
     example: 'DEMO-ROOM-203: verify readiness with Housekeeping, communicate an accurate update to the guest and log the next follow-up.',
-    why: 'Confirm operational facts rather than making a guest-facing promise based on assumption.',
+    why: 'Check the facts before making a promise to a guest.',
   },
   {
     id: 'housekeeping-turnover', level: 2, department: 'Housekeeping',
@@ -102,7 +102,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     id: 'housekeeping-lost-found', level: 3, department: 'Housekeeping',
     title: 'Found property after checkout',
     situation: 'A housekeeping employee finds a wallet in fictional Room 207 after checkout.',
-    goal: 'Secure and document found property with an accountable handoff.',
+    goal: 'Keep the item safe and record who receives it.',
     context: ['Reference: DEMO-ROOM-207', 'A wallet is found, with no verified owner present', 'Avoid recording sensitive card numbers'],
     priority: 'High', route: 'Security', decision: 'Assign and follow up', reference: 'DEMO-ROOM-207',
     noteChecks: [
@@ -110,7 +110,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
       { label: "the authorized handover or log", alternatives: ["security", "handover", "log", "record"] },
     ],
     example: 'DEMO-ROOM-207: secure the found wallet per lost-and-found procedure, document chain of custody, inform Security and notify Front Desk through approved channels.',
-    why: 'Never copy private payment information into a training note. Record the handoff and responsible custodian.',
+    why: 'Do not record card details. Record who received the found item.',
   },
   {
     id: 'cafe-delay', level: 3, department: 'Café',

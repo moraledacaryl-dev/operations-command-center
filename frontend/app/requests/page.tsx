@@ -134,9 +134,9 @@ export default function RequestsPage() {
     <Drawer item={selected} title={selected?.title || "Request"} onClose={() => !busy && setSelected(null)}>
       {selected ? <>
         <section className="panel" style={{ marginBottom: 16 }}><h2>Business reason</h2><p>{selected.reason || 'No business reason recorded.'}</p><div className="card-line"><Pill value={selected.request_type || 'General'} /></div></section>
-        {selected.hidden_from_active ? <section className="panel" role="status"><h2>Archived request</h2><p className="muted">This is a historical record. Reconcile its archive state before taking further workflow action.</p></section> : <section className="panel"><h2>Next action</h2><textarea className="textarea" placeholder="Implementation note" value={note} onChange={e => setNote(e.target.value)} disabled={busy || !canManageWork} /><div className="toolbar">
+        {selected.hidden_from_active ? <section className="panel" role="status"><h2>Archived request</h2><p className="muted">This request is kept for reference. It cannot be changed here.</p></section> : <section className="panel"><h2>Next action</h2><textarea className="textarea" placeholder="Work note" value={note} onChange={e => setNote(e.target.value)} disabled={busy || !canManageWork} /><div className="toolbar">
           {canManageWork && selected.status === 'Draft' ? <button className="btn" disabled={busy} onClick={submitForReview}>{busy ? 'Submitting…' : 'Send for review'}</button> : null}
-          {selected.status === 'Review' ? <span className="muted">Decision is made from the Approval workflow.</span> : null}
+          {selected.status === 'Review' ? <span className="muted">Waiting for a decision in Approvals.</span> : null}
           {canManageWork && selected.status === 'Approved' ? <button className="btn" disabled={busy} onClick={plan}>Plan implementation</button> : null}
           {canManageWork && selected.status === 'Planned' ? <button className="btn" disabled={busy} onClick={complete}>Mark implemented</button> : null}
           {['Done','Rejected'].includes(selected.status) ? <span className="muted">This request is closed.</span> : null}

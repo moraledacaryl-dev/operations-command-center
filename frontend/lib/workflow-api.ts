@@ -1,6 +1,7 @@
 'use client';
 
 import { API_BASE, ApiError, Entity } from '@/lib/api';
+import { workErrorText } from './work-display';
 
 function headers() {
   if (typeof window === 'undefined') return { 'Content-Type': 'application/json' };
@@ -22,12 +23,12 @@ async function command(path: string, data: Entity = {}) {
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    let detail = 'Workflow action could not be completed.';
+    let detail = 'Could not save this change.';
     try {
       const payload = await res.json();
       if (typeof payload?.detail === 'string') detail = payload.detail;
     } catch {}
-    throw new ApiError(detail, res.status, res.headers.get('X-Request-Id') || undefined, detail);
+    throw new ApiError(res.status >= 500 ? 'Could not save this change. Try again in a moment.' : workErrorText(detail), res.status, res.headers.get('X-Request-Id') || undefined, detail);
   }
   return res.json();
 }

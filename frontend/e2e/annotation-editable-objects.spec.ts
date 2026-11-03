@@ -90,7 +90,7 @@ test('Annotation Studio keeps review marks editable, saves state, and restores i
   await expect(page.getByRole('button', { name: '○ Circle' })).toBeVisible();
   await expect(page.getByRole('button', { name: '✥ Pan' })).toBeVisible();
 
-  await page.getByLabel('Overlay image').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: overlayPng });
+  await page.getByLabel('Image to add').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: overlayPng });
   await expect(page.locator('[data-annotation-object="image"]')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Duplicate' })).toBeEnabled();
   await expect(page.getByLabel('Selected annotation opacity')).toBeVisible();
@@ -139,13 +139,13 @@ test('Annotation Studio keeps review marks editable, saves state, and restores i
   await expect(page.locator('[data-annotation-object="pen"]')).toHaveCount(1);
 
   const objectCount = await page.locator('[data-annotation-object]').count();
-  await page.getByRole('button', { name: 'Save annotated version' }).click();
-  await expect(page.getByText('Saved as a new creative version with editable review objects. Original preserved.')).toBeVisible();
+  await page.getByRole('button', { name: 'Save edits' }).click();
+  await expect(page.getByText('New version saved.')).toBeVisible();
   expect(probe.state()?.schema_version).toBe(1);
   expect(probe.state()?.base_version_id).toBe(91);
   expect(probe.state()?.objects).toHaveLength(objectCount);
 
-  await page.getByLabel('Creative image version').selectOption('92');
+  await page.getByLabel('Image version').selectOption('92');
   await page.getByRole('button', { name: 'Open version' }).click();
   await expect(page.getByText(`Restored ${objectCount} editable annotations from this version.`)).toBeVisible();
   await expect(page.locator('[data-annotation-object]')).toHaveCount(objectCount);
