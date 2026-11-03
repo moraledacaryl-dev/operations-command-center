@@ -88,7 +88,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await panel.getByLabel('My Work', { exact: true }).check();
   await page.getByTestId('course-check-answer').click();
   await expect(panel).toContainText('You read a notification');
-  await panel.getByLabel('Read the linked work and check what action is still needed').check();
+  await panel.getByLabel("Read the related task and check what still needs doing").check();
   await page.getByTestId('course-check-answer').click();
   await expect(panel).toHaveCount(0);
   const coach = page.locator('.ops-guide-tip');

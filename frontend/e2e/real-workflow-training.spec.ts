@@ -332,7 +332,7 @@ test('real linked Guest-to-Maintenance handoff requires both reciprocal links an
   await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 2 of 5');
 
   await page.getByTestId('training-check-work').click();
-  await expect(page.getByTestId('training-workflow-message')).toContainText('not yet linked');
+  await expect(page.getByTestId('training-workflow-message')).toContainText('Open the guest report and choose Create maintenance.');
   await page.getByText('Room 210 shower fault ' + ref).first().click();
   await page.getByRole('button', { name: 'Create maintenance' }).click();
   await expect.poll(() => database.guests[0]?.linked_fix_id).toBe(702);

@@ -66,5 +66,5 @@ test('archived Request detail is explicitly historical and cannot offer an actio
   await expect(detail.getByRole('button', { name: 'Send for review' })).toHaveCount(0);
   await expect(detail.getByRole('button', { name: 'Plan implementation' })).toHaveCount(0);
   await expect(detail.getByRole('button', { name: 'Mark implemented' })).toHaveCount(0);
-  await expect(detail.getByPlaceholder('Implementation note')).toHaveCount(0);
+  await expect(detail.getByPlaceholder("Work note")).toHaveCount(0);
 });
