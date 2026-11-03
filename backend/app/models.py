@@ -60,6 +60,31 @@ class RoomArea(Base, TimestampMixin):
     note = Column(Text, nullable=True)
 
 
+class RoomTurnover(Base, TimestampMixin):
+    """Manual housekeeping clearance for a single room on one service date.
+
+    This does not represent a Beds24 reservation or override PMS occupancy.
+    """
+    __tablename__ = "room_turnovers"
+    id = Column(Integer, primary_key=True)
+    room_area_id = Column(Integer, ForeignKey("rooms_areas.id"), nullable=False)
+    service_date = Column(String(10), nullable=False)
+    status = Column(String(32), default="Needs cleaning", nullable=False)
+    source = Column(String(24), default="manual", nullable=False)
+    vacated_confirmed = Column(Boolean, default=False, nullable=False)
+    vacated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    vacated_at = Column(DateTime, nullable=True)
+    rework_note = Column(Text, nullable=True)
+    items_json = Column(Text, nullable=False)
+    started_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    submitted_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    inspected_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    inspected_at = Column(DateTime, nullable=True)
+    __table_args__ = (
+        UniqueConstraint("room_area_id", "service_date", name="uq_room_turnover_date"),
+    )
+
+
 class Project(Base, TimestampMixin, ArchiveMixin):
     __tablename__ = "projects"
     id = Column(Integer, primary_key=True)

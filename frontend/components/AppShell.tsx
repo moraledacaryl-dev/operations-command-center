@@ -28,6 +28,7 @@ const operationsItems: NavItem[] = [
   { href: '/guests', label: 'Guest Matters', shortLabel: 'Guests', icon: 'guests' },
   { href: '/fixes', label: 'Maintenance', icon: 'maintenance' },
   { href: '/rooms', label: 'Rooms', icon: 'rooms' },
+  { href: '/housekeeping', label: 'Room Cleaning', icon: 'check' },
   { href: '/shift', label: 'Shift Handover', shortLabel: 'Handover', icon: 'shift' },
 ];
 
@@ -106,7 +107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isLogin = path === '/login';
   const trainingMode = process.env.NEXT_PUBLIC_TRAINING_MODE === 'true';
   const homeNavigationItems: NavItem[] = trainingMode ? [{ href: '/training', label: 'Hands-on Training', icon: 'check' }, ...homeItems] : homeItems;
-  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/admin', ...(trainingMode ? ['/training'] : [])].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
+  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/housekeeping', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/admin', ...(trainingMode ? ['/training'] : [])].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -179,6 +180,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { href: '/posts', label: 'Marketing', icon: 'marketing' },
     { href: '/posts/editor', label: 'Annotation Studio', shortLabel: 'Studio', icon: 'edit' },
   ] : [];
+  const propertyItems = operationsItems.filter(item =>
+    item.href !== '/fixes' && (item.href !== '/housekeeping' ||
+      ['owner', 'admin', 'manager'].includes(role) || deptOptions.some((d: Entity) =>
+        ['Front Desk', 'Housekeeping'].includes(String(d.name)) )));
   const peopleItems: NavItem[] = [{ href: '/departments', label: 'Departments', icon: 'guests' }];
   const closeMobile = () => setMobileOpen(false);
 
@@ -233,7 +238,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="ops-nav-label">Workspace</span>
           {workItems.map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
           <NavLink item={operationsItems[1]} path={path} onNavigate={closeMobile} />
-          <NavGroup label="Property" icon="rooms" items={operationsItems.filter(item => item.href !== '/fixes')} path={path} onNavigate={closeMobile} onExpand={expand} />
+          <NavGroup label="Property" icon="rooms" items={propertyItems} path={path} onNavigate={closeMobile} onExpand={expand} />
           {contentItems.length ? <NavGroup label="Marketing" icon="marketing" items={contentItems} path={path} onNavigate={closeMobile} onExpand={expand} /> : null}
           <NavLink item={peopleItems[0]} path={path} onNavigate={closeMobile} />
           <NavGroup label="Activity" icon="history" items={[decisionItems[1], ...activityItems.map(item => item.href === '/notifications' ? { ...item, badge: unreadCount } : item)]} path={path} onNavigate={closeMobile} onExpand={expand} />
