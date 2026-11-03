@@ -83,7 +83,7 @@ def test_booking_confirmation_creates_one_project_and_department_tasks(context):
 def test_booking_receiver_rejects_bad_id_or_date_before_creating_a_project(context):
     db = context
     with pytest.raises(HTTPException) as err:
-        receive_event("accounting_program", booking(id="501"),
+        receive_event("accounting_program", booking(id="501", booking_id=550),
                       x_integration_api_key="test-key-accounting", db=db)
     assert err.value.status_code == 422
     db.rollback()

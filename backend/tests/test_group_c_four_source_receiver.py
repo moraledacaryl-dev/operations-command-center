@@ -78,6 +78,17 @@ def test_every_source_event_has_atomic_receipt_and_idempotent_replay(
     db, source, event_type
 ):
     event = envelope(f"group-c-fixture:{source}:{event_type}", event_type)
+    if source == "accounting_program" and event_type == "event.booking.confirmed":
+        db.add(models.Department(name="Front Desk"))
+        db.commit()
+        event = IntegrationEventEnvelope(
+            event_id=event.event_id,
+            event_type=event_type,
+            subject={"type": "event_booking", "id": "550"},
+            payload={"booking_id": 550, "event_no": "EVT-2026-00550",
+                     "event_date": "2026-12-19", "venue": "Function Hall",
+                     "services": ["venue"], "guest_count": 40},
+        )
     first = receive_event(
         source, event, x_integration_api_key=SOURCE_KEYS[source], db=db
     )
