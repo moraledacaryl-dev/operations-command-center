@@ -84,7 +84,7 @@ export default function EventVenuePage() {
       </label>
       <button type="button" className="btn secondary" disabled={loading} onClick={() => void load()}>Refresh</button>
     </div>
-    <p className="hk-event-note">Changes or cancellations need a manager's review. Deadlines do not change automatically.
+    <p className="hk-event-note">Changes or cancellations need a manager review. Deadlines do not change automatically.
       This page does not mark a room or venue available.</p>
     {loading && <p role="status">Loading event venue work…</p>}
     {error && <p role="alert" className="hk-error">{error}</p>}
