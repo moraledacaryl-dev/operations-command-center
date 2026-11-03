@@ -163,6 +163,6 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   expect(saved.stage).toBe('work');
   expect(saved.reference).toMatch(/^TRN-TASK-/);
   await page.getByTestId('repeat-real-workflow').click();
-  await expect(page.getByTestId('training-workflow-message')).toContainText('practice is required');
+  await expect(page.getByTestId('training-workflow-message')).toContainText('Finish this practice before starting again. Your earlier results will be kept.');
   await expect(page.getByTestId('course-completed')).toHaveCount(0);
 });
