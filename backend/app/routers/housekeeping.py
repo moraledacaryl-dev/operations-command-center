@@ -294,7 +294,9 @@ def list_event_venues(
             EventProjectLink.source_app == "accounting_program",
             models.Task.department_id == department.id,
             models.Task.archived_at.is_(None),
+            models.Task.hidden_from_active.is_(False),
             models.Project.archived_at.is_(None),
+            models.Project.hidden_from_active.is_(False),
         )
         .order_by(models.Project.due_date.desc(), models.Task.due_date.asc(), models.Task.id.asc())
         .limit(1000)

@@ -97,13 +97,16 @@ def test_archived_tasks_and_projects_are_hidden_and_unknown_venue_is_not_guessed
     link = db.query(EventProjectLink).one()
     link.venue = None
     link.event_date = None
-    task = db.query(models.Task).filter_by(project_id=link.project_id).first()
-    task.archived_at = utc_now()
+    house_id = db.query(models.Department).filter_by(name="Housekeeping").one().id
+    jobs = db.query(models.Task).filter_by(project_id=link.project_id, department_id=house_id).order_by(models.Task.id).all()
+    jobs[0].archived_at = utc_now()
+    jobs[1].hidden_from_active = True
     db.commit()
     event = list_event_venues(user=people["house"], db=db)["events"][0]
     assert event["venue"] == "Check venue in Accounting"
     assert event["event_date"] is None
-    assert all(item["id"] != task.id for item in event["tasks"])
+    assert len(event["tasks"]) == 2
+    assert all(item["id"] not in {jobs[0].id, jobs[1].id} for item in event["tasks"])
     db.get(models.Project, link.project_id).archived_at = utc_now()
     db.commit()
     assert list_event_venues(user=people["house"], db=db) == {"events": []}
