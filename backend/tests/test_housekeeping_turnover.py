@@ -107,3 +107,36 @@ def test_housekeeping_access_is_scoped_to_correct_department(state):
     with pytest.raises(HTTPException) as err:
         confirm_vacated(10, user=p["outsider"], db=db)
     assert err.value.status_code == 403
+
+
+def test_board_includes_stays_spanning_today_without_inventing_historical_status(state):
+    import json
+    from datetime import datetime, timezone
+    from app.integration_models import AccountingRoomBooking
+    db, people, room = state
+    db.add(AccountingRoomBooking(
+        booking_id="practice-stay", revision=1, room_ids_json=json.dumps([room.id]),
+        check_in="2026-11-04", check_out="2026-11-08", status="checked_in",
+        origin="practice", reported_at=datetime(2026, 11, 6, tzinfo=timezone.utc),
+    ))
+    db.commit()
+    today = list_turnovers(service_date="2026-11-06", user=people["front"], db=db)
+    assert [item["status"] for item in today["rooms"][0]["booking_updates"]] == ["checked_in"]
+    for day in ("2026-11-05", "2026-11-07"):
+        board = list_turnovers(service_date=day, user=people["front"], db=db)
+        assert board["rooms"][0]["booking_updates"] == []
+
+
+def test_unresolved_checkin_is_visible_after_scheduled_departure(state):
+    import json
+    from datetime import datetime, timezone
+    from app.integration_models import AccountingRoomBooking
+    db, people, room = state
+    db.add(AccountingRoomBooking(
+        booking_id="practice-late-departure", revision=1, room_ids_json=json.dumps([room.id]),
+        check_in="2026-11-01", check_out="2026-11-05", status="checked_in",
+        origin="practice", reported_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+    ))
+    db.commit()
+    board = list_turnovers(service_date="2026-11-06", user=people["front"], db=db)
+    assert board["rooms"][0]["booking_updates"][0]["status"] == "checked_in"
