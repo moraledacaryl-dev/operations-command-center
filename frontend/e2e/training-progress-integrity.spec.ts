@@ -10,7 +10,7 @@ test('only completed well-formed authorized cases count as progress', () => {
     'shift-unresolved': valid,
     'guest-ac': { attempts: -1, completedAt: valid.completedAt },
     'manager-evidence': valid,
-    {}: valid,
+    '__proto__': valid,
   }, ids);
   expect(Object.keys(progress)).toEqual(['shift-unresolved']);
   expect(progress['shift-unresolved']).toMatchObject(valid);

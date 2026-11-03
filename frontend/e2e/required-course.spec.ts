@@ -96,7 +96,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await page.getByTestId('course-check-answer').click();
   await expect(panel).toHaveCount(0);
   const coach = page.locator('.ops-guide-tip');
-  await expect(coach).toContainText('practice dashboard');
+  await expect(coach).toContainText('Your start page');
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Open My Work');
   await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
