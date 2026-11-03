@@ -1,4 +1,4 @@
-# Event preparation + Housekeeping clearance (draft, not deployed)
+# Event preparation + Housekeeping clearance (release contract)
 
 ## Cross-app ownership
 
@@ -50,3 +50,7 @@ No room/PMS occupancy or room inventory status is changed when cleaning is clear
 6. Test Housekeeping with two staff members and a supervisor on a phone; ensure occupancy remains untouched.
 
 The new workflow intentionally does not create or modify real bookings, payroll rosters, staff shifts, supplier purchases or POS orders.
+
+## Accounting room updates
+
+The new room connection is described in [ACCOUNTING_ROOM_CONNECTION.md](ACCOUNTING_ROOM_CONNECTION.md). It adds automatic requests from mapped checkout dates, ordered status updates, combined-room support and a rollout cutoff. Existing staff cleaning and inspection work is preserved.
