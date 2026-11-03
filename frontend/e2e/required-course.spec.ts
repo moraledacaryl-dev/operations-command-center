@@ -94,10 +94,10 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   const coach = page.locator('.ops-guide-tip');
   await expect(coach).toContainText('Your start page');
   await coach.getByRole('button', { name: /Next/ }).click();
-  await expect(coach).toContainText('Find My Work');
+  await expect(coach).toContainText('Open My Work');
   await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
   await page.keyboard.press('ArrowRight');
-  await expect(coach).toContainText('Find My Work');
+  await expect(coach).toContainText('Open My Work');
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
   await expect(page).toHaveURL(/\/my-work$/);
   await expect(coach).toContainText('Read your tasks');
