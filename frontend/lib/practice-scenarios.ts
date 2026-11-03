@@ -306,7 +306,8 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
     const missing = scenario.noteChecks.filter((check, index) => {
       // A named person or role taking a specific action is responsibility,
       // even when the employee does not use the word "assigned".
-      const namedAction = scenario.id === 'shift-unresolved' && index === 0 &&
+      const unassignedAction = /\b(?:nobody|no one|someone|anyone|no staff member)(?:\s+at\s+front\s+desk)?\s+will\s+(?:call|contact|handle|follow|ask|tell)\b/.test(note);
+      const namedAction = !unassignedAction && scenario.id === 'shift-unresolved' && index === 0 &&
         /\b(?!(?:nobody|someone|somebody|anyone|anybody|everyone|everybody|whoever)\b)(?:[a-z]+(?:\s+at\s+front\s+desk)?|front\s+desk|reception)\s+will\s+(?:call|contact|handle|follow|ask|tell)\b/.test(note);
       return !namedAction && !check.alternatives.some(term => matchesActionCriterion(note, term));
     });

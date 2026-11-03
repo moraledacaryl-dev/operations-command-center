@@ -131,4 +131,7 @@ test('a naturally worded handover naming a person and guest update is accepted',
   expect(assessPractice(scenario, responses(scenario, alternative)).errors.note).toBeFalsy();
   const noOwner = note.replace('Ana at Front Desk will call', 'Nobody will call');
   expect(assessPractice(scenario, responses(scenario, noOwner)).errors.note).toBeTruthy();
+  for (const subject of ['Nobody at Front Desk', 'No one', 'Someone']) {
+    expect(assessPractice(scenario, responses(scenario, note.replace('Ana at Front Desk', subject))).errors.note).toBeTruthy();
+  }
 });
