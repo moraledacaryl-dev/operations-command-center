@@ -5,6 +5,7 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app import models
 from app.database import Base
@@ -18,7 +19,7 @@ def db(monkeypatch):
     monkeypatch.setenv('INTEGRATION_API_KEYS_JSON', json.dumps({'accounting_program': 'room-test-key'}))
     monkeypatch.setenv('ACCOUNTING_HOUSEKEEPING_START_DATE', '2026-11-03')
     monkeypatch.setattr('app.routers.housekeeping.utc_now', lambda: datetime(2026, 11, 3, tzinfo=timezone.utc))
-    engine = create_engine('sqlite:///:memory:')
+    engine = create_engine('sqlite:///:memory:', connect_args={'check_same_thread': False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     with sessionmaker(bind=engine, autoflush=False)() as session:
         session.add_all([models.RoomArea(id=1, name='Perch 2'), models.RoomArea(id=2, name='Crown')])
@@ -113,3 +114,31 @@ def test_snapshot_and_work_roll_back_with_failed_transaction(db):
     db.rollback()
     assert db.query(AccountingRoomBooking).count() == 0
     assert db.query(models.RoomTurnover).count() == 0
+
+
+def test_board_http_route_is_not_shadowed_by_generic_resource_route(db):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.database import get_db
+    from app.routers.api import require_user
+    from fastapi import FastAPI
+    user = models.User(name='Reception', role='manager')
+    db.add(user)
+    db.commit()
+    def session():
+        yield db
+    app.dependency_overrides[get_db] = session
+    app.dependency_overrides[require_user] = lambda: user
+    try:
+        # Reuse the complete production route order; authentication is tested
+        # separately. This regression must exercise HTTP routing, not a direct
+        # function call that would miss a generic-route collision.
+        routing_app = FastAPI()
+        routing_app.router.routes = list(app.router.routes)
+        with TestClient(routing_app) as client:
+            response = client.get('/api/housekeeping/turnovers?service_date=2026-11-03')
+        assert response.status_code == 200, response.text
+        assert isinstance(response.json()['rooms'], list)
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        app.dependency_overrides.pop(require_user, None)
