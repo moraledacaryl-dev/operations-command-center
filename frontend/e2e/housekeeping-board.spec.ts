@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { availableTrainingLessons } from '../lib/interactive-training';
 
 type Role = 'front' | 'cleaner' | 'other' | 'lead';
 const exampleRoom = { room_area_id: 31, room_name: 'Solace' };
@@ -38,10 +39,18 @@ function fakeBoard(role: Role, hasRecord: boolean, status: string, checked: stri
 }
 
 async function visit(page: import('@playwright/test').Page, role: Role, response: () => ReturnType<typeof fakeBoard>) {
-  await page.addInitScript(u => {
-    localStorage.setItem('cc_user', JSON.stringify(u));
-    localStorage.setItem('cc_department_id', String(u.department_id));
-  }, fakeUser(role));
+  const user = fakeUser(role);
+  // These feature tests run with fictional employees who completed their role's
+  // introductory training. The required-course suite tests incomplete learners.
+  const lessonIds = availableTrainingLessons(user.capabilities, user.departments).map(lesson => lesson.id);
+  await page.addInitScript(({ account, completed }) => {
+    localStorage.setItem('cc_user', JSON.stringify(account));
+    localStorage.setItem('cc_department_id', String(account.department_id));
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(account.id), JSON.stringify({
+      lessonId: completed[completed.length - 1] || 'orientation',
+      stage: 'finished', question: 0, passed: completed,
+    }));
+  }, { account: user, completed: lessonIds });
   await page.route('**/api/**', route => {
     const url = new URL(route.request().url());
     if (url.pathname === '/api/housekeeping/turnovers' && route.request().method() === 'GET') {

@@ -9,7 +9,7 @@ async function seed(page: Page, role: Role) {
     manage_accounts: role !== 'manager', manage_system: role !== 'manager', manage_approvals: true,
     view_sensitive_user_metadata: role !== 'manager', view_integration_summary: true,
   } };
-  await page.addInitScript(user => localStorage.setItem('cc_user', JSON.stringify(user)), user);
+  await page.addInitScript(user => {localStorage.setItem('cc_user', JSON.stringify(user));localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({lessonId:'orientation',stage:'finished',question:0,passed:'orientation staff-handover staff-rooms staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' ')}));}, user);
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     let body: unknown = {};

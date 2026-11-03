@@ -93,6 +93,15 @@ async function seedOwnerScenario(page: Page) {
   await page.addInitScript(({ session, dept }) => {
     localStorage.setItem('cc_user', JSON.stringify(session));
     localStorage.setItem('cc_department_id', String(dept));
+    // This screenshot fixture inspects actual Operations UI states, not first-login pedagogy.
+    // Keep its trained owner past the required-course onboarding overlay.
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(session.id), JSON.stringify({
+      lessonId: 'accounts', stage: 'finished', question: 0, passed: [
+        'orientation', 'staff-handover', 'staff-rooms', 'staff-my-work',
+        'team-tasks', 'guest-matters', 'maintenance', 'requests', 'shift-writing',
+        'projects', 'marketing', 'management-review', 'accounts',
+      ],
+    }));
   }, { session: owner, dept: 1 });
 
   await page.route('**/api/**', async route => {

@@ -12,6 +12,9 @@ async function setup(page: Page, role = 'owner', conflict = false) {
   const writes: Record<string, any>[] = [];
   await page.addInitScript(session => {
     localStorage.setItem('cc_user', JSON.stringify(session));
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(session.id), JSON.stringify({
+      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
+    }));
     localStorage.setItem('cc_department_id', '1');
   }, user);
   await page.route('**/api/**', async route => {

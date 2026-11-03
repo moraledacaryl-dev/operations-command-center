@@ -42,15 +42,45 @@ def validate() -> tuple[Path, Path]:
     return expected_db, state
 
 
+def refresh_fictional_notices(path: Path, state: Path) -> None:
+    # Existing training installs keep all their saved records and private accounts.
+    script = bundled_backend() / "scripts" / "seed_training_demo.py"
+    spec = importlib.util.spec_from_file_location("training_mac_notice_upgrade", str(script))
+    if not spec or not spec.loader:
+        refuse("Packaged training data maintenance script missing")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    count = module.ensure_notification_practice_data(path, state)
+    module.ensure_private_trainer_guide(state / "private" / "accounts")
+    print(f"PASS: fictional per-user notification drills ready ({count} newly added)", flush=True)
+
+
+def _first_launch():
+    script = bundled_backend() / "scripts" / "training_first_launch.py"
+    spec = importlib.util.spec_from_file_location("isolated_training_first_launch", str(script))
+    if not spec or not spec.loader:
+        refuse("Packaged first-launch recovery module missing")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def init() -> None:
     path, state = validate()
     marker = state / "data" / ".initialized"
     roster = state / "private" / "accounts" / "PRIVATE_training_accounts.json"
+    first_launch = _first_launch()
     if marker.exists():
+        first_launch.tidy_completed_launch(state)
         if not path.is_file() or not roster.is_file():
             refuse("Training initialization incomplete; do not reset practice data")
+        refresh_fictional_notices(path, state)
         print("PASS: existing synthetic training records preserved", flush=True)
         return
+    # Recovery is allowed only with an interrupted first-launch journal.
+    # Preserve all partial fictional data privately before a clean retry.
+    first_launch.prepare_first_launch(state, path)
     if path.exists() or roster.exists():
         refuse("An incomplete training database already exists; refusing to overwrite it")
 
@@ -72,8 +102,8 @@ def init() -> None:
     module.seed(path, state / "private" / "accounts")
     if not roster.exists():
         refuse("Synthetic private credential roster was not created")
-    marker.write_text("SYNTHETIC_MAC_TRAINING_ONLY\n", encoding="utf-8")
-    marker.chmod(0o600)
+    first_launch.mark_initialized(state, "SYNTHETIC_MAC_TRAINING_ONLY\n")
+    refresh_fictional_notices(path, state)
     print("PASS: private, fictional role-based Operations dataset", flush=True)
 
 

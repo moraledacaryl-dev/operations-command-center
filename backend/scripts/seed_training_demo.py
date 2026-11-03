@@ -310,12 +310,18 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 category="Other",status=status,note="SIMULATION. Not an actual expense.",
                 proposed_by_id=users["manager"].id,updated_by_id=users["manager"].id),
                 "project_purchase_items")
-        for i in range(12):
-            u=users[PEOPLE[(i+3)%len(PEOPLE)][2]]
-            add(fm.Notification(user_id=u.id,kind="training",
-                title=PREFIX+f"Notification exercise #{i+1}",
-                body="Fictional notification only.",source_type="tasks",
-                source_id=str(all_tasks[i].id),action_url="/tasks"),"notifications")
+        # User-scoped notices must be readable by their recipient. The former
+        # sample linked arbitrary user accounts to tasks in other departments;
+        # the real visibility guard correctly hid most of them.
+        for _, _, slug, _ in PEOPLE:
+            for ordinal in (1, 2):
+                add(fm.Notification(
+                    user_id=users[slug].id, kind="training_practice_read",
+                    title=f"{PREFIX}Daily notice practice {ordinal}/2",
+                    body="Fictional shift notice. Read the notice, then mark it read using your own Operations account.",
+                    source_type=None, source_id=None, action_url=None,
+                    priority="Normal",
+                ), "notifications")
 
         private_file=private_dir/"PRIVATE_training_accounts.json"
         manifest_file=private_dir/"training_manifest.json"
@@ -327,7 +333,146 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
             json.dump({"dataset_version":DATASET_VERSION,"synthetic":True,
                        "generated_at":now.isoformat(),"counts":dict(counts)},stream,indent=2)
         db.commit()
+    ensure_private_trainer_guide(private_dir)
     return dict(counts)
+
+def ensure_private_trainer_guide(private_dir: Path) -> Path:
+    """Present the already-private fictional JSON credentials in a readable trainer-only format.
+
+    No credentials enter the frontend bundle, API, logs or source control. The
+    guide is an additional private file beside the existing randomized roster.
+    Rewriting it on restart preserves login passwords and all practice data.
+    """
+    roster = private_dir / "PRIVATE_training_accounts.json"
+    guide = private_dir / "PRIVATE_TRAINER_ACCOUNTS.txt"
+    if private_dir.is_symlink() or roster.is_symlink() or guide.is_symlink():
+        raise SystemExit("REFUSED: training credential paths must not be symlinks")
+    if not private_dir.is_dir() or not roster.is_file():
+        raise SystemExit("REFUSED: private fictional roster is missing")
+    obj = json.loads(roster.read_text(encoding="utf-8"))
+    accounts = obj.get("accounts") if isinstance(obj, dict) and obj.get("synthetic") is True else None
+    if not isinstance(accounts, list) or len(accounts) < len(PEOPLE):
+        raise SystemExit("REFUSED: incomplete private fictional trainer roster")
+    names = {slug + "@training.invalid" for _, _, slug, _ in PEOPLE}
+    rows = []
+    for item in accounts:
+        if not isinstance(item, dict) or any(
+            not isinstance(item.get(field), str) or not item[field].strip()
+            for field in ("name", "role", "email", "department", "password")
+        ) or not item["email"].endswith("@training.invalid"):
+            raise SystemExit("REFUSED: invalid fictional account entry")
+        rows.append(item)
+    if not names.issubset({item["email"] for item in rows}):
+        raise SystemExit("REFUSED: required fictional staff accounts are missing")
+
+    grouped = sorted(rows, key=lambda item: (
+        item["department"].casefold(),
+        {"owner": 0, "admin": 1, "manager": 2, "supervisor": 3, "lead": 4, "staff": 5}
+            .get(item["role"], 6),
+        item["name"].casefold(),
+    ))
+    lines = [
+        "HIDDEN OASIS OPERATIONS — FICTIONAL TRAINING ACCOUNTS",
+        "TRAINER ONLY. Not for staff distribution or production sign-in.",
+        "",
+        "Open the desktop app, then sign in at the automatically opened training login.",
+        "Share only the designated employee's EMAIL and PASSWORD with that trainee.",
+        "The role and department decide which lessons, records and actions are available.",
+        "These are random, local-only passwords. Never use real employee credentials.",
+        "",
+    ]
+    current = ""
+    for item in grouped:
+        if item["department"] != current:
+            current = item["department"]
+            lines.extend([f"=== {current.upper()} ===", ""])
+        lines.extend([
+            f"{item['name']}  ({item['role'].title()})",
+            f"  Email:     {item['email']}",
+            f"  Password:  {item['password']}",
+            "",
+        ])
+    lines.extend(["Keep this file in the trainer's private application-data folder.", ""])
+    rendered = "\n".join(lines)
+    if guide.is_file() and guide.read_text(encoding="utf-8") == rendered:
+        # Windows Notepad may hold the file open. Do not replace it on every
+        # restart when the randomized roster has not changed.
+        guide.chmod(0o600)
+        return guide
+    tmp = private_dir / ("." + guide.name + "." + secrets.token_hex(8) + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(rendered)
+        if guide.is_symlink():
+            raise SystemExit("REFUSED: private trainer guide target changed")
+        os.replace(tmp, guide)
+        guide.chmod(0o600)
+    finally:
+        tmp.unlink(missing_ok=True)
+    return guide
+
+
+def ensure_notification_practice_data(db_path: Path, state: Path) -> int:
+    """Idempotently add only missing fictional notice drills to an existing training install.
+
+    This runs after the desktop launchers' strict local state/database checks.
+    No production DB, other user, arbitrary record, or existing progress is altered.
+    """
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from app import models, foundation_models as fm
+    from app.database import SessionLocal
+
+    state = state.resolve()
+    if os.environ.get("ENVIRONMENT") != "local" or os.environ.get("ALLOW_DEMO_SEED") != "false":
+        raise SystemExit("REFUSED: synthetic notification repairs require isolated local mode")
+    if os.environ.get("ALLOW_DEFAULT_ADMIN_BOOTSTRAP") != "false":
+        raise SystemExit("REFUSED: default admin bootstrap is not permitted")
+    if not db_path.is_file() or db_path.is_symlink() or db_path.resolve().parent != (state / "data").resolve():
+        raise SystemExit("REFUSED: notification repair requires this private training database")
+    if not db_path.name.startswith("operations_training_demo_") or db_path.suffix != ".sqlite":
+        raise SystemExit("REFUSED: unexpected notification repair target")
+    marker = state / "data" / ".initialized"
+    roster_path = state / "private" / "accounts" / "PRIVATE_training_accounts.json"
+    if not marker.is_file() or not roster_path.is_file() or marker.is_symlink() or roster_path.is_symlink():
+        raise SystemExit("REFUSED: already-initialized fictional desktop training required")
+    roster = json.loads(roster_path.read_text(encoding="utf-8"))
+    expected_emails = {slug + "@training.invalid" for _, _, slug, _ in PEOPLE}
+    if roster.get("synthetic") is not True or {
+        row.get("email") for row in roster.get("accounts", [])
+    } != expected_emails:
+        raise SystemExit("REFUSED: private fictional accounts manifest did not match")
+    inserted = 0
+    with SessionLocal() as db:
+        # Require a fully synthetic, isolated population rather than relying
+        # only on a file name that could be forged.
+        all_emails = {row[0] for row in db.query(models.User.email).all()}
+        if not expected_emails.issubset(all_emails) or any(
+            not isinstance(email, str) or not email.endswith("@training.invalid")
+            for email in all_emails
+        ):
+            raise SystemExit("REFUSED: unexpected user identities in training notification database")
+        users = {row.email: row for row in db.query(models.User).all()}
+        for email, user in users.items():
+            for ordinal in (1, 2):
+                title = f"{PREFIX}Daily notice practice {ordinal}/2"
+                if db.query(fm.Notification.id).filter(
+                    fm.Notification.user_id == user.id,
+                    fm.Notification.kind == "training_practice_read",
+                    fm.Notification.title == title,
+                ).first():
+                    continue
+                db.add(fm.Notification(
+                    user_id=user.id, kind="training_practice_read",
+                    title=title,
+                    body="Fictional shift notice. Read the notice, then mark it read using your own Operations account.",
+                    source_type=None, source_id=None, action_url=None, priority="Normal",
+                ))
+                inserted += 1
+        db.commit()
+    return inserted
+
 
 def main() -> None:
     parser=argparse.ArgumentParser()

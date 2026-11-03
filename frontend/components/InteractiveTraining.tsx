@@ -6,17 +6,31 @@ import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { availableTrainingLessons, TRAINING_LESSONS } from '@/lib/interactive-training';
 import type { TrainingStep } from '@/lib/interactive-training';
+import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
+import type { CourseProgress } from '@/lib/training-course';
+import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
+import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
+import { TrainerReports } from '@/components/TrainerReports';
+import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
+import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
 
 type Position = { top: number; left: number; width: number; height: number };
 type Active = { id: string; index: number };
 
 const COMPLETION_PREFIX = 'ho-ops-training-complete-v1:';
+// Lesson explanations, quiz state, and practical outcomes live together. Only
+// the verified local workflow database may confirm a record-editing practical.
 
 function targetFor(selector: string): HTMLElement | null {
   try {
     // Do not highlight hidden desktop/mobile duplicates or closed navigation groups.
     return Array.from(document.querySelectorAll<HTMLElement>(selector))
-      .find(node => node.getClientRects().length > 0 && window.getComputedStyle(node).visibility !== 'hidden') || null;
+      .find(node => {
+        const rect = node.getBoundingClientRect();
+        return node.getClientRects().length > 0
+          && window.getComputedStyle(node).visibility !== 'hidden'
+          && window.getComputedStyle(node).display !== 'none';
+      }) || null;
   } catch {
     return null;
   }
@@ -77,6 +91,13 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [position, setPosition] = useState<Position | null>(null);
   const [targetFound, setTargetFound] = useState(false);
   const [complete, setComplete] = useState<string[]>([]);
+  const [course, setCourse] = useState<CourseProgress | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [quizFeedback, setQuizFeedback] = useState('');
+  const [restoreMessage, setRestoreMessage] = useState('');
+  const [quizErrors, setQuizErrors] = useState(0);
+  const [branchAnswer, setBranchAnswer] = useState<number | null>(null);
+  const [branchExplained, setBranchExplained] = useState(false);
   const observedNode = useRef<HTMLElement | null>(null);
   const tipRef = useRef<HTMLElement | null>(null);
   const libraryRef = useRef<HTMLElement | null>(null);
@@ -84,6 +105,65 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');
   const storageKey = COMPLETION_PREFIX + identity;
+  const courseKey = COURSE_STORAGE_PREFIX + identity;
+  const latestLessons = useRef(lessons);
+  latestLessons.current = lessons;
+  const courseLesson = course && lessons.find(item => item.id === course.lessonId);
+  const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
+  const repeatVariant = courseGuide?.repeatVariant && (course?.metrics?.[course?.lessonId || '']?.repeats || 0) % 2 === 1
+    ? courseGuide.repeatVariant : undefined;
+  const currentExample = repeatVariant?.example || courseGuide?.example;
+  const currentQuestions = repeatVariant?.questions || courseGuide?.questions;
+  const quizItem = currentQuestions?.[course?.question || 0];
+  const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
+
+  async function restoreTrainingProgress(file: File | undefined) {
+    if (!file || !course) return;
+    if (file.size > 120000) { setRestoreMessage('This is not a normal progress file. Please export a new report from the training app.'); return; }
+    try {
+      const report = parseTrainingReport(JSON.parse(await file.text()) as unknown);
+      if (!report || report.trainee.id !== identity) {
+        setRestoreMessage('The report is invalid or belongs to a different practice account. No progress changed.'); return;
+      }
+      const credits = portableLearningCredit(report, lessons.map(item=>item.id));
+      const nextLesson = lessons.find(item=>!credits.includes(item.id));
+      setCourse(current=>current ? {
+        ...current, lessonId:nextLesson?.id || lessons[0].id,
+        stage:nextLesson?'learn':'finished', question:0, independentStep:0,
+        reference:undefined, passed:credits, metrics:report.metrics,
+      }:current);
+      setRestoreMessage('Imported read-only lessons from this practice account. Lessons with saved task/guest/maintenance records must be practised and verified again on this device. This is not a skills certificate.');
+    } catch { setRestoreMessage('This file could not be read. Export a fresh training report and try again.'); }
+  }
+
+  function restartCurrentLessonSafely() {
+    if (!course) return;
+    if (course.stage==='work') {
+      try { localStorage.removeItem(workflowSessionKey(user)); window.dispatchEvent(new Event(WORKFLOW_CHANGED)); }
+      catch { /* Course cannot pass without saved work regardless. */ }
+    }
+    setActive(null); setMenuOpen(false); setQuizFeedback(''); setSelectedAnswer(null);
+    setCourse({ ...course, stage:'learn', question:0, independentStep:0, reference:undefined });
+  }
+
+  function exportTrainingProgress() {
+    if (!course) return;
+    let workflows: TrainingWorkflowResults = {};
+    try { workflows = JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}') as TrainingWorkflowResults; }
+    catch { /* Export without unparseable workflow data. */ }
+    const report = buildTrainingReport(course, { id:user.id, name:user.name, role:user.role }, workflows, new Date().toISOString());
+    const blob = new Blob([JSON.stringify(report,null,2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'hidden-oasis-training-progress-' + String(user.id || 'demo').replace(/[^a-z0-9_-]/gi,'') + '.json';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+  const independentActions = course ? INDEPENDENT_CHECKS[course.lessonId] : null;
+  const independentAction = course && independentActions?.[course.independentStep || 0];
 
   useEffect(() => {
     try {
@@ -91,6 +171,73 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       setComplete(Array.isArray(saved) ? saved.filter((v): v is string => typeof v === 'string') : []);
     } catch { setComplete([]); }
   }, [storageKey]);
+
+  // Begin lesson one automatically on sign-in; repeat / resume does not skip
+  // the explanation or the quiz. Store only convenience progress, not a credential.
+  useEffect(() => {
+    if (!lessons.length) return;
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(courseKey); } catch { /* in-memory fallback */ }
+    setCourse(readCourseProgress(saved, latestLessons.current));
+  }, [courseKey]);
+
+  useEffect(() => {
+    if (!course) return;
+    try { localStorage.setItem(courseKey, JSON.stringify(course)); } catch { /* no certificate */ }
+  }, [courseKey, course]);
+
+  // A resumed tour displays an explicit Resume button; closing the coach
+  // must never restart a tour unexpectedly or mark the practical complete.
+
+  // A database-backed saved fictional workflow (same unique reference) is
+  // required for lessons that edit records. No Next button can grant a pass.
+  useEffect(() => {
+    if (!course || course.stage !== 'work' || !course.reference || !courseGuide?.handsOn) return;
+    const check = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}') as TrainingWorkflowResults;
+        const evidence = saved[courseGuide.handsOn!];
+        if (evidence?.reference !== course.reference || !evidence.recordId) return;
+        setCourse(current => current && current.stage === 'work' && current.reference === evidence.reference
+          ? { ...current, stage: 'independent', independentStep: 0 }
+          : current);
+      } catch { /* An invalid local marker never completes a practical. */ }
+    };
+    check();
+    window.addEventListener(WORKFLOW_CHANGED, check);
+    window.addEventListener('storage', check);
+    return () => {
+      window.removeEventListener(WORKFLOW_CHANGED, check);
+      window.removeEventListener('storage', check);
+    };
+  }, [course, courseGuide, user]);
+
+  // This is an unguided check using real, safe Operations controls. No
+  // spotlight, Next button, or simulated click can pass it.
+  useEffect(() => {
+    if (!course || course.stage !== 'independent' || !independentAction) return;
+    if (path !== independentAction.path) {
+      router.push(independentAction.path);
+      return;
+    }
+    const onInteraction = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Element) ||
+        !independentActionMatches(independentAction, target, event.type as 'click'|'input')) return;
+      setCourse(current => {
+        if (!current || current.stage !== 'independent' ||
+          current.lessonId !== course.lessonId || (current.independentStep || 0) !== (course.independentStep || 0)) return current;
+        if ((current.independentStep || 0) === 0) return { ...current, independentStep: 1 };
+        return { ...current, stage: 'done', independentStep: 0,
+          passed: Array.from(new Set([...current.passed, current.lessonId])),
+          metrics: { ...(current.metrics || {}), [current.lessonId]: {
+            ...(current.metrics?.[current.lessonId] || {}), completedAt:new Date().toISOString(),
+          } } };
+      });
+    };
+    document.addEventListener(independentAction.type || 'click', onInteraction, true);
+    return () => document.removeEventListener(independentAction.type || 'click', onInteraction, true);
+  }, [course, independentAction, path, router]);
 
   const lesson = active ? TRAINING_LESSONS.find(entry => entry.id === active.id) : undefined;
   const step: TrainingStep | undefined = lesson && active ? lesson.steps[active.index] : undefined;
@@ -105,17 +252,45 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     });
     setPosition(null);
     setActive(null);
+    // A tour is only the hands-on portion AFTER the mandatory explanation
+    // and short quiz; authorized staff must also verify saved fictional work.
+    if (course?.stage === 'tour' && course.lessonId === lessonId) {
+      const kind = courseGuide?.handsOn;
+      if (kind && capabilities.manage_department && (kind !== 'mt-light-fault' || capabilities.make_decisions)) {
+        const reference = makeTrainingReference(kind);
+        const session: TrainingWorkflowSession = {
+          kind: kind as TrainingWorkflowKind, ownerId: workflowOwnerId(user),
+          reference, step: 0, createdAt: new Date().toISOString(),
+        };
+        try {
+          localStorage.setItem(workflowSessionKey(user), JSON.stringify(session));
+          setCourse(current => current ? { ...current, stage: 'work', reference } : current);
+          window.dispatchEvent(new Event(WORKFLOW_CHANGED));
+          router.push(WORKFLOW_DEFINITIONS[kind].path);
+        } catch {
+          // Do not claim the practical passed if storage cannot persist it.
+          setCourse(current => current ? { ...current, stage: 'tour' } : current);
+          setHelpMessage('Training storage is unavailable. Please enable local storage and restart this practice.');
+        }
+      } else {
+        setCourse(current => current ? {
+          ...current, stage: 'independent', independentStep: 0,
+        } : current);
+      }
+      return;
+    }
     setMenuOpen(true);
-    setHelpMessage('Tour viewed. Practise the steps in the isolated demo and complete the separate supervisor assessment before certification.');
-  }, [storageKey]);
+    setHelpMessage('Tour viewed. Your course completion still requires the lesson, quiz and practical exercise.');
+  }, [storageKey, course, courseGuide, capabilities.manage_department, capabilities.make_decisions, user, router]);
 
-  const next = useCallback(() => {
+  const next = useCallback((fromActualClick = false) => {
     if (!active || !lesson) return;
+    if (step?.requiresAction && (course?.stage === 'tour' || targetFound) && !fromActualClick) return;
     setHelpMessage('');
     setPosition(null);
     if (atLastStep) finish(lesson.id);
     else setActive({ id: lesson.id, index: active.index + 1 });
-  }, [active, lesson, atLastStep, finish]);
+  }, [active, lesson, atLastStep, finish, step, targetFound, course?.stage]);
 
   const previous = useCallback(() => {
     if (!active) return;
@@ -129,7 +304,69 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setPosition(null);
     setTargetFound(false);
     setHelpMessage('');
+    // Pausing a practical never grants a pass. The course resumes at the tour.
   }, []);
+
+  function startCurrentPractice() {
+    if (!course || !courseLesson || course.stage !== 'quiz') return;
+    setSelectedAnswer(null);
+    setQuizFeedback('');
+    setMenuOpen(false);
+    setActive({ id: courseLesson.id, index: 0 });
+    setCourse({ ...course, stage: 'tour', question: 0 });
+    router.push(courseLesson.steps[0]?.path || '/');
+  }
+
+  function answerQuiz() {
+    if (!course || !quizItem || selectedAnswer === null) return;
+    if (selectedAnswer !== quizItem.correct) {
+      setCourse(current => current ? { ...current, metrics: { ...(current.metrics || {}),
+        [current.lessonId]: { ...(current.metrics?.[current.lessonId] || {}),
+          incorrectAnswers: (current.metrics?.[current.lessonId]?.incorrectAnswers || 0) + 1 },
+      } } : current);
+      setQuizErrors(v => v + 1);
+      setQuizFeedback(quizErrors === 0
+        ? 'Not quite. Read the situation again. What would the next employee need to do, and what has actually been confirmed? Try again.'
+        : 'Try again. ' + quizItem.explanation);
+      setSelectedAnswer(null);
+      return;
+    }
+    setQuizFeedback('');
+    setQuizErrors(0);
+    setSelectedAnswer(null);
+    if (course.question < (currentQuestions?.length || 0) - 1) {
+      setCourse({ ...course, question: course.question + 1 });
+    } else startCurrentPractice();
+  }
+
+  function startNextLesson() {
+    if (!course || course.stage !== 'done') return;
+    const index = lessons.findIndex(item => item.id === course.lessonId);
+    const nextLesson = lessons.slice(index + 1).find(item => !course.passed.includes(item.id))
+      || lessons.find(item => !course.passed.includes(item.id));
+    if (!nextLesson) { setCourse({ ...course, stage: 'finished' }); setMenuOpen(true); return; }
+    setCourse({ ...course, lessonId: nextLesson.id, stage: 'learn', question: 0, independentStep: 0, reference: undefined });
+    setSelectedAnswer(null);
+    setQuizFeedback('');
+    setBranchAnswer(null);
+    setBranchExplained(false);
+    setMenuOpen(false);
+  }
+
+  function repeatCourseLesson(lessonId: string) {
+    if (!lessons.some(item => item.id === lessonId)) return;
+    setActive(null);
+    setMenuOpen(false);
+    setCourse(current => current ? { ...current, lessonId, stage: 'learn', question: 0, independentStep: 0, reference: undefined,
+      metrics: { ...(current.metrics || {}), [lessonId]: { ...(current.metrics?.[lessonId] || {}),
+        repeats: (current.metrics?.[lessonId]?.repeats || 0) + 1 } } } : {
+      lessonId, stage: 'learn', question: 0, passed: [],
+    });
+    setSelectedAnswer(null);
+    setQuizFeedback('');
+    setBranchAnswer(null);
+    setBranchExplained(false);
+  }
 
   const begin = useCallback((lessonId: string) => {
     setMenuOpen(false);
@@ -139,17 +376,22 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   }, []);
 
   useEffect(() => {
-    if (!active || !lesson || !lessons.some(item => item.id === lesson.id)) exit();
+    if (active && (!lesson || !lessons.some(item => item.id === lesson.id))) exit();
   }, [active, lesson, lessons, exit]);
 
   useEffect(() => {
-    if (!step) return;
-    if (path !== step.path) {
-      setTargetFound(false);
-      setPosition(null);
-      router.push(step.path);
+    if (!step || path === step.path) return;
+    setTargetFound(false);
+    setPosition(null);
+    if (step.requiresAction) {
+      // The trainee navigates using the actual link. Do not immediately
+      // redirect them back to the previous page before the click advances.
+      const destination = lesson?.steps[(active?.index ?? 0) + 1]?.path;
+      if (destination && path === destination) next(true);
+      return;
     }
-  }, [path, router, step]);
+    router.push(step.path);
+  }, [path, router, step, lesson, active, next]);
 
   useEffect(() => {
     if (!step || path !== step.path) return;
@@ -195,7 +437,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     if (!step?.advanceOnClick || path !== step.path || !active) return;
     const node = targetFor(step.selector);
     if (!node) return;
-    const click = () => { window.setTimeout(() => { if (document.body.contains(node) || step.advanceOnClick) next(); }, 100); };
+    const click = () => { window.setTimeout(() => { if (document.body.contains(node) || step.advanceOnClick) next(true); }, 100); };
     node.addEventListener('click', click, { once: true });
     return () => node.removeEventListener('click', click);
   }, [active, path, step, targetFound, next]);
@@ -271,26 +513,150 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   return <>
     <button type="button" className="ops-guide-launch" data-testid="interactive-training-open"
-      aria-label="Open interactive training" onClick={() => { exit(); setMenuOpen(true); }}>
+      aria-label="Open interactive training" onClick={() => {
+        if (course && ['learn', 'quiz'].includes(course.stage)) return;
+        exit(); setMenuOpen(true);
+      }}>
       <span aria-hidden="true">?</span> Training
     </button>
 
+    {course && courseLesson && courseGuide && ['learn','quiz','done'].includes(course.stage) && <div
+      className="ops-course-backdrop" data-testid="required-training-course">
+      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
+        <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>
+          <strong>Lesson {lessonNumber} of {lessons.length}</strong></div>
+        {capabilities.manage_department && <details className="ops-course-help">
+          <summary>Supervisor: view staff training results</summary>
+          <TrainerReports manager={user} />
+        </details>}
+        <div className="ops-course-progress" aria-label="Lesson stages"><span className={course.stage === 'learn' ? 'current' : ''}>1. Read</span>
+          <span className={course.stage === 'quiz' ? 'current' : ''}>2. Answer</span>
+          <span className={course.stage === 'done' ? 'current' : ''}>3. Try it</span></div>
+        {course.stage === 'learn' && <>
+          <h2 data-testid="course-lesson-title">{courseLesson.title}</h2>
+          <p className="ops-course-explanation">{courseGuide.explanation}</p>
+          <h3>Example at work</h3>
+          <p className="ops-course-example">{currentExample}</p>
+          <h3>A mistake to avoid</h3>
+          <p className="ops-course-wrong-example">{courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'}</p>
+          <p><strong>Why it matters:</strong> {courseGuide.whyIncorrect || 'Check what happened before telling someone that the work is finished.'}</p>
+          {courseGuide.branches?.[0] && <div className="ops-course-branch" data-testid="course-situation-branch">
+            <h3>What would you do if this happened?</h3>
+            <p>{courseGuide.branches[0].question}</p>
+            <div className="ops-course-choices">{courseGuide.branches[0].choices.map((option,i) =>
+              <label key={option} className={branchAnswer===i?'selected':''}>
+                <input type="radio" name="course-branch" checked={branchAnswer===i}
+                  onChange={() => {setBranchAnswer(i);setBranchExplained(false);}} /> {option}
+              </label>)}</div>
+            {branchExplained && <p role="status">{branchAnswer===courseGuide.branches[0].correct?'Good thinking. ':'Think again: '}{courseGuide.branches[0].response}</p>}
+            <button type="button" className="ops-course-quiet" disabled={branchAnswer===null}
+              onClick={()=>setBranchExplained(true)}>Check this answer</button>
+          </div>}
+          <p><strong>Remember:</strong> {courseGuide.remember}</p>
+          <p className="ops-course-next-explainer">Next: Answer two questions. Then use the practice app yourself. Follow the arrows to find the right buttons.</p>
+          <details className="ops-course-help">
+            <summary>Need help with this lesson?</summary>
+            <p>You can close the app and continue later on this computer. If a page gets stuck, restart the lesson. Finished lessons are kept. You can save your report as a backup. On a different computer, you can bring back lessons you read, but you must practise saved work again.</p>
+            <label>Use a saved report for this login
+              <input type="file" accept=".json,application/json" onChange={event=>{void restoreTrainingProgress(event.target.files?.[0]);event.target.value='';}} />
+            </label>
+            {restoreMessage && <p role="status">{restoreMessage}</p>}
+          </details>
+          <button type="button" className="ops-course-primary" data-testid="course-start-quiz"
+            onClick={() => { setCourse({ ...course, stage: 'quiz', question: 0 }); setQuizFeedback(''); }}>Answer two questions →</button>
+        </>}
+        {course.stage === 'quiz' && quizItem && <>
+          <h2>{courseLesson.title}</h2>
+          <p className="ops-course-example">{currentExample}</p>
+          <h3 data-testid="course-quiz-question">Question {course.question + 1} of {currentQuestions?.length || 2}: {quizItem.prompt}</h3>
+          <div className="ops-course-choices">{quizItem.choices.map((answer, i) =>
+            <label key={answer} className={selectedAnswer === i ? 'selected' : ''}>
+              <input type="radio" name="course-answer" checked={selectedAnswer === i}
+                onChange={() => { setSelectedAnswer(i); setQuizFeedback(''); }} />
+              <span>{answer}</span>
+            </label>)}</div>
+          {quizFeedback && <p className="ops-course-feedback" role="alert">{quizFeedback}</p>}
+          <button type="button" className="ops-course-primary" data-testid="course-check-answer"
+            disabled={selectedAnswer === null} onClick={answerQuiz}>Check answer →</button>
+          <button type="button" className="ops-course-quiet" onClick={() => { setCourse({ ...course, stage: 'learn', question: 0 }); setSelectedAnswer(null); setQuizFeedback(''); }}>Read the lesson again</button>
+        </>}
+        {course.stage === 'done' && <>
+          <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
+          <p>You finished the lesson, answered the questions, and practised using the app{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
+          <p>You can repeat this lesson at any time. Your earlier results will stay saved.</p>
+          <button type="button" className="ops-course-quiet" data-testid="export-training-report"
+            onClick={exportTrainingProgress}>Save my training report</button>
+          <button type="button" className="ops-course-primary" data-testid="course-next-lesson"
+            onClick={startNextLesson}>{lessonNumber < lessons.length ? 'Go to Lesson ' + (lessonNumber + 1) + ' →' : 'See finished lessons'}</button>
+          <button type="button" className="ops-course-quiet" data-testid="course-repeat-lesson" onClick={() => repeatCourseLesson(course.lessonId)}>↻ Repeat this lesson</button>
+        </>}
+      </section>
+    </div>}
+    {course?.stage === 'tour' && !active && <div className="ops-course-backdrop">
+      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
+        <h2>Continue your actual-page practice</h2>
+        <p>You still have steps to finish. Open the practice screen and follow the arrows.</p>
+        <button type="button" className="ops-course-primary" onClick={() => setActive({ id: course.lessonId, index: 0 })}>Resume practical lesson →</button>
+      </section>
+    </div>}
+    {course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
+      data-testid="course-independent-challenge" role="status">
+      <strong>Your turn · {1 + (course.independentStep || 0)} of 2 — No arrows</strong>
+      <span>{independentAction.title}: {independentAction.instruction}</span>
+      <small>Find and click the button yourself to finish this step.</small>
+      <button type="button" onClick={() => router.push(independentAction.path)}>Open the right screen</button>
+      <button type="button" onClick={restartCurrentLessonSafely}>Start this lesson again</button>
+    </div>}
+    {course?.stage === 'work' && <div className="ops-course-work-status" data-testid="course-await-work" role="status">
+      <strong>Lesson {lessonNumber}: Actual-page practice</strong>
+      <span>Follow the arrows and save your practice record. Then click Check saved work. You can go to the next lesson after the app checks your work.</span>
+      <button type="button" className="ops-course-restart" onClick={restartCurrentLessonSafely}>Page not working? Start lesson again</button>
+    </div>}
     {menuOpen && !active && <div className="ops-guide-library-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setMenuOpen(false); }}>
       <section ref={libraryRef} className="ops-guide-library" role="dialog" aria-modal="true" aria-label="Interactive staff training" tabIndex={-1}>
         <header className="ops-guide-library-header">
-          <div><span className="ops-guide-eyebrow">OPERATIONS LEARNING CENTER</span><h2>Interactive training</h2><p>Follow highlighted controls on the real app. Your available lessons match your system permissions.</p></div>
+          <div><span className="ops-guide-eyebrow">HIDDEN OASIS · STAFF TRAINING</span><h2>Interactive training</h2><p>Choose a lesson. Follow the arrows and practise on the same screens you will use at work.</p></div>
           <button type="button" className="ops-guide-close" aria-label="Close training" onClick={() => setMenuOpen(false)}>×</button>
         </header>
         {helpMessage && <p className="ops-guide-success" role="status">{helpMessage}</p>}
-        <p className="ops-guide-safety"><strong>Safe practice:</strong> Lessons never save, approve, or publish automatically. Use only an isolated demo workspace to submit fictional practice records.</p>
-        <div className="ops-guide-lesson-grid">
-          {lessons.map(item => <button type="button" key={item.id} className="ops-guide-lesson" onClick={() => begin(item.id)}>
-            <span className="ops-guide-lesson-title">{item.title}{complete.includes(item.id) ? <span className="ops-guide-done">Tour viewed</span> : null}</span>
-            <span className="ops-guide-lesson-description">{item.summary}</span>
-            <span className="ops-guide-lesson-meta">{item.steps.length} guided steps · Start lesson →</span>
-          </button>)}
+        <p className="ops-guide-safety"><strong>Practice only:</strong> Use made-up details. The lessons do not approve or publish anything for you, and nothing here changes live resort records.</p>
+        <div className="ops-guide-course-summary" data-testid="course-progress-summary">
+          <strong>{course?.passed.length || 0} of {lessons.length} lessons completed</strong>
+          <p>Start with your current lesson. You can repeat finished lessons whenever you want.</p>
         </div>
-        <p className="ops-guide-footer-note">Viewed-tour markers are not staff certification. Markers are stored on this device for this account; clearing browser data removes them.</p>
+        <div className="ops-guide-report-actions">
+          <button type="button" className="ops-guide-repeat-course" data-testid="export-training-progress"
+            onClick={exportTrainingProgress}>Save my training report</button>
+          <label className="ops-course-import">Open a saved report (same login)
+            <input type="file" accept=".json,application/json" data-testid="restore-training-progress"
+              onChange={event=>{void restoreTrainingProgress(event.target.files?.[0]);event.target.value='';}} />
+          </label>
+          <span>You can show the report to your trainer. It only brings back lessons you read; you must repeat saved-work practice on this computer. The report is not an approval to work on live records.</span>
+          {restoreMessage && <p role="status" data-testid="restore-progress-feedback">{restoreMessage}</p>}
+        </div>
+        {capabilities.manage_department && <TrainerReports manager={user} />}
+        <div className="ops-guide-lesson-grid">
+          {lessons.map(item => <div key={item.id} className="ops-guide-lesson-wrap">
+            <button type="button" className="ops-guide-lesson"
+              disabled={Boolean(course && !course.passed.includes(item.id) && item.id !== course.lessonId)}
+              onClick={() => {
+                if (course && course.stage === 'finished' && course.passed.includes(item.id)) begin(item.id);
+                else if (course) repeatCourseLesson(item.id);
+                else begin(item.id);
+              }}>
+            <span className="ops-guide-lesson-title">{item.title}{course?.passed.includes(item.id) ? <span className="ops-guide-done">Lesson complete</span>
+              : course?.lessonId === item.id ? <span className="ops-guide-done">Start here</span>
+              : course ? <span className="ops-guide-done">Finish the earlier lesson first</span>
+              : complete.includes(item.id) ? <span className="ops-guide-done">Tour viewed</span> : null}</span>
+            <span className="ops-guide-lesson-description">{item.summary}</span>
+            <span className="ops-guide-lesson-meta">{item.steps.length} steps · {course?.passed.includes(item.id) ? 'See the steps again' : 'Read, answer, then try'}</span>
+            </button>
+            {course?.passed.includes(item.id) && <button type="button" className="ops-guide-repeat-course"
+              onClick={() => repeatCourseLesson(item.id)}>↻ Repeat lesson</button>}
+          </div>)}
+        </div>
+        <p className="ops-guide-footer-note"><button type="button" className="ops-guide-more" onClick={() => { setMenuOpen(false); router.push('/training'); }}>More practice: work situations</button></p>
+        <p className="ops-guide-footer-note">Finish each lesson and its practice before moving on. A training report is not approval to work on live records.</p>
       </section>
     </div>}
 
@@ -303,19 +669,21 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       </svg>}
       <section ref={tipRef} className="ops-guide-tip" role="dialog" aria-modal="false"
         aria-label={`Training step ${stepIndex + 1} of ${lesson.steps.length}`} style={popupStyle(position, tipPosition?.height)}>
-        <div className="ops-guide-tip-top"><span>STEP {stepIndex + 1} / {lesson.steps.length}</span><button type="button" onClick={exit} aria-label="Exit walkthrough">Exit ×</button></div>
+        <div className="ops-guide-tip-top"><span>FOLLOW THE ARROW · STEP {stepIndex + 1} OF {lesson.steps.length}</span><button type="button" onClick={exit} aria-label="Exit walkthrough">Pause ×</button></div>
         <div className="ops-guide-progress" aria-hidden="true"><span style={{ width: `${(stepIndex + 1) / lesson.steps.length * 100}%` }} /></div>
         <h2>{step.title}</h2>
         <p>{step.body}</p>
         {path !== step.path ? <p className="ops-guide-hint">Opening the correct page…</p>
-          : !targetFound ? <p className="ops-guide-hint">This control is not visible yet. Check the page or continue to the next step.</p>
-          : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted control, or select Next to continue.</p>
-          : <p className="ops-guide-hint">↖ Look at the highlighted area, then select Next.</p>}
+          : !targetFound ? <p className="ops-guide-hint">The button is not showing yet. Check that you are on the right page.</p>
+          : step.requiresAction ? <p className="ops-guide-hint">↖ Click the highlighted link to continue.</p>
+          : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted button, or choose Next.</p>
+          : <p className="ops-guide-hint">↖ Look where the arrow points, then choose Next.</p>}
         <div className="ops-guide-actions">
           <button type="button" className="ops-guide-button-secondary" onClick={previous} disabled={stepIndex === 0}>Back</button>
-          <button type="button" className="ops-guide-button-primary" onClick={next}>{atLastStep ? 'Finish lesson' : 'Next →'}</button>
+          <button type="button" className="ops-guide-button-primary" onClick={() => next()}
+            disabled={Boolean(step.requiresAction && (course?.stage === 'tour' || targetFound))}>{step.requiresAction ? 'Click highlighted link →' : atLastStep ? 'Finish practice' : 'Next →'}</button>
         </div>
-        <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>All lessons</button>
+        <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>See lesson list</button>
       </section>
     </>}
   </>;
