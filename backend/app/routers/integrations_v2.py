@@ -15,7 +15,8 @@ from ..auth import normalize_email
 from ..clock import utc_now
 from ..database import get_db
 from ..foundation_models import IntegrationEventInbox
-from ..integration_models import ExternalUserIdentity, IntegrationDelivery
+from ..integration_models import ExternalUserIdentity, IntegrationDelivery, EventProjectLink
+from ..services.event_booking_workflow import prepare_event_project
 from .api import can_view_all, require_user
 
 
@@ -49,6 +50,10 @@ SOURCE_EVENT_TYPES = {
         "receivable.issue",
         "journal_review.pending",
         "budget.variance.alert",
+        "event.booking.confirmed",
+        "event.booking.changed",
+        "event.booking.cancelled",
+        "event.booking.completed",
     },
     "dedicated_pos_cloud": {
         "daily_sales_context",
@@ -347,6 +352,10 @@ def receive_event(
         if existing.payload_sha256 != digest:
             raise HTTPException(status_code=409, detail="event_id was already used with a different payload")
         _require_complete_delivery_links(db, existing)
+        if existing.event_type == "event.booking.confirmed":
+            linked = db.query(EventProjectLink).filter_by(source_app=source_app, source_record_id=existing.subject_id).one_or_none()
+            if not linked or not db.get(models.Project, linked.project_id):
+                raise HTTPException(status_code=409, detail="Confirmed event link missing; manual reconciliation required")
         return {"status": "already_applied", "delivery_id": existing.id}
 
     subject = event.subject
@@ -390,6 +399,11 @@ def receive_event(
         payload_json=json.dumps(payload, default=str),
     )
     db.add(review_item)
+    project_link = None
+    if source_app == "accounting_program" and event.event_type == "event.booking.confirmed":
+        # Atomic with Inbox + Review: if project creation fails, sender retries.
+        project_link = prepare_event_project(db, event)
+        review_item.department_id = db.get(models.Project, project_link.project_id).department_id
     delivery.status = "processed"
     delivery.processed_at = utc_now()
 
@@ -413,6 +427,7 @@ def receive_event(
         "delivery_id": delivery.id,
         "review_item_id": review_item.id,
         "schema_version": event.schema_version,
+        "project_id": project_link.project_id if project_link else None,
     }
 
 
