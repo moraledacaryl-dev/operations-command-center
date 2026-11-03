@@ -218,7 +218,7 @@ test.describe('scenario screenshot matrix', () => {
       coverage: {
         baseline: 'route × role × desktop/mobile',
         supplement: ['workflow-status fixtures', 'mobile navigation open', 'create surfaces open', 'detail drawers open', 'verification/action state'],
-        nextCandidates: ['validation errors', 'destructive confirmations', 'empty/loading/API-error states', 'dropdown/date-picker states', 'success/error toasts', 'Marketing editor states', 'Annotation Studio tool/object states'],
+        nextCandidates: ['validation errors', 'destructive confirmations', 'empty/loading/API-error states', 'dropdown/date-picker states', 'success/error toasts', 'Marketing editor states', 'Add feedback to an image tool/object states'],
       },
     }, null, 2));
   });

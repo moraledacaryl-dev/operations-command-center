@@ -317,7 +317,7 @@ export default function PracticeTrainingPage() {
     if (notificationEvidence) {
       rows.push(['staff-notification-read', 'notification-mark-read', 'Personal', 1,
         notificationEvidence.completedAt, '', '', '', '', notificationEvidence.notificationId,
-        '', 'saved read_at (backend read)']);
+        '', 'Notice read time']);
     }
     for (const record of recordInspections) {
       const category = {
@@ -328,7 +328,7 @@ export default function PracticeTrainingPage() {
       }[record.kind];
       rows.push([category[0], category[1], String(record.departmentId), 1,
         record.completedAt, '', '', '', '', record.recordId, '',
-        record.kind === 'task' ? 'status / priority (backend read)' : 'status / urgency (backend read)']);
+        record.kind === 'task' ? 'Saved status and priority' : 'Saved status and priority']);
     }
     for (const [kind, evidence] of Object.entries(verifiedWorkflows)) {
       if (!Object.prototype.hasOwnProperty.call(WORKFLOW_DEFINITIONS, kind) ||

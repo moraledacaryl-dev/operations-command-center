@@ -93,7 +93,7 @@ for (const viewport of [
       control.finish();
     }
 
-    await expect(dialog.getByText('No task transition is available')).toBeVisible();
+    await expect(dialog.getByText('Ask your lead if this task needs updating.')).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Close details' })).toBeFocused();
     mkdirSync('test-results/ui-audit', { recursive: true });
     await page.screenshot({

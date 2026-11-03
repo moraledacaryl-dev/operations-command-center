@@ -72,7 +72,7 @@ test('front desk sees room and cannot start cleaning without checkout verificati
   await expect(page.getByRole('heading', { name: 'Solace' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Schedule cleaning' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start cleaning' })).toHaveCount(0);
-  await expect(page.getByText(/Automatic room updates are not configured/i)).toBeVisible();
+  await expect(page.getByText(/Beds24|Accounting|automatic room updates|integration/i)).toHaveCount(0);
 });
 
 test('housekeeping sees personal checklist, review gate and mobile controls', async ({ page }) => {
@@ -87,22 +87,21 @@ test('housekeeping sees personal checklist, review gate and mobile controls', as
   await expect(card.getByRole('button', { name: 'Send for inspection' })).toBeDisabled();
   snapshot = fakeBoard('cleaner', true, 'For inspection', keys);
   await page.getByRole('button', { name: 'Refresh' }).click();
-  await expect(card).toContainText('Awaiting supervisor inspection');
+  await expect(card).toContainText('Waiting for inspection');
   await expect(card.getByRole('button', { name: 'Approve cleaning' })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2)).toBe(true);
 });
 
 
-test('checkout source and scheduled status are clear without claiming vacancy', async ({ page }) => {
+test('staff see the next action without system details or false vacancy', async ({ page }) => {
   await visit(page, 'front', () => ({ ...fakeBoard('front', true, 'Needs cleaning'),
     accounting_connected: true,
     rooms: [{ ...fakeBoard('front', true, 'Needs cleaning').rooms[0], source: 'accounting',
       booking_updates: [{ status: 'confirmed', origin: 'beds24', check_out: '2026-11-04', reported_at: '2026-11-03T10:00:00Z' }] }],
   }));
   const card = page.getByTestId('cleaning-room-31');
-  await expect(card.getByText('Beds24 via Accounting')).toBeVisible();
-  await expect(card).toContainText('Checkout scheduled for 2026-11-04');
-  await expect(card).toContainText('Checkout not verified');
-  await expect(page.getByText('Cleaning approval does not change availability in Beds24.', { exact: false })).toBeVisible();
+  await expect(card).toContainText('Checkout scheduled');
+  await expect(card).toContainText('Waiting for Front Desk');
+  await expect(page.getByText(/Beds24|Accounting|Last received|mapped|integration/i)).toHaveCount(0);
   await expect(card.getByRole('button', { name: 'Start cleaning' })).toHaveCount(0);
 });

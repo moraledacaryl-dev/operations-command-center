@@ -6,11 +6,11 @@ import { api, ApiError } from '@/lib/api';
 import { landingPathForUser, setStoredUser } from '@/lib/session';
 
 function loginErrorMessage(error: unknown) {
-  if (!(error instanceof ApiError)) return 'The service is temporarily unavailable. Please try again.';
+  if (!(error instanceof ApiError)) return 'The app is unavailable. Please try again in a moment.';
   if (error.status === 401) return 'Invalid email or password.';
   if (error.status === 403) return 'This account cannot sign in yet. Contact an administrator.';
   if (error.status === 429) return 'Too many failed sign-in attempts. Please try again later.';
-  if (error.status >= 500) return 'The service is temporarily unavailable. Please try again.';
+  if (error.status >= 500) return 'The app is unavailable. Please try again in a moment.';
   return 'Sign-in could not be completed. Please try again.';
 }
 

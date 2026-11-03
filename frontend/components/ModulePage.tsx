@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
+import { displayWorkText, workTypeLabel } from '@/lib/work-display';
 import { hasCapability } from '@/lib/capabilities';
 import { ModuleConfig, Field } from '@/lib/config';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
@@ -23,7 +24,7 @@ function defaultData(fields: Field[]) {
 }
 
 function FieldInput({ field, value, onChange }: { field: Field; value: any; onChange: (v: any) => void }) {
-  if (field.type === 'select') return <select className="select" value={value || ''} onChange={e => onChange(e.target.value)}>{field.options?.map(o => <option key={o}>{o}</option>)}</select>;
+  if (field.type === 'select') return <select className="select" value={value || ''} onChange={e => onChange(e.target.value)}>{field.options?.map(o => <option key={o} value={o}>{field.key === 'source_type' ? workTypeLabel(o) : o}</option>)}</select>;
   if (field.type === 'textarea') return <textarea className="textarea" value={value || ''} onChange={e => onChange(e.target.value)} />;
   return <input className="input" type={field.type || 'text'} value={value || ''} onChange={e => onChange(e.target.value)} />;
 }
@@ -48,13 +49,13 @@ function ItemCard({ item, meta, onOpen }: { item: Entity; meta: string[]; onOpen
   const detail = item.note || item.problem || item.caption || item.reason || item.body || item.checklist;
   return (
     <button type="button" className={`card ${important ? 'card-important' : ''}`} onClick={onOpen} style={{ textAlign: 'left', width: '100%' }}>
-      <div className="card-title">{item.title || item.name || item.body || 'Untitled'}</div>
+      <div className="card-title">{displayWorkText(item.title || item.name || item.body || 'Untitled')}</div>
       <div className="card-line">
-        {meta.map(m => item[m] ? <Pill key={m} value={String(item[m]).slice(0, 24)} /> : null)}
+        {meta.map(m => item[m] ? <Pill key={m} value={m === 'source_type' ? workTypeLabel(item[m]) : String(item[m]).slice(0, 24)} /> : null)}
         {due ? <Pill value={due} /> : null}
       </div>
       {owner ? <div className="muted" style={{ fontSize: 12 }}>Owner: {owner}</div> : null}
-      {detail ? <div className="muted" style={{ fontSize: 13 }}>{String(detail).slice(0, 112)}</div> : null}
+      {detail ? <div className="muted" style={{ fontSize: 13 }}>{displayWorkText(detail).slice(0, 112)}</div> : null}
     </button>
   );
 }
@@ -194,7 +195,7 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
 
   async function verifyFix() {
     if (!selected || !canDecide || config.resource !== 'fixes') return;
-    if (!workflowNote.trim()) return setError('Verification note is required.');
+    if (!workflowNote.trim()) return setError('Add a note about what you checked.');
     await runAction('verify', async () => {
       let uploadedProofUrl = proofUrl.trim();
       if (proofFile) { const form = new FormData(); form.append('file', proofFile); const attachment = await api.attach('fixes', selected.id, form); uploadedProofUrl = attachment.file_url || uploadedProofUrl; }
@@ -223,18 +224,18 @@ export function ModulePage({ config }: { config: ModuleConfig }) {
       </div>
       <div className="tabs" style={{ overflowX: 'auto' }}>{config.filters.map(f => <button key={f} onClick={() => setFilter(f)} className={`tab ${filter === f ? 'active' : ''}`}>{f} <span className="muted">{counts[f] ?? 0}</span></button>)}</div>
       {canManage && showAdd && <div className="panel" style={{ marginBottom: 16 }}><h2>Add {config.createLabel}</h2><div className="form" style={{ marginTop: 14 }}><div className="form-grid">{config.fields.map(field => <label className="label" key={field.key}>{field.label}<FieldInput field={field} value={data[field.key]} onChange={v => setData({ ...data, [field.key]: v })} /></label>)}</div><div style={{ display: 'flex', gap: 8 }}><button className="btn" disabled={!!busy} onClick={create}>{busy === 'create' ? 'Saving…' : 'Save'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div></div></div>}
-      <div className={cardGrid}>{loading ? <div className="empty">Loading operational work…</div> : sortedItems.length ? sortedItems.map(item => <ItemCard key={item.id} item={item} meta={config.cardMeta} onOpen={() => api.get(config.resource, item.id).then(setSelected).catch(err => setError(err.message || 'Could not open item.'))} />) : <div className="empty">{emptyMessage}</div>}</div>
+      <div className={cardGrid}>{loading ? <div className="empty">Loading work…</div> : sortedItems.length ? sortedItems.map(item => <ItemCard key={item.id} item={item} meta={config.cardMeta} onOpen={() => api.get(config.resource, item.id).then(setSelected).catch(err => setError(err.message || 'Could not open item.'))} />) : <div className="empty">{emptyMessage}</div>}</div>
       <Drawer item={selected} onClose={() => setSelected(null)}>
-        {(canManage || canDecide) ? <div className="workflow-panel"><div><div className="eyebrow">Next step</div><h2>{config.resource === 'requests' ? 'Decision path' : config.resource === 'guests' ? 'Guest follow-up' : config.resource === 'fixes' ? 'Repair closure' : config.resource === 'shift-notes' ? 'Handover loop' : config.resource === 'routines' ? 'Recurring work' : config.resource === 'projects' ? 'Project execution' : 'Work item'}</h2></div><div className="workflow-actions">
+        {(canManage || canDecide) ? <div className="workflow-panel"><div><div className="eyebrow">Next step</div><h2>{config.resource === 'requests' ? 'Review request' : config.resource === 'guests' ? 'Guest follow-up' : config.resource === 'fixes' ? 'Check the repair' : config.resource === 'shift-notes' ? 'Shift follow-up' : config.resource === 'routines' ? 'Recurring work' : config.resource === 'projects' ? 'Project work' : 'Work item'}</h2></div><div className="workflow-actions">
           {canManage && config.resource === 'requests' ? <button className="btn small" disabled={!!busy || ['Review', 'Approved', 'Rejected'].includes(selected?.status)} onClick={sendRequestForApproval}>{busy === 'approval' ? 'Sending…' : 'Send to approval'}</button> : null}
           {canManage && config.resource === 'guests' ? <button className="btn small" disabled={!!busy} onClick={createFixFromGuest}>{busy === 'fix' ? 'Creating…' : 'Create fix'}</button> : null}
           {canManage && ['guests', 'fixes', 'shift-notes', 'requests', 'posts'].includes(config.resource) ? <button className="btn small secondary" disabled={!!busy} onClick={createLinkedTask}>{busy === 'linked-task' ? 'Creating…' : 'Create task'}</button> : null}
           {canManage && config.resource === 'routines' ? <button className="btn small" disabled={!!busy} onClick={generateRoutine}>{busy === 'routine' ? 'Generating…' : 'Generate task'}</button> : null}
         </div></div> : null}
-        {showWorkflowNotes ? <div className="panel" style={{ marginBottom: 16 }}><h2>Process note</h2><div className="form" style={{ marginTop: 12 }}><textarea className="textarea" placeholder={config.resource === 'fixes' ? 'Verification note' : 'Workflow note'} value={workflowNote} onChange={e => setWorkflowNote(e.target.value)} />{canDecide && config.resource === 'fixes' ? <input className="input" type="file" onChange={e => setProofFile(e.target.files?.[0] || null)} /> : null}{canDecide && config.resource === 'fixes' ? <input className="input" placeholder="Proof URL optional" value={proofUrl} onChange={e => setProofUrl(e.target.value)} /> : null}{canDecide && config.resource === 'fixes' && selected?.status === 'Done' ? <button className="btn" disabled={!!busy} onClick={verifyFix}>{busy === 'verify' ? 'Verifying…' : 'Verify with note'}</button> : null}</div></div> : null}
+        {showWorkflowNotes ? <div className="panel" style={{ marginBottom: 16 }}><h2>Note</h2><div className="form" style={{ marginTop: 12 }}><textarea className="textarea" placeholder={config.resource === 'fixes' ? 'Verification note' : 'Note'} value={workflowNote} onChange={e => setWorkflowNote(e.target.value)} />{canDecide && config.resource === 'fixes' ? <input className="input" type="file" onChange={e => setProofFile(e.target.files?.[0] || null)} /> : null}{canDecide && config.resource === 'fixes' ? <input className="input" placeholder="Proof URL optional" value={proofUrl} onChange={e => setProofUrl(e.target.value)} /> : null}{canDecide && config.resource === 'fixes' && selected?.status === 'Done' ? <button className="btn" disabled={!!busy} onClick={verifyFix}>{busy === 'verify' ? 'Verifying…' : 'Verify with note'}</button> : null}</div></div> : null}
         <StatusRail statuses={config.statuses} current={selected?.status || selected?.review_status} />
         {canManage ? <div className="panel"><h2>Edit</h2><div className="form" style={{ marginTop: 12 }}><div className="form-grid">{config.fields.map(field => <label className="label" key={field.key}>{field.label}<FieldInput field={field} value={editData[field.key]} onChange={v => setEditData({ ...editData, [field.key]: v })} /></label>)}</div><button className="btn secondary" disabled={!!busy} onClick={saveEdit}>{busy === 'edit' ? 'Saving…' : 'Save changes'}</button></div></div> : null}
-        {canManage ? <div className="panel" style={{ marginTop: 16 }}><h2>Move workflow</h2><div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>{config.statuses.map(s => <button key={s} className="btn small secondary" disabled={!!busy || s === selected?.status || s === selected?.review_status} onClick={() => setStatus(s)}>{busy === `status-${s}` ? 'Updating…' : s}</button>)}</div></div> : null}
+        {canManage ? <div className="panel" style={{ marginTop: 16 }}><h2>Change status</h2><div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>{config.statuses.map(s => <button key={s} className="btn small secondary" disabled={!!busy || s === selected?.status || s === selected?.review_status} onClick={() => setStatus(s)}>{busy === `status-${s}` ? 'Updating…' : s}</button>)}</div></div> : null}
         <div className="panel" style={{ marginTop: 16 }}><h2>Comments</h2><div className="form" style={{ marginTop: 12 }}><textarea className="textarea" placeholder="Add context, decision, or handover note" value={comment} onChange={e => setComment(e.target.value)} /><button className="btn secondary" disabled={!!busy || !comment.trim()} onClick={addComment}>{busy === 'comment' ? 'Posting…' : 'Comment'}</button></div><div className="grid" style={{ marginTop: 12 }}>{(selected?.comments || []).map((c: Entity) => <div key={c.id} className="card"><b>{c.comment_type}</b><span>{c.body}</span></div>)}</div></div>
       </Drawer>
     </>

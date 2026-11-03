@@ -153,7 +153,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         stage:nextLesson?'learn':'finished', question:0, independentStep:0,
         reference:undefined, passed:credits, metrics:report.metrics,
       }:current);
-      setRestoreMessage('Your reading lessons have been restored. Lessons with saved task/guest/maintenance records must be practised and checked again on this computer. Your trainer still needs to check your skills.');
+      setRestoreMessage('Lessons restored. Repeat any hands-on practice that needs saved work on this device. Your trainer still needs to check your skills.');
     } catch { setRestoreMessage('This file could not be read. Export a fresh training report and try again.'); }
   }
 

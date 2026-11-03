@@ -77,7 +77,7 @@ test('manager can restore read-only lesson history but must recheck saved record
   await details.locator('input[type=file]').setInputFiles({
     name:'progress.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(report)),
   });
-  await expect(details).toContainText('saved task/guest/maintenance records must be practised');
+  await expect(details).toContainText('Repeat any hands-on practice that needs saved work on this device.');
   await expect(page.getByTestId('course-lesson-title')).toContainText('Creating and managing a task');
   const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('ho-ops-structured-course-v2:8401')||'null'));
   expect(progress.passed).toEqual(completed);

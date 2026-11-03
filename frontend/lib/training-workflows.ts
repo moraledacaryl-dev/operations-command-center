@@ -32,7 +32,7 @@ export const WORKFLOW_DEFINITIONS = {
     name: 'Record a guest problem and follow up',
     path: '/guests',
     resource: 'guests',
-    stages: ['Create a guest matter', 'Record an accountable follow-up'],
+    stages: ['Create a guest matter', 'Record the next follow-up'],
   },
   'shared-no-owner': {
     name: 'Assign and update a task',
@@ -56,14 +56,14 @@ export const WORKFLOW_DEFINITIONS = {
     name: 'Write a request for equipment',
     path: '/requests',
     resource: 'requests',
-    stages: ['Create a defensible equipment request', 'Submit for authorized review'],
+    stages: ['Explain the equipment request', 'Send for review'],
   },
   'fd-broken-shower': {
     name: 'Link a guest problem to a repair',
     path: '/guests',
     resource: 'guests',
-    stages: ['Log the shower issue with guest follow-up', 'Create the linked maintenance work order',
-      'Start linked maintenance', 'Record maintenance as done', 'Verify work and auto-close the guest case'],
+    stages: ['Log the shower issue with guest follow-up', 'Create the maintenance task',
+      'Start the repair', 'Record maintenance as done', 'Check the repair and guest report'],
   },
 } as const;
 
@@ -80,13 +80,13 @@ export const WORKFLOW_PRACTICE_SITUATIONS: Record<TrainingWorkflowKind, string> 
 /** Display labels are separate so existing saved progress keeps its original step IDs. */
 export function workflowStageLabel(stage: string): string {
   const labels: Record<string, string> = {
-    'Record an accountable follow-up': 'Arrange the guest follow-up',
+    'Record the next follow-up': 'Arrange the guest follow-up',
     'Publish a usable handover': 'Write the next shift’s note',
     'Carry the unresolved matter forward': 'Leave unfinished work for the next shift',
     'Mark the work ready for verification': 'Mark the repair Done',
-    'Create a defensible equipment request': 'Write the equipment request',
-    'Submit for authorized review': 'Send the request for review',
-    'Verify work and auto-close the guest case': 'Check the repair and close the guest matter',
+    'Explain the equipment request': 'Write the equipment request',
+    'Send for review': 'Send the request for review',
+    'Check the repair and guest report': 'Check the repair and close the guest matter',
   };
   return labels[stage] || stage;
 }
@@ -249,11 +249,11 @@ export function verifyWorkflowStep(
     const expectedGuestStatus = session.step === 4 ? 'done' : 'follow';
     if (status !== expectedGuestStatus) {
       return { passed: false, error: session.step === 4
-        ? 'Verifying the linked work order must also close the original Guest Matter as Done. Check the same guest and maintenance records.'
+        ? 'Approve the repair, then check that the original guest report also shows Done.'
         : 'The Guest Matter must remain in Follow while Maintenance handles the issue.' };
     }
     if (session.relatedRecordId && linkedId !== session.relatedRecordId) {
-      return { passed: false, error: 'The linked maintenance ticket has changed. Do not substitute a different work order for the original handoff.' };
+      return { passed: false, error: 'Use the repair created from this guest report.' };
     }
     if (session.step === 1) {
       return { passed: true, error: '', recordId: session.recordId, relatedRecordId: linkedId, stepName: definition.stages[1] };
@@ -261,7 +261,7 @@ export function verifyWorkflowStep(
     const wanted = session.step === 2 ? 'working' : session.step === 3 ? 'done' : 'verified';
     if (readable(relatedDetail.status) !== wanted) {
       return { passed: false, error: session.step === 2
-        ? 'The linked Maintenance work order has not been started. Open that same work order and select Start work.'
+        ? 'Open this repair and choose Start work.'
         : session.step === 3
           ? 'The linked repair is not Done yet. Finish the practice repair step and choose Mark done before asking a manager to check it.'
           : 'Open the same linked repair. Add a Verification note and choose Verify work.' };
@@ -287,7 +287,7 @@ export function verifyWorkflowStep(
       readable(approval.status) === 'pending');
     return linked.length === 1 && positiveId(linked[0].id)
       ? { passed: true, error: '', recordId: session.recordId, relatedRecordId: positiveId(linked[0].id), stepName: definition.stages[1] }
-      : { passed: false, error: 'Submitting for review must create one Pending Approval linked to this same request and department. Refresh and check the Approval queue; a Request status alone does not pass.' };
+      : { passed: false, error: 'Send this request for review, then check that it appears as Pending in Approvals.' };
   }
   if (session.kind === 'shift-unresolved') {
     return status === 'follow'

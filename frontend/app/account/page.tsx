@@ -46,7 +46,7 @@ export default function AccountPage() {
   return <div className="ops-module">
     <Top title="Security" />
     <section className="account-security">
-      <div className="account-security-intro"><span className="ops-record-icon"><Icon name="approval" /></span><h2>Change password</h2><p className="muted">Updating your password signs this session out. Use at least 12 characters.</p></div>
+      <div className="account-security-intro"><span className="ops-record-icon"><Icon name="approval" /></span><h2>Change password</h2><p className="muted">Changing your password signs you out. Use at least 12 characters.</p></div>
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="label">Current password<input className="input" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} /></label>
         <label className="label">New password<input className="input" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></label>

@@ -37,7 +37,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     whyIncorrect: 'A notification is a message, not confirmation that a task was finished. Open the related task to see what still needs doing.',
     questions: [
       q('Where do you go first to see tasks assigned to you?', ['My Work','Rooms','Marketing'], 0, 'My Work shows assignments for your own account.'),
-      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the linked work and check what action is still needed','Change another employee’s password'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
+      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the related task and check what still needs doing','Change another employee’s password'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
     ],
   },
   'staff-handover': {
@@ -81,7 +81,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'A shared job has no owner. Assign the right practice teammate, start the work, and submit the saved task for review.',
     repeatVariant: { example:'A staff member reports a broken hallway sign but nobody is assigned. Find whether the job exists, assign the right practice teammate, and follow its progress.', questions:[
       q('A task already exists for the same sign. What should you do?', ['Create a second copy','Review the existing task and update it if appropriate','Ignore both'],1,'Duplicate tasks confuse ownership.'),
-      q('When can a task be submitted for review?', ['After it actually reaches the required work stage','The moment it is created without work','By changing the title only'],0,'The saved workflow needs the real work stages.'),
+      q('When can a task be submitted for review?', ['After it actually reaches the required work stage','The moment it is created without work','By changing the title only'],0,'Complete each step and save your changes.'),
     ] },
     remember: 'Save your task and move it through each step. Choose Check saved work after each change.',
     handsOn: 'shared-no-owner',

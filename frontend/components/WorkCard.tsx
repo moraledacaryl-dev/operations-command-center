@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Icon, IconName } from './Icon';
+import { displayWorkText } from '@/lib/work-display';
 
 /** Shared visual language for actionable work, without coupling workflow behavior. */
 export function WorkCard({ title, description, icon, meta, footer, onOpen, attention = false, accent = 'sage' }: {
@@ -8,8 +9,8 @@ export function WorkCard({ title, description, icon, meta, footer, onOpen, atten
 }) {
   return <button type="button" className={`ops-work-card ops-tone-${accent}${attention ? ' ops-work-attention' : ''}`} onClick={onOpen}>
     <span className="ops-work-card-top"><span className="ops-record-icon"><Icon name={icon} /></span><span className="ops-work-card-meta">{meta}</span></span>
-    <strong className="ops-work-card-title">{title}</strong>
-    {description ? <span className="ops-work-card-description">{description}</span> : null}
+    <strong className="ops-work-card-title">{displayWorkText(title)}</strong>
+    {description ? <span className="ops-work-card-description">{displayWorkText(description)}</span> : null}
     <span className="ops-work-card-footer"><span>{footer || 'View details'}</span><Icon name="arrow" /></span>
   </button>;
 }

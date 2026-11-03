@@ -1,5 +1,6 @@
 'use client';
 
+import { displayWorkText } from '@/lib/work-display';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api, Entity } from '@/lib/api';
@@ -66,7 +67,7 @@ export default function HistoryPage() {
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     <section className="panel history-controls">
       <div className="toolbar" style={{ marginBottom: 0 }}>
-        <input className="input" aria-label="Search operational history" placeholder="Search title, note, owner, or archive reason" value={q} onChange={event => setQ(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void load(q, kind); }} />
+        <input className="input" aria-label="Search past work" placeholder="Search title, note, owner, or archive reason" value={q} onChange={event => setQ(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void load(q, kind); }} />
         <select className="select" aria-label="Record type" value={kind} onChange={event => { const nextKind = event.target.value; setKind(nextKind); void load(q, nextKind); }}>{kinds.map(value => <option value={value} key={value}>{value ? value.replaceAll('-', ' ') : 'All record types'}</option>)}</select>
         {(q || kind) ? <button className="btn secondary" onClick={() => { setQ(''); setKind(''); void load('', ''); }}>Clear</button> : null}
       </div>
@@ -86,7 +87,7 @@ export default function HistoryPage() {
             <span className="muted">{label(item.status || item.review_status || 'Completed')}</span>
             {item.archive_reason ? <><span className="muted">·</span><span className="muted">{label(item.archive_reason)}</span></> : null}
           </div>
-          <span className="muted">{String(item.note || item.message || item.caption || item.reason || '').slice(0, 160) || 'No summary recorded.'}</span>
+          <span className="muted">{displayWorkText(item.note || item.message || item.caption || item.reason || '').slice(0, 160) || 'No summary recorded.'}</span>
           <div className="card-line" style={{ marginTop: 8 }}>
             {item.department_name ? <span className="muted">Department: {item.department_name}</span> : null}
             {item.owner_name || item.assignee_name ? <span className="muted">Owner: {item.owner_name || item.assignee_name}</span> : null}

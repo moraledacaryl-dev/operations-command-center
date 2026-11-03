@@ -98,18 +98,18 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   const coach = page.locator('.ops-guide-tip');
   await expect(coach).toContainText('practice dashboard');
   await coach.getByRole('button', { name: /Next/ }).click();
-  await expect(coach).toContainText('Find My Work');
+  await expect(coach).toContainText('Open My Work');
   await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
   await page.keyboard.press('ArrowRight');
-  await expect(coach).toContainText('Find My Work');
+  await expect(coach).toContainText('Open My Work');
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
   await expect(page).toHaveURL(/\/my-work$/);
-  await expect(coach).toContainText('Review your assigned work');
+  await expect(coach).toContainText('Read your tasks');
   await page.reload();
   await expect(page.getByTestId('course-lesson-title')).toHaveCount(0);
   await expect(page.getByRole('dialog', { name: 'Resume required training' })).toBeVisible();
   await page.getByRole('button', { name: /Resume practical lesson/ }).click();
-  await expect(coach).toContainText('Review your assigned work');
+  await expect(coach).toContainText('Read your tasks');
   await expect(page).toHaveURL(/\/my-work$/);
 });
 
@@ -152,13 +152,13 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   await page.getByTestId('course-check-answer').click();
   await expect(page).toHaveURL(/\/tasks$/);
   const coach = page.locator('.ops-guide-tip');
-  await expect(coach).toContainText('Board versus List');
+  await expect(coach).toContainText('Board or List');
   await coach.getByRole('button', { name: /Next/ }).click();
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Open New task');
   await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
   await page.getByTestId('create-task').click();
-  await expect(coach).toContainText('Fill out the task');
+  await expect(coach).toContainText('Describe the task');
   await coach.getByRole('button', { name: /Next/ }).click();
   await page.getByTestId('create-task-form').getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByTestId('course-await-work')).toContainText('YOUR TURN · SAVE THE PRACTICE WORK');
@@ -196,7 +196,7 @@ test('a non-reception room lesson keeps the opened room visible and describes na
   await page.getByRole('textbox', { name: 'Search rooms and areas' }).fill('Solace');
   await page.getByRole('link', { name: 'Open Solace' }).click();
   await expect(page).toHaveURL(/\/rooms\/101$/);
-  await expect(page.locator('.ops-guide-tip')).toContainText('Review before escalating');
+  await expect(page.locator('.ops-guide-tip')).toContainText('Check existing reports');
   await page.reload();
   await page.getByRole('button', { name: /Resume practical lesson/ }).click();
   // Resume opens the room list for this review step; opening a room remains allowed.

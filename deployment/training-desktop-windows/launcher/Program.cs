@@ -139,7 +139,7 @@ internal sealed class TrainingWindow : Form
                    IDictionary<string, string> env, string logName)
     {
         if (!File.Exists(exe))
-            throw new FileNotFoundException("Training runtime is missing", exe);
+            throw new FileNotFoundException("A training file is missing", exe);
         var p = new Process();
         p.StartInfo = new ProcessStartInfo {
             FileName = exe, Arguments = arguments,
@@ -191,7 +191,7 @@ internal sealed class TrainingWindow : Form
         if (starting || backend is { HasExited: false } || frontend is { HasExited: false }) return;
         if (PortTaken(3401) || PortTaken(8401))
         {
-            MessageBox.Show("Port 3401 or 8401 is already in use. Close the other program before starting training.\n\nNothing was changed.",
+            MessageBox.Show("Close the other training window, then try again.\n\nNothing was changed.",
                 "Training cannot start", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -216,7 +216,7 @@ internal sealed class TrainingWindow : Form
                 await initializer.WaitForExitAsync(timeout.Token);
                 if (closing || cancelled) return;
                 if (initializer.ExitCode != 0)
-                    throw new Exception("Could not initialize demo data. See the training logs.");
+                    throw new Exception("Could not prepare your practice. Ask your trainer for help.");
             }
             finally
             {
@@ -252,10 +252,10 @@ internal sealed class TrainingWindow : Form
                 }
                 catch { /* services may still be starting */ }
             }
-            if (!healthy) throw new Exception("Training service did not become ready.");
+            if (!healthy) throw new Exception("Training could not open. Try again or ask your trainer for help.");
             stop.Enabled = true; stop.Text = "Stop";
             browser.Enabled = true; accounts.Enabled = true;
-            SetStatus("Running locally • Your practice records are saved.");
+            SetStatus("Training is open • Your practice is saved");
             OpenBrowser();
         }
         catch (Exception exc)

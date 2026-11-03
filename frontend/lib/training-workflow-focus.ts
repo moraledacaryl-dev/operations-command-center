@@ -12,7 +12,7 @@ export type WorkflowFocus = {
  */
 export function workflowFocus(session: TrainingWorkflowSession, onModule: boolean): WorkflowFocus {
   if (!onModule) return {
-    title: 'Open the correct Operations screen',
+    title: 'Open the practice page',
     text: 'Click the outlined Open button. The guided lesson stays with you when the page changes.',
     targets: [{ selector: '[data-testid="training-open-module"]' }],
   };

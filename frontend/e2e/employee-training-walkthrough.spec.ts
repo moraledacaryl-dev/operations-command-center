@@ -59,7 +59,7 @@ test('mobile orientation points to the menu when My Work is hidden', async ({ pa
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
   await expect(page).toHaveURL(/\/my-work$/);
-  await expect(tip).toContainText('Review your assigned work');
+  await expect(tip).toContainText('Read your tasks');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   mkdirSync('test-results/ui-audit', { recursive: true });
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-employee-mobile.png', fullPage: true });
@@ -163,11 +163,11 @@ test('a delayed navigation callback cannot rewind the next tour step', async ({ 
   const tip = page.locator('.ops-guide-tip');
   await tip.getByRole('button', { name: 'Next →', exact: true }).click();
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
-  await expect(tip).toContainText('Review your assigned work');
+  await expect(tip).toContainText('Read your tasks');
   await tip.getByRole('button', { name: 'Next →', exact: true }).click();
   // The old implementation queued a 100 ms callback which could restore step 3.
   await page.waitForTimeout(200);
-  await expect(tip).toContainText('Find notifications');
+  await expect(tip).toContainText('Open Notifications');
   await page.locator('a.ops-notifications').click();
-  await expect(tip).toContainText('Read your notifications');
+  await expect(tip).toContainText('Read the update');
 });

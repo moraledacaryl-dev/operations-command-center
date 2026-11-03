@@ -46,7 +46,7 @@ test('ordinary staff inspect an actual saved fictional task without mutation per
   await expect(taskTab.getByTestId('tasks-board')).toBeVisible();
   await expect(taskTab.getByText(saved.title).first()).toBeVisible();
   await taskTab.getByText(saved.title).first().click();
-  await expect(taskTab.getByText('No task transition is available for your role and this state.')).toBeVisible();
+  await expect(taskTab.getByText('Ask your lead if this task needs updating.')).toBeVisible();
   await taskTab.close();
 
   await page.getByTestId('record-lookup-status').selectOption('To Do');
