@@ -15,8 +15,9 @@ type Turnover = {
   started_by_id?: number | null; submitted_by_id?: number | null;
   inspected_by_id?: number | null; inspected_at?: string | null;
   rework_note?: string | null;
+  booking_updates?: { status: string; origin: string; check_out: string; reported_at: string }[];
 };
-type Board = { date: string; rooms: Turnover[]; can_schedule: boolean; can_clean: boolean; can_inspect: boolean };
+type Board = { date: string; rooms: Turnover[]; can_schedule: boolean; can_clean: boolean; can_inspect: boolean; accounting_connected?: boolean };
 const STATUS_TEXT: Record<string,string> = {
   'No cleaning request': 'No cleaning request for this date',
   'Needs cleaning': 'Waiting to be cleaned',
@@ -91,7 +92,7 @@ export default function HousekeepingPage() {
 
   return <div className="housekeeping-board">
     <Top title="Room cleaning" right={<Link href="/rooms" className="btn secondary">All rooms</Link>} />
-    <p className="hk-intro">See which guest rooms need cleaning and what is waiting for inspection. A cleared room is <strong>not automatically marked vacant or available for sale</strong> in Beds24.</p>
+    <p className="hk-intro">See which guest rooms need cleaning and what is waiting for inspection. Front Desk confirms the room is empty before cleaning starts. A supervisor then checks the finished room.</p>
     <div className="hk-tools">
       <label>Date <input aria-label="Cleaning date" className="input" type="date" value={day} onChange={e => setDay(e.target.value)} /></label>
       <label>Find room <input aria-label="Find room" className="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Solace, Perch 1…" /></label>
@@ -115,6 +116,11 @@ export default function HousekeepingPage() {
         const checks = row.checklist.filter(item => item.checked).length;
         return <article key={row.room_area_id} className="hk-room-card" data-testid={'cleaning-room-' + row.room_area_id}>
           <header><h2>{row.room_name}</h2><span className="hk-status">{STATUS_TEXT[row.status] || row.status}</span></header>
+          {(row.booking_updates || []).map((update, index) => <p key={index} className="hk-source">
+            <strong>{update.origin === 'beds24' ? 'Beds24 via Accounting' : 'Accounting'}</strong>: {({ confirmed: 'Checkout scheduled', checked_in: 'Guest marked checked in', checked_out: 'Checkout reported', cancelled: 'Booking cancelled — check with Front Desk', no_show: 'Guest marked as no-show — check with Front Desk', unknown: 'Booking status needs checking' } as Record<string,string>)[update.status] || 'Check booking status'} for {update.check_out}.
+            <small> Last received {new Date(update.reported_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} (Philippine time).</small>
+          </p>)}
+          {row.source === 'accounting' && <p>Cleaning request created from the checkout date in Accounting. Confirm the room is empty before starting.</p>}
           {row.id === null ? <>
             <p>There is no cleaning request for this room on {day}.</p>
             {data?.can_schedule && <button type="button" className="btn" disabled={isBusy}
@@ -158,6 +164,6 @@ export default function HousekeepingPage() {
       })}
     </div>
     {data && !visible.length && <p role="status">No rooms match this view.</p>}
-    <small className="hk-footer">Cleaning requests are entered manually. This screen does not read live guest checkouts or change room availability in Beds24. Do not enter guest names or payment details.</small>
+    <small className="hk-footer">{data?.accounting_connected ? 'Mapped room checkout dates and booking updates arrive through Accounting. Changes may take a moment to arrive; use Refresh to check for updates.' : 'Automatic room updates are not configured in this installation. Front Desk can schedule cleaning here.'} Cleaning approval does not change availability in Beds24. Do not enter guest names or payment details.</small>
   </div>;
 }
