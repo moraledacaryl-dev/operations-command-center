@@ -51,7 +51,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     priority: 'High', route: 'Front Desk', decision: 'Assign and follow up', reference: 'DEMO-HANDOVER-014',
     noteChecks: [
       { label: "who is responsible for handling the problem", alternatives: ["assign", "owner", "ownership", "responsib"] },
-      { label: "telling the guest what happens next or informing the next shift", alternatives: ["update", "call back", "callback", "follow up"] },
+      { label: "telling the guest what happens next or informing the next shift", alternatives: ["update", "updat", "call back", "callback", "follow up", "tell the guest", "inform the guest", "tell the next shift"] },
     ],
     example: 'DEMO-HANDOVER-014: Twinspire guest says the toilet will not flush. Assign the Front Desk lead as owner to contact Maintenance and call the guest with an update. Tell the next receptionist that the repair is still waiting for inspection.',
     why: 'The guest is still waiting and a new receptionist starts soon. Someone must contact the right team, tell the guest what is happening, and make sure the next shift knows who is responsible.',
@@ -291,7 +291,7 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
     errors.priority = 'Think about who could be harmed and how soon staff need to act.';
   }
   if (answers.department !== scenario.route) {
-    errors.department = 'Choose the team that can do the next job.';
+    errors.department = scenario.id === 'shift-unresolved' ? 'Front Desk should follow up with the guest and ask Maintenance to repair the toilet.' : 'Choose the team that can do the next job.';
   }
   if (answers.decision !== scenario.decision) {
     errors.decision = 'Choose what staff should do next, based on the facts in this situation.';
@@ -303,9 +303,13 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
   } else if (!note.includes(scenario.reference.toLowerCase())) {
     errors.note = 'Include the practice number so the next shift can find the same problem.';
   } else if (scenario.noteChecks?.length) {
-    const missing = scenario.noteChecks.filter(check =>
-      !check.alternatives.some(term => matchesActionCriterion(note, term))
-    );
+    const missing = scenario.noteChecks.filter((check, index) => {
+      // A named person or role taking a specific action is responsibility,
+      // even when the employee does not use the word "assigned".
+      const namedAction = scenario.id === 'shift-unresolved' && index === 0 &&
+        /\b(?!(?:nobody|someone|somebody|anyone|anybody|everyone|everybody|whoever)\b)(?:[a-z]+(?:\s+at\s+front\s+desk)?|front\s+desk|reception)\s+will\s+(?:call|contact|handle|follow|ask|tell)\b/.test(note);
+      return !namedAction && !check.alternatives.some(term => matchesActionCriterion(note, term));
+    });
     if (missing.length) {
       errors.note = 'Your note does not clearly explain ' + missing.map(check => check.label).join(' and ') +
         '. Say what someone should do, using your own words.';

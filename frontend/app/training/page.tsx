@@ -374,7 +374,8 @@ export default function PracticeTrainingPage() {
       <div>
         <p className="practice-eyebrow">HIDDEN OASIS / OPERATIONS TRAINING</p>
         <h1>Practice common work situations</h1>
-        <p>Read a work situation. Choose what to do, then write a note for the next shift. You will see what you got right and what to check again.</p>
+        <p>Read a situation, decide what to do, and write a note for the next shift.</p>
+        <a className="practice-skip" href="#current-situation">Go to your situation ↓</a>
         <p className="practice-safe"><strong>FOR PRACTICE ONLY.</strong> Use made-up guest and staff details. Nothing here changes the resort&apos;s live records.</p>
       </div>
       <div className="practice-progress" aria-label={completedCount + ' of ' + scenarios.length + ' scenarios complete'}>
@@ -394,11 +395,11 @@ export default function PracticeTrainingPage() {
     </header>
 
     <section className="practice-start-here" data-testid="training-start-here">
-      <div><strong>Start here</strong><p>First, learn where to click in the practice app. Then come back to try a work situation. The app will guide you through the steps.</p></div>
+      <div><strong>Need help getting started?</strong><p>Explore the app or get help with this situation.</p></div>
       <div className="practice-start-buttons">
-        <Link href="/" className="practice-primary" data-testid="open-real-screens">1. Learn where to click →</Link>
-        <button type="button" className="practice-secondary" data-testid="show-lesson-arrows" onClick={startGuide}>2. Show me how to answer</button>
-        <button type="button" className="practice-secondary" data-testid="repeat-current-lesson" onClick={repeatGuide}>↻ Start this lesson again</button>
+        <Link href="/" className="practice-primary" data-testid="open-real-screens">Explore the app →</Link>
+        <button type="button" className="practice-secondary" data-testid="show-lesson-arrows" onClick={startGuide}>Help me answer</button>
+        <button type="button" className="practice-secondary" data-testid="repeat-current-lesson" onClick={repeatGuide}>Start this lesson again</button>
       </div>
     </section>
     <p className="practice-save-note">Your draft saves automatically for this login in this browser. You can switch situations and return later. Clearing browser data removes drafts and progress.</p>
@@ -439,7 +440,7 @@ export default function PracticeTrainingPage() {
         </div>
       </aside>
 
-      <section className="practice-workspace" aria-live="polite" aria-label="Active training exercise">
+      <section id="current-situation" tabIndex={-1} className="practice-workspace" aria-live="polite" aria-label="Active training exercise">
         <div className="practice-topline"><span className="practice-department">{selected.department} · Level {selected.level || 1}</span><span>Practice case · {selected.reference}</span></div>
         <div className="practice-help">
           <details>
@@ -540,7 +541,7 @@ export default function PracticeTrainingPage() {
             {result?.errors.priority && <><small className="practice-error" role="alert">{result.errors.priority}</small>
               <small className="practice-judgment-correction" data-testid="priority-feedback">{reasoningFeedback(selected, answers.priority)}</small></>}
           </label>
-          <label>Which team should handle this next?
+          <label>{selected.id === 'shift-unresolved' ? 'Which team should follow up with the guest?' : 'Which team should handle this next?'}
             <select value={answers.department} required onChange={e => update('department', e.target.value as PracticeAnswers['department'])} data-testid="scenario-department">
               <option value="">Select a team…</option>{DEPARTMENTS.map(option => <option key={option} value={option}>{option}</option>)}
             </select>
@@ -586,7 +587,7 @@ export default function PracticeTrainingPage() {
               onChange={e => update('note', e.target.value)} />
             <small>Include practice number <strong>{selected.reference}</strong>, what happened, the next action, and who will check it. Use made-up details.</small>
             {selected.noteChecks && <small>Make sure your note explains {selected.noteChecks.map(rule => rule.label).join(' and ')}. Say what the person should do.</small>}
-            {result?.errors.note && <small className="practice-error" role="alert">{result.errors.note}</small>}
+            {result?.errors.note && <><small className="practice-error" role="alert">{result.errors.note}</small><small>If your note already covers this, ask your trainer to review it.</small><details><summary>See an example note</summary><p>{selected.example}</p></details></>}
           </label>
           {result && !result.passed && <p className="practice-notice" role="status">Check the highlighted answers, make the changes, and try again.</p>}
           <div className="practice-actions">

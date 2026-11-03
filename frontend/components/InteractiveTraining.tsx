@@ -804,8 +804,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           : <p className="ops-guide-hint">↖ Read the highlighted section, then choose {atLastStep ? 'Finish practice' : 'Next'}.</p>}
         <div className="ops-guide-actions">
           <button type="button" className="ops-guide-button-secondary" onClick={previous} disabled={stepIndex === 0}>Back</button>
-          <button type="button" className="ops-guide-button-primary" onClick={() => next()}
-            disabled={Boolean(step.requiresAction && (course?.stage === 'tour' || targetFound))}>{step.requiresAction ? 'Click highlighted link →' : atLastStep ? 'Finish practice' : 'Next →'}</button>
+          {step.requiresAction && (course?.stage === 'tour' || targetFound)
+            ? <span className="ops-guide-action-instruction">Select the highlighted link to continue.</span>
+            : <button type="button" className="ops-guide-button-primary" onClick={() => next()}>{atLastStep ? 'Finish practice' : 'Next →'}</button>}
         </div>
         <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>See lesson list</button>
       </section>

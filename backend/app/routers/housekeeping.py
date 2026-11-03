@@ -10,6 +10,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -151,11 +152,19 @@ def list_turnovers(
         "service_date": day, "status": "No cleaning request", "source": None,
         "vacated_confirmed": False, "checklist": [],
     } for r in rooms]
-    snapshots = db.query(AccountingRoomBooking).filter(AccountingRoomBooking.check_out == day).all()
+    # Booking snapshots describe the latest report, not a history of past days.
+    # Include stays spanning today and outstanding check-ins past departure;
+    # do not present today's status as a
+    # historical or future occupancy record.
+    today = utc_now().astimezone(TZ).date().isoformat()
+    snapshots = (db.query(AccountingRoomBooking).filter(
+        AccountingRoomBooking.check_in <= day,
+        or_(AccountingRoomBooking.check_out >= day, AccountingRoomBooking.status == "checked_in"),
+    ).all() if day == today else [])
     for record in records:
         record["booking_updates"] = [{
             "status": snapshot.status, "origin": snapshot.origin,
-            "check_out": snapshot.check_out,
+            "check_in": snapshot.check_in, "check_out": snapshot.check_out,
             "reported_at": snapshot.reported_at.isoformat(),
         } for snapshot in snapshots if record["room_area_id"] in json.loads(snapshot.room_ids_json)]
     return {"date": day, "rooms": records,

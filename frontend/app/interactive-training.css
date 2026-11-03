@@ -292,3 +292,5 @@
   .ops-practice-mission-summary { padding: 12px; }
   .ops-practice-show-help { font-size: 14px; }
 }
+
+.ops-guide-action-instruction { align-self: center; color: #24543a; font-size: 13px; line-height: 1.4; }

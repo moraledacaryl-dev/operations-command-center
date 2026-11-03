@@ -11,6 +11,7 @@ test.skip(!rosterPath, 'Requires a disposable local training DB and private synt
 
 async function signIn(page: import('@playwright/test').Page, email: string) {
   await page.goto('/login');
+  await page.waitForLoadState('networkidle');
   expect(new URL(page.url()).hostname).toBe('127.0.0.1');
   const roster = JSON.parse(readFileSync(rosterPath!, 'utf8'));
   const account = roster.accounts.find((a: { email: string }) => a.email === email);

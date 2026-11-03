@@ -37,7 +37,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     whyIncorrect: 'A notification is a message, not confirmation that a task was finished. Open the related task to see what still needs doing.',
     questions: [
       q('Where do you go first to see tasks assigned to you?', ['My Work','Rooms','Marketing'], 0, 'My Work shows assignments for your own account.'),
-      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the related task and check what still needs doing','Change another employee’s password'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
+      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the related task and check what still needs doing','Wait until the next shift without checking'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
     ],
   },
   'staff-handover': {
@@ -59,8 +59,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'A guest in Solace says the air conditioner is not cooling. Open Solace and check its saved guest report before creating another report.',
     remember: 'Check the correct room name. Never mix one guest’s information with another guest’s report.',
     questions: [
-      q('Before reporting another problem in Solace, what should you check?', ['Whether the issue is already recorded','Whether it is payday','Whether the café menu changed'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
-      q('Why should you confirm the room name?', ['To send the right team to the correct place','To make the record longer','To avoid telling the next shift anything'], 0, 'The correct room name prevents wasted trips and mistaken guest updates.'),
+      q('Before reporting another problem in Solace, what should you check?', ['Whether the issue is already recorded','Only whether the room has been cleaned','Only whether a different room has a problem'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
+      q('Why should you confirm the room name?', ['To send the right team to the correct place','To check whether the room is clean','To decide when the next shift starts'], 0, 'The correct room name prevents wasted trips and mistaken guest updates.'),
     ],
   },
   'staff-my-work': {
@@ -68,7 +68,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'An item due today is waiting for materials. Open it, understand what is missing, and tell the lead so they can help.',
     repeatVariant: { example:'You open My Work and see a job blocked because a part has not arrived. Report the blocker rather than falsely closing the task.', questions:[
       q('A task is Waiting for another team. What should you do?', ['Check the blocker and keep the responsible person informed','Delete it','Mark it done'],0,'Waiting is not the same as finished work.'),
-      q('Where should you look for tasks assigned to your login?', ['My Work','A coworker’s payroll','Marketing drafts'],0,'My Work shows your assigned workload.'),
+      q('Where should you look for tasks assigned to your login?', ['My Work','The room directory','The shift handover'],0,'My Work shows your assigned workload.'),
     ] },
     remember: 'A task waiting for approval or another team is not automatically finished.',
     questions: [

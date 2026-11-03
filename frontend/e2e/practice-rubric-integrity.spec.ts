@@ -121,3 +121,14 @@ test('every situation rejects each wrong classification and incomplete written f
     }
   }
 });
+
+
+test('a naturally worded handover naming a person and guest update is accepted', () => {
+  const scenario = caseById('shift-unresolved');
+  const note = 'DEMO-HANDOVER-014: Twinspire toilet will not flush. Ana at Front Desk will call Maintenance, update the guest in ten minutes, and tell the next shift the repair is still waiting.';
+  expect(assessPractice(scenario, responses(scenario, note)).errors.note).toBeFalsy();
+  const alternative = note.replace('update the guest', 'updating the guest');
+  expect(assessPractice(scenario, responses(scenario, alternative)).errors.note).toBeFalsy();
+  const noOwner = note.replace('Ana at Front Desk will call', 'Nobody will call');
+  expect(assessPractice(scenario, responses(scenario, noOwner)).errors.note).toBeTruthy();
+});

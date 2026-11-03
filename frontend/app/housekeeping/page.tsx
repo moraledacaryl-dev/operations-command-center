@@ -15,7 +15,7 @@ type Turnover = {
   started_by_id?: number | null; submitted_by_id?: number | null;
   inspected_by_id?: number | null; inspected_at?: string | null;
   rework_note?: string | null;
-  booking_updates?: { status: string; origin: string; check_out: string; reported_at: string }[];
+  booking_updates?: { status: string; origin: string; check_in: string; check_out: string; reported_at: string }[];
 };
 type Board = { date: string; rooms: Turnover[]; can_schedule: boolean; can_clean: boolean; can_inspect: boolean; accounting_connected?: boolean };
 const STATUS_TEXT: Record<string,string> = {
@@ -115,12 +115,17 @@ export default function HousekeepingPage() {
         const mine = Number(row.started_by_id) === selfId;
         const checks = row.checklist.filter(item => item.checked).length;
         return <article key={row.room_area_id} className="hk-room-card" data-testid={'cleaning-room-' + row.room_area_id}>
-          <header><h2>{row.room_name}</h2><span className="hk-status">{STATUS_TEXT[row.status] || row.status}</span></header>
-          {Array.from(new Set((row.booking_updates || []).map(update => update.status))).map(status => <p key={status} className="hk-booking-status">
-            {({ confirmed: 'Checkout scheduled', checked_in: 'Guest still checked in', checked_out: 'Checkout recorded', cancelled: 'Booking cancelled — check with Front Desk', no_show: 'Guest did not arrive — check with Front Desk', unknown: 'Check the booking with Front Desk' } as Record<string,string>)[status] || 'Check the booking with Front Desk'}
-          </p>)}
+          <header><h2>{row.room_name}</h2><span className="hk-status">Cleaning: {STATUS_TEXT[row.status] || row.status}</span></header>
+          <div className="hk-guest-status">
+            <strong>Guest status</strong>
+            {day !== propertyDay() ? <p>Not available for this date. Check with Front Desk.</p>
+              : !(row.booking_updates || []).length ? <p>Not confirmed. Check with Front Desk.</p>
+              : <>{(row.booking_updates || []).map((update, index) => <p key={index}>
+                {({ checked_in: 'Check-in recorded', checked_out: 'Checkout recorded', confirmed: 'Booking confirmed; check-in not confirmed', cancelled: 'Booking cancelled', no_show: 'Guest did not arrive' } as Record<string,string>)[update.status] || 'Guest status not confirmed'}
+                {' · Received: '}{new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(update.reported_at.endsWith('Z') || /[+-]\d\d:\d\d$/.test(update.reported_at) ? update.reported_at : update.reported_at + 'Z'))}
+              {' · Stay: '}{update.check_in} to {update.check_out}</p>)}<p>Confirm with Front Desk before entering.</p></>}
+          </div>
           {row.id === null ? <>
-            <p>There is no cleaning request for this room on {day}.</p>
             {data?.can_schedule && <button type="button" className="btn" disabled={isBusy}
               onClick={() => void act(row, '/turnovers', { room_area_id: row.room_area_id, service_date: day })}>Schedule cleaning</button>}
           </> : <>

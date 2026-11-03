@@ -34,3 +34,5 @@
  .hk-room-card button { width: 100%; }
 }
 @media(max-width:390px) { .hk-tools { grid-template-columns: 1fr; } }
+
+.hk-guest-status { display: grid; gap: 4px; padding: 10px 12px; border-radius: 9px; background: #f1f5f2; color: #304f3b; font-size: 13px; }

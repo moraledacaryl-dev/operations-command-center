@@ -97,10 +97,11 @@ test('staff see the next action without system details or false vacancy', async 
   await visit(page, 'front', () => ({ ...fakeBoard('front', true, 'Needs cleaning'),
     accounting_connected: true,
     rooms: [{ ...fakeBoard('front', true, 'Needs cleaning').rooms[0], source: 'accounting',
-      booking_updates: [{ status: 'confirmed', origin: 'beds24', check_out: '2026-11-04', reported_at: '2026-11-03T10:00:00Z' }] }],
+      booking_updates: [{ status: 'confirmed', origin: 'beds24', check_in: '2026-11-02', check_out: '2026-11-04', reported_at: '2026-11-03T10:00:00Z' }] }],
   }));
   const card = page.getByTestId('cleaning-room-31');
-  await expect(card).toContainText('Checkout scheduled');
+  await expect(card).toContainText('Guest status');
+  await expect(card).toContainText(/not confirmed|Not available for this date/i);
   await expect(card).toContainText('Waiting for Front Desk');
   await expect(page.getByText(/Beds24|Accounting|Last received|mapped|integration/i)).toHaveCount(0);
   await expect(card.getByRole('button', { name: 'Start cleaning' })).toHaveCount(0);

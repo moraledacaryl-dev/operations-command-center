@@ -42,6 +42,7 @@ test('first open goes to role login without a cached fictional account', async (
 test('reception must click choices, type a case note and correct mistakes before progress is recorded', async ({ page }) => {
   await signInToFictionalWorkspace(page, 'staff');
   await expect(page.getByRole('heading', { name: 'Practice common work situations' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Go to your situation ↓' })).toHaveAttribute('href', '#current-situation');
   await expect(page.getByTestId('scenario-guest-ac')).toBeVisible();
   await expect(page.getByTestId('scenario-manager-evidence')).toHaveCount(0);
 
@@ -184,6 +185,9 @@ test('original shift handover rejects filler even after correct priority and rou
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
   await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
+  await expect(page.getByText('If your note already covers this, ask your trainer to review it.')).toBeVisible();
+  await page.getByText('See an example note').click();
+  await expect(page.getByText('DEMO-HANDOVER-014: Twinspire guest says the toilet will not flush.', { exact: false })).toBeVisible();
   await page.getByTestId('scenario-note').fill(
     'DEMO-HANDOVER-014: Front Desk assigns an on-duty owner to the pending request and will update the practice guest before the next handover.',
   );
