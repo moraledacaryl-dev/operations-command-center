@@ -17,7 +17,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     show: 'From Today, open My Work. Read one assignment, open the notification bell, then return using the Hidden Oasis logo.',
     help: 'Follow the arrow to the menu or button shown in each step. Click links yourself.',
     self: 'Find My Work and your notifications without an arrow.',
-    checks: 'The app checks the actual navigation controls you use.',
+    checks: 'The app checks which pages you open.',
     safety: 'Do not mark a task finished just because you read a notification.',
   },
   'staff-handover': {
@@ -25,7 +25,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     show: 'Open Shift handover, choose Urgent, read the Night handover from your department, and check its status.',
     help: 'Find the highlighted handover. Read its saved status before answering.',
     self: 'Find your department’s PM handover without arrows and identify its saved status.',
-    checks: 'Staff answers are compared with the actual fictional handovers saved on this computer.',
+    checks: 'The app checks your answers against the practice shift notes.',
     safety: 'Reading a handover does not complete or approve the work.',
   },
   'staff-rooms': {
@@ -33,7 +33,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     show: 'Open Rooms, choose Guest rooms, search Solace, and open its AC report.',
     help: 'Click the highlighted Rooms controls yourself and choose the report’s saved status.',
     self: 'Find Perch 1 and its towel request without arrows.',
-    checks: 'The app checks the selected room and saved fictional report.',
+    checks: 'The app checks the room and report you choose.',
     safety: 'Do not create a duplicate report or assume a problem is fixed.',
   },
   'staff-my-work': {
@@ -49,7 +49,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     show: 'Find the team task list, search for existing work, and open the New task form.',
     help: 'Enter a fictional job with the reference shown in the guide. Save it yourself.',
     self: 'Create and assign a practice task, start it, then submit it for review.',
-    checks: 'The training database verifies the task and its saved status.',
+    checks: 'The app checks your saved task and its status.',
     safety: 'Only leads and authorized managers may create or update these tasks.',
   },
   'guest-matters': {
@@ -64,7 +64,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     goal: 'Report a repair and check whether it is finished.',
     show: 'Open Maintenance and look for an existing Solace AC problem before entering another one.',
     help: 'Use Report issue to enter a fictional defect. Follow the guide to save work.',
-    self: 'Progress the training repair through its permitted statuses.',
+    self: 'Start the practice repair, mark it done and ask for the final check.',
     checks: 'The app checks the saved repair. Only authorized managers can verify completed work.',
     safety: 'Done and Verified mean different things. Never bypass a safety check.',
   },
@@ -73,15 +73,15 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     show: 'Open Requests and read the statuses for Draft and Review.',
     help: 'Write exactly what the department needs, why, and who should review it.',
     self: 'Create a practice request, send it for review, and check its saved status.',
-    checks: 'The training database verifies the actual request and approval workflow.',
-    safety: 'A request is not a purchase order; real purchasing remains in Accounting.',
+    checks: 'The app checks your saved request and whether it was sent for review.',
+    safety: 'Wait for approval before arranging a purchase.',
   },
   'shift-writing': {
     goal: 'Leave a useful note for the next shift.',
     show: 'Find unresolved handovers and read what information is missing.',
     help: 'Write a fictional note with the problem, responsible person, and next check.',
     self: 'Save the handover and perform the required follow-up step yourself.',
-    checks: 'The app verifies the saved note and its workflow status.',
+    checks: 'The app checks your saved note and its status.',
     safety: 'A note does not prove the job was completed.',
   },
   projects: {
@@ -97,7 +97,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     show: 'Open Marketing, read a draft post, and identify what needs changes.',
     help: 'Use the actual content controls to review a fictional design.',
     self: 'Return to the dashboard without publishing anything.',
-    checks: 'The app checks the actions you took; a trainer reviews creative judgment.',
+    checks: 'Your trainer reviews how you check the design.',
     safety: 'Do not publish or post anything as part of this exercise.',
   },
   'management-review': {
@@ -105,7 +105,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     show: 'Open Review, find a pending decision, and read its supporting details.',
     help: 'Compare what the request says with the evidence available.',
     self: 'Find a decision, then return without approving a real record.',
-    checks: 'This lesson checks safe navigation. Actual approval decisions need trainer observation.',
+    checks: 'Your trainer needs to watch how you make approval decisions.',
     safety: 'Do not approve a task or purchase without the required evidence.',
   },
   accounts: {
@@ -113,7 +113,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     show: 'Search the Users screen before changing any account.',
     help: 'Read roles and department access without editing them.',
     self: 'Find an account using a fictional search term and return safely.',
-    checks: 'The practice checks navigation only; no real credentials are changed.',
+    checks: 'This practice checks how you find an account.',
     safety: 'Never share passwords or grant manager permissions as practice.',
   },
 };

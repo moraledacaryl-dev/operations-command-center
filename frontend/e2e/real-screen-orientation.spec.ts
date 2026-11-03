@@ -32,7 +32,7 @@ test('first training open starts on real dashboard and requires navigating actua
   await course.getByLabel('My Work', { exact: true }).check();
   await page.getByTestId('course-check-answer').click();
   await expect(course).toContainText('You read a notification');
-  await course.getByLabel('Read the linked work and check what action is still needed').check();
+  await course.getByLabel("Read the related task and check what still needs doing").check();
   await page.getByTestId('course-check-answer').click();
   await expect(course).toHaveCount(0);
   await expect(coach).toContainText('Your start page');

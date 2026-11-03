@@ -33,7 +33,7 @@ test('required lesson and resume dialog keep keyboard focus inside', async ({ pa
   await expect(dialog).toBeFocused();
   await dialog.getByRole('radio', { name: 'My Work', exact: true }).check();
   await page.getByTestId('course-check-answer').click();
-  await dialog.getByRole('radio', { name: 'Read the linked work and check what action is still needed' }).check();
+  await dialog.getByRole('radio', { name: "Read the related task and check what still needs doing" }).check();
   await page.getByTestId('course-check-answer').click();
   await page.reload();
   const resume = page.getByRole('dialog', { name: 'Resume required training' });
@@ -50,7 +50,7 @@ test('mobile orientation points to the menu when My Work is hidden', async ({ pa
   await page.getByTestId('course-start-quiz').click();
   await dialog.getByRole('radio', { name: 'My Work', exact: true }).check();
   await page.getByTestId('course-check-answer').click();
-  await dialog.getByRole('radio', { name: 'Read the linked work and check what action is still needed' }).check();
+  await dialog.getByRole('radio', { name: "Read the related task and check what still needs doing" }).check();
   await page.getByTestId('course-check-answer').click();
   const tip = page.locator('.ops-guide-tip');
   await tip.getByRole('button', { name: /Next/ }).click();
