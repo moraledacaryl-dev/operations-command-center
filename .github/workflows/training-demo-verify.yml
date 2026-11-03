@@ -5,6 +5,7 @@ on:
     paths:
       - 'backend/scripts/seed_training_demo.py'
       - 'backend/scripts/shift_challenge_cases.json'
+      - 'frontend/lib/shift-challenge-cases.json'
       - 'backend/tests/test_training_shift_challenge_upgrade.py'
       - 'backend/tests/test_training_seed_guards.py'
       - '.github/workflows/training-demo-verify.yml'

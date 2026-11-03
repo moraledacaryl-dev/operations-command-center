@@ -1,5 +1,5 @@
 import { test,expect } from '@playwright/test';
-import cases from '../../backend/scripts/shift_challenge_cases.json';
+import cases from '../lib/shift-challenge-cases.json';
 import { assessShiftNote,emptyShiftAnswers,readShiftAttempt,savedShiftBody,shiftCaseFor,shiftHandoverTitle,shiftNoticeTitle,shiftTaskTitle,verifyShiftEvidence } from '../lib/training-shift-challenge';
 import { modelShiftAnswers } from './shift-challenge-fixtures';
 import type { ShiftAttempt } from '../lib/training-shift-challenge';

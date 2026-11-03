@@ -38,7 +38,7 @@ Reading is observed in the browser; record identity, assignment, status, notice 
 
 Leads and managers can open **Hands-on Training → Review shift follow-ups**. This read-only page shows comments from the assigned employees' actual training jobs, with their names and save times. The department choices come from their permitted memberships; normal backend access controls still apply. Viewing a note does not approve work or certify the employee.
 
-The seed adds seven department handovers, one assigned job and one personal notice per fictional staff login. Ten staff logins are supported, including the AM/PM alternatives. The Mac and Windows launchers append missing challenge records to an existing validated private fictional installation. They preserve accounts, job comments, statuses and earlier records. The JSON case catalog is included in both frozen backend packages. The upgrade reuses the existing local-path, environment, private-roster and synthetic-user guards and is idempotent. Production/default-bootstrap configurations are refused before any challenge job is added.
+The seed adds seven department handovers, one assigned job and one personal notice per fictional staff login. Ten staff logins are supported, including the AM/PM alternatives. The Mac and Windows launchers append missing challenge records to an existing validated private fictional installation. They preserve accounts, job comments, statuses and earlier records. The JSON case catalog is included in both frozen backend packages. The frontend has its own build-context copy, and a regression check requires the two catalogs to match. The upgrade reuses the existing local-path, environment, private-roster and synthetic-user guards and is idempotent. Production/default-bootstrap configurations are refused before any challenge job is added.
 
 ## Actual graphical walkthrough
 
@@ -89,11 +89,13 @@ This uses every requested viewport size across actual challenge interactions. It
 | Technical and mismatched feedback — Moderate | Reception/HK: submit done, someone, later and wrong choices | Helpful plain English / character minimum and Front Desk example appeared for other roles | Generic rubric copy reused verbatim. Use a short note explanation, department-appropriate role example, time prompt and plain decision labels | Actual phone feedback, typed corrections and completed saved notes; focused regression rerun |
 | Menu location unclear — Minor | Reception/Kitchen: find Shift Handover in collapsed menu | Optional help identifies location / generic use-the-menu instruction | Help omitted Property/Activity grouping. Name the groups, phone More and bell, with optional screen links | Kitchen and final small-phone repeat used help; no arrows were added |
 
+The first exact-head CI run caught a build-context defect: the frontend could import the backend catalog in the full checkout, but its isolated Docker build could not. The correction puts the identical catalog in the frontend context and adds a cross-catalog regression check. The challenge data and browser behavior are unchanged. The same isolated Docker build passed locally after the correction; its build log is included with the evidence.
+
 The initial automated live test also expected a literal Read badge. The existing Notifications UI removes Unread/Mark read after saving instead. The assertion was corrected to observe those actual controls; saved `read_at` is still verified by the challenge. This was a test assertion error, not an application defect.
 
 ## Validation and limits
 
-- **Backend:** 818 passed, 3 skipped; includes additive/idempotent challenge upgrade, preservation of saved comments and refusal of unsafe configuration.
+- **Backend:** 819 passed, 3 skipped; includes additive/idempotent challenge upgrade, preservation of saved comments and refusal of unsafe configuration.
 - **Full browser suite:** 677 passed, 9 optional live tests skipped, before the last wording/layout refinements.
 - **Final affected browser checks:** 19 passed after the final build; these cover challenge rubrics/ownership, course behavior and plain-language training.
 - **Real-backend fresh-account acceptance:** 9 passed. Two existing receptionist/manager smoke tests, plus all seven staff accounts completing all four compulsory lessons and then their challenge from a fresh browser context against a separately migrated and freshly seeded fictional database. No API mocks or pre-completed markers. This automated evidence is separate from the primary graphical walkthrough.

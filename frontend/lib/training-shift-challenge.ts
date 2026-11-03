@@ -1,4 +1,5 @@
-import cases from '../../backend/scripts/shift_challenge_cases.json';
+// The seed copy is checked against this file in backend training tests.
+import cases from './shift-challenge-cases.json';
 import { api, Entity } from './api';
 import { assessPractice, PracticeAnswers, PracticeScenario } from './practice-scenarios';
 

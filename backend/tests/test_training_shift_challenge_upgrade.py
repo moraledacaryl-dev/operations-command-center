@@ -35,3 +35,13 @@ def test_challenge_upgrade_refuses_other_environments_before_adding_jobs(isolate
         ensure_shift_challenge_data(path,state)
     with Session() as db:
         assert db.query(models.Task).count() == 0
+
+
+def test_frontend_and_seed_catalogs_match_across_isolated_build_contexts():
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    frontend = json.loads((root / "frontend/lib/shift-challenge-cases.json").read_text())
+    backend = json.loads((root / "backend/scripts/shift_challenge_cases.json").read_text())
+    assert frontend == backend
+    assert len({case["department"] for case in frontend}) == 7

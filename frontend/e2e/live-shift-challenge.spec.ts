@@ -2,7 +2,7 @@ import { test,expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { availableTrainingLessons } from '../lib/interactive-training';
 import { completeReadOnlyLesson } from './live-course-helpers';
-import cases from '../../backend/scripts/shift_challenge_cases.json';
+import cases from '../lib/shift-challenge-cases.json';
 import { modelShiftAnswers } from './shift-challenge-fixtures';
 
 const rosterPath=process.env.TRAINING_WALKTHROUGH_ROSTER;

@@ -1,4 +1,4 @@
-import cases from '../../backend/scripts/shift_challenge_cases.json';
+import cases from '../lib/shift-challenge-cases.json';
 import type { ShiftAnswers } from '../lib/training-shift-challenge';
 const notes:Record<string,string>={
  'Front Desk':'The Perch 2 shower still has no hot water. Ask Maintenance to inspect it and have Reception call the guest with a confirmed update.',

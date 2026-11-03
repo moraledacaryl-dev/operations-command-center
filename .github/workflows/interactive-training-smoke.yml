@@ -37,6 +37,7 @@ on:
       - 'frontend/lib/interactive-training.ts'
       - 'frontend/lib/training-course.ts'
       - 'frontend/lib/training-shift-challenge.ts'
+      - 'frontend/lib/shift-challenge-cases.json'
       - 'frontend/components/IndependentShiftChallenge.tsx'
       - 'frontend/components/ShiftChallengeReview.tsx'
       - 'frontend/app/training/shift-review/**'
