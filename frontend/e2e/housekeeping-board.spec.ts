@@ -106,3 +106,18 @@ test('staff see the next action without system details or false vacancy', async 
   await expect(page.getByText(/Beds24|Accounting|Last received|mapped|integration/i)).toHaveCount(0);
   await expect(card.getByRole('button', { name: 'Start cleaning' })).toHaveCount(0);
 });
+
+test('a recorded check-in is shown separately from cleaning and remains subject to confirmation', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-04T03:00:00Z'));
+  await visit(page, 'front', () => ({ ...fakeBoard('front', true, 'Needs cleaning'),
+    rooms: [{ ...fakeBoard('front', true, 'Needs cleaning').rooms[0],
+      booking_updates: [{ status: 'checked_in', origin: 'beds24', check_in: '2026-11-01',
+        check_out: '2026-11-05', reported_at: '2026-11-04T02:00:00Z' }] }],
+  }));
+  const card = page.getByTestId('cleaning-room-31');
+  await expect(card).toContainText('Guest status');
+  await expect(card).toContainText('Check-in recorded');
+  await expect(card).toContainText('Cleaning: Waiting to be cleaned');
+  await expect(card).toContainText('Confirm with Front Desk before entering.');
+  await expect(card.getByRole('button', { name: 'Start cleaning' })).toHaveCount(0);
+});
