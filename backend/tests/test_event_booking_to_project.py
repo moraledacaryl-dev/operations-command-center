@@ -59,6 +59,16 @@ def test_booking_confirmation_creates_one_project_and_department_tasks(context):
     assert any("catering" in x.title.lower() for x in tasks)
     assert any("clean" in x.title.lower() for x in tasks)
     assert db.query(EventProjectLink).count() == 1
+    link = db.query(EventProjectLink).one()
+    assert link.venue == "Function Hall"
+    assert link.event_date == "2026-12-19"
+    house_id = db.query(models.Department).filter_by(name="Housekeeping").one().id
+    venue_jobs = [task for task in tasks if task.department_id == house_id]
+    assert len(venue_jobs) == 4
+    assert sum(task.title.startswith("Before event:") for task in venue_jobs) == 2
+    assert sum(task.title.startswith("After event:") for task in venue_jobs) == 2
+    assert all("Function Hall" in task.title for task in venue_jobs)
+    assert db.query(models.RoomTurnover).count() == 0
     assert all("client" not in (task.note or "").lower() for task in tasks)
 
     second = receive_event("accounting_program", booking(),
@@ -102,3 +112,20 @@ def test_cross_app_event_type_not_allowed_from_pos(context):
         receive_event("dedicated_pos_cloud", booking(),
                       x_integration_api_key="test-key-pos", db=db)
     assert err.value.status_code == 400
+
+
+def test_garden_event_keeps_garden_venue_and_never_creates_room_turnover(context):
+    db = context
+    result = receive_event("accounting_program",
+                           booking(id="551", event_id="event-booking:551:confirmed",
+                                   event_no="EVT-2026-00551", venue="Garden"),
+                           x_integration_api_key="test-key-accounting", db=db)
+    assert result["status"] == "accepted"
+    link = db.query(EventProjectLink).one()
+    assert link.venue == "Garden"
+    tasks = db.query(models.Task).filter_by(project_id=link.project_id).all()
+    house_id = db.query(models.Department).filter_by(name="Housekeeping").one().id
+    venue_jobs = [task.title for task in tasks if task.department_id == house_id]
+    assert len(venue_jobs) == 4
+    assert all("Garden" in name and "Function Hall" not in name for name in venue_jobs)
+    assert db.query(models.RoomTurnover).count() == 0
