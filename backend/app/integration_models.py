@@ -74,3 +74,18 @@ class EventProjectLink(Base):
         UniqueConstraint("source_app", "source_record_id", name="uq_event_project_source"),
         UniqueConstraint("project_id", name="uq_event_project_project_id"),
     )
+
+
+class AccountingRoomBooking(Base):
+    """Latest non-personal room snapshot, ordered by Accounting outbox ID."""
+    __tablename__ = "accounting_room_bookings"
+    id = Column(Integer, primary_key=True)
+    booking_id = Column(String(80), unique=True, nullable=False)
+    revision = Column(Integer, nullable=False)
+    accounting_room_id = Column(Integer, nullable=True)
+    room_ids_json = Column(Text, nullable=False, default="[]")
+    check_in = Column(String(10), nullable=True)
+    check_out = Column(String(10), nullable=True, index=True)
+    status = Column(String(24), nullable=False)
+    origin = Column(String(24), nullable=False)
+    reported_at = Column(DateTime, default=utc_now, nullable=False)

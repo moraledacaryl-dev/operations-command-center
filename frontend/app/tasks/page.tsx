@@ -1,5 +1,6 @@
 'use client';
 
+import { displayWorkText } from '@/lib/work-display';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { isOverduePropertyDay, propertyDateInput } from '@/lib/property-dates';
@@ -181,25 +182,25 @@ export default function TeamTasksPage() {
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim()} onClick={createTask}>{busy ? 'Saving…' : 'Create task'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
     <div className="task-controls"><div className="toolbar task-search"><input className="input" placeholder="Search team tasks" value={query} onChange={e => setQuery(e.target.value)} /></div><div className="task-view-switch" role="group" aria-label="Task view"><button className={view === 'Board' ? 'active' : ''} onClick={() => setView('Board')}>Board</button><button className={view === 'List' ? 'active' : ''} onClick={() => setView('List')}>List</button></div></div>
-    {view === 'Board' ? <div className="grid cols-4" data-testid="tasks-board" tabIndex={0} role="region" aria-label="Task board by workflow stage">
+    {view === 'Board' ? <div className="grid cols-4" data-testid="tasks-board" tabIndex={0} role="region" aria-label="Tasks by status">
       {columns.map(status => <section className="panel" key={status}>
         <div className="card-line" style={{ justifyContent: 'space-between' }}><h2>{status}</h2><Pill value={String(visible.filter(item => item.status === status).length)} /></div>
         <div className="grid" style={{ marginTop: 12 }}>
           {visible.filter(item => item.status === status).map(item => <button type="button" className="card" key={item.id} onClick={() => void openTask(item.id)} style={{ textAlign: 'left' }}>
-            <span className="ops-task-card-icon"><Icon name="tasks" /></span><strong>{item.title}</strong>
-            {item.note ? <span className="ops-task-description">{item.note}</span> : null}
+            <span className="ops-task-card-icon"><Icon name="tasks" /></span><strong>{displayWorkText(item.title)}</strong>
+            {item.note ? <span className="ops-task-description">{displayWorkText(item.note)}</span> : null}
             <span className="card-line"><Pill value={item.priority || 'Normal'} />{item.project_id ? <Pill value="Project task" /> : null}</span>
             <span className="muted ops-task-date"><Icon name="clock" />{dueLabel(item.due_date)}</span>
           </button>)}
           {!visible.some(item => item.status === status) ? <div className="empty"><Icon name="check" />No tasks here</div> : null}
         </div>
       </section>)}
-    </div> : <div className="task-list" data-testid="tasks-list">{visible.map(item => <button type="button" className="card task-list-item" key={item.id} onClick={() => void openTask(item.id)}><span className="task-list-state">{item.status}</span><strong>{item.title}</strong><span className="muted ops-task-date"><Icon name="clock" />{dueLabel(item.due_date)}</span><Pill value={item.priority || 'Normal'} /></button>)}{!visible.length ? <div className="empty">No tasks match this search.</div> : null}</div>}
+    </div> : <div className="task-list" data-testid="tasks-list">{visible.map(item => <button type="button" className="card task-list-item" key={item.id} onClick={() => void openTask(item.id)}><span className="task-list-state">{item.status}</span><strong>{displayWorkText(item.title)}</strong><span className="muted ops-task-date"><Icon name="clock" />{dueLabel(item.due_date)}</span><Pill value={item.priority || 'Normal'} /></button>)}{!visible.length ? <div className="empty">No tasks match this search.</div> : null}</div>}
     <Drawer item={selected} title={selected?.title || "Team task"} onClose={() => { ++openRequest.current; setSelected(null); setEditing(false); }}>
       {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
       {selected && canManageWork ? editing ? <TaskEditor key={selected.id} item={selected} people={assigneesFor(people, selected.department_id)} busy={busy} onSave={saveTask} onCancel={() => { setEditing(false); setError(''); }} /> : <div className="toolbar"><button className="btn secondary" disabled={busy} onClick={() => setEditing(true)}>Edit task</button><button className="btn secondary" disabled={busy} onClick={() => void openTask(selected.id)}>Refresh details</button></div> : null}
       {peopleError && editing ? <p role="status">{peopleError}</p> : null}
-      {selected && !editing ? <section className="panel"><h2>Move task</h2>{(selected.allowed_actions || []).some((action: string) => ['request-changes', 'reopen'].includes(action)) ? <label className="label">Reason<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} /></label> : null}<div className="toolbar">{(selected.allowed_actions || []).map((action: string) => <button className="btn small secondary" key={action} disabled={busy || (['request-changes', 'reopen'].includes(action) && !actionNote.trim())} onClick={() => move(selected, action)}>{({ start: 'Start work', 'submit-review': 'Submit for review', 'request-changes': 'Request changes', complete: 'Complete', reopen: 'Reopen' } as Record<string, string>)[action] || action}</button>)}</div>{!(selected.allowed_actions || []).length ? <p className="muted">No task transition is available for your role and this state.</p> : null}</section> : null}
+      {selected && !editing ? <section className="panel"><h2>Move task</h2>{(selected.allowed_actions || []).some((action: string) => ['request-changes', 'reopen'].includes(action)) ? <label className="label">Reason<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} /></label> : null}<div className="toolbar">{(selected.allowed_actions || []).map((action: string) => <button className="btn small secondary" key={action} disabled={busy || (['request-changes', 'reopen'].includes(action) && !actionNote.trim())} onClick={() => move(selected, action)}>{({ start: 'Start work', 'submit-review': 'Submit for review', 'request-changes': 'Request changes', complete: 'Complete', reopen: 'Reopen' } as Record<string, string>)[action] || action}</button>)}</div>{!(selected.allowed_actions || []).length ? <p className="muted">Ask your lead if this task needs updating.</p> : null}</section> : null}
     </Drawer>
   </div>;
 }

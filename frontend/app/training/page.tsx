@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/session';
 import { TrainingRecordLookup } from '@/components/TrainingRecordLookup';
@@ -16,7 +16,7 @@ import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import {
   makeTrainingReference, workflowOwnerId, workflowSessionKey, workflowResultsKey,
-  WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS,
+  WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, workflowStageLabel,
 } from '@/lib/training-workflows';
 import type { TrainingWorkflowKind, TrainingWorkflowSession, TrainingWorkflowResults } from '@/lib/training-workflows';
 import {
@@ -25,6 +25,8 @@ import {
 } from '@/lib/practice-scenarios';
 import type { PracticeAnswers, PracticeAssessment, PracticeField } from '@/lib/practice-scenarios';
 import { parseScenarioProgress, parseWorkflowResults } from '@/lib/training-progress';
+import { DRAFT_PREFIX, parseScenarioDrafts } from '@/lib/training-scenario-drafts';
+import type { ScenarioDrafts } from '@/lib/training-scenario-drafts';
 import type { ScenarioProgress } from '@/lib/training-progress';
 
 type Phase = 'assess' | 'document' | 'complete';
@@ -41,14 +43,14 @@ const RISK_QUESTIONS = [
 ];
 function riskClues(scenario: { context: readonly string[]; situation: string }): string[] {
   const facts = scenario.context.filter(item => !/^reference:/i.test(item.trim()));
-  return facts.length ? facts.slice(0, 2) : [scenario.situation];
+  return [scenario.situation, ...facts.filter(item => !/^(use made-up|check that the work)/i.test(item))].slice(0, 2);
 }
 function reasoningFeedback(scenario: { context: readonly string[]; situation: string; priority: string }, chosen: string): string {
   const clue = riskClues(scenario)[0];
   const order = ['Routine', 'High', 'Critical'];
   const tooSlow = order.indexOf(chosen) < order.indexOf(scenario.priority);
   return 'Focus on this clue: “' + clue + '”. ' +
-    (tooSlow ? 'What happens if staff leave this problem until the next day? Who needs to handle it before the guest is left waiting even longer?' :
+    (tooSlow ? 'What could happen if staff wait until tomorrow? Think about the risk or deadline in this situation and which team can act in time.' :
       'Does the story actually say someone is in immediate danger? Or can the right team handle the problem promptly without treating it like an emergency?');
 }
 function reasoningDebrief(priority: string): string {
@@ -81,6 +83,10 @@ export default function PracticeTrainingPage() {
   const [hintsUsed, setHintsUsed] = useState(0);
   const [mistakesMade, setMistakesMade] = useState(0);
   const [reasoning, setReasoning] = useState<Reasoning>({ consequence: '', timing: '' });
+  const [drafts, setDrafts] = useState<ScenarioDrafts>({});
+  const [storageAvailable, setStorageAvailable] = useState(true);
+  const exerciseHeading = useRef<HTMLHeadingElement | null>(null);
+  const moved = useRef(false);
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return;
@@ -92,11 +98,21 @@ export default function PracticeTrainingPage() {
     setUser(stored);
     const key = STORAGE_PREFIX + String(stored.id || stored.email);
     try {
+      const available = practiceScenariosFor(stored);
       const lastCase = localStorage.getItem(key + ':last');
-      if (lastCase) setActiveId(lastCase);
+      const id = available.find(s => s.id === lastCase)?.id || available[0]?.id || '';
+      setActiveId(id);
       const saved = JSON.parse(localStorage.getItem(key) || '{}');
-      setProgress(parseScenarioProgress(saved, practiceScenariosFor(stored).map(s => s.id)));
-    } catch { setProgress({}); }
+      const completed = parseScenarioProgress(saved, available.map(s => s.id));
+      setProgress(completed);
+      const restored = parseScenarioDrafts(JSON.parse(localStorage.getItem(DRAFT_PREFIX + String(stored.id || stored.email)) || '{}'), available);
+      setDrafts(restored);
+      const draft = restored[id];
+      if (draft) {
+        setAnswers(draft.answers); setPhase(draft.phase === 'complete' && !completed[id] ? 'document' : draft.phase);
+        setAttempts(draft.attempts); setHintsUsed(draft.hintsUsed); setMistakesMade(draft.mistakesMade); setReasoning(draft.reasoning);
+      }
+    } catch { setStorageAvailable(false); }
     try {
       if (!localStorage.getItem(key + ':guide-intro-v2')) setGuideMode('welcome');
     } catch { setGuideMode('welcome'); }
@@ -170,17 +186,34 @@ export default function PracticeTrainingPage() {
       ? selected.id : null;
   const verifiedCount = Object.values(verifiedWorkflows).filter(result => result?.completedAt).length;
 
-  function switchScenario(id: string) {
+  useEffect(() => {
+    if (!ready || !user || !selectedId) return;
+    const next = { ...drafts, [selectedId]: { answers, phase, attempts, hintsUsed, mistakesMade, reasoning } };
+    try {
+      localStorage.setItem(DRAFT_PREFIX + String(user.id || user.email), JSON.stringify(next));
+      localStorage.setItem(STORAGE_PREFIX + String(user.id || user.email) + ':last', selectedId);
+    } catch { setStorageAvailable(false); }
+  }, [answers, attempts, drafts, hintsUsed, mistakesMade, phase, ready, reasoning, selectedId, user]);
+
+  useEffect(() => { if (moved.current) exerciseHeading.current?.focus(); }, [selectedId, phase]);
+
+  function switchScenario(id: string, restart = false) {
     if (!scenarios.some(s => s.id === id)) return;
+    if (id === selectedId && !restart) return;
+    const nextDrafts = { ...drafts, [selectedId]: { answers, phase, attempts, hintsUsed, mistakesMade, reasoning } };
+    const draft = restart ? undefined : nextDrafts[id];
+    if (restart) delete nextDrafts[id];
+    setDrafts(nextDrafts);
     setActiveId(id);
-    setPhase('assess');
-    setAnswers({ ...emptyAnswers });
+    setPhase(draft?.phase || 'assess');
+    setAnswers(draft?.answers || { ...emptyAnswers });
     setResult(null);
-    setAttempts(0);
+    setAttempts(draft?.attempts || 0);
     setShowTip(false);
-    setHintsUsed(0);
-    setMistakesMade(0);
-    setReasoning({ consequence: '', timing: '' });
+    setHintsUsed(draft?.hintsUsed || 0);
+    setMistakesMade(draft?.mistakesMade || 0);
+    setReasoning(draft?.reasoning || { consequence: '', timing: '' });
+    moved.current = true;
     setGuideMode(current => current === 'guided' || current === 'brief' ? 'brief' : current);
     if (user) {
       try { localStorage.setItem(STORAGE_PREFIX + String(user.id || user.email) + ':last', id); } catch { /* offline memory only */ }
@@ -193,7 +226,7 @@ export default function PracticeTrainingPage() {
   }
   function closeGuide() { markGuideSeen(); setGuideMode('off'); }
   function startGuide() { markGuideSeen(); setGuideMode('brief'); }
-  function repeatGuide() { if (selected) { switchScenario(selected.id); markGuideSeen(); setGuideMode('brief'); } }
+  function repeatGuide() { if (selected) { switchScenario(selected.id, true); markGuideSeen(); setGuideMode('brief'); } }
   function update<K extends PracticeField>(field: K, value: PracticeAnswers[K]) {
     setAnswers(current => ({ ...current, [field]: value }));
     setResult(null);
@@ -209,6 +242,7 @@ export default function PracticeTrainingPage() {
       return;
     }
     setResult(null);
+    moved.current = true;
     setPhase('document');
   }
   function submit(event: React.FormEvent) {
@@ -226,13 +260,15 @@ export default function PracticeTrainingPage() {
     const next = { ...progress, [selected.id]: {
       attempts: (previous?.attempts || 0) + attempts + 1,
       completedAt: new Date().toISOString(),
+      response: { ...answers },
       // A repeat must not erase earlier corrections or hints from exported evidence.
       hints: (previous?.hints || 0) + hintsUsed,
       mistakes: (previous?.mistakes || 0) + mistakesMade,
       firstTry: (previous?.firstTry ?? true) && mistakesMade === 0 && hintsUsed === 0,
     } };
     setProgress(next);
-    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* practice remains in memory */ }
+    try { localStorage.setItem(key, JSON.stringify(next)); } catch { setStorageAvailable(false); }
+    moved.current = true;
     setPhase('complete');
   }
   function startWorkflow(kind: TrainingWorkflowKind) {
@@ -281,7 +317,7 @@ export default function PracticeTrainingPage() {
     if (notificationEvidence) {
       rows.push(['staff-notification-read', 'notification-mark-read', 'Personal', 1,
         notificationEvidence.completedAt, '', '', '', '', notificationEvidence.notificationId,
-        '', 'saved read_at (backend read)']);
+        '', 'Notice read time']);
     }
     for (const record of recordInspections) {
       const category = {
@@ -292,7 +328,7 @@ export default function PracticeTrainingPage() {
       }[record.kind];
       rows.push([category[0], category[1], String(record.departmentId), 1,
         record.completedAt, '', '', '', '', record.recordId, '',
-        record.kind === 'task' ? 'status / priority (backend read)' : 'status / urgency (backend read)']);
+        record.kind === 'task' ? 'Saved status and priority' : 'Saved status and priority']);
     }
     for (const [kind, evidence] of Object.entries(verifiedWorkflows)) {
       if (!Object.prototype.hasOwnProperty.call(WORKFLOW_DEFINITIONS, kind) ||
@@ -301,9 +337,16 @@ export default function PracticeTrainingPage() {
         !Number.isSafeInteger(evidence.recordId) || evidence.recordId <= 0) continue;
       rows.push(['hands-on-workflow', kind, 'Training', 0, evidence.completedAt,
         '', '', '', '', evidence.recordId, evidence.relatedRecordId || '',
-        Array.isArray(evidence.steps) ? evidence.steps.join(' / ') : '']);
+        Array.isArray(evidence.steps) ? evidence.steps.map(workflowStageLabel).join(' / ') : '']);
     }
-    const csv = rows.map(row => row.map(cell).join(',')).join('\n');
+    const csv = rows.map((row, index) => {
+      if (index === 0) return [...row, 'trainee_id', 'trainee_name', 'trainee_role', 'urgency', 'next_team', 'chosen_action', 'written_response', 'responsible_role', 'next_check'].map(cell).join(',');
+      const id = String(row[1]);
+      const response = row[0] === 'scenario' ? progress[id]?.response : undefined;
+      return [...row, String(user.id || ''), String(user.name || ''), String(user.role || ''),
+        response?.priority || '', response?.department || '', response?.decision || '', response?.note || '',
+        response?.owner || '', response?.followUp || ''].map(cell).join(',');
+    }).join('\n');
     const objectUrl = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = objectUrl;
@@ -317,15 +360,15 @@ export default function PracticeTrainingPage() {
     if (!scenarios.length) return;
     const index = scenarios.findIndex(s => s.id === selectedId);
     const next = scenarios.find((s, i) => i > index && !progress[s.id]) ||
-      scenarios.find(s => !progress[s.id]) ||
-      scenarios[(index + 1) % scenarios.length];
-    switchScenario(next.id);
+      scenarios.find(s => !progress[s.id]);
+    if (next) switchScenario(next.id);
   }
 
   const reasoningReady = Boolean(reasoning.consequence && reasoning.timing);
   const lessonStage = selected ? scenarioCoachStage(selected, phase, answers, result, !guided || reasoningReady, Boolean(reasoning.consequence)) : null;
-  if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return <p>Hands-on training is available only inside the isolated fictional training application.</p>;
-  if (!ready || !user || !selected) return <section className="practice-shell" aria-live="polite">Opening your practice lessons…</section>;
+  if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return <p>Open the practice app to use these lessons.</p>;
+  if (!ready || !user) return <section className="practice-shell" aria-live="polite">Opening your practice lessons…</section>;
+  if (!selected) return <section className="practice-shell"><h1>No practice situations are available</h1><p>Ask your trainer to check your practice account and department membership.</p></section>;
   return <div className="practice-shell" data-testid="scenario-training">
     <header className="practice-hero">
       <div>
@@ -345,7 +388,8 @@ export default function PracticeTrainingPage() {
           <small>{recordInspections.length} record-reading exercise{recordInspections.length === 1 ? '' : 's'} finished</small>
           <small>{notificationEvidence ? 1 : 0} notification exercise finished</small>
         </details>
-        <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount && !verifiedCount && !recordInspections.length && !notificationEvidence}>Save my results (CSV)</button>
+        <button type="button" className="practice-secondary practice-export" onClick={exportResults} disabled={!completedCount && !verifiedCount && !recordInspections.length && !notificationEvidence}>Save my results</button>
+        <small>Give this spreadsheet file to your trainer.</small>
       </div>
     </header>
 
@@ -357,6 +401,9 @@ export default function PracticeTrainingPage() {
         <button type="button" className="practice-secondary" data-testid="repeat-current-lesson" onClick={repeatGuide}>↻ Start this lesson again</button>
       </div>
     </section>
+    <p className="practice-save-note">Your draft saves automatically for this login in this browser. You can switch situations and return later. Clearing browser data removes drafts and progress.</p>
+    {!storageAvailable && <p className="practice-notice" role="status">This browser could not save your practice. You can continue, but changes may be lost when you close or leave this page. Ask your trainer for help with browser storage.</p>}
+    {completedCount === scenarios.length && <section className="practice-finished" role="status"><h2>All {scenarios.length} situations finished</h2><p>Save your results, then ask your trainer to review your responses and observe your work in the practice app. You can revisit any situation below.</p></section>}
     <div className="practice-layout">
       <aside className="practice-catalog" aria-label="Choose a training scenario">
         <div className="practice-side-title"><h2>Choose a situation</h2><span>{user.name || 'Trainee'}</span></div>
@@ -387,13 +434,13 @@ export default function PracticeTrainingPage() {
             className={'practice-scenario' + (scenario.id === selectedId ? ' selected' : '')}
             onClick={() => switchScenario(scenario.id)}>
             <span className="practice-scenario-number">{progress[scenario.id] ? '✓' : String(index + 1).padStart(2, '0')}</span>
-            <span><strong>{scenario.title}</strong><small>{scenario.department} · Level {scenario.level || 1} · {progress[scenario.id] ? 'Completed' : 'Not completed'}</small></span>
+            <span><strong>{scenario.title}</strong><small>{scenario.department} · Level {scenario.level || 1} · {progress[scenario.id] ? 'Completed' : drafts[scenario.id] || (scenario.id === selectedId && (answers.priority || answers.note)) ? 'In progress' : 'Not completed'}</small></span>
           </button>)}
         </div>
       </aside>
 
       <section className="practice-workspace" aria-live="polite" aria-label="Active training exercise">
-        <div className="practice-topline"><span className="practice-department">{selected.department} · Level {selected.level || 1}</span><span>Fictional case · {selected.reference}</span></div>
+        <div className="practice-topline"><span className="practice-department">{selected.department} · Level {selected.level || 1}</span><span>Practice case · {selected.reference}</span></div>
         <div className="practice-help">
           <details>
             <summary>How to complete this practice</summary>
@@ -401,7 +448,7 @@ export default function PracticeTrainingPage() {
               <li>Read the situation. Notice what happened and what is still unknown.</li>
               <li>Choose how soon staff should act and which team can help.</li>
               <li>Choose the next action. Write what still needs to be done.</li>
-              <li>For longer cases, name who is responsible and what they should check.</li>
+              <li>For longer cases, say who will do the job and what they should check.</li>
               <li>If an answer needs a change, check it and try again.</li>
             </ol>
             <p><strong>Urgency means how soon someone needs to act.</strong> Routine = can wait for normal work; High = should be handled soon; Critical = somebody may be in danger, or another serious problem needs immediate help.</p>
@@ -409,9 +456,16 @@ export default function PracticeTrainingPage() {
           </details>
           <label className="practice-mode"><input type="checkbox" checked={guided} onChange={event => { setGuided(event.target.checked); setShowTip(false); }} /> Show helpful hints</label>
         </div>
-        <h2>{selected.title}</h2>
+        <section className="practice-three-stage" data-testid="scenario-three-stage" aria-label="Practice steps">
+          <details className="practice-show-example"><summary>1. Show me an example</summary>
+            <p><strong>Different example:</strong> A fictional guest in Perch 1 asks for extra towels. First check whether Housekeeping has already received the request. Tell the right team, leave a note for the next shift, and check whether delivery was confirmed. Do not mark it done just because someone was asked.</p>
+          </details>
+          <div><strong>2. Help me do it</strong><p>Read the clues below. If unsure, choose Need a hint? or Show me how to answer.</p></div>
+          <div><strong>3. Your turn</strong><p>Choose the action and write your own note. The app checks each answer, then explains what to correct.</p></div>
+        </section>
+        <h2 ref={exerciseHeading} tabIndex={-1}>{selected.title}</h2>
         <p className="practice-situation">{selected.situation}</p>
-        <p className="practice-skill"><strong>What you will practise:</strong> {selected.skill || 'Choosing the right next action'}</p>
+        <p className="practice-skill"><strong>What you will learn:</strong> {selected.skill || 'Choosing the right next action'}</p>
         <div className="practice-case" data-testid="scenario-case-brief">
           <h3>What happened?</h3>
           <ul>{selected.context.map(fact => <li key={fact}>{fact}</li>)}</ul>
@@ -429,7 +483,7 @@ export default function PracticeTrainingPage() {
             {({ 'guest-ac': ' Guest Matters', 'shared-no-owner': ' Tasks',
               'shift-unresolved': ' Shift Handover', 'mt-light-fault': ' Maintenance',
               'manager-evidence': ' Requests', 'fd-broken-shower': ' Guest Matters and Maintenance' } as const)[workflowKind]}.
-            Create a practice record, update it, and check that it saved. Use made-up details only.</p>
+            {canRunWorkflow(workflowKind) ? ' Create a practice record, update it, and check that it saved. Use made-up details only.' : ' You can read the records your login is allowed to see.'}</p>
           {verifiedWorkflows[workflowKind]
             ? <p className="practice-real-workflow-verified" role="status">
               ✓ The app checked this practice on {new Date(verifiedWorkflows[workflowKind]?.completedAt || '').toLocaleDateString('en-PH')}. You can repeat it.
@@ -439,10 +493,8 @@ export default function PracticeTrainingPage() {
                 onClick={() => startWorkflow(workflowKind)}>
                 {verifiedWorkflows[workflowKind] ? 'Try this practice again' : 'Open practice screen'}</button>
             : <p className="practice-real-workflow-restricted">
-                This login can read the lessons but cannot save or change records.
-                {['mt-light-fault', 'fd-broken-shower'].includes(workflowKind)
-                  ? 'A manager or owner practice login is needed to check the final step. You can still practise writing and passing on notes.'
-                  : 'Ask your trainer for the correct supervisor or manager practice login. Your usual access will not change.'}
+                You can finish this written exercise with your own login. This exercise checks your answer, not a saved work record.
+                Saved-work exercises are for employees with permission to do those actions. Ask your trainer to demonstrate any action outside your role; keep using your own account.
               </p>}
         </section>}
 
@@ -453,7 +505,7 @@ export default function PracticeTrainingPage() {
         </div>
 
         {phase === 'assess' && <form className="practice-form" onSubmit={triage} data-testid="scenario-triage">
-          <p className="practice-instruction">Think about <strong>what could happen</strong> and <strong>how soon someone needs to help</strong>.</p>
+          <p className="practice-instruction"><strong>Your turn — Step 1:</strong> Think about what could happen and how soon someone needs to help. Choose an urgency and a team.</p>
           <section className="practice-judgment" data-testid="judgment-lens" aria-label="Two-question urgency guide">
             <h3>Check what matters most</h3>
             <p>Answer these two questions to help you choose the right urgency. These questions are not graded.</p>
@@ -506,7 +558,7 @@ export default function PracticeTrainingPage() {
         {phase === 'document' && <form className="practice-form" onSubmit={submit} data-testid="scenario-document">
           <p className="practice-instruction">You chose the right urgency and team. Here is why:</p>
           <p className="practice-judgment-explanation" data-testid="priority-debrief">{reasoningDebrief(selected.priority)}</p>
-          <p className="practice-instruction">Choose the next action. Then write a note the next employee can follow.</p>
+          <p className="practice-instruction"><strong>Your turn — Step 2:</strong> Choose the next action. Then write a note the next employee can follow.</p>
           <label>Choose the next action
             <select value={answers.decision} required onChange={e => update('decision', e.target.value as PracticeAnswers['decision'])} data-testid="scenario-decision">
               <option value="">Select action…</option>{DECISIONS.map(option => <option key={option} value={option}>{option}</option>)}
@@ -515,25 +567,25 @@ export default function PracticeTrainingPage() {
           </label>
           {(selected.level || 1) >= 3 && <>
             <label>Who is responsible for this job?
-              <input type="text" data-testid="scenario-owner" value={answers.owner || ''}
+              <input type="text" data-testid="scenario-owner" maxLength={200} value={answers.owner || ''}
                 placeholder="e.g., On-duty Maintenance lead"
                 onChange={event => update('owner', event.target.value)} />
               <small>Use a job title, not a real employee&apos;s name.</small>
               {result?.errors.owner && <small className="practice-error" role="alert">{result.errors.owner}</small>}
             </label>
             <label>What should be checked next? Who will confirm it is done?
-              <textarea data-testid="scenario-follow-up" value={answers.followUp || ''} rows={2}
+              <textarea data-testid="scenario-follow-up" value={answers.followUp || ''} rows={2} maxLength={1500}
                 placeholder="e.g., Maintenance lead will inspect the fault and report verified repair status to Front Desk before room release."
                 onChange={event => update('followUp', event.target.value)} />
               {result?.errors.followUp && <small className="practice-error" role="alert">{result.errors.followUp}</small>}
             </label>
           </>}
           <label>Write a note for the next shift
-            <textarea data-testid="scenario-note" value={answers.note} rows={5} required minLength={45}
+            <textarea data-testid="scenario-note" value={answers.note} rows={5} required minLength={45} maxLength={4000}
               placeholder={'Include ' + selected.reference + ', what happened, what staff should do next, and who should do it.'}
               onChange={e => update('note', e.target.value)} />
             <small>Include practice number <strong>{selected.reference}</strong>, what happened, the next action, and who will check it. Use made-up details.</small>
-            {selected.noteChecks && <small>Make sure your note explains {selected.noteChecks.map(rule => rule.label).join(' and ')}. Write what the person should actually do.</small>}
+            {selected.noteChecks && <small>Make sure your note explains {selected.noteChecks.map(rule => rule.label).join(' and ')}. Say what the person should do.</small>}
             {result?.errors.note && <small className="practice-error" role="alert">{result.errors.note}</small>}
           </label>
           {result && !result.passed && <p className="practice-notice" role="status">Check the highlighted answers, make the changes, and try again.</p>}
@@ -546,21 +598,22 @@ export default function PracticeTrainingPage() {
         {phase === 'complete' && <section className="practice-success" role="status" data-testid="scenario-complete">
           <p className="practice-success-mark" aria-hidden="true">✓</p>
           <h3>Practice finished</h3>
-          <p>You chose who should help, what to do next, and what the next shift needs to know.</p>
+          <p>Your answers passed the practice checks. You chose who should help, what to do next, and what the next shift needs to know.</p>
           <p><strong>Tries:</strong> {attempts} · <strong>Changes made:</strong> {mistakesMade} · <strong>Hints used:</strong> {hintsUsed}</p>
           <p><strong>Why this urgency fits:</strong> {reasoningDebrief(selected.priority)}</p>
           <p><strong>Why this response works:</strong> {selected.why}</p>
+          <div className="practice-example"><strong>Your response:</strong><p>{answers.note}</p>{answers.owner && <p>Responsible role: {answers.owner}</p>}{answers.followUp && <p>Next check: {answers.followUp}</p>}</div>
           <div className="practice-example"><strong>Example of a useful handover:</strong><p>{selected.example}</p></div>
           <p className="practice-disclaimer">This practice does not give permission to use or approve real resort records. A supervisor must still check your skills on the actual system.</p>
           <div className="practice-actions">
-            <button type="button" className="practice-primary" data-testid="scenario-next" onClick={nextScenario}>Next situation →</button>
-            <button type="button" className="practice-secondary" data-testid="scenario-repeat" onClick={() => switchScenario(selected.id)}>Repeat this situation</button>
+            {completedCount < scenarios.length && <button type="button" className="practice-primary" data-testid="scenario-next" onClick={nextScenario}>Next situation →</button>}
+            <button type="button" className="practice-secondary" data-testid="scenario-repeat" onClick={() => switchScenario(selected.id, true)}>Repeat this situation</button>
           </div>
         </section>}
         <footer className="practice-footer">
           <span>Want to practise using the app screens?</span>
           <Link href="/">Open the practice app</Link>
-          {trainer && <Link href="/review">Open fictional review queue</Link>}
+          {trainer && <Link href="/review">Open practice review list</Link>}
         </footer>
       </section>
     </div>
@@ -585,12 +638,12 @@ export default function PracticeTrainingPage() {
       stepLabel="STEP 1 — READ" targets={[{ selector: '[data-testid="scenario-case-brief"]' }]}
       onNext={() => setGuideMode('guided')} nextLabel="Help me choose →" onClose={closeGuide} />}
     {guideMode === 'guided' && lessonStage && <TrainingSpotlight
-      title={lessonStage.title} description={lessonStage.instruction}
+      title={lessonStage.title} description={phase === 'complete' && completedCount === scenarios.length ? 'All your situations are finished. Save your results and ask your trainer to review them. You can repeat this lesson below.' : lessonStage.instruction}
       stepLabel={'STEP ' + lessonStage.position + ' OF ' + lessonStage.total}
       targets={[{ selector: lessonStage.target }]}
       onClose={closeGuide}
       {...(phase === 'complete' ? {
-        onNext: nextScenario, nextLabel: 'Next lesson →',
+        onNext: completedCount === scenarios.length ? exportResults : nextScenario, nextLabel: completedCount === scenarios.length ? 'Save my results' : 'Next lesson →',
         onRepeat: repeatGuide, repeatLabel: '↻ Repeat this lesson',
       } : {})} />}
   </div>;

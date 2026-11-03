@@ -57,7 +57,7 @@ export default function AppearancePage() {
       const response = await fetch(`/api/property-media/${encodeURIComponent(slot)}`, { method: 'DELETE', credentials: 'same-origin' });
       if (!response.ok && response.status !== 204) throw new Error('Could not reset this property image.');
       await load();
-      setSaved('Property image reset to the built-in fallback.');
+      setSaved('Default photo restored.');
     } catch (err: any) {
       setError(err.message || 'Could not reset this property image.');
     } finally { setBusy(''); }
@@ -78,7 +78,7 @@ export default function AppearancePage() {
     <div className="grid cols-2 property-media-grid">
       {rows.map(row => <article className="panel property-media-card" key={row.slot}>
         <div className="property-media-preview" style={row.content_url ? { backgroundImage: `url(${row.content_url})` } : undefined}>
-          {!row.content_url ? <span>Built-in fallback</span> : null}
+          {!row.content_url ? <span>Default photo</span> : null}
         </div>
         <div>
           <span className="eyebrow">Global image</span>
@@ -90,7 +90,7 @@ export default function AppearancePage() {
             {busy === row.slot ? 'Uploading…' : row.configured ? 'Replace image' : 'Upload image'}
             <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden disabled={!!busy} onChange={event => void upload(row.slot, event.target.files?.[0])} />
           </label>
-          {row.configured ? <button className="btn small secondary" disabled={!!busy} onClick={() => void reset(row.slot)}>Use fallback</button> : null}
+          {row.configured ? <button className="btn small secondary" disabled={!!busy} onClick={() => void reset(row.slot)}>Use default photo</button> : null}
         </div>
       </article>)}
     </div>

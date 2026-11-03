@@ -6,11 +6,11 @@ import { api, ApiError } from '@/lib/api';
 import { landingPathForUser, setStoredUser } from '@/lib/session';
 
 function loginErrorMessage(error: unknown) {
-  if (!(error instanceof ApiError)) return 'The service is temporarily unavailable. Please try again.';
+  if (!(error instanceof ApiError)) return 'The app is unavailable. Please try again in a moment.';
   if (error.status === 401) return 'Invalid email or password.';
   if (error.status === 403) return 'This account cannot sign in yet. Contact an administrator.';
   if (error.status === 429) return 'Too many failed sign-in attempts. Please try again later.';
-  if (error.status >= 500) return 'The service is temporarily unavailable. Please try again.';
+  if (error.status >= 500) return 'The app is unavailable. Please try again in a moment.';
   return 'Sign-in could not be completed. Please try again.';
 }
 
@@ -50,6 +50,7 @@ export default function LoginPage() {
     <section className="auth-form-panel" aria-labelledby="login-title">
       <div className="auth-mobile-brand"><span className="logo big" aria-hidden="true">HO</span><span><strong>Hidden Oasis</strong><small>Operations</small></span></div>
       <div><h2 id="login-title">Sign in to Operations</h2>{process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <p className="pill ok" role="status">TRAINING ONLY · Fictional employees and guests · Not the real Operations system</p> : null}</div>
+      {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' && <p className="training-login-help">Use the made-up account your trainer assigned for your department. Your trainer can find it under <strong>Trainer Accounts</strong> in the desktop app. Your real work login will not work here. After sign-in, Lesson 1 starts automatically.</p>}
       <form className="form" onSubmit={event => { event.preventDefault(); void login(); }}>
         {searchParams.get('password') === 'changed' ? <p className="pill ok" role="status">Password updated. Sign in with your new password.</p> : null}
         <label className="label" htmlFor="login-email">Email<input id="login-email" className="input" type="email" inputMode="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="username" required aria-describedby={errorId} autoFocus /></label>

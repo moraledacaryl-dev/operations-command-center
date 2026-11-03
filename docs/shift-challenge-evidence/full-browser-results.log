@@ -1,0 +1,703 @@
+(node:88274) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 686 tests using 1 worker
+
+[1A[2K(node:88275) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:88275) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+
+[1A[2K(node:88275) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/686] e2e/annotation-editable-objects.spec.ts:82:5 › Annotation Studio keeps review marks editable, saves state, and restores it from the clean base
+[1A[2K[2/686] e2e/annotation-studio-modern-layout.spec.ts:38:7 › Annotation Studio modern workspace › keeps the creative canvas prominent on desktop
+[1A[2K[3/686] e2e/annotation-studio-modern-layout.spec.ts:48:7 › Annotation Studio modern workspace › uses a horizontally scrollable control dock on mobile
+[1A[2K[4/686] e2e/archived-approvals-visibility.spec.ts:38:5 › Pending and Approved tabs hide archived approvals, All exposes history
+[1A[2K[5/686] e2e/archived-approvals-visibility.spec.ts:52:5 › archived pending approval is explicitly historical and has no decision controls
+[1A[2K[6/686] e2e/archived-request-visibility.spec.ts:38:5 › Open and workflow tabs exclude archived Requests while All shows history
+[1A[2K[7/686] e2e/archived-request-visibility.spec.ts:55:5 › archived Request detail is explicitly historical and cannot offer an action
+[1A[2K[8/686] e2e/backup-health.spec.ts:8:9 › backup current is clear and accessible at 1440px
+[1A[2K[9/686] e2e/backup-health.spec.ts:8:9 › backup failed is clear and accessible at 1440px
+[1A[2K[10/686] e2e/backup-health.spec.ts:8:9 › backup stale is clear and accessible at 1440px
+[1A[2K[11/686] e2e/backup-health.spec.ts:8:9 › backup unknown is clear and accessible at 1440px
+[1A[2K[12/686] e2e/backup-health.spec.ts:8:9 › backup current is clear and accessible at 1024px
+[1A[2K[13/686] e2e/backup-health.spec.ts:8:9 › backup failed is clear and accessible at 1024px
+[1A[2K[14/686] e2e/backup-health.spec.ts:8:9 › backup stale is clear and accessible at 1024px
+[1A[2K[15/686] e2e/backup-health.spec.ts:8:9 › backup unknown is clear and accessible at 1024px
+[1A[2K[16/686] e2e/backup-health.spec.ts:8:9 › backup current is clear and accessible at 768px
+[1A[2K[17/686] e2e/backup-health.spec.ts:8:9 › backup failed is clear and accessible at 768px
+[1A[2K[18/686] e2e/backup-health.spec.ts:8:9 › backup stale is clear and accessible at 768px
+[1A[2K[19/686] e2e/backup-health.spec.ts:8:9 › backup unknown is clear and accessible at 768px
+[1A[2K[20/686] e2e/backup-health.spec.ts:8:9 › backup current is clear and accessible at 390px
+[1A[2K[21/686] e2e/backup-health.spec.ts:8:9 › backup failed is clear and accessible at 390px
+[1A[2K[22/686] e2e/backup-health.spec.ts:8:9 › backup stale is clear and accessible at 390px
+[1A[2K[23/686] e2e/backup-health.spec.ts:8:9 › backup unknown is clear and accessible at 390px
+[1A[2K[24/686] e2e/backup-health.spec.ts:8:9 › backup current is clear and accessible at 320px
+[1A[2K[25/686] e2e/backup-health.spec.ts:8:9 › backup failed is clear and accessible at 320px
+[1A[2K[26/686] e2e/backup-health.spec.ts:8:9 › backup stale is clear and accessible at 320px
+[1A[2K[27/686] e2e/backup-health.spec.ts:8:9 › backup unknown is clear and accessible at 320px
+[1A[2K[28/686] e2e/capability-aligned-create-actions.spec.ts:37:5 › staff home offers accessible read-only navigation, not forbidden creation shortcuts
+[1A[2K[29/686] e2e/capability-aligned-create-actions.spec.ts:58:7 › staff deep link /tasks?create=1 does not expose forbidden create form
+[1A[2K[30/686] e2e/capability-aligned-create-actions.spec.ts:58:7 › staff deep link /requests?create=1 does not expose forbidden create form
+[1A[2K[31/686] e2e/capability-aligned-create-actions.spec.ts:58:7 › staff deep link /fixes?create=1 does not expose forbidden create form
+[1A[2K[32/686] e2e/capability-aligned-create-actions.spec.ts:58:7 › staff deep link /guests?create=1 does not expose forbidden create form
+[1A[2K[33/686] e2e/capability-aligned-create-actions.spec.ts:58:7 › staff deep link /shift?create=1 does not expose forbidden create form
+[1A[2K[34/686] e2e/capability-aligned-create-actions.spec.ts:67:5 › department lead retains quick actions and deep-linked creation
+[1A[2K[35/686] e2e/course-improvement-passes.spec.ts:30:5 › every role lesson has a two-action independent skills check
+[1A[2K[36/686] e2e/course-improvement-passes.spec.ts:46:5 › portable reports reject malformed data and never restore saved-record lessons
+[1A[2K[37/686] e2e/course-improvement-passes.spec.ts:56:5 › two independent actual page clicks are required before course can complete
+[1A[2K[38/686] e2e/course-improvement-passes.spec.ts:69:5 › manager can restore read-only lesson history but must recheck saved records
+[1A[2K[39/686] e2e/course-improvement-passes.spec.ts:87:5 › supervisor can import a report, see attempts, and record local-only observation
+[1A[2K[40/686] e2e/department-shift-mission.spec.ts:14:5 › shift mission rejects tampered stages and unrelated records
+[1A[2K[41/686] e2e/department-shift-mission.spec.ts:26:7 › Front Desk staff follows guided and independent real Shift page controls
+[1A[2K[42/686] e2e/department-shift-mission.spec.ts:26:7 › Housekeeping staff follows guided and independent real Shift page controls
+[1A[2K[43/686] e2e/department-shift-mission.spec.ts:26:7 › Café staff follows guided and independent real Shift page controls
+[1A[2K[44/686] e2e/department-shift-mission.spec.ts:26:7 › Kitchen staff follows guided and independent real Shift page controls
+[1A[2K[45/686] e2e/department-shift-mission.spec.ts:26:7 › Maintenance staff follows guided and independent real Shift page controls
+[1A[2K[46/686] e2e/department-shift-mission.spec.ts:26:7 › Marketing staff follows guided and independent real Shift page controls
+[1A[2K[47/686] e2e/department-shift-mission.spec.ts:26:7 › Security staff follows guided and independent real Shift page controls
+[1A[2K[48/686] e2e/employee-training-walkthrough.spec.ts:23:5 › required lesson and resume dialog keep keyboard focus inside
+[1A[2K[49/686] e2e/employee-training-walkthrough.spec.ts:45:5 › mobile orientation points to the menu when My Work is hidden
+[1A[2K[50/686] e2e/employee-training-walkthrough.spec.ts:68:5 › drafts keep corrections and typed work across case switches and reload
+[1A[2K[51/686] e2e/employee-training-walkthrough.spec.ts:92:5 › repeated hints do not erase a completed result on reload
+[1A[2K[52/686] e2e/employee-training-walkthrough.spec.ts:98:5 › draft parser ignores corrupt and unavailable cases and cannot award completion
+[1A[2K[53/686] e2e/employee-training-walkthrough.spec.ts:108:5 › the final case has a clear finish and exports the trainee response even during a repeat
+[1A[2K[54/686] e2e/employee-training-walkthrough.spec.ts:140:5 › unavailable draft storage shows a clear warning while practice remains usable
+[1A[2K[55/686] e2e/employee-training-walkthrough.spec.ts:157:5 › a delayed navigation callback cannot rewind the next tour step
+[1A[2K[56/686] e2e/frontdesk-room-mission.spec.ts:5:5 › room mission progress parser ignores forged/invalid stages
+[1A[2K[57/686] e2e/frontdesk-room-mission.spec.ts:17:5 › Front Desk employee completes guided Solace and independent Perch 1 on actual Rooms screens
+[1A[2K[58/686] e2e/full-site-screenshot-inventory.spec.ts:238:7 › captures public login at desktop
+[1A[2K[59/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner / at desktop
+[1A[2K[60/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /account at desktop
+[1A[2K[61/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/appearance at desktop
+[1A[2K[62/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/approve at desktop
+[1A[2K[63/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/health at desktop
+[1A[2K[64/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/users at desktop
+[1A[2K[65/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approvals at desktop
+[1A[2K[66/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approve at desktop
+[1A[2K[67/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /departments at desktop
+[1A[2K[68/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /fixes at desktop
+[1A[2K[69/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /guests at desktop
+[1A[2K[70/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /history at desktop
+[1A[2K[71/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /my-work at desktop
+[1A[2K[72/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /notifications at desktop
+[1A[2K[73/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts at desktop
+[1A[2K[74/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts/editor at desktop
+[1A[2K[75/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /projects at desktop
+[1A[2K[76/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /requests at desktop
+[1A[2K[77/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /review at desktop
+[1A[2K[78/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms at desktop
+[1A[2K[79/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms/1 at desktop
+[1A[2K[80/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /shift at desktop
+[1A[2K[81/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /tasks at desktop
+[1A[2K[82/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin / at desktop
+[1A[2K[83/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /account at desktop
+[1A[2K[84/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/health at desktop
+[1A[2K[85/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/users at desktop
+[1A[2K[86/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /approvals at desktop
+[1A[2K[87/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /departments at desktop
+[1A[2K[88/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /history at desktop
+[1A[2K[89/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /my-work at desktop
+[1A[2K[90/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /requests at desktop
+[1A[2K[91/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /review at desktop
+[1A[2K[92/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /tasks at desktop
+[1A[2K[93/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager / at desktop
+[1A[2K[94/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /account at desktop
+[1A[2K[95/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /admin/health at desktop
+[1A[2K[96/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /approvals at desktop
+[1A[2K[97/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /departments at desktop
+[1A[2K[98/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /history at desktop
+[1A[2K[99/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /my-work at desktop
+[1A[2K[100/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /requests at desktop
+[1A[2K[101/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /review at desktop
+[1A[2K[102/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /tasks at desktop
+[1A[2K[103/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor / at desktop
+[1A[2K[104/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /account at desktop
+[1A[2K[105/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /departments at desktop
+[1A[2K[106/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /fixes at desktop
+[1A[2K[107/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /guests at desktop
+[1A[2K[108/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /my-work at desktop
+[1A[2K[109/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /requests at desktop
+[1A[2K[110/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /shift at desktop
+[1A[2K[111/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /tasks at desktop
+[1A[2K[112/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff / at desktop
+[1A[2K[113/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /account at desktop
+[1A[2K[114/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /departments at desktop
+[1A[2K[115/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /my-work at desktop
+[1A[2K[116/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /requests at desktop
+[1A[2K[117/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /shift at desktop
+[1A[2K[118/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /tasks at desktop
+[1A[2K[119/686] e2e/full-site-screenshot-inventory.spec.ts:238:7 › captures public login at tablet-1024
+[1A[2K[120/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner / at tablet-1024
+[1A[2K[121/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /account at tablet-1024
+[1A[2K[122/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/appearance at tablet-1024
+[1A[2K[123/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/approve at tablet-1024
+[1A[2K[124/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/health at tablet-1024
+[1A[2K[125/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/users at tablet-1024
+[1A[2K[126/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approvals at tablet-1024
+[1A[2K[127/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approve at tablet-1024
+[1A[2K[128/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /departments at tablet-1024
+[1A[2K[129/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /fixes at tablet-1024
+[1A[2K[130/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /guests at tablet-1024
+[1A[2K[131/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /history at tablet-1024
+[1A[2K[132/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /my-work at tablet-1024
+[1A[2K[133/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /notifications at tablet-1024
+[1A[2K[134/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts at tablet-1024
+[1A[2K[135/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts/editor at tablet-1024
+[1A[2K[136/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /projects at tablet-1024
+[1A[2K[137/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /requests at tablet-1024
+[1A[2K[138/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /review at tablet-1024
+[1A[2K[139/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms at tablet-1024
+[1A[2K[140/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms/1 at tablet-1024
+[1A[2K[141/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /shift at tablet-1024
+[1A[2K[142/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /tasks at tablet-1024
+[1A[2K[143/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin / at tablet-1024
+[1A[2K[144/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /account at tablet-1024
+[1A[2K[145/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/health at tablet-1024
+[1A[2K[146/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/users at tablet-1024
+[1A[2K[147/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /approvals at tablet-1024
+[1A[2K[148/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /departments at tablet-1024
+[1A[2K[149/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /history at tablet-1024
+[1A[2K[150/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /my-work at tablet-1024
+[1A[2K[151/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /requests at tablet-1024
+[1A[2K[152/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /review at tablet-1024
+[1A[2K[153/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /tasks at tablet-1024
+[1A[2K[154/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager / at tablet-1024
+[1A[2K[155/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /account at tablet-1024
+[1A[2K[156/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /admin/health at tablet-1024
+[1A[2K[157/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /approvals at tablet-1024
+[1A[2K[158/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /departments at tablet-1024
+[1A[2K[159/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /history at tablet-1024
+[1A[2K[160/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /my-work at tablet-1024
+[1A[2K[161/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /requests at tablet-1024
+[1A[2K[162/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /review at tablet-1024
+[1A[2K[163/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /tasks at tablet-1024
+[1A[2K[164/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor / at tablet-1024
+[1A[2K[165/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /account at tablet-1024
+[1A[2K[166/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /departments at tablet-1024
+[1A[2K[167/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /fixes at tablet-1024
+[1A[2K[168/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /guests at tablet-1024
+[1A[2K[169/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /my-work at tablet-1024
+[1A[2K[170/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /requests at tablet-1024
+[1A[2K[171/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /shift at tablet-1024
+[1A[2K[172/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /tasks at tablet-1024
+[1A[2K[173/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff / at tablet-1024
+[1A[2K[174/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /account at tablet-1024
+[1A[2K[175/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /departments at tablet-1024
+[1A[2K[176/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /my-work at tablet-1024
+[1A[2K[177/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /requests at tablet-1024
+[1A[2K[178/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /shift at tablet-1024
+[1A[2K[179/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /tasks at tablet-1024
+[1A[2K[180/686] e2e/full-site-screenshot-inventory.spec.ts:238:7 › captures public login at tablet-768
+[1A[2K[181/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner / at tablet-768
+[1A[2K[182/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /account at tablet-768
+[1A[2K[183/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/appearance at tablet-768
+[1A[2K[184/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/approve at tablet-768
+[1A[2K[185/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/health at tablet-768
+[1A[2K[186/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/users at tablet-768
+[1A[2K[187/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approvals at tablet-768
+[1A[2K[188/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approve at tablet-768
+[1A[2K[189/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /departments at tablet-768
+[1A[2K[190/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /fixes at tablet-768
+[1A[2K[191/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /guests at tablet-768
+[1A[2K[192/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /history at tablet-768
+[1A[2K[193/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /my-work at tablet-768
+[1A[2K[194/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /notifications at tablet-768
+[1A[2K[195/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts at tablet-768
+[1A[2K[196/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts/editor at tablet-768
+[1A[2K[197/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /projects at tablet-768
+[1A[2K[198/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /requests at tablet-768
+[1A[2K[199/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /review at tablet-768
+[1A[2K[200/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms at tablet-768
+[1A[2K[201/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms/1 at tablet-768
+[1A[2K[202/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /shift at tablet-768
+[1A[2K[203/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /tasks at tablet-768
+[1A[2K[204/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin / at tablet-768
+[1A[2K[205/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /account at tablet-768
+[1A[2K[206/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/health at tablet-768
+[1A[2K[207/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/users at tablet-768
+[1A[2K[208/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /approvals at tablet-768
+[1A[2K[209/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /departments at tablet-768
+[1A[2K[210/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /history at tablet-768
+[1A[2K[211/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /my-work at tablet-768
+[1A[2K[212/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /requests at tablet-768
+[1A[2K[213/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /review at tablet-768
+[1A[2K[214/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /tasks at tablet-768
+[1A[2K[215/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager / at tablet-768
+[1A[2K[216/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /account at tablet-768
+[1A[2K[217/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /admin/health at tablet-768
+[1A[2K[218/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /approvals at tablet-768
+[1A[2K[219/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /departments at tablet-768
+[1A[2K[220/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /history at tablet-768
+[1A[2K[221/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /my-work at tablet-768
+[1A[2K[222/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /requests at tablet-768
+[1A[2K[223/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /review at tablet-768
+[1A[2K[224/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /tasks at tablet-768
+[1A[2K[225/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor / at tablet-768
+[1A[2K[226/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /account at tablet-768
+[1A[2K[227/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /departments at tablet-768
+[1A[2K[228/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /fixes at tablet-768
+[1A[2K[229/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /guests at tablet-768
+[1A[2K[230/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /my-work at tablet-768
+[1A[2K[231/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /requests at tablet-768
+[1A[2K[232/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /shift at tablet-768
+[1A[2K[233/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /tasks at tablet-768
+[1A[2K[234/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff / at tablet-768
+[1A[2K[235/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /account at tablet-768
+[1A[2K[236/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /departments at tablet-768
+[1A[2K[237/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /my-work at tablet-768
+[1A[2K[238/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /requests at tablet-768
+[1A[2K[239/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /shift at tablet-768
+[1A[2K[240/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /tasks at tablet-768
+[1A[2K[241/686] e2e/full-site-screenshot-inventory.spec.ts:238:7 › captures public login at mobile
+[1A[2K[242/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner / at mobile
+[1A[2K[243/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /account at mobile
+[1A[2K[244/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/appearance at mobile
+[1A[2K[245/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/approve at mobile
+[1A[2K[246/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/health at mobile
+[1A[2K[247/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/users at mobile
+[1A[2K[248/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approvals at mobile
+[1A[2K[249/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approve at mobile
+[1A[2K[250/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /departments at mobile
+[1A[2K[251/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /fixes at mobile
+[1A[2K[252/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /guests at mobile
+[1A[2K[253/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /history at mobile
+[1A[2K[254/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /my-work at mobile
+[1A[2K[255/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /notifications at mobile
+[1A[2K[256/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts at mobile
+[1A[2K[257/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts/editor at mobile
+[1A[2K[258/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /projects at mobile
+[1A[2K[259/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /requests at mobile
+[1A[2K[260/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /review at mobile
+[1A[2K[261/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms at mobile
+[1A[2K[262/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms/1 at mobile
+[1A[2K[263/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /shift at mobile
+[1A[2K[264/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /tasks at mobile
+[1A[2K[265/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin / at mobile
+[1A[2K[266/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /account at mobile
+[1A[2K[267/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/health at mobile
+[1A[2K[268/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/users at mobile
+[1A[2K[269/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /approvals at mobile
+[1A[2K[270/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /departments at mobile
+[1A[2K[271/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /history at mobile
+[1A[2K[272/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /my-work at mobile
+[1A[2K[273/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /requests at mobile
+[1A[2K[274/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /review at mobile
+[1A[2K[275/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /tasks at mobile
+[1A[2K[276/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager / at mobile
+[1A[2K[277/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /account at mobile
+[1A[2K[278/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /admin/health at mobile
+[1A[2K[279/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /approvals at mobile
+[1A[2K[280/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /departments at mobile
+[1A[2K[281/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /history at mobile
+[1A[2K[282/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /my-work at mobile
+[1A[2K[283/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /requests at mobile
+[1A[2K[284/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /review at mobile
+[1A[2K[285/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /tasks at mobile
+[1A[2K[286/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor / at mobile
+[1A[2K[287/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /account at mobile
+[1A[2K[288/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /departments at mobile
+[1A[2K[289/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /fixes at mobile
+[1A[2K[290/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /guests at mobile
+[1A[2K[291/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /my-work at mobile
+[1A[2K[292/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /requests at mobile
+[1A[2K[293/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /shift at mobile
+[1A[2K[294/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /tasks at mobile
+[1A[2K[295/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff / at mobile
+[1A[2K[296/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /account at mobile
+[1A[2K[297/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /departments at mobile
+[1A[2K[298/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /my-work at mobile
+[1A[2K[299/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /requests at mobile
+[1A[2K[300/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /shift at mobile
+[1A[2K[301/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /tasks at mobile
+[1A[2K[302/686] e2e/full-site-screenshot-inventory.spec.ts:238:7 › captures public login at mobile-320
+[1A[2K[303/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner / at mobile-320
+[1A[2K[304/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /account at mobile-320
+[1A[2K[305/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/appearance at mobile-320
+[1A[2K[306/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/approve at mobile-320
+[1A[2K[307/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/health at mobile-320
+[1A[2K[308/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /admin/users at mobile-320
+[1A[2K[309/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approvals at mobile-320
+[1A[2K[310/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /approve at mobile-320
+[1A[2K[311/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /departments at mobile-320
+[1A[2K[312/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /fixes at mobile-320
+[1A[2K[313/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /guests at mobile-320
+[1A[2K[314/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /history at mobile-320
+[1A[2K[315/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /my-work at mobile-320
+[1A[2K[316/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /notifications at mobile-320
+[1A[2K[317/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts at mobile-320
+[1A[2K[318/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /posts/editor at mobile-320
+[1A[2K[319/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /projects at mobile-320
+[1A[2K[320/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /requests at mobile-320
+[1A[2K[321/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /review at mobile-320
+[1A[2K[322/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms at mobile-320
+[1A[2K[323/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /rooms/1 at mobile-320
+[1A[2K[324/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /shift at mobile-320
+[1A[2K[325/686] e2e/full-site-screenshot-inventory.spec.ts:247:9 › captures owner /tasks at mobile-320
+[1A[2K[326/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin / at mobile-320
+[1A[2K[327/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /account at mobile-320
+[1A[2K[328/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/health at mobile-320
+[1A[2K[329/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /admin/users at mobile-320
+[1A[2K[330/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /approvals at mobile-320
+[1A[2K[331/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /departments at mobile-320
+[1A[2K[332/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /history at mobile-320
+[1A[2K[333/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /my-work at mobile-320
+[1A[2K[334/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /requests at mobile-320
+[1A[2K[335/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /review at mobile-320
+[1A[2K[336/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures admin /tasks at mobile-320
+[1A[2K[337/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager / at mobile-320
+[1A[2K[338/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /account at mobile-320
+[1A[2K[339/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /admin/health at mobile-320
+[1A[2K[340/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /approvals at mobile-320
+[1A[2K[341/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /departments at mobile-320
+[1A[2K[342/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /history at mobile-320
+[1A[2K[343/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /my-work at mobile-320
+[1A[2K[344/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /requests at mobile-320
+[1A[2K[345/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /review at mobile-320
+[1A[2K[346/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures manager /tasks at mobile-320
+[1A[2K[347/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor / at mobile-320
+[1A[2K[348/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /account at mobile-320
+[1A[2K[349/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /departments at mobile-320
+[1A[2K[350/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /fixes at mobile-320
+[1A[2K[351/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /guests at mobile-320
+[1A[2K[352/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /my-work at mobile-320
+[1A[2K[353/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /requests at mobile-320
+[1A[2K[354/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /shift at mobile-320
+[1A[2K[355/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures supervisor /tasks at mobile-320
+[1A[2K[356/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff / at mobile-320
+[1A[2K[357/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /account at mobile-320
+[1A[2K[358/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /departments at mobile-320
+[1A[2K[359/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /my-work at mobile-320
+[1A[2K[360/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /requests at mobile-320
+[1A[2K[361/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /shift at mobile-320
+[1A[2K[362/686] e2e/full-site-screenshot-inventory.spec.ts:256:11 › captures staff /tasks at mobile-320
+[1A[2K[363/686] e2e/group-d-task-drawer-focus.spec.ts:69:7 › task workflow keeps its drawer and keyboard focus during refresh at desktop list
+[1A[2K[364/686] e2e/group-d-task-drawer-focus.spec.ts:69:7 › task workflow keeps its drawer and keyboard focus during refresh at mobile board
+[1A[2K[365/686] e2e/guest-fix-reading-training.spec.ts:12:5 › front desk staff inspect a saved guest matter without editing operational records
+[1A[2K[366/686] e2e/guest-fix-reading-training.spec.ts:74:5 › maintenance staff inspect a saved work order without verify/repair privileges
+[1A[2K[367/686] e2e/guided-spotlight.spec.ts:30:5 › first open makes Start obvious, then moves the orange focus after real user input
+[1A[2K[368/686] e2e/guided-spotlight.spec.ts:69:5 › dismissal is optional, and any trainee can restart the guided lesson
+[1A[2K[369/686] e2e/guided-spotlight.spec.ts:83:5 › actual Tasks module highlights New, then the real form, and Repeat creates a fresh reference
+[1A[2K[370/686] e2e/hands-on-training.spec.ts:36:5 › first open goes to role login without a cached fictional account
+[1A[2K[371/686] e2e/hands-on-training.spec.ts:42:5 › reception must click choices, type a case note and correct mistakes before progress is recorded
+[1A[2K[372/686] e2e/hands-on-training.spec.ts:83:5 › manager has management decision scenarios while staff cannot see them
+[1A[2K[373/686] e2e/hands-on-training.spec.ts:94:5 › large role-aware catalog can be searched by issue and difficulty
+[1A[2K[374/686] e2e/hands-on-training.spec.ts:109:5 › complex incident must include concrete response, accountable owner and verification
+[1A[2K[375/686] e2e/hands-on-training.spec.ts:135:5 › repeating a completed case retains prior corrections and hints in its exported results
+[1A[2K[376/686] e2e/hands-on-training.spec.ts:174:5 › original shift handover rejects filler even after correct priority and routing
+[1A[2K[377/686] e2e/hands-on-training.spec.ts:194:5 › critical kitchen drill rejects explicit instructions not to stop or notify
+[1A[2K[378/686] e2e/health-archive-policy.spec.ts:27:9 › owner archive policy and accessible Health at 1440px
+[1A[2K[379/686] e2e/health-archive-policy.spec.ts:27:9 › admin archive policy and accessible Health at 1440px
+[1A[2K[380/686] e2e/health-archive-policy.spec.ts:27:9 › manager archive policy and accessible Health at 1440px
+[1A[2K[381/686] e2e/health-archive-policy.spec.ts:27:9 › owner archive policy and accessible Health at 1024px
+[1A[2K[382/686] e2e/health-archive-policy.spec.ts:27:9 › admin archive policy and accessible Health at 1024px
+[1A[2K[383/686] e2e/health-archive-policy.spec.ts:27:9 › manager archive policy and accessible Health at 1024px
+[1A[2K[384/686] e2e/health-archive-policy.spec.ts:27:9 › owner archive policy and accessible Health at 768px
+[1A[2K[385/686] e2e/health-archive-policy.spec.ts:27:9 › admin archive policy and accessible Health at 768px
+[1A[2K[386/686] e2e/health-archive-policy.spec.ts:27:9 › manager archive policy and accessible Health at 768px
+[1A[2K[387/686] e2e/health-archive-policy.spec.ts:27:9 › owner archive policy and accessible Health at 390px
+[1A[2K[388/686] e2e/health-archive-policy.spec.ts:27:9 › admin archive policy and accessible Health at 390px
+[1A[2K[389/686] e2e/health-archive-policy.spec.ts:27:9 › manager archive policy and accessible Health at 390px
+[1A[2K[390/686] e2e/health-archive-policy.spec.ts:27:9 › owner archive policy and accessible Health at 320px
+[1A[2K[391/686] e2e/health-archive-policy.spec.ts:27:9 › admin archive policy and accessible Health at 320px
+[1A[2K[392/686] e2e/health-archive-policy.spec.ts:27:9 › manager archive policy and accessible Health at 320px
+[1A[2K[393/686] e2e/health-archive-policy.spec.ts:46:5 › an archive request stays disabled while pending and reports safe result counts
+[1A[2K[394/686] e2e/health-archive-policy.spec.ts:65:5 › a revoked archive permission is shown as an error without a success result
+[1A[2K[395/686] e2e/historical-media-availability.spec.ts:23:7 › unavailable historical creative preserves history at 1440px
+[1A[2K[396/686] e2e/historical-media-availability.spec.ts:23:7 › unavailable historical creative preserves history at 1024px
+[1A[2K[397/686] e2e/historical-media-availability.spec.ts:23:7 › unavailable historical creative preserves history at 768px
+[1A[2K[398/686] e2e/historical-media-availability.spec.ts:23:7 › unavailable historical creative preserves history at 390px
+[1A[2K[399/686] e2e/historical-media-availability.spec.ts:23:7 › unavailable historical creative preserves history at 320px
+[1A[2K[400/686] e2e/historical-media-availability.spec.ts:40:5 › direct annotation link does not request an unavailable historical file
+[1A[2K[401/686] e2e/independent-shift-challenge.spec.ts:7:26 › Front Desk shift: useful response passes; incomplete, unsafe and wrong decisions fail
+[1A[2K[402/686] e2e/independent-shift-challenge.spec.ts:7:26 › Housekeeping shift: useful response passes; incomplete, unsafe and wrong decisions fail
+[1A[2K[403/686] e2e/independent-shift-challenge.spec.ts:7:26 › Café shift: useful response passes; incomplete, unsafe and wrong decisions fail
+[1A[2K[404/686] e2e/independent-shift-challenge.spec.ts:7:26 › Kitchen shift: useful response passes; incomplete, unsafe and wrong decisions fail
+[1A[2K[405/686] e2e/independent-shift-challenge.spec.ts:7:26 › Maintenance shift: useful response passes; incomplete, unsafe and wrong decisions fail
+[1A[2K[406/686] e2e/independent-shift-challenge.spec.ts:7:26 › Marketing shift: useful response passes; incomplete, unsafe and wrong decisions fail
+[1A[2K[407/686] e2e/independent-shift-challenge.spec.ts:7:26 › Security shift: useful response passes; incomplete, unsafe and wrong decisions fail
+[1A[2K[408/686] e2e/independent-shift-challenge.spec.ts:13:5 › completion requires opened records, the employee’s saved comment and read notice, including after refresh
+[1A[2K[409/686] e2e/interactive-training.spec.ts:47:5 › no walkthrough launcher on the login screen
+[1A[2K[410/686] e2e/interactive-training.spec.ts:52:5 › staff have read-only lessons with guided spotlights
+[1A[2K[411/686] e2e/interactive-training.spec.ts:70:5 › supervisor sees work training but not management decisions
+[1A[2K[412/686] e2e/interactive-training.spec.ts:77:5 › manager sees authorization-appropriate review lessons
+[1A[2K[413/686] e2e/interactive-training.spec.ts:85:5 › mobile staff can open and close the training library
+[1A[2K[414/686] e2e/interactive-training.spec.ts:94:5 › supervisor safely opens a task form and cancels without writing
+[1A[2K[415/686] e2e/interactive-training.spec.ts:130:5 › supervisor request walkthrough opens and cancels an unsaved proposal
+[1A[2K[416/686] e2e/interactive-training.spec.ts:147:5 › administrator sees people and access lessons
+[1A[2K[417/686] e2e/interactive-training.spec.ts:152:5 › lesson library keeps keyboard focus within dialog and restores it on close
+[1A[2K[418/686] e2e/live-employee-training.spec.ts:27:5 › fresh receptionist completes all required lessons using the real local API and real controls
+[1A[2K[419/686] e2e/live-employee-training.spec.ts:40:5 › fresh manager learns the first five lessons and saves, starts and submits an assigned task against the real API
+[1A[2K[420/686] e2e/live-shift-challenge.spec.ts:11:39 › real Front Desk shift: own login, actual records, saved comment and personal notice
+[1A[2K[421/686] e2e/live-shift-challenge.spec.ts:11:39 › real Housekeeping shift: own login, actual records, saved comment and personal notice
+[1A[2K[422/686] e2e/live-shift-challenge.spec.ts:11:39 › real Café shift: own login, actual records, saved comment and personal notice
+[1A[2K[423/686] e2e/live-shift-challenge.spec.ts:11:39 › real Kitchen shift: own login, actual records, saved comment and personal notice
+[1A[2K[424/686] e2e/live-shift-challenge.spec.ts:11:39 › real Maintenance shift: own login, actual records, saved comment and personal notice
+[1A[2K[425/686] e2e/live-shift-challenge.spec.ts:11:39 › real Marketing shift: own login, actual records, saved comment and personal notice
+[1A[2K[426/686] e2e/live-shift-challenge.spec.ts:11:39 › real Security shift: own login, actual records, saved comment and personal notice
+[1A[2K[427/686] e2e/marketing-calendar-content.spec.ts:50:5 › scheduled multi-platform concept appears in calendar and opens its concept
+[1A[2K[428/686] e2e/marketing-calendar-content.spec.ts:68:5 › creative upload confirms success and refreshes the version list
+[1A[2K[429/686] e2e/marketing-calendar-content.spec.ts:79:5 › new concept uses campaign dropdown, multiple platforms, and creative upload
+[1A[2K[430/686] e2e/marketing-calendar-content.spec.ts:93:5 › calendar date is clickable and prefills canonical concept publishing date
+[1A[2K[431/686] e2e/marketing-calendar-content.spec.ts:107:5 › Annotation Studio auto-fits and supports direct text and image overlays
+[1A[2K[432/686] e2e/notification-training.spec.ts:12:5 › ordinary staff mark an actual fictional notification read and verify saved state
+[1A[2K[433/686] e2e/notification-training.spec.ts:79:5 › a staff account without accessible fictional unread notices cannot claim verification
+[1A[2K[434/686] e2e/offsite-health.spec.ts:28:9 › offsite current remains distinct from current local backups at 1440px
+[1A[2K[435/686] e2e/offsite-health.spec.ts:28:9 › offsite failed remains distinct from current local backups at 1440px
+[1A[2K[436/686] e2e/offsite-health.spec.ts:28:9 › offsite stale remains distinct from current local backups at 1440px
+[1A[2K[437/686] e2e/offsite-health.spec.ts:28:9 › offsite unknown remains distinct from current local backups at 1440px
+[1A[2K[438/686] e2e/offsite-health.spec.ts:28:9 › offsite current remains distinct from current local backups at 1024px
+[1A[2K[439/686] e2e/offsite-health.spec.ts:28:9 › offsite failed remains distinct from current local backups at 1024px
+[1A[2K[440/686] e2e/offsite-health.spec.ts:28:9 › offsite stale remains distinct from current local backups at 1024px
+[1A[2K[441/686] e2e/offsite-health.spec.ts:28:9 › offsite unknown remains distinct from current local backups at 1024px
+[1A[2K[442/686] e2e/offsite-health.spec.ts:28:9 › offsite current remains distinct from current local backups at 768px
+[1A[2K[443/686] e2e/offsite-health.spec.ts:28:9 › offsite failed remains distinct from current local backups at 768px
+[1A[2K[444/686] e2e/offsite-health.spec.ts:28:9 › offsite stale remains distinct from current local backups at 768px
+[1A[2K[445/686] e2e/offsite-health.spec.ts:28:9 › offsite unknown remains distinct from current local backups at 768px
+[1A[2K[446/686] e2e/offsite-health.spec.ts:28:9 › offsite current remains distinct from current local backups at 390px
+[1A[2K[447/686] e2e/offsite-health.spec.ts:28:9 › offsite failed remains distinct from current local backups at 390px
+[1A[2K[448/686] e2e/offsite-health.spec.ts:28:9 › offsite stale remains distinct from current local backups at 390px
+[1A[2K[449/686] e2e/offsite-health.spec.ts:28:9 › offsite unknown remains distinct from current local backups at 390px
+[1A[2K[450/686] e2e/offsite-health.spec.ts:28:9 › offsite current remains distinct from current local backups at 320px
+[1A[2K[451/686] e2e/offsite-health.spec.ts:28:9 › offsite failed remains distinct from current local backups at 320px
+[1A[2K[452/686] e2e/offsite-health.spec.ts:28:9 › offsite stale remains distinct from current local backups at 320px
+[1A[2K[453/686] e2e/offsite-health.spec.ts:28:9 › offsite unknown remains distinct from current local backups at 320px
+[1A[2K[454/686] e2e/offsite-health.spec.ts:50:5 › failed offsite status request preserves local health and shows an actionable error
+[1A[2K[455/686] e2e/offsite-health.spec.ts:59:5 › manager sees offsite health without gaining global archive controls
+[1A[2K[456/686] e2e/pass10-session-security.spec.ts:24:5 › successful browser login persists metadata only and uses cookie transport
+[1A[2K[457/686] e2e/pass11-accessibility.spec.ts:112:5 › login is free of critical/serious WCAG violations
+[1A[2K[458/686] e2e/pass11-accessibility.spec.ts:121:9 › / has no critical/serious WCAG violations at desktop
+[1A[2K[459/686] e2e/pass11-accessibility.spec.ts:121:9 › /account has no critical/serious WCAG violations at desktop
+[1A[2K[460/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/approve has no critical/serious WCAG violations at desktop
+[1A[2K[461/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/health has no critical/serious WCAG violations at desktop
+[1A[2K[462/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/users has no critical/serious WCAG violations at desktop
+[1A[2K[463/686] e2e/pass11-accessibility.spec.ts:121:9 › /approvals has no critical/serious WCAG violations at desktop
+[1A[2K[464/686] e2e/pass11-accessibility.spec.ts:121:9 › /approve has no critical/serious WCAG violations at desktop
+[1A[2K[465/686] e2e/pass11-accessibility.spec.ts:121:9 › /departments has no critical/serious WCAG violations at desktop
+[1A[2K[466/686] e2e/pass11-accessibility.spec.ts:121:9 › /fixes has no critical/serious WCAG violations at desktop
+[1A[2K[467/686] e2e/pass11-accessibility.spec.ts:121:9 › /guests has no critical/serious WCAG violations at desktop
+[1A[2K[468/686] e2e/pass11-accessibility.spec.ts:121:9 › /history has no critical/serious WCAG violations at desktop
+[1A[2K[469/686] e2e/pass11-accessibility.spec.ts:121:9 › /my-work has no critical/serious WCAG violations at desktop
+[1A[2K[470/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts has no critical/serious WCAG violations at desktop
+[1A[2K[471/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts/editor has no critical/serious WCAG violations at desktop
+[1A[2K[472/686] e2e/pass11-accessibility.spec.ts:121:9 › /projects has no critical/serious WCAG violations at desktop
+[1A[2K[473/686] e2e/pass11-accessibility.spec.ts:121:9 › /requests has no critical/serious WCAG violations at desktop
+[1A[2K[474/686] e2e/pass11-accessibility.spec.ts:121:9 › /review has no critical/serious WCAG violations at desktop
+[1A[2K[475/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms has no critical/serious WCAG violations at desktop
+[1A[2K[476/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms/1 has no critical/serious WCAG violations at desktop
+[1A[2K[477/686] e2e/pass11-accessibility.spec.ts:121:9 › /shift has no critical/serious WCAG violations at desktop
+[1A[2K[478/686] e2e/pass11-accessibility.spec.ts:121:9 › /tasks has no critical/serious WCAG violations at desktop
+[1A[2K[479/686] e2e/pass11-accessibility.spec.ts:121:9 › /notifications has no critical/serious WCAG violations at desktop
+[1A[2K[480/686] e2e/pass11-accessibility.spec.ts:121:9 › /does-not-exist has no critical/serious WCAG violations at desktop
+[1A[2K[481/686] e2e/pass11-accessibility.spec.ts:121:9 › / has no critical/serious WCAG violations at tablet-1024
+[1A[2K[482/686] e2e/pass11-accessibility.spec.ts:121:9 › /account has no critical/serious WCAG violations at tablet-1024
+[1A[2K[483/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/approve has no critical/serious WCAG violations at tablet-1024
+[1A[2K[484/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/health has no critical/serious WCAG violations at tablet-1024
+[1A[2K[485/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/users has no critical/serious WCAG violations at tablet-1024
+[1A[2K[486/686] e2e/pass11-accessibility.spec.ts:121:9 › /approvals has no critical/serious WCAG violations at tablet-1024
+[1A[2K[487/686] e2e/pass11-accessibility.spec.ts:121:9 › /approve has no critical/serious WCAG violations at tablet-1024
+[1A[2K[488/686] e2e/pass11-accessibility.spec.ts:121:9 › /departments has no critical/serious WCAG violations at tablet-1024
+[1A[2K[489/686] e2e/pass11-accessibility.spec.ts:121:9 › /fixes has no critical/serious WCAG violations at tablet-1024
+[1A[2K[490/686] e2e/pass11-accessibility.spec.ts:121:9 › /guests has no critical/serious WCAG violations at tablet-1024
+[1A[2K[491/686] e2e/pass11-accessibility.spec.ts:121:9 › /history has no critical/serious WCAG violations at tablet-1024
+[1A[2K[492/686] e2e/pass11-accessibility.spec.ts:121:9 › /my-work has no critical/serious WCAG violations at tablet-1024
+[1A[2K[493/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts has no critical/serious WCAG violations at tablet-1024
+[1A[2K[494/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts/editor has no critical/serious WCAG violations at tablet-1024
+[1A[2K[495/686] e2e/pass11-accessibility.spec.ts:121:9 › /projects has no critical/serious WCAG violations at tablet-1024
+[1A[2K[496/686] e2e/pass11-accessibility.spec.ts:121:9 › /requests has no critical/serious WCAG violations at tablet-1024
+[1A[2K[497/686] e2e/pass11-accessibility.spec.ts:121:9 › /review has no critical/serious WCAG violations at tablet-1024
+[1A[2K[498/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms has no critical/serious WCAG violations at tablet-1024
+[1A[2K[499/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms/1 has no critical/serious WCAG violations at tablet-1024
+[1A[2K[500/686] e2e/pass11-accessibility.spec.ts:121:9 › /shift has no critical/serious WCAG violations at tablet-1024
+[1A[2K[501/686] e2e/pass11-accessibility.spec.ts:121:9 › /tasks has no critical/serious WCAG violations at tablet-1024
+[1A[2K[502/686] e2e/pass11-accessibility.spec.ts:121:9 › /notifications has no critical/serious WCAG violations at tablet-1024
+[1A[2K[503/686] e2e/pass11-accessibility.spec.ts:121:9 › /does-not-exist has no critical/serious WCAG violations at tablet-1024
+[1A[2K[504/686] e2e/pass11-accessibility.spec.ts:121:9 › / has no critical/serious WCAG violations at tablet-768
+[1A[2K[505/686] e2e/pass11-accessibility.spec.ts:121:9 › /account has no critical/serious WCAG violations at tablet-768
+[1A[2K[506/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/approve has no critical/serious WCAG violations at tablet-768
+[1A[2K[507/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/health has no critical/serious WCAG violations at tablet-768
+[1A[2K[508/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/users has no critical/serious WCAG violations at tablet-768
+[1A[2K[509/686] e2e/pass11-accessibility.spec.ts:121:9 › /approvals has no critical/serious WCAG violations at tablet-768
+[1A[2K[510/686] e2e/pass11-accessibility.spec.ts:121:9 › /approve has no critical/serious WCAG violations at tablet-768
+[1A[2K[511/686] e2e/pass11-accessibility.spec.ts:121:9 › /departments has no critical/serious WCAG violations at tablet-768
+[1A[2K[512/686] e2e/pass11-accessibility.spec.ts:121:9 › /fixes has no critical/serious WCAG violations at tablet-768
+[1A[2K[513/686] e2e/pass11-accessibility.spec.ts:121:9 › /guests has no critical/serious WCAG violations at tablet-768
+[1A[2K[514/686] e2e/pass11-accessibility.spec.ts:121:9 › /history has no critical/serious WCAG violations at tablet-768
+[1A[2K[515/686] e2e/pass11-accessibility.spec.ts:121:9 › /my-work has no critical/serious WCAG violations at tablet-768
+[1A[2K[516/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts has no critical/serious WCAG violations at tablet-768
+[1A[2K[517/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts/editor has no critical/serious WCAG violations at tablet-768
+[1A[2K[518/686] e2e/pass11-accessibility.spec.ts:121:9 › /projects has no critical/serious WCAG violations at tablet-768
+[1A[2K[519/686] e2e/pass11-accessibility.spec.ts:121:9 › /requests has no critical/serious WCAG violations at tablet-768
+[1A[2K[520/686] e2e/pass11-accessibility.spec.ts:121:9 › /review has no critical/serious WCAG violations at tablet-768
+[1A[2K[521/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms has no critical/serious WCAG violations at tablet-768
+[1A[2K[522/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms/1 has no critical/serious WCAG violations at tablet-768
+[1A[2K[523/686] e2e/pass11-accessibility.spec.ts:121:9 › /shift has no critical/serious WCAG violations at tablet-768
+[1A[2K[524/686] e2e/pass11-accessibility.spec.ts:121:9 › /tasks has no critical/serious WCAG violations at tablet-768
+[1A[2K[525/686] e2e/pass11-accessibility.spec.ts:121:9 › /notifications has no critical/serious WCAG violations at tablet-768
+[1A[2K[526/686] e2e/pass11-accessibility.spec.ts:121:9 › /does-not-exist has no critical/serious WCAG violations at tablet-768
+[1A[2K[527/686] e2e/pass11-accessibility.spec.ts:121:9 › / has no critical/serious WCAG violations at mobile-390
+[1A[2K[528/686] e2e/pass11-accessibility.spec.ts:121:9 › /account has no critical/serious WCAG violations at mobile-390
+[1A[2K[529/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/approve has no critical/serious WCAG violations at mobile-390
+[1A[2K[530/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/health has no critical/serious WCAG violations at mobile-390
+[1A[2K[531/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/users has no critical/serious WCAG violations at mobile-390
+[1A[2K[532/686] e2e/pass11-accessibility.spec.ts:121:9 › /approvals has no critical/serious WCAG violations at mobile-390
+[1A[2K[533/686] e2e/pass11-accessibility.spec.ts:121:9 › /approve has no critical/serious WCAG violations at mobile-390
+[1A[2K[534/686] e2e/pass11-accessibility.spec.ts:121:9 › /departments has no critical/serious WCAG violations at mobile-390
+[1A[2K[535/686] e2e/pass11-accessibility.spec.ts:121:9 › /fixes has no critical/serious WCAG violations at mobile-390
+[1A[2K[536/686] e2e/pass11-accessibility.spec.ts:121:9 › /guests has no critical/serious WCAG violations at mobile-390
+[1A[2K[537/686] e2e/pass11-accessibility.spec.ts:121:9 › /history has no critical/serious WCAG violations at mobile-390
+[1A[2K[538/686] e2e/pass11-accessibility.spec.ts:121:9 › /my-work has no critical/serious WCAG violations at mobile-390
+[1A[2K[539/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts has no critical/serious WCAG violations at mobile-390
+[1A[2K[540/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts/editor has no critical/serious WCAG violations at mobile-390
+[1A[2K[541/686] e2e/pass11-accessibility.spec.ts:121:9 › /projects has no critical/serious WCAG violations at mobile-390
+[1A[2K[542/686] e2e/pass11-accessibility.spec.ts:121:9 › /requests has no critical/serious WCAG violations at mobile-390
+[1A[2K[543/686] e2e/pass11-accessibility.spec.ts:121:9 › /review has no critical/serious WCAG violations at mobile-390
+[1A[2K[544/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms has no critical/serious WCAG violations at mobile-390
+[1A[2K[545/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms/1 has no critical/serious WCAG violations at mobile-390
+[1A[2K[546/686] e2e/pass11-accessibility.spec.ts:121:9 › /shift has no critical/serious WCAG violations at mobile-390
+[1A[2K[547/686] e2e/pass11-accessibility.spec.ts:121:9 › /tasks has no critical/serious WCAG violations at mobile-390
+[1A[2K[548/686] e2e/pass11-accessibility.spec.ts:121:9 › /notifications has no critical/serious WCAG violations at mobile-390
+[1A[2K[549/686] e2e/pass11-accessibility.spec.ts:121:9 › /does-not-exist has no critical/serious WCAG violations at mobile-390
+[1A[2K[550/686] e2e/pass11-accessibility.spec.ts:121:9 › / has no critical/serious WCAG violations at mobile-320
+[1A[2K[551/686] e2e/pass11-accessibility.spec.ts:121:9 › /account has no critical/serious WCAG violations at mobile-320
+[1A[2K[552/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/approve has no critical/serious WCAG violations at mobile-320
+[1A[2K[553/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/health has no critical/serious WCAG violations at mobile-320
+[1A[2K[554/686] e2e/pass11-accessibility.spec.ts:121:9 › /admin/users has no critical/serious WCAG violations at mobile-320
+[1A[2K[555/686] e2e/pass11-accessibility.spec.ts:121:9 › /approvals has no critical/serious WCAG violations at mobile-320
+[1A[2K[556/686] e2e/pass11-accessibility.spec.ts:121:9 › /approve has no critical/serious WCAG violations at mobile-320
+[1A[2K[557/686] e2e/pass11-accessibility.spec.ts:121:9 › /departments has no critical/serious WCAG violations at mobile-320
+[1A[2K[558/686] e2e/pass11-accessibility.spec.ts:121:9 › /fixes has no critical/serious WCAG violations at mobile-320
+[1A[2K[559/686] e2e/pass11-accessibility.spec.ts:121:9 › /guests has no critical/serious WCAG violations at mobile-320
+[1A[2K[560/686] e2e/pass11-accessibility.spec.ts:121:9 › /history has no critical/serious WCAG violations at mobile-320
+[1A[2K[561/686] e2e/pass11-accessibility.spec.ts:121:9 › /my-work has no critical/serious WCAG violations at mobile-320
+[1A[2K[562/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts has no critical/serious WCAG violations at mobile-320
+[1A[2K[563/686] e2e/pass11-accessibility.spec.ts:121:9 › /posts/editor has no critical/serious WCAG violations at mobile-320
+[1A[2K[564/686] e2e/pass11-accessibility.spec.ts:121:9 › /projects has no critical/serious WCAG violations at mobile-320
+[1A[2K[565/686] e2e/pass11-accessibility.spec.ts:121:9 › /requests has no critical/serious WCAG violations at mobile-320
+[1A[2K[566/686] e2e/pass11-accessibility.spec.ts:121:9 › /review has no critical/serious WCAG violations at mobile-320
+[1A[2K[567/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms has no critical/serious WCAG violations at mobile-320
+[1A[2K[568/686] e2e/pass11-accessibility.spec.ts:121:9 › /rooms/1 has no critical/serious WCAG violations at mobile-320
+[1A[2K[569/686] e2e/pass11-accessibility.spec.ts:121:9 › /shift has no critical/serious WCAG violations at mobile-320
+[1A[2K[570/686] e2e/pass11-accessibility.spec.ts:121:9 › /tasks has no critical/serious WCAG violations at mobile-320
+[1A[2K[571/686] e2e/pass11-accessibility.spec.ts:121:9 › /notifications has no critical/serious WCAG violations at mobile-320
+[1A[2K[572/686] e2e/pass11-accessibility.spec.ts:121:9 › /does-not-exist has no critical/serious WCAG violations at mobile-320
+[1A[2K[573/686] e2e/pass4.spec.ts:98:5 › mobile Drawer is portaled, traps focus, hides background nav, and restores focus
+[1A[2K[574/686] e2e/pass4.spec.ts:147:5 › quick-create is declarative and Tasks render four desktop columns
+[1A[2K[575/686] e2e/pass4.spec.ts:163:5 › People & Access uses protected directory account state
+[1A[2K[576/686] e2e/pass4.spec.ts:188:5 › logout calls server endpoint, clears local session, and redirects
+[1A[2K[577/686] e2e/pass4.spec.ts:212:5 › rapid department switching ignores stale old-department response
+[1A[2K[578/686] e2e/pass6-login-errors.spec.ts:11:7 › login presents safe 401 messaging
+[1A[2K[579/686] e2e/pass6-login-errors.spec.ts:11:7 › login presents safe 403 messaging
+[1A[2K[580/686] e2e/pass6-login-errors.spec.ts:11:7 › login presents safe 429 messaging
+[1A[2K[581/686] e2e/pass6-login-errors.spec.ts:11:7 › login presents safe 503 messaging
+[1A[2K[582/686] e2e/pass8-contracts.spec.ts:77:5 › staff operational views do not advertise generic mutation controls
+[1A[2K[583/686] e2e/pass8-contracts.spec.ts:100:5 › Approvals page exposes only canonical one-time decision controls
+[1A[2K[584/686] e2e/pass8-contracts.spec.ts:122:5 › Review Inbox Accept uses canonical submission decision endpoint
+[1A[2K[585/686] e2e/plain-language-training.spec.ts:5:5 › first situation explains exactly what the guest reported and what staff failed to do
+[1A[2K[586/686] e2e/plain-language-training.spec.ts:23:5 › each practice lesson offers immediate simple definitions without changing its graded answers
+[1A[2K[587/686] e2e/plain-language-training.spec.ts:34:5 › a new staff trainee sees a concrete situation and its vocabulary before choosing urgency
+[1A[2K[588/686] e2e/plain-language-training.spec.ts:69:5 › staff can find an allergy case, receive factual clues and keep their own login for written practice
+[1A[2K[589/686] e2e/practice-rubric-integrity.spec.ts:24:5 › all 117 fictional scenarios have unique ids, actions, and independent handover checks
+[1A[2K[590/686] e2e/practice-rubric-integrity.spec.ts:39:5 › the example response for each case can meet the structured written rubric
+[1A[2K[591/686] e2e/practice-rubric-integrity.spec.ts:47:5 › initial original scenarios cannot pass with generic handover filler
+[1A[2K[592/686] e2e/practice-rubric-integrity.spec.ts:61:5 › explicitly negated actions are not accepted as correct safety interventions
+[1A[2K[593/686] e2e/practice-rubric-integrity.spec.ts:70:5 › substring tricks and placeholder owners cannot satisfy written evidence
+[1A[2K[594/686] e2e/practice-rubric-integrity.spec.ts:88:5 › safety prerequisites are not mistaken for instructions to skip verification
+[1A[2K[595/686] e2e/practice-rubric-integrity.spec.ts:107:5 › every situation rejects each wrong classification and incomplete written field
+[1A[2K[596/686] e2e/project-archived-progress.spec.ts:56:7 › project progress survives 24-hour auto-archive at desktop size
+[1A[2K[597/686] e2e/project-archived-progress.spec.ts:56:7 › project progress survives 24-hour auto-archive at mobile size
+[1A[2K[598/686] e2e/project-drawer-refresh.spec.ts:52:7 › project drawer stays mounted during workflow refresh at 1440px
+[1A[2K[599/686] e2e/project-drawer-refresh.spec.ts:52:7 › project drawer stays mounted during workflow refresh at 1024px
+[1A[2K[600/686] e2e/project-drawer-refresh.spec.ts:52:7 › project drawer stays mounted during workflow refresh at 768px
+[1A[2K[601/686] e2e/project-drawer-refresh.spec.ts:52:7 › project drawer stays mounted during workflow refresh at 390px
+[1A[2K[602/686] e2e/project-drawer-refresh.spec.ts:52:7 › project drawer stays mounted during workflow refresh at 320px
+[1A[2K[603/686] e2e/project-drawer-refresh.spec.ts:79:5 › closing a project during a pending mutation does not reopen it
+[1A[2K[604/686] e2e/project-editing.spec.ts:44:7 › project details and owner can be edited at 1440px
+[1A[2K[605/686] e2e/project-editing.spec.ts:44:7 › project details and owner can be edited at 1024px
+[1A[2K[606/686] e2e/project-editing.spec.ts:44:7 › project details and owner can be edited at 768px
+[1A[2K[607/686] e2e/project-editing.spec.ts:44:7 › project details and owner can be edited at 390px
+[1A[2K[608/686] e2e/project-editing.spec.ts:44:7 › project details and owner can be edited at 320px
+[1A[2K[609/686] e2e/project-editing.spec.ts:73:5 › stale project save preserves the draft inside the editor
+[1A[2K[610/686] e2e/project-editing.spec.ts:84:5 › staff cannot edit project core details
+[1A[2K[611/686] e2e/project-workspace.spec.ts:38:7 › project discussion and purchases are accessible at 1440px
+[1A[2K[612/686] e2e/project-workspace.spec.ts:38:7 › project discussion and purchases are accessible at 390px
+[1A[2K[613/686] e2e/project-workspace.spec.ts:56:5 › staff receives automatic updates without losing drafts and cannot manage purchases
+[1A[2K[614/686] e2e/property-calendar-overdue.spec.ts:46:5 › Tasks overdue stat uses Manila date, not an elapsed timestamp
+[1A[2K[615/686] e2e/property-calendar-overdue.spec.ts:57:5 › Projects risk counts agree with My Work property-date semantics
+[1A[2K[616/686] e2e/property-media.spec.ts:37:7 › owner can reach property media at desktop
+[1A[2K[617/686] e2e/property-media.spec.ts:37:7 › owner can reach property media at mobile
+[1A[2K[618/686] e2e/read-only-task-training.spec.ts:11:5 › ordinary staff inspect an actual saved fictional task without mutation permissions
+[1A[2K[619/686] e2e/read-only-task-training.spec.ts:78:5 › staff task inspection handles missing department records without fake completion
+[1A[2K[620/686] e2e/read-only-task-training.spec.ts:99:5 › switching the selected department discards stale task details and restores the correct bookmark
+[1A[2K[621/686] e2e/read-only-task-training.spec.ts:148:5 › staff inspect saved shift handovers in the real interface and export read-only evidence
+[1A[2K[622/686] e2e/real-screen-orientation.spec.ts:10:5 › first training open starts on real dashboard and requires navigating actual controls
+[1A[2K[623/686] e2e/real-workflow-training.spec.ts:132:5 › Guest Matters exercise cannot pass until a real fictional case is saved and moved to Follow
+[1A[2K[624/686] e2e/real-workflow-training.spec.ts:172:5 › Task exercise verifies High/assigned, then Doing, then Review via actual saved API state
+[1A[2K[625/686] e2e/real-workflow-training.spec.ts:211:5 › Shift Handover requires published record and actual Carry forward transition
+[1A[2K[626/686] e2e/real-workflow-training.spec.ts:237:5 › Maintenance exercise checks saved technician, urgency and all four workflow stages
+[1A[2K[627/686] e2e/real-workflow-training.spec.ts:281:5 › Manager equipment request exercise checks documentary controls and only Review status, not approval
+[1A[2K[628/686] e2e/real-workflow-training.spec.ts:314:5 › real linked Guest-to-Maintenance handoff requires both reciprocal links and all fix transitions
+[1A[2K[629/686] e2e/real-workflow-training.spec.ts:384:5 › lead can document maintenance but cannot start a workflow requiring decision-authority verification
+[1A[2K[630/686] e2e/real-workflow-training.spec.ts:396:5 › actual Maintenance UI hides Verify/Reopen controls without decision permission
+[1A[2K[631/686] e2e/real-workflow-training.spec.ts:415:5 › manager with decision authority sees the real Maintenance verification control
+[1A[2K[632/686] e2e/required-course.spec.ts:11:5 › every role-available lesson has two clear teaching checks and example before practice
+[1A[2K[633/686] e2e/required-course.spec.ts:34:5 › lesson progress parser rejects invalid lesson ids and incomplete practice state
+[1A[2K[634/686] e2e/required-course.spec.ts:61:5 › an incomplete stored finished marker resumes at the first incomplete lesson
+[1A[2K[635/686] e2e/required-course.spec.ts:78:5 › first sign-in forces Lesson 1, quiz with correction, then actual-page practice
+[1A[2K[636/686] e2e/required-course.spec.ts:116:5 › finished curriculum unlocks its completed tour without giving unearned staff write permissions
+[1A[2K[637/686] e2e/required-course.spec.ts:131:5 › manager must leave the taught task tour for an API-verified saved-work exercise, not a fake pass
+[1A[2K[638/686] e2e/required-course.spec.ts:177:5 › a non-reception room lesson keeps the opened room visible and describes navigation evidence accurately
+[1A[2K[639/686] e2e/review-action-statuses.spec.ts:80:7 › Review-state inbox remains actionable at desktop size
+[1A[2K[640/686] e2e/review-action-statuses.spec.ts:93:7 › creative requiring corrections offers only resubmission at desktop size
+[1A[2K[641/686] e2e/review-action-statuses.spec.ts:80:7 › Review-state inbox remains actionable at mobile size
+[1A[2K[642/686] e2e/review-action-statuses.spec.ts:93:7 › creative requiring corrections offers only resubmission at mobile size
+[1A[2K[643/686] e2e/review-action-statuses.spec.ts:108:5 › non-review staff never see Mark Seen or other decision actions on imported items
+[1A[2K[644/686] e2e/review-action-statuses.spec.ts:121:5 › creative Draft is not falsely offered a decision action
+[1A[2K[645/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › tasks-board-populated
+[1A[2K[646/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › requests-workflow-populated
+[1A[2K[647/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › approvals-populated
+[1A[2K[648/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › review-populated
+[1A[2K[649/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › shift-populated
+[1A[2K[650/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › maintenance-populated
+[1A[2K[651/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › guest-matters-populated
+[1A[2K[652/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › notifications-populated
+[1A[2K[653/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › projects-populated
+[1A[2K[654/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › mobile-navigation-drawer-open
+[1A[2K[655/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › task-create-surface-open
+[1A[2K[656/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › task-detail-drawer-open
+[1A[2K[657/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › request-create-surface-open
+[1A[2K[658/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › request-detail-drawer-open
+[1A[2K[659/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › maintenance-create-surface-open
+[1A[2K[660/686] e2e/scenario-screenshot-matrix.spec.ts:203:9 › scenario screenshot matrix › maintenance-verify-drawer-open
+[1A[2K[661/686] e2e/task-editing.spec.ts:56:7 › task can be edited and reassigned with a version at 1440px
+[1A[2K[662/686] e2e/task-editing.spec.ts:56:7 › task can be edited and reassigned with a version at 1024px
+[1A[2K[663/686] e2e/task-editing.spec.ts:56:7 › task can be edited and reassigned with a version at 768px
+[1A[2K[664/686] e2e/task-editing.spec.ts:56:7 › task can be edited and reassigned with a version at 390px
+[1A[2K[665/686] e2e/task-editing.spec.ts:56:7 › task can be edited and reassigned with a version at 320px
+[1A[2K[666/686] e2e/task-editing.spec.ts:91:5 › stale task edit keeps the draft and exposes the error inside the dialog
+[1A[2K[667/686] e2e/task-editing.spec.ts:104:5 › staff cannot see task editing controls
+[1A[2K[668/686] e2e/task-editing.spec.ts:112:5 › new task can be assigned without a second save
+[1A[2K[669/686] e2e/task-editing.spec.ts:124:5 › closing a task while saving does not reopen the drawer
+[1A[2K[670/686] e2e/training-login-layout.spec.ts:8:7 › training login form and controls remain inside panel at 390px
+[1A[2K[671/686] e2e/training-login-layout.spec.ts:8:7 › training login form and controls remain inside panel at 764px
+[1A[2K[672/686] e2e/training-login-layout.spec.ts:8:7 › training login form and controls remain inside panel at 900px
+[1A[2K[673/686] e2e/training-progress-integrity.spec.ts:8:5 › only completed well-formed authorized cases count as progress
+[1A[2K[674/686] e2e/training-progress-integrity.spec.ts:20:5 › invalid dates, filler, negative counts and contradictory flags cannot become completed
+[1A[2K[675/686] e2e/training-progress-integrity.spec.ts:35:5 › earlier hints and mistakes override an inconsistent unassisted flag
+[1A[2K[676/686] e2e/training-progress-integrity.spec.ts:48:5 › saved records from an unknown schema do not crash training
+[1A[2K[677/686] e2e/training-progress-integrity.spec.ts:54:5 › workflow summary rejects missing stages, fake ids and wrong training references
+[1A[2K[678/686] e2e/training-room-catalog.spec.ts:13:5 › all room-specific learning examples use named resort rooms, not numbered placeholders
+[1A[2K[679/686] e2e/training-room-catalog.spec.ts:26:5 › room practice remains read-only and never implies that an AC or towel request was resolved
+[1A[2K[680/686] e2e/training-workflow-integrity.spec.ts:16:5 › cannot pass linked handoff with a same-title maintenance ticket that lacks reciprocal guest id
+[1A[2K[681/686] e2e/training-workflow-integrity.spec.ts:27:5 › cannot substitute another work order after the original handoff was verified
+[1A[2K[682/686] e2e/training-workflow-integrity.spec.ts:33:5 › linked Fix verification must atomically complete the Guest Matter
+[1A[2K[683/686] e2e/training-workflow-integrity.spec.ts:41:5 › cannot pass equipment request with unassigned cost and no quote status, or mistake review for approval
+[1A[2K[684/686] e2e/training-workflow-integrity.spec.ts:65:5 › task requires a saved real assignee, not merely High priority and title
+[1A[2K[685/686] e2e/ui-screenshot-audit.spec.ts:148:7 › captures Marketing and Annotation repaired states at desktop
+[1A[2K[686/686] e2e/ui-screenshot-audit.spec.ts:148:7 › captures Marketing and Annotation repaired states at mobile
+[1A[2K  9 skipped
+  677 passed (5.7m)

@@ -103,3 +103,21 @@ test('safety prerequisites are not mistaken for instructions to skip verificatio
     ': Do not verify any supporting paperwork; notify the on-duty manager and approve without checking these documents.');
   expect(assessPractice(scenario, unsafe).errors.note).toBeTruthy();
 });
+
+test('every situation rejects each wrong classification and incomplete written field', () => {
+  for (const scenario of PRACTICE_SCENARIOS) {
+    const good = responses(scenario);
+    const variations: [keyof PracticeAnswers, string][] = [
+      ['priority', scenario.priority === 'Routine' ? 'Critical' : 'Routine'],
+      ['department', scenario.route === 'Kitchen' ? 'Marketing' : 'Kitchen'],
+      ['decision', scenario.decision === 'Approve' ? 'Document and monitor' : 'Approve'],
+      ['note', 'ok'],
+      ...((scenario.level || 1) >= 3 ? [['owner', 'TBD'], ['followUp', 'later']] as [keyof PracticeAnswers, string][] : []),
+    ];
+    for (const [field, value] of variations) {
+      const result = assessPractice(scenario, { ...good, [field]: value } as PracticeAnswers);
+      expect(result.passed, scenario.id + ': invalid ' + field).toBe(false);
+      expect(result.errors[field], scenario.id + ': missing correction for ' + field).toBeTruthy();
+    }
+  }
+});

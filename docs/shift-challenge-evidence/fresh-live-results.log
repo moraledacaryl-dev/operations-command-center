@@ -1,0 +1,21 @@
+(node:90992) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+(node:90993) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:90993) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:90993) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/live-employee-training.spec.ts:28:5 › fresh receptionist completes all required lessons using the real local API and real controls (4.9s)
+  ✓  2 e2e/live-employee-training.spec.ts:41:5 › fresh manager learns the first five lessons and saves, starts and submits an assigned task against the real API (4.6s)
+  ✓  3 e2e/live-shift-challenge.spec.ts:11:39 › real Front Desk shift: own login, actual records, saved comment and personal notice (6.4s)
+  ✓  4 e2e/live-shift-challenge.spec.ts:11:39 › real Housekeeping shift: own login, actual records, saved comment and personal notice (6.0s)
+  ✓  5 e2e/live-shift-challenge.spec.ts:11:39 › real Café shift: own login, actual records, saved comment and personal notice (6.0s)
+  ✓  6 e2e/live-shift-challenge.spec.ts:11:39 › real Kitchen shift: own login, actual records, saved comment and personal notice (5.1s)
+  ✓  7 e2e/live-shift-challenge.spec.ts:11:39 › real Maintenance shift: own login, actual records, saved comment and personal notice (5.0s)
+  ✓  8 e2e/live-shift-challenge.spec.ts:11:39 › real Marketing shift: own login, actual records, saved comment and personal notice (6.0s)
+  ✓  9 e2e/live-shift-challenge.spec.ts:11:39 › real Security shift: own login, actual records, saved comment and personal notice (5.0s)
+
+  9 passed (49.6s)

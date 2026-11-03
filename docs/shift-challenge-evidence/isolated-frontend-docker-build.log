@@ -1,0 +1,201 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.frontend
+#1 transferring dockerfile: 710B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:22-alpine
+#2 ...
+
+#3 [auth] library/node:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:22-alpine
+#2 DONE 1.6s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 137B done
+#4 DONE 0.0s
+
+#5 [deps 1/4] FROM docker.io/library/node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+#5 resolve docker.io/library/node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 1.71MB 0.0s done
+#6 DONE 0.0s
+
+#7 [deps 2/4] WORKDIR /app
+#7 CACHED
+
+#8 [deps 3/4] COPY package.json package-lock.json ./
+#8 DONE 0.0s
+
+#9 [deps 4/4] RUN npm ci
+#9 1.148 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#9 1.902 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+#9 2.686 npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+#9 4.715 npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+#9 4.751 npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+#9 4.830 npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+#9 34.79 
+#9 34.79 added 318 packages, and audited 319 packages in 35s
+#9 34.79 
+#9 34.79 135 packages are looking for funding
+#9 34.79   run `npm fund` for details
+#9 34.88 
+#9 34.88 20 vulnerabilities (18 moderate, 2 high)
+#9 34.88 
+#9 34.88 To address issues that do not require attention, run:
+#9 34.88   npm audit fix
+#9 34.88 
+#9 34.88 To address all issues (including breaking changes), run:
+#9 34.88   npm audit fix --force
+#9 34.88 
+#9 34.88 Run `npm audit` for details.
+#9 34.88 npm notice
+#9 34.88 npm notice New major version of npm available! 10.9.9 -> 12.2.1
+#9 34.88 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+#9 34.88 npm notice To update run: npm install -g npm@12.2.1
+#9 34.88 npm notice
+#9 DONE 35.2s
+
+#10 [builder 3/5] COPY --from=deps /app/node_modules ./node_modules
+#10 CACHED
+
+#11 [builder 4/5] COPY . .
+#11 DONE 0.0s
+
+#12 [builder 5/5] RUN npm run build
+#12 0.164 
+#12 0.164 > operations-command-center-frontend@3.0.0 build
+#12 0.164 > next build && npm run package:standalone
+#12 0.164 
+#12 0.481 Attention: Next.js now collects completely anonymous telemetry regarding usage.
+#12 0.481 This information is used to shape Next.js' roadmap and prioritize features.
+#12 0.481 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+#12 0.481 https://nextjs.org/telemetry
+#12 0.481 
+#12 0.516    ▲ Next.js 15.5.28
+#12 0.516 
+#12 0.542    Creating an optimized production build ...
+#12 6.551 <w> [webpack.cache.PackFileCacheStrategy] Skipped not serializable cache item 'Compilation/modules|/app/node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!/app/node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!/app/app/practice-training.css': No serializer registered for Warning
+#12 6.551 <w> while serializing webpack/lib/cache/PackFileCacheStrategy.PackContentItems -> webpack/lib/NormalModule -> Array { 4 items } -> webpack/lib/ModuleWarning -> Warning
+#12 6.686  ⚠ Compiled with warnings in 2.2s
+#12 6.686 
+#12 6.686 ./app/practice-training.css.webpack[javascript/auto]!=!./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/practice-training.css
+#12 6.686 Warning
+#12 6.686 
+#12 6.686 (18:120) autoprefixer: start value has mixed support, consider using flex-start instead
+#12 6.686 
+#12 6.686 Import trace for requested module:
+#12 6.686 ./app/practice-training.css.webpack[javascript/auto]!=!./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/practice-training.css
+#12 6.686 ./app/practice-training.css
+#12 6.686 
+#12 6.686 ./app/practice-training.css.webpack[javascript/auto]!=!./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/practice-training.css
+#12 6.686 Warning
+#12 6.686 
+#12 6.686 (86:50) autoprefixer: start value has mixed support, consider using flex-start instead
+#12 6.686 
+#12 6.686 Import trace for requested module:
+#12 6.686 ./app/practice-training.css.webpack[javascript/auto]!=!./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/practice-training.css
+#12 6.686 ./app/practice-training.css
+#12 6.686 
+#12 6.686 ./app/practice-training.css.webpack[javascript/auto]!=!./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/practice-training.css
+#12 6.686 Warning
+#12 6.686 
+#12 6.686 (110:76) autoprefixer: start value has mixed support, consider using flex-start instead
+#12 6.686 
+#12 6.686 Import trace for requested module:
+#12 6.686 ./app/practice-training.css.webpack[javascript/auto]!=!./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/practice-training.css
+#12 6.686 ./app/practice-training.css
+#12 6.686 
+#12 6.686 ./app/practice-training.css.webpack[javascript/auto]!=!./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/practice-training.css
+#12 6.686 Warning
+#12 6.686 
+#12 6.686 (222:61) autoprefixer: start value has mixed support, consider using flex-start instead
+#12 6.686 
+#12 6.686 Import trace for requested module:
+#12 6.686 ./app/practice-training.css.webpack[javascript/auto]!=!./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/practice-training.css
+#12 6.686 ./app/practice-training.css
+#12 6.686 
+#12 6.705  ✓ Compiled successfully in 5.1s
+#12 6.707    Linting and checking validity of types ...
+#12 9.870    Collecting page data ...
+#12 10.75    Generating static pages (0/2) ...
+#12 10.89  ✓ Generating static pages (2/2)
+#12 11.15    Finalizing page optimization ...
+#12 11.15    Collecting build traces ...
+#12 17.73 
+#12 17.73 Route (app)                                 Size  First Load JS
+#12 17.73 ┌ ƒ /                                    3.65 kB         114 kB
+#12 17.73 ├ ƒ /_not-found                            138 B         103 kB
+#12 17.73 ├ ƒ /account                             1.51 kB         108 kB
+#12 17.73 ├ ƒ /admin/appearance                    1.88 kB         105 kB
+#12 17.73 ├ ƒ /admin/approve                         138 B         103 kB
+#12 17.73 ├ ƒ /admin/health                        5.36 kB         112 kB
+#12 17.73 ├ ƒ /admin/users                         7.42 kB         110 kB
+#12 17.73 ├ ƒ /approvals                            5.3 kB         115 kB
+#12 17.73 ├ ƒ /approve                               138 B         103 kB
+#12 17.73 ├ ƒ /departments                         5.36 kB         115 kB
+#12 17.73 ├ ƒ /fixes                               2.85 kB         117 kB
+#12 17.73 ├ ƒ /guests                              6.46 kB         117 kB
+#12 17.73 ├ ƒ /history                             2.09 kB         109 kB
+#12 17.73 ├ ƒ /login                               4.31 kB         107 kB
+#12 17.73 ├ ƒ /my-work                             3.34 kB         113 kB
+#12 17.73 ├ ƒ /notifications                       2.01 kB         112 kB
+#12 17.73 ├ ƒ /posts                               11.6 kB         122 kB
+#12 17.73 ├ ƒ /posts/editor                        11.5 kB         118 kB
+#12 17.73 ├ ƒ /projects                            7.21 kB         117 kB
+#12 17.73 ├ ƒ /projects/[id]                       9.41 kB         119 kB
+#12 17.73 ├ ƒ /requests                            2.75 kB         117 kB
+#12 17.73 ├ ƒ /review                              5.89 kB         116 kB
+#12 17.73 ├ ƒ /rooms                                3.5 kB         114 kB
+#12 17.73 ├ ƒ /rooms/[id]                          3.66 kB         114 kB
+#12 17.73 ├ ƒ /shift                               5.98 kB         116 kB
+#12 17.73 ├ ƒ /tasks                               6.64 kB         117 kB
+#12 17.73 ├ ƒ /training                            17.8 kB         149 kB
+#12 17.73 ├ ƒ /training/shift-challenge              138 B         103 kB
+#12 17.73 └ ƒ /training/shift-review               4.39 kB         107 kB
+#12 17.73 + First Load JS shared by all             103 kB
+#12 17.73   ├ chunks/1255-dc3ddf72a1dc71a7.js      46.6 kB
+#12 17.73   ├ chunks/4bd1b696-f785427dddbba9fb.js  54.2 kB
+#12 17.73   └ other shared chunks (total)          1.97 kB
+#12 17.73 
+#12 17.73 
+#12 17.73 ƒ Middleware                             34.2 kB
+#12 17.73 
+#12 17.73 ƒ  (Dynamic)  server-rendered on demand
+#12 17.73 
+#12 17.81 
+#12 17.81 > operations-command-center-frontend@3.0.0 package:standalone
+#12 17.81 > node scripts/package-standalone.mjs
+#12 17.81 
+#12 17.85 PASS | standalone Next.js assets packaged
+#12 17.86 npm notice
+#12 17.86 npm notice New major version of npm available! 10.9.9 -> 12.2.1
+#12 17.86 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+#12 17.86 npm notice To update run: npm install -g npm@12.2.1
+#12 17.86 npm notice
+#12 DONE 18.0s
+
+#13 [runner 3/5] RUN addgroup -S operations && adduser -S operations -G operations
+#13 CACHED
+
+#14 [runner 4/5] COPY --from=builder /app/.next/standalone ./
+#14 DONE 0.2s
+
+#15 [runner 5/5] RUN chmod -R a+rX /app     && mkdir -p /app/.next/cache     && chown operations:operations /app/.next/cache
+#15 DONE 1.4s
+
+#16 exporting to image
+#16 exporting layers
+#16 exporting layers 0.9s done
+#16 exporting manifest sha256:0668b5440a9d89cec1f6348cda67c8d9fcb98ce316efc740ee8ba08996f418c1 done
+#16 exporting config sha256:5d94a85496b75cbda998e455328d9c9ffcb675461685d5c0eb21ff2c664b2a20 done
+#16 exporting attestation manifest sha256:7e3ad69b47c9e26c93b79143224de9932983649bd230b2b829faa5495244a002 done
+#16 exporting manifest list sha256:293eb13ce8a9df7ec8f27981a73155ec3e2000980a30e640dc71bbd20e3910fa done
+#16 naming to docker.io/library/hidden-oasis-training-shift-catalog-check:local done
+#16 unpacking to docker.io/library/hidden-oasis-training-shift-catalog-check:local
+#16 unpacking to docker.io/library/hidden-oasis-training-shift-catalog-check:local 0.3s done
+#16 DONE 1.2s

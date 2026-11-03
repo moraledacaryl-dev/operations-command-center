@@ -5,6 +5,7 @@ the PMS. Housekeeping marks work done; another authorized lead inspects.
 Neither action changes PMS reservations or Rooms inventory status.
 """
 import json
+import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -15,6 +16,8 @@ from sqlalchemy.orm import Session
 from .. import models
 from ..clock import utc_now
 from ..database import get_db
+from ..integration_models import AccountingRoomBooking
+from ..services.accounting_room_workflow import configured_room_ids
 from .api import require_user
 
 router = APIRouter(prefix="/api/housekeeping", tags=["Housekeeping"])
@@ -140,12 +143,23 @@ def list_turnovers(
     day = _date(service_date or utc_now().astimezone(TZ).date().isoformat())
     rooms = db.query(models.RoomArea).filter(models.RoomArea.kind == "room").order_by(models.RoomArea.name).all()
     existing = {v.room_area_id: v for v in db.query(models.RoomTurnover).filter_by(service_date=day).all()}
+    mapped_ids = configured_room_ids(db)
+    if mapped_ids is not None:
+        rooms = [room for room in rooms if room.id in mapped_ids or room.id in existing]
     records = [_present(existing[r.id], r) if r.id in existing else {
         "id": None, "room_area_id": r.id, "room_name": r.name,
         "service_date": day, "status": "No cleaning request", "source": None,
         "vacated_confirmed": False, "checklist": [],
     } for r in rooms]
+    snapshots = db.query(AccountingRoomBooking).filter(AccountingRoomBooking.check_out == day).all()
+    for record in records:
+        record["booking_updates"] = [{
+            "status": snapshot.status, "origin": snapshot.origin,
+            "check_out": snapshot.check_out,
+            "reported_at": snapshot.reported_at.isoformat(),
+        } for snapshot in snapshots if record["room_area_id"] in json.loads(snapshot.room_ids_json)]
     return {"date": day, "rooms": records,
+            "accounting_connected": bool(os.getenv("ACCOUNTING_ROOM_MAP_JSON", "").strip()),
             "can_schedule": _frontdesk(db, user),
             "can_clean": _house(db, user),
             "can_inspect": _inspector(db, user)}
@@ -188,6 +202,8 @@ def confirm_vacated(turnover_id: int, user: models.User = Depends(require_user),
     row = _row(db, turnover_id)
     if row.status not in {"Needs cleaning", "Needs rework"}:
         raise HTTPException(status_code=409, detail="Check the cleaning stage before confirming checkout.")
+    if row.service_date > utc_now().astimezone(TZ).date().isoformat():
+        raise HTTPException(status_code=409, detail="Confirm the room is empty on the cleaning date, not in advance.")
     row.vacated_confirmed = True
     row.vacated_by_id = user.id
     row.vacated_at = utc_now()
@@ -200,6 +216,8 @@ def start(turnover_id: int, user: models.User = Depends(require_user),
           db: Session = Depends(get_db)):
     _require(_house(db, user))
     row = _row(db, turnover_id)
+    if row.service_date > utc_now().astimezone(TZ).date().isoformat():
+        raise HTTPException(status_code=409, detail="Wait until the cleaning date before starting this room.")
     if not row.vacated_confirmed:
         raise HTTPException(status_code=409, detail="Front Desk must verify checkout before cleaning starts.")
     if row.status not in {"Needs cleaning", "Needs rework"}:

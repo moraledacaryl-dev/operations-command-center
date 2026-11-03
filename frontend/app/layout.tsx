@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     default: 'Hidden Oasis Operations',
     template: '%s · Hidden Oasis Operations',
   },
-  description: 'Hidden Oasis operational command center for daily work, departments, projects, reviews and handovers.',
+  description: 'Daily tasks, rooms, team updates and approvals at Hidden Oasis.',
   applicationName: 'Hidden Oasis Operations',
   robots: { index: false, follow: false },
 };

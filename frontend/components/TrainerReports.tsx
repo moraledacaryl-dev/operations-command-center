@@ -1,11 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { TRAINING_LESSONS } from '@/lib/interactive-training';
+import { WORKFLOW_DEFINITIONS } from '@/lib/training-workflows';
+import type { TrainingWorkflowKind } from '@/lib/training-workflows';
 import type { Entity } from '@/lib/api';
 import { parseTrainingReport } from '@/lib/training-progress-report';
 import type { TrainingProgressReport } from '@/lib/training-progress-report';
 
 type Reviewed = { report: TrainingProgressReport; supervisorNote: string; reviewedAt?: string };
+const lessonName = (id: string) => TRAINING_LESSONS.find(lesson => lesson.id === id)?.title || 'Training lesson';
+const stageName = (stage: string) => ({ learn: 'Reading', quiz: 'Answering questions', tour: 'Following the arrows',
+  work: 'Practising in the app', independent: 'Trying without arrows', done: 'Lesson finished', finished: 'Course finished' }[stage] || 'In progress');
 const PREFIX = 'ho-ops-local-trainer-reports-v1:';
 
 /** Offline-only review of intentionally exported training reports.
@@ -59,7 +65,7 @@ export function TrainerReports({manager}: {manager: Entity}) {
     if (note.length < 12) { setMessage('Write at least a short observation before recording a review.'); return; }
     save(records.map(item=>item.report.trainee.id===report.trainee.id
       ? {...item,supervisorNote:note.slice(0,600),reviewedAt:new Date().toISOString()} : item));
-    setMessage('Your review note was saved on this computer only. This is not an HR certification or live employee record.');
+    setMessage('Your review note was saved on this computer only. Your note does not change the employee’s live account or approve them for work.');
   }
 
   return <section className="ops-trainer-dashboard" data-testid="trainer-progress-dashboard">
@@ -76,25 +82,25 @@ export function TrainerReports({manager}: {manager: Entity}) {
         }} />
       </label>
       {message && <p role="status" className="ops-trainer-message">{message}</p>}
-      {!records.length && <p>No reports added yet. Ask the staff member to choose Save my training report and give you the saved JSON file.</p>}
+      {!records.length && <p>No reports added yet. Ask the staff member to choose Save my training report and give you the saved file.</p>}
       {records.map(item=><article key={item.report.trainee.id} className="ops-trainer-record">
         <h3>{item.report.trainee.name} <small>({item.report.trainee.role})</small></h3>
-        <p><strong>{item.report.completedLessons.length} lessons reported complete</strong> · Latest: {item.report.currentLesson} ({item.report.currentStage})</p>
+        <p><strong>{item.report.completedLessons.length} lessons reported complete</strong> · Latest: {lessonName(item.report.currentLesson)} ({stageName(item.report.currentStage)})</p>
         <p>Quiz corrections: {Object.values(item.report.metrics).reduce((sum,m)=>sum+(m.incorrectAnswers||0),0)}
           {' · '}Lesson repeats: {Object.values(item.report.metrics).reduce((sum,m)=>sum+(m.repeats||0),0)}
           {' · '}Practice records reported: {item.report.verifiedPractice.length}</p>
         <details><summary>See lessons and practice</summary>
-          <p>Completed: {item.report.completedLessons.join(', ')||'None'}</p>
-          {item.report.verifiedPractice.map(work=><p key={work.reference}>{work.kind}: {work.reference} ({work.stages} stages reported)</p>)}
+          <p>Completed: {item.report.completedLessons.map(lessonName).join(', ')||'None'}</p>
+          {item.report.verifiedPractice.map(work=><p key={work.reference}>{WORKFLOW_DEFINITIONS[work.kind as TrainingWorkflowKind]?.name || 'Saved practice'}: {work.reference} ({work.stages} stages reported)</p>)}
         </details>
         <p><strong>Review note:</strong> {item.supervisorNote}</p>
-        {item.reviewedAt && <small>Reviewed locally: {item.reviewedAt}</small>}
+        {item.reviewedAt && <small>Reviewed on: {new Date(item.reviewedAt).toLocaleString('en-PH')}</small>}
         <label>Trainer&apos;s notes or practice needed
           <textarea rows={2} maxLength={600} value={notes[item.report.trainee.id] || ''}
             onChange={event=>setNotes(current=>({...current,[item.report.trainee.id]:event.target.value}))}
             placeholder="Example: Staff member wrote a clear handover note. Please practise maintenance urgency again." />
         </label>
-        <button type="button" className="ops-trainer-save" onClick={()=>markReviewed(item.report)}>Save review note locally</button>
+        <button type="button" className="ops-trainer-save" onClick={()=>markReviewed(item.report)}>Save review note</button>
       </article>)}
       <p><strong>Please note:</strong> Training reports can be edited. Watch the staff member complete important tasks yourself. This review does not give permission to use live records or approve purchases.</p>
     </>}

@@ -24,7 +24,7 @@ export function scenarioCoachStage(
   const total = advanced ? 11 : 9;
   const stage = (id: string, title: string, instruction: string, target: string, position: number): CoachStage =>
     ({ id, title, instruction, target, position, total });
-  if (phase === 'complete') return stage('complete', 'You passed this lesson!',
+  if (phase === 'complete') return stage('complete', 'Practice finished',
     'Your results are saved on this computer. Choose Repeat lesson to try again or Next situation to continue.', '[data-testid="scenario-complete"]', total);
   if (phase === 'assess') {
     if (!reasoningReady && !consequenceDone) return stage('consequence', 'First: What could happen if nobody helps?',
@@ -40,12 +40,12 @@ export function scenarioCoachStage(
   }
   if (!answers.decision || result?.errors.decision) return stage('decision', 'Choose the action',
     'Choose what the team should do next.', '[data-testid="scenario-decision"]', 7);
-  if (advanced && (!answers.owner?.trim() || result?.errors.owner)) return stage('owner', 'Name a responsible role',
-    'Write a job title, such as Duty Supervisor. Do not use a real employee name.', '[data-testid="scenario-owner"]', 8);
+  if (advanced && (!answers.owner?.trim() || result?.errors.owner)) return stage('owner', 'Say who will do the job',
+    'Write a job title, such as the on-duty supervisor. Do not use a real employee name.', '[data-testid="scenario-owner"]', 8);
   if (advanced && (!answers.followUp?.trim() || result?.errors.followUp)) return stage('follow-up', 'Explain the follow-up',
     'Write what should be checked next and who will confirm it.', '[data-testid="scenario-follow-up"]', 9);
   if (answers.note.trim().length < 45 || result?.errors.note) return stage('note', 'Write the handover',
-    'Write the practice number, what happened, what happens next, and who will check it.', '[data-testid="scenario-note"]', advanced ? 10 : 8);
-  return stage('submit', 'Submit your own response',
+    'Write the practice number, what happened, who acts next and when to check again.', '[data-testid="scenario-note"]', advanced ? 10 : 8);
+  return stage('submit', 'Check your note',
     'Click Check my note. If something needs fixing, the app will show you where.', '[data-testid="scenario-submit"]', advanced ? 11 : 9);
 }

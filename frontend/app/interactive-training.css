@@ -236,3 +236,59 @@
 @media (prefers-reduced-motion: reduce) {
  .ops-guide-spotlight, .ops-guide-progress span { transition: none; }
 }
+.ops-course-panel:focus { outline: none; }
+.ops-course-panel :focus-visible { outline: 3px solid #176d5d; outline-offset: 3px; }
+.training-login-help { color: #405247; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+
+.ops-course-scroll-help { font-size: 12px; line-height: 1.5; color: #435b4f; padding: 9px 12px; background: #edf4ef; border-radius: 8px; }
+
+/* One-task-at-a-time room practice, mounted over the actual Rooms screens. */
+.room-mission { position: relative; z-index: 12; display: grid; gap: 10px; max-width: 760px; margin: 13px 20px 8px;
+  padding: 17px 20px; border: 2px solid #247454; border-radius: 14px; background: #fff;
+  color: #1f382c; box-shadow: 0 7px 24px #163a2215; }
+.room-mission-top { display: flex; justify-content: space-between; gap: 12px;
+  color: #456452; font-size: 12px; font-weight: 750; }
+.room-mission-progress { height: 6px; background: #e4efe9; border-radius: 12px; overflow: hidden; }
+.room-mission-progress span { display: block; height: 100%; background: #1b7655; }
+.room-mission h2 { font-size: clamp(19px, 2.8vw, 24px); line-height: 1.25; margin: 0; }
+.room-mission p { line-height: 1.55; margin: 0; }
+.room-mission > small { font-size: 12px; color: #4e6458; }
+.room-mission-example { border: 1px solid #b5d7c5; border-radius: 8px; padding: 9px 12px; }
+.room-mission-example summary, .room-mission-help button { cursor: pointer; font-weight: 700; color: #155d40; }
+.room-mission-example p { margin-top: 8px; }
+.room-mission-primary { border: 0; background: #166448; color: white; font-size: 15px; font-weight: 760;
+  border-radius: 8px; padding: 12px 16px; min-height: 46px; width: fit-content; cursor: pointer; }
+.room-mission-primary:disabled { opacity: .5; cursor: not-allowed; }
+.room-mission-question { display: grid; gap: 8px; max-width: 420px; }
+.room-mission-question label { font-weight: 740; }
+.room-mission-question select { font-size: 16px; min-height: 44px; padding: 8px 10px;
+  border: 1px solid #739c82; border-radius: 8px; background: #fff; color: #203c2c; }
+.room-mission-help { display: flex; gap: 16px; flex-wrap: wrap; }
+.room-mission-help button { background: transparent; border: 0; text-decoration: underline; padding: 7px 0; }
+.room-mission-feedback, .room-mission-hint { background: #f0f8f3; border-radius: 8px; padding: 10px 12px; }
+.room-mission button:focus-visible, .room-mission summary:focus-visible,
+.room-mission select:focus-visible { outline: 3px solid #5a9775; outline-offset: 3px; }
+@media (max-width: 700px) {
+  .room-mission { margin: 10px 12px; padding: 14px; }
+  .room-mission-primary { width: 100%; }
+}
+
+/* Consistent three-stage practice presentation for every role and course. */
+.ops-practice-mission-summary { margin: 11px 0 15px; padding: 14px 16px;
+  border: 1px solid #b6d7c6; background: #f1f8f4; border-radius: 11px;
+  display: grid; gap: 6px; line-height: 1.5; }
+.ops-practice-mission-summary strong { font-size: 16px; color: #174b32; }
+.ops-practice-mission-summary p { margin: 0; }
+.ops-practice-mission-label { display: block; color: #315747; font-size: 11px;
+  font-weight: 800; letter-spacing: .03em; line-height: 1.5; }
+.ops-practice-self-goal { font-weight: 700; font-size: 15px; line-height: 1.5; }
+.ops-practice-show-help { border: 1px solid #b9d5c3; border-radius: 8px;
+  margin: 8px 0; padding: 8px 12px; font-size: 13px; }
+.ops-practice-show-help summary { min-height: 36px; display: list-item;
+  padding: 7px 0; cursor: pointer; font-weight: 750; color: #13583b; }
+.ops-practice-show-help p { margin: 6px 0; line-height: 1.5; }
+.ops-practice-show-help summary:focus-visible { outline: 3px solid #78b995; outline-offset: 2px; }
+@media(max-width:640px) {
+  .ops-practice-mission-summary { padding: 12px; }
+  .ops-practice-show-help { font-size: 14px; }
+}

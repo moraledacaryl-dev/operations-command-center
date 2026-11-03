@@ -1,0 +1,14 @@
+(node:86101) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:86102) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:86102) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:86102) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/live-employee-training.spec.ts:27:5 › fresh receptionist completes all required lessons using the real local API and real controls (4.0s)
+  ✓  2 e2e/live-employee-training.spec.ts:109:5 › fresh manager learns the first five lessons and saves, starts and submits an assigned task against the real API (4.6s)
+
+  2 passed (9.1s)

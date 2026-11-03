@@ -254,3 +254,30 @@
   .practice-steps span { font-size: 12px; padding: 9px; }
   .practice-record-lookup button, .practice-actions .practice-primary { min-height: 48px; }
 }
+.practice-save-note { font-size: 12px; line-height: 1.6; color: #435b4f; margin: 12px 0 18px; }
+.practice-finished { padding: 18px 22px; background: #edf7ef; border: 1px solid #bdd4c6; border-radius: 14px; margin-bottom: 18px; }
+.practice-finished h2 { font-size: 20px; margin: 0 0 8px; }
+.practice-finished p { margin: 0; line-height: 1.6; }
+.practice-example p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.practice-workspace > h2:focus { outline: 3px solid #9ac8b1; outline-offset: 4px; border-radius: 3px; }
+.training-spotlight-popover { box-sizing: border-box; overflow-y: auto; }
+
+/* Every practice case starts with one example, guided help, and an independent decision. */
+.practice-three-stage { display: grid; gap: 10px; padding: 12px;
+  margin: 11px 0 16px; border: 1px solid #bcd9c8; border-radius: 12px; background: #f5f9f6; }
+.practice-three-stage > div, .practice-show-example { padding: 10px 12px; background: #fff;
+  border: 1px solid #d9e8df; border-radius: 9px; }
+.practice-three-stage strong, .practice-show-example summary { font-weight: 750; color: #244f36; }
+.practice-show-example summary { min-height: 33px; padding: 7px 0; cursor: pointer; }
+.practice-three-stage p { margin: 7px 0 0; line-height: 1.5; }
+.practice-three-stage summary:focus-visible { outline: 3px solid #91bea1; outline-offset: 2px; }
+@media(min-width:850px) { .practice-three-stage { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+
+/* Independent shift practice stays in normal document flow, never over a control. */
+.shift-challenge-entry,.shift-challenge-return{margin:0 0 24px;padding:18px 22px;border:1px solid #cfddd6;border-radius:16px;background:#f6faf7;display:flex;align-items:center;justify-content:space-between;gap:18px;color:#223d31}
+.shift-challenge-entry h2{margin:0 0 6px;font-size:21px}.shift-challenge-entry p{margin:5px 0}.shift-challenge-return{padding:12px 20px;font-size:14px}.shift-challenge-return a{text-decoration:underline;font-weight:650}
+.shift-challenge{width:100%;max-width:840px;margin:10px auto 60px;color:#253e32;line-height:1.65;overflow-wrap:anywhere}.shift-challenge h1{font-size:30px;line-height:1.2;margin:8px 0 18px}.shift-challenge h2{font-size:21px;line-height:1.35;margin:0 0 10px}.shift-challenge-brief{margin:24px 0;padding:24px;background:#f3f7f2;border-left:4px solid #668b6f;border-radius:8px}.shift-challenge-tasks{padding-left:25px}.shift-challenge-tasks li{padding:8px 0 12px 4px}.shift-challenge-tasks span{display:block;margin-top:4px}.shift-challenge-help{margin:20px 0 32px;border-top:1px solid #d5dfd9;border-bottom:1px solid #d5dfd9;padding:15px 0}.shift-challenge-help summary{cursor:pointer;font-weight:650}.shift-challenge-help a{text-decoration:underline}
+.shift-challenge-form{border-top:1px solid #d5dfd9;padding-top:24px}.shift-challenge-form label{display:flex;flex-direction:column;gap:7px;font-weight:600;margin:0 0 20px}.shift-challenge-form select,.shift-challenge-form textarea{width:100%;max-width:100%;font:inherit;font-weight:400;padding:12px;border:1px solid #9baa9f;border-radius:8px;background:#fff;color:#1b3227}.shift-challenge-form select{min-height:48px}.shift-challenge-form textarea{resize:vertical}.shift-challenge-form .muted{font-size:14px;font-weight:400;color:#526459}.shift-challenge-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}.shift-challenge-error{color:#9b2d24;font-weight:500;font-size:14px}.shift-challenge-feedback{background:#f7f3e7;border-radius:8px;padding:18px;margin:20px 0}.shift-challenge-success{padding:16px;background:#e7f1e8;border-radius:8px}.shift-challenge-note{white-space:pre-wrap}.shift-challenge .toolbar{flex-wrap:wrap;gap:12px}.shift-challenge :is(button,a,select,textarea,summary):focus-visible{outline:3px solid #276b50;outline-offset:3px}
+@media(max-width:600px){.shift-challenge{width:100%;margin-top:10px}.shift-challenge h1{font-size:26px}.shift-challenge-brief{padding:18px}.shift-challenge-fields{grid-template-columns:1fr}.shift-challenge-entry{margin:0 0 18px;padding:18px;display:block}.shift-challenge-entry .btn{margin-top:12px;width:100%}.shift-challenge-return{margin:0 0 18px;padding:12px;align-items:flex-start;flex-direction:column;gap:4px}.shift-challenge .toolbar .btn{width:100%}}
+
+.ops-stage:has(.shift-challenge) > .ops-guide-launch{display:none}

@@ -17,6 +17,7 @@ from ..database import get_db
 from ..foundation_models import IntegrationEventInbox
 from ..integration_models import ExternalUserIdentity, IntegrationDelivery, EventProjectLink
 from ..services.event_booking_workflow import prepare_event_project
+from ..services.accounting_room_workflow import apply_room_snapshot
 from .api import can_view_all, require_user
 
 
@@ -54,6 +55,7 @@ SOURCE_EVENT_TYPES = {
         "event.booking.changed",
         "event.booking.cancelled",
         "event.booking.completed",
+        "room.booking.updated",
     },
     "dedicated_pos_cloud": {
         "daily_sales_context",
@@ -341,6 +343,13 @@ def receive_event(
         raise HTTPException(status_code=400, detail="Unsupported event_type for this source")
 
     event_id = event.resolved_event_id()
+    if source_app == "accounting_program" and event.event_type == "room.booking.updated":
+        # Validate the strict allowlist before even the immutable inbox is saved.
+        from ..services.accounting_room_workflow import RoomSnapshot
+        try:
+            RoomSnapshot.model_validate(event.payload)
+        except ValueError:
+            raise HTTPException(422, "Invalid room update fields.")
     payload = _canonical_payload(event)
     digest = _payload_hash(payload)
 
@@ -400,10 +409,17 @@ def receive_event(
     )
     db.add(review_item)
     project_link = None
+    room_update = None
     if source_app == "accounting_program" and event.event_type == "event.booking.confirmed":
         # Atomic with Inbox + Review: if project creation fails, sender retries.
         project_link = prepare_event_project(db, event)
         review_item.department_id = db.get(models.Project, project_link.project_id).department_id
+    if source_app == "accounting_program" and event.event_type == "room.booking.updated":
+        room_update = apply_room_snapshot(db, event)
+        department = db.query(models.Department).filter_by(name="Housekeeping").first()
+        review_item.department_id = department.id if department else None
+        if room_update.get("mapped") is False:
+            review_item.title = "Room booking needs room mapping"
     delivery.status = "processed"
     delivery.processed_at = utc_now()
 
@@ -428,6 +444,7 @@ def receive_event(
         "review_item_id": review_item.id,
         "schema_version": event.schema_version,
         "project_id": project_link.project_id if project_link else None,
+        "room_update": room_update,
     }
 
 

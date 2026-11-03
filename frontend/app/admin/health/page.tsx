@@ -6,6 +6,9 @@ import { getStoredUser } from '@/lib/session';
 import { Top } from '@/components/Top';
 import { Pill } from '@/components/Pill';
 import { formatPropertyDateTime } from '@/lib/property-dates';
+function backupLabel(status: unknown) {
+  return ({ current: 'Up to date', failed: 'Needs attention', stale: 'Overdue' } as Record<string,string>)[String(status)] || 'Not checked';
+}
 export default function HealthPage() {
   const [archive, setArchive] = useState<Entity | null>(null);
   const [health, setHealth] = useState<Entity | null>(null);
@@ -18,8 +21,8 @@ export default function HealthPage() {
   const owner = role === 'owner';
   const canArchive = owner || role === 'admin';
   useEffect(() => {
-    api.health().then(setHealth).catch((err: any) => setError(err.message || 'Could not load health.'));
-    api.offsiteBackupStatus().then(setOffsite).catch(() => setOffsiteError('Offsite status could not be loaded. Refresh this page or ask the system operator.')).finally(() => setOffsiteLoading(false));
+    api.health().then(setHealth).catch((err: any) => setError(err.message || 'Could not load app status.'));
+    api.offsiteBackupStatus().then(setOffsite).catch(() => setOffsiteError('Could not check the extra backup copy. Refresh or ask your administrator.')).finally(() => setOffsiteLoading(false));
   }, []);
   async function runArchive() {
     if (!canArchive || archiving) return;
@@ -29,37 +32,38 @@ export default function HealthPage() {
     try {
       setArchive(await api.runArchive());
     } catch (err: any) {
-      setError(err.message || 'Could not run archive.');
+      setError(err.message || 'Could not move finished work to History.');
     } finally {
       setArchiving(false);
     }
   }
+  const archivedCount = Object.values(archive || {}).reduce<number>((total, value) => total + (typeof value === 'number' ? value : 0), 0);
   return <div className="admin-health">
-    <Top title="Health" right={<div className="toolbar" style={{ margin: 0 }}>{owner ? <Link className="btn secondary" href="/admin/appearance">Appearance</Link> : null}{canArchive ? <button className="btn secondary" onClick={runArchive} disabled={archiving}>{archiving ? 'Archiving…' : 'Run archive'}</button> : null}</div>} />
+    <Top title="App status" right={<div className="toolbar" style={{ margin: 0 }}>{owner ? <Link className="btn secondary" href="/admin/appearance">Appearance</Link> : null}{canArchive ? <button className="btn secondary" onClick={runArchive} disabled={archiving}>{archiving ? 'Moving finished work…' : 'Move finished work to History'}</button> : null}</div>} />
     {error ? <div role="alert" className="pill urgent" style={{ marginBottom: 12 }}>{error}</div> : null}
     <div className="health-overview">
-      <section className="health-status-row"><div className="health-status-label">Recovery</div><h2>Local backups</h2><div className="card-line"><Pill value={health?.backups?.status || 'unknown'} /></div><p className="muted">Last verified snapshot: {health?.backups?.last_success_at ? formatPropertyDateTime(health.backups.last_success_at) : 'Not available'}</p><p className="muted">{health?.backups?.status === 'current' ? 'Hourly database and uploads backups are current.' : health?.backups?.status === 'failed' ? 'The last backup attempt failed. Ask the system operator to check the backup service and disk capacity.' : health?.backups?.status === 'stale' ? 'The hourly backup is overdue. Ask the system operator to check the hourly backup schedule.' : 'Backup status has not been verified. Ask the system operator to check the backup schedule.'}</p><p className="muted">These checks cover local database and uploads snapshots.</p></section>
+      <section className="health-status-row">
+        <h2>Recent backups</h2>
+        <Pill value={backupLabel(health?.backups?.status)} />
+        <p className="muted">Last backup: {health?.backups?.last_success_at ? formatPropertyDateTime(health.backups.last_success_at) : 'Not available'}</p>
+        <p className="muted">{health?.backups?.status === 'current' ? 'Recent work and files have been backed up.' : health?.backups?.status === 'failed' ? 'The last backup failed. Ask your administrator to check it.' : health?.backups?.status === 'stale' ? 'A backup is overdue. Ask your administrator to check it.' : 'Backup status is not available.'}</p>
+      </section>
       <section className="health-status-row" aria-busy={offsiteLoading}>
-        <div className="health-status-label">Recovery</div><h2>Offsite backups</h2>
-        <div className="card-line"><Pill value={offsiteLoading ? 'loading' : offsite?.status || 'unknown'} /></div>
-        <p className="muted">Last verified offsite copy: {offsite?.last_success_at ? formatPropertyDateTime(offsite.last_success_at) : 'Not available'}</p>
-        {offsiteError ? <p className="muted" role="alert">{offsiteError}</p> : <p className="muted">{offsiteLoading ? 'Checking encrypted offsite backups…' : offsite?.status === 'current' ? 'Hourly encrypted offsite copies are current.' : offsite?.status === 'failed' ? 'The last offsite attempt failed. Ask the system operator to check the encrypted backup service, credentials and account limits.' : offsite?.status === 'stale' ? 'The offsite copy is overdue. Ask the system operator to check the encrypted backup schedule.' : 'Offsite status has not been verified. Ask the system operator to confirm the encrypted backup setup.'}</p>}
-        <p className="muted">Upload and repository checks are shown here. Actual recovery exercises are verified separately.</p>
+        <h2>Extra backup copy</h2>
+        <Pill value={offsiteLoading ? 'Checking' : backupLabel(offsite?.status)} />
+        <p className="muted">Last copy: {offsite?.last_success_at ? formatPropertyDateTime(offsite.last_success_at) : 'Not available'}</p>
+        {offsiteError ? <p className="muted" role="alert">{offsiteError}</p> : <p className="muted">{offsiteLoading ? 'Checking the extra backup copy…' : offsite?.status === 'current' ? 'A recent backup is also stored separately.' : offsite?.status === 'failed' ? 'The extra copy failed. Ask your administrator to check it.' : offsite?.status === 'stale' ? 'The extra copy is overdue. Ask your administrator to check it.' : 'The extra backup copy has not been checked.'}</p>}
       </section>
       <section className="health-status-row">
-        <div className="health-status-label">Authentication</div><h2>Readiness</h2>
-        <div className="card-line">
-          <Pill value={health?.readiness?.ok ? 'ready' : 'needs attention'} />
-          <span className="muted">Per-user password auth with startup readiness checks.</span>
-        </div>
-        {!!health?.readiness?.warnings?.length && (
-          <div style={{ marginTop: 12 }}>
-            {health.readiness.warnings.map((warning: string) => <div className="pill warn" key={warning} style={{ marginBottom: 8 }}>{warning}</div>)}
-          </div>
-        )}
+        <h2>App access</h2>
+        <Pill value={health?.readiness?.ok ? 'Ready' : 'Needs attention'} />
+        <p className="muted">{health?.readiness?.ok ? 'The app is ready to use.' : 'Ask your administrator to check the app setup.'}</p>
       </section>
-      <section className="health-status-row"><div className="health-status-label">Lifecycle</div><h2>Archive</h2><p className="muted">Owner/Admin can move eligible finished work from every department into History. Records remain available there.</p>{archive ? <div className="card-line" role="status">{Object.entries(archive).map(([key, value]) => <Pill key={key} value={`${key}: ${value}`} />)}</div> : <p className="muted">Completed work is kept active until its holding period ends.</p>}</section>
-      <section className="health-boundaries"><div className="health-status-label">System ownership</div><h2>Boundaries</h2><div className="health-boundary-grid"><span><b>Command Center</b>Review, planning, approvals, operational memory</span><span><b>Accounting</b>PR, PO and money</span><span><b>POS</b>Orders and payments</span><span><b>Staff App</b>Work capture</span></div></section>
+      <section className="health-status-row">
+        <h2>Finished work</h2>
+        <p className="muted">Move finished work to History. You can still find it there later.</p>
+        {archive ? <p role="status">{archivedCount ? `Moved ${archivedCount} ${archivedCount === 1 ? 'item' : 'items'} to History.` : 'No finished work was ready to move.'}</p> : null}
+      </section>
     </div>
   </div>;
 }

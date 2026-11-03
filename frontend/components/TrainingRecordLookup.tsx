@@ -137,7 +137,7 @@ export function TrainingRecordLookup({
       }
       const available = records.filter(item => permittedTrainingRecord(item, departmentId, kind));
       if (!available.length) {
-        setFeedback('No accessible fictional training ' + drill.subject +
+        setFeedback('No practice ' + drill.subject +
           ' was found in this department. Check the department or ask your trainer.');
         return;
       }
@@ -175,8 +175,8 @@ export function TrainingRecordLookup({
       }
       const now = new Date().toISOString();
       setCompletedAt(now);
-      setFeedback('Correct: both answers match the actual saved fictional ' + drill.subject +
-        '. You checked the saved details without changing the record.');
+      setFeedback('Correct: both answers match the saved practice ' + drill.subject +
+        '. You read the details without changing anything.');
       try {
         localStorage.setItem(key, JSON.stringify({ completedAt: now, recordId: saved.id }));
         window.dispatchEvent(new Event(TASK_INSPECTION_CHANGED));

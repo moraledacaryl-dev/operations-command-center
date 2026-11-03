@@ -132,11 +132,12 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                     is_primary=dept == primary), "memberships")
             credentials.append({"name": name, "role": role, "email": u.email, "password": password, "department": primary})
 
-        areas = [f"Room {n}" for n in (101,102,103,104,105,201,202,203,204,205,301,302)] + [
+        room_names = ["Solace", "Cafe Suite", "Perch 1", "Perch 2", "Crown", "Grandeur", "Skyroom", "Twinspire"]
+        areas = room_names + [
             "Lobby", "Front Desk", "Café", "Kitchen", "Pool", "Function Hall",
             "Garden", "Storage", "Parking", "Laundry", "Staff Area"]
-        rooms = {name: add(models.RoomArea(name=name, kind="room" if name.startswith("Room") else "area",
-            status="active", note="Fictional training area — not real property inventory."), "rooms_areas") for name in areas}
+        rooms = {name: add(models.RoomArea(name=name, kind="room" if name in room_names else "area",
+            status="active", note="Practice room name. Guest details and work records are fictional."), "rooms_areas") for name in areas}
 
         projects = {}
         for i, dept in enumerate(["Front Desk", "Housekeeping", "Café", "Kitchen", "Maintenance", "Marketing", "Management", "Security"]):
@@ -151,10 +152,10 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
 
         descriptions = {
             "Front Desk": ["Review arrivals","Confirm check-out notes","Update pending guest requests","Escalate complaint"],
-            "Housekeeping": ["Inspect Room 203","Count linen inventory","Confirm room readiness","Record missing amenities"],
+            "Housekeeping": ["Inspect Perch 2","Count linen inventory","Confirm room readiness","Record missing amenities"],
             "Café": ["Prepare counter checklist","Check available menu","Resolve service delay","Close café station"],
             "Kitchen": ["Check cold-storage temperatures","Complete prep list","Review food-handling incident","Close kitchen"],
-            "Maintenance": ["Inspect pool pump","Investigate Room 205 AC","Prepare repair evidence","Review defects"],
+            "Maintenance": ["Inspect pool pump","Investigate Solace AC","Prepare repair evidence","Review defects"],
             "Marketing": ["Draft promotional post","Review campaign caption","Submit artwork","Confirm scheduled content"],
             "Security": ["Inspect pool gate","Complete perimeter check","Review reported incident","Log visitor handover"],
             "Management": ["Review approvals","Allocate priorities","Review handover","Check department reports"],
@@ -179,22 +180,37 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 status="Done", hidden_from_active=True, archive_reason="Training sample",
                 completed_at=now-timedelta(days=3), archived_at=now-timedelta(days=2)), "tasks")
 
+        # Every fictional login needs work to read during orientation, including
+        # supervisors and PM accounts, not only the primary department worker.
+        for _, role, slug, dept in PEOPLE:
+            if slug == PRIMARY_WORKER[dept]:
+                continue
+            for i, (status, days) in enumerate([("To Do", -1), ("Doing", 0), ("Review", 1)]):
+                add(models.Task(title=PREFIX+descriptions[dept][i]+" — assigned practice",
+                    department_id=departments[dept].id, assigned_to_id=users[slug].id,
+                    owner_id=users[LEADS[dept]].id, status=status,
+                    priority="High" if i == 0 else "Normal", due_date=now+timedelta(days=days),
+                    note="TRAINING ONLY — read the instructions and saved status. "
+                         "For this made-up job, tell your lead what is still needed. "
+                         "Waiting means another team has not confirmed its part; Review means the lead must check the work."), "tasks")
+
         guest_titles = [
-            ("Late checkout request", "Room 203", "Checkout", "Open"),
-            ("Room 205 AC not cooling", "Room 205", "Room", "Follow"),
+            ("Late checkout request", "Perch 2", "Checkout", "Open"),
+            ("Solace AC not cooling", "Solace", "Room", "Follow"),
             ("Pool access complaint", "Pool", "Complaint", "Open"),
             ("Breakfast service delay", "Café", "Food", "Follow"),
             ("Lost room key", "Lobby", "Other", "Open"),
-            ("Noise concern", "Room 201", "Complaint", "Done"),
+            ("Noise concern", "Perch 1", "Complaint", "Done"),
             ("Function hall layout issue", "Function Hall", "Other", "Open"),
-            ("More towels requested", "Room 101", "Request", "Follow"),
-            ("Water pressure concern", "Room 302", "Room", "Open"),
-            ("Room cleaning follow-up", "Room 204", "Room", "Open"),
+            ("More towels requested", "Grandeur", "Request", "Follow"),
+            ("Water pressure concern", "Crown", "Room", "Open"),
+            ("Room cleaning follow-up", "Twinspire", "Room", "Open"),
             ("Pool towel shortage", "Pool", "Request", "Follow"),
             ("Parking access question", "Parking", "Complaint", "Done"),
             ("Check-in documentation", "Front Desk", "Request", "Open"),
             ("Allergy question", "Kitchen", "Food", "Open"),
-            ("Late room checkout dispute", "Room 202", "Checkout", "Open"),
+            ("Late room checkout dispute", "Skyroom", "Checkout", "Open"),
+            ("Perch 1 towel request", "Perch 1", "Request", "Open"),
         ]
         guests = []
         for i,(title,area,kind,status) in enumerate(guest_titles):
@@ -204,10 +220,12 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 assigned_to_id=users["frontdesk-lead"].id,
                 urgency="Urgent" if i in (1,8) else "Normal", status=status,
                 follow_up_date=now+timedelta(hours=3+i),
-                note="TRAINING ONLY — fictional guest concern."), "guest_notes")
+                note=("TRAINING ONLY — the air conditioner is not cooling. Maintenance must check it; Front Desk must update the guest." if area == "Solace" else
+                      "TRAINING ONLY — the guest requested extra towels. Housekeeping has not confirmed delivery." if title == "Perch 1 towel request" else
+                      "TRAINING ONLY — fictional guest concern.")), "guest_notes")
             guests.append(g)
-        fix_areas = ["Room 205","Pool","Room 302","Café","Kitchen","Function Hall",
-            "Room 201","Garden","Lobby","Laundry","Parking","Storage"]
+        fix_areas = ["Solace","Pool","Crown","Café","Kitchen","Function Hall",
+            "Perch 1","Garden","Lobby","Laundry","Parking","Storage"]
         fixes=[]
         for i,area in enumerate(fix_areas):
             status=["Working","Open","Done","Working","Open","Done","Verified"][i%7]
@@ -223,13 +241,35 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
             if linked: linked.linked_fix_id=fix.id
             fixes.append(fix)
 
+        handover_topics = {
+            "Front Desk": ("Solace AC is still warm", "Perch 1 needs two extra towels", "Maintenance", "Housekeeping"),
+            "Housekeeping": ("Twinspire bathroom still needs inspection", "Grandeur linen count is short by two towels", "Housekeeping", "Laundry"),
+            "Café": ("A breakfast order is delayed at table 3", "The coffee station is waiting for clean cups", "Kitchen", "Café"),
+            "Kitchen": ("Cold-storage temperature needs a qualified check", "The allergy order needs ingredient confirmation", "Maintenance", "Kitchen"),
+            "Maintenance": ("Solace AC inspection is unfinished", "The pool pump inspection needs a part", "Maintenance", "Maintenance"),
+            "Marketing": ("The weekend caption still needs the lead's review", "The draft photo needs the correct room name", "Marketing", "Marketing"),
+            "Security": ("The pool gate latch has not been checked", "The parking visitor log needs a handover check", "Maintenance", "Security"),
+            "Management": ("A department request is waiting for evidence", "A repair needs an authorized final check", "Management", "Maintenance"),
+            "Admin": ("A practice account access question is unresolved", "The department roster needs the lead's confirmation", "Admin", "Admin"),
+        }
         for dept in DEPARTMENTS:
+            night, afternoon, night_team, pm_team = handover_topics[dept]
             for i,status in enumerate(["New","Seen","Follow","Done"]):
+                topic, team = (night, night_team) if i == 2 else (afternoon, pm_team)
+                handover_note = (
+                    "TRAINING ONLY — " + topic + ". "
+                    + ("Keep affected food out of service and alert the Kitchen lead now. " if dept == "Kitchen" and status != "Done" else
+                       "Keep guests away from the unchecked gate and alert the Security lead now. " if dept == "Security" and i == 2 else "")
+                    + ("The previous shift confirmed the check was completed. No follow-up remains." if status == "Done" else
+                       "The work is not confirmed complete. " + users[LEADS[dept]].name +
+                       " is responsible for contacting " + team + ". The incoming shift should check with the lead "
+                       "within 30 minutes and record the update. Do not tell the guest or next team it is finished without confirmation.")
+                )
                 add(models.ShiftNote(title=PREFIX+f"{dept} {'AM PM Night PM'.split()[i]} handover #{i+1}",
                     shift=["AM","PM","Night","PM"][i], category="Other",
                     department_id=departments[dept].id, submitted_by_id=users[PRIMARY_WORKER[dept]].id,
                     urgency="Urgent" if i==2 else "Normal", status=status,
-                    note="TRAINING ONLY — record responsible person and pending follow-up."), "shift_notes")
+                    note=handover_note), "shift_notes")
             for i in range(3):
                 add(models.Request(title=PREFIX+f"{dept} operational request #{i+1}",
                     department_id=departments[dept].id, requested_by_id=users[LEADS[dept]].id,
@@ -323,6 +363,8 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                     priority="Normal",
                 ), "notifications")
 
+        counts.update(add_shift_challenge_records(db, now))
+
         private_file=private_dir/"PRIVATE_training_accounts.json"
         manifest_file=private_dir/"training_manifest.json"
         roster_fd=os.open(private_file,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
@@ -335,6 +377,58 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
         db.commit()
     ensure_private_trainer_guide(private_dir)
     return dict(counts)
+
+
+def add_shift_challenge_records(db, now=None) -> Counter:
+    """Append practice jobs, handovers and personal notices; never reset work."""
+    from app import models, foundation_models as fm
+    now = now or datetime.now(timezone.utc)
+    cases = json.loads(Path(__file__).with_name("shift_challenge_cases.json").read_text(encoding="utf-8"))
+    counts = Counter()
+    for case in cases:
+        department = db.query(models.Department).filter_by(name=case["department"]).one_or_none()
+        if not department:
+            continue
+        staff = db.query(models.User).filter_by(role="staff", department_id=department.id).all()
+        staff = [person for person in staff if person.email and person.email.endswith("@training.invalid")]
+        if not staff:
+            continue
+        ref = case["reference"]
+        title = PREFIX + ref + " — " + case["title"]
+        handover_title = PREFIX + ref + " — shift handover"
+        if not db.query(models.ShiftNote.id).filter_by(title=handover_title, department_id=department.id).first():
+            db.add(models.ShiftNote(title=handover_title, department_id=department.id,
+                submitted_by_id=staff[0].id, shift="Night", category="Other", status="Follow",
+                urgency="Urgent" if case["priority"] == "Critical" else "Normal",
+                note=case["situation"] + " The check is still pending. Leave the next shift a clear follow-up; do not mark it finished."))
+            counts["shift_notes"] += 1
+        for person in staff:
+            if not db.query(models.Task.id).filter_by(title=title, department_id=department.id, assigned_to_id=person.id).first():
+                db.add(models.Task(title=title, department_id=department.id, assigned_to_id=person.id,
+                    status="To Do", priority="Urgent" if case["priority"] == "Critical" else "High",
+                    due_date=now+timedelta(hours=1), note=case["situation"] + " Read the shift handover, check your notice, and save a follow-up on this job. Keep its current status; no physical work has been confirmed."))
+                counts["tasks"] += 1
+            notice_title = PREFIX + ref + " — shift notice"
+            if not db.query(fm.Notification.id).filter_by(user_id=person.id, kind="Shift notice", title=notice_title).first():
+                db.add(fm.Notification(user_id=person.id, kind="Shift notice", title=notice_title,
+                    body=case["situation"] + " Your lead needs a follow-up before the next shift takes over.",
+                    source_type=None, source_id=None, action_url=None, priority="High"))
+                counts["notifications"] += 1
+    db.flush()
+    return counts
+
+
+def ensure_shift_challenge_data(db_path: Path, state: Path) -> int:
+    """Add seven role challenges to a validated fictional desktop installation."""
+    # Reuse the existing strict path, environment, roster, and synthetic-user
+    # checks. It only appends missing named-room records and never resets them.
+    ensure_room_practice_data(db_path, state)
+    from app.database import SessionLocal
+    with SessionLocal() as db:
+        counts = add_shift_challenge_records(db)
+        db.commit()
+    return sum(counts.values())
+
 
 def ensure_private_trainer_guide(private_dir: Path) -> Path:
     """Present the already-private fictional JSON credentials in a readable trainer-only format.
@@ -470,6 +564,95 @@ def ensure_notification_practice_data(db_path: Path, state: Path) -> int:
                     source_type=None, source_id=None, action_url=None, priority="Normal",
                 ))
                 inserted += 1
+        db.commit()
+    return inserted
+
+
+
+def ensure_room_practice_data(db_path: Path, state: Path) -> int:
+    """Add missing named rooms and two fictional reading exercises, without resets.
+
+    Only an already-initialized, private, synthetic desktop training DB qualifies.
+    Never edits or deletes an existing room, guest concern or employee record.
+    """
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from app import models
+    from app.database import SessionLocal
+
+    if os.environ.get("ENVIRONMENT") != "local" or os.environ.get("ALLOW_DEMO_SEED") != "false":
+        raise SystemExit("REFUSED: room practice upgrade is local training only")
+    if os.environ.get("ALLOW_DEFAULT_ADMIN_BOOTSTRAP") != "false":
+        raise SystemExit("REFUSED: default account bootstrap is not permitted")
+    state = state.resolve()
+    db_path = Path(db_path)
+    expected_data = state / "data"
+    if (db_path.is_symlink() or any(part.is_symlink() for part in db_path.parents) or
+            not db_path.is_file() or
+            db_path.parent.resolve() != expected_data.resolve() or
+            not db_path.name.startswith("operations_training_demo_") or db_path.suffix != ".sqlite"):
+        raise SystemExit("REFUSED: room practice upgrade requires private training SQLite")
+    configured = os.environ.get("DATABASE_URL", "")
+    if not configured.startswith("sqlite:///") or Path(configured[10:]).resolve() != db_path.resolve():
+        raise SystemExit("REFUSED: configured training database differs from room practice target")
+    marker = expected_data / ".initialized"
+    roster_file = state / "private" / "accounts" / "PRIVATE_training_accounts.json"
+    if (not marker.is_file() or marker.is_symlink() or
+            not roster_file.is_file() or roster_file.is_symlink()):
+        raise SystemExit("REFUSED: existing fictional installation and roster required")
+    roster = json.loads(roster_file.read_text(encoding="utf-8"))
+    expected_emails = {slug + "@training.invalid" for _, _, slug, _ in PEOPLE}
+    actual_roster_emails = {row.get("email") for row in roster.get("accounts", [])}
+    if roster.get("synthetic") is not True or actual_roster_emails != expected_emails:
+        raise SystemExit("REFUSED: account roster is not the expected fictional dataset")
+
+    inserted = 0
+    with SessionLocal() as db:
+        installed_emails = {email for (email,) in db.query(models.User.email).all()}
+        if not expected_emails.issubset(installed_emails) or any(
+            not isinstance(email, str) or not email.endswith("@training.invalid")
+            for email in installed_emails
+        ):
+            raise SystemExit("REFUSED: room practice target has non-fictional employee accounts")
+        department = db.query(models.Department).filter_by(name="Front Desk").one_or_none()
+        frontdesk = db.query(models.User).filter_by(email="frontdesk-lead@training.invalid").one_or_none()
+        if not department or not frontdesk:
+            raise SystemExit("REFUSED: fictional Front Desk training accounts missing")
+        room_names = ("Solace", "Cafe Suite", "Perch 1", "Perch 2",
+                      "Crown", "Grandeur", "Skyroom", "Twinspire")
+        rooms = {}
+        for name in room_names:
+            room = db.query(models.RoomArea).filter_by(name=name).one_or_none()
+            if room is not None and room.kind != "room":
+                raise SystemExit("REFUSED: existing practice room name belongs to a shared area")
+            if room is None:
+                room = models.RoomArea(name=name, kind="room", status="active",
+                                       note="Practice room name. Guest details and work records are fictional.")
+                db.add(room)
+                db.flush()
+                inserted += 1
+            rooms[name] = room
+        drills = (
+            ("Solace", "Solace AC not cooling", "Room", "Urgent", "Follow",
+             "TRAINING ONLY — the AC is not cooling. Maintenance must check it; Front Desk must update the guest."),
+            ("Perch 1", "Perch 1 towel request", "Request", "Normal", "Open",
+             "TRAINING ONLY — a guest asked for towels. Housekeeping has not confirmed delivery."),
+        )
+        for room_name, title, issue_type, urgency, status, note in drills:
+            title = PREFIX + title
+            existing = db.query(models.GuestNote).filter_by(title=title).one_or_none()
+            if existing is not None:
+                if existing.room_area_id != rooms[room_name].id:
+                    raise SystemExit("REFUSED: existing fictional report linked to wrong room")
+                continue
+            db.add(models.GuestNote(
+                title=title, guest_name="Demo Guest " + room_name,
+                department_id=department.id, room_area_id=rooms[room_name].id,
+                issue_type=issue_type, urgency=urgency, status=status,
+                assigned_to_id=frontdesk.id, follow_up_date=datetime.now(timezone.utc) + timedelta(hours=3),
+                note=note,
+            ))
+            inserted += 1
         db.commit()
     return inserted
 

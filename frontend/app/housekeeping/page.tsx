@@ -15,8 +15,9 @@ type Turnover = {
   started_by_id?: number | null; submitted_by_id?: number | null;
   inspected_by_id?: number | null; inspected_at?: string | null;
   rework_note?: string | null;
+  booking_updates?: { status: string; origin: string; check_out: string; reported_at: string }[];
 };
-type Board = { date: string; rooms: Turnover[]; can_schedule: boolean; can_clean: boolean; can_inspect: boolean };
+type Board = { date: string; rooms: Turnover[]; can_schedule: boolean; can_clean: boolean; can_inspect: boolean; accounting_connected?: boolean };
 const STATUS_TEXT: Record<string,string> = {
   'No cleaning request': 'No cleaning request for this date',
   'Needs cleaning': 'Waiting to be cleaned',
@@ -37,7 +38,7 @@ async function call<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(typeof body?.detail === 'string' ? body.detail : 'Could not complete this action.');
+    throw new Error(res.status >= 500 ? 'Room cleaning is unavailable. Refresh or ask your manager for help.' : typeof body?.detail === 'string' ? body.detail : 'Could not complete this action.');
   }
   return res.json();
 }
@@ -91,7 +92,7 @@ export default function HousekeepingPage() {
 
   return <div className="housekeeping-board">
     <Top title="Room cleaning" right={<Link href="/rooms" className="btn secondary">All rooms</Link>} />
-    <p className="hk-intro">See which guest rooms need cleaning and what is waiting for inspection. A cleared room is <strong>not automatically marked vacant or available for sale</strong> in Beds24.</p>
+    <p className="hk-intro">Check cleaning progress and rooms waiting for inspection.</p>
     <div className="hk-tools">
       <label>Date <input aria-label="Cleaning date" className="input" type="date" value={day} onChange={e => setDay(e.target.value)} /></label>
       <label>Find room <input aria-label="Find room" className="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Solace, Perch 1…" /></label>
@@ -115,19 +116,22 @@ export default function HousekeepingPage() {
         const checks = row.checklist.filter(item => item.checked).length;
         return <article key={row.room_area_id} className="hk-room-card" data-testid={'cleaning-room-' + row.room_area_id}>
           <header><h2>{row.room_name}</h2><span className="hk-status">{STATUS_TEXT[row.status] || row.status}</span></header>
+          {Array.from(new Set((row.booking_updates || []).map(update => update.status))).map(status => <p key={status} className="hk-booking-status">
+            {({ confirmed: 'Checkout scheduled', checked_in: 'Guest still checked in', checked_out: 'Checkout recorded', cancelled: 'Booking cancelled — check with Front Desk', no_show: 'Guest did not arrive — check with Front Desk', unknown: 'Check the booking with Front Desk' } as Record<string,string>)[status] || 'Check the booking with Front Desk'}
+          </p>)}
           {row.id === null ? <>
             <p>There is no cleaning request for this room on {day}.</p>
             {data?.can_schedule && <button type="button" className="btn" disabled={isBusy}
               onClick={() => void act(row, '/turnovers', { room_area_id: row.room_area_id, service_date: day })}>Schedule cleaning</button>}
           </> : <>
             {!row.vacated_confirmed ? <div className="hk-warning">
-              <strong>Checkout not verified.</strong>
-              <p>Front Desk must first confirm the guest has left, using the booking system.</p>
+              <strong>Waiting for Front Desk.</strong>
+              <p>Front Desk needs to confirm the guest has left.</p>
               {data?.can_schedule && <button type="button" className="btn" disabled={isBusy}
-                onClick={() => { if (window.confirm('Have you checked the booking system and confirmed this room is vacated?')) void act(row, '/turnovers/' + row.id + '/confirm-vacated'); }}>
+                onClick={() => { if (window.confirm('Has the guest left and is the room empty?')) void act(row, '/turnovers/' + row.id + '/confirm-vacated'); }}>
                 Confirm guest has left</button>}
             </div> : null}
-            {row.status === 'Needs rework' && <p className="hk-warning"><strong>Check again:</strong> {row.rework_note || 'Supervisor requested rework.'}</p>}
+            {row.status === 'Needs rework' && <p className="hk-warning"><strong>Check again:</strong> {row.rework_note || 'The supervisor asked for another clean.'}</p>}
             {row.vacated_confirmed && ['Needs cleaning', 'Needs rework'].includes(row.status) && data?.can_clean && <button type="button"
               className="btn" disabled={isBusy} onClick={() => void act(row, '/turnovers/' + row.id + '/start')}>Start cleaning</button>}
             {['Cleaning', 'For inspection', 'Cleared'].includes(row.status) && <>
@@ -144,7 +148,7 @@ export default function HousekeepingPage() {
               disabled={isBusy || checks !== row.checklist.length}
               onClick={() => void act(row, '/turnovers/' + row.id + '/submit')}>Send for inspection</button>}
             {row.status === 'For inspection' && <div className="hk-inspect">
-              <p><strong>Awaiting supervisor inspection.</strong> All items were ticked, but a different supervisor must check the room.</p>
+              <p><strong>Waiting for inspection.</strong> A different supervisor must check this room.</p>
               {data?.can_inspect && row.started_by_id !== selfId && <>
                 <button className="btn" disabled={isBusy} onClick={() => void act(row, '/turnovers/' + row.id + '/inspect', { cleared: true })}>Approve cleaning</button>
                 <label>What needs fixing? <textarea className="textarea" value={rework[row.id!] || ''} onChange={event => setRework(v => ({ ...v, [row.id!]: event.target.value }))} placeholder="Example: Bathroom mirror still has water marks." /></label>
@@ -152,12 +156,11 @@ export default function HousekeepingPage() {
                   onClick={() => void act(row, '/turnovers/' + row.id + '/inspect', { cleared: false, note: rework[row.id!] })}>Return for cleaning</button>
               </>}
             </div>}
-            {row.status === 'Cleared' && <p className="hk-cleared">Supervisor inspection passed. Front Desk must separately check Beds24 before assigning a guest.</p>}
+            {row.status === 'Cleared' && <p className="hk-cleared">Cleaning approved. Check the booking before assigning the room.</p>}
           </>}
         </article>;
       })}
     </div>
     {data && !visible.length && <p role="status">No rooms match this view.</p>}
-    <small className="hk-footer">Cleaning requests are entered manually. This screen does not read live guest checkouts or change room availability in Beds24. Do not enter guest names or payment details.</small>
   </div>;
 }

@@ -49,7 +49,7 @@ test('reception must click choices, type a case note and correct mistakes before
   await page.getByTestId('scenario-department').selectOption('Front Desk');
   await page.getByRole('button', { name: 'Check my choices' }).click();
   await expect(page.locator('.practice-notice')).toContainText('Check the situation again and change your answer.');
-  await expect(page.getByTestId('priority-feedback')).toContainText('The guest has waited 30 minutes. Nobody has called back to explain what the staff will do.');
+  await expect(page.getByTestId('priority-feedback')).toContainText('A guest in Twinspire called Reception 30 minutes ago because the toilet will not flush.');
   await expect(page.getByTestId('scenario-document')).toHaveCount(0);
 
   await page.getByTestId('scenario-priority').selectOption('High');
@@ -65,7 +65,7 @@ test('reception must click choices, type a case note and correct mistakes before
 
   await page.getByTestId('scenario-decision').selectOption('Assign and follow up');
   await page.getByTestId('scenario-note').fill(
-    'DEMO-HANDOVER-014: Front Desk must contact the fictional guest, take ownership and update the next shift on status.',
+    'DEMO-HANDOVER-014: Front Desk must contact the practice guest, take ownership and update the next shift on status.',
   );
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toContainText('Practice finished');
@@ -116,7 +116,7 @@ test('complex incident must include concrete response, accountable owner and ver
   await page.getByTestId('scenario-note').fill('DEMO-SHARED-WRONG-ROOM: There is an issue; someone will take care of it eventually. Please just follow up.');
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
-  await expect(page.getByText('Specify an accountable fictional role or position', { exact: false })).toBeVisible();
+  await expect(page.getByRole('alert').filter({hasText:'Say which job role is responsible'})).toBeVisible();
   await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
   await page.getByTestId('scenario-owner').fill('On-duty Front Desk lead');
   await page.getByTestId('scenario-follow-up').fill('The lead confirms the correct room on the booking record and updates the receiving shift.');
@@ -127,7 +127,7 @@ test('complex incident must include concrete response, accountable owner and ver
   await expect(page.getByTestId('scenario-complete')).toBeVisible();
   await expect(page.locator('.practice-progress strong')).toHaveText(/^1 \/ \d+$/);
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain('training-progress.csv');
 });
@@ -148,7 +148,7 @@ test('repeating a completed case retains prior corrections and hints in its expo
     await expect(page.getByTestId('scenario-document')).toBeVisible();
     await page.getByTestId('scenario-decision').selectOption('Assign and follow up');
     await page.getByTestId('scenario-note').fill(
-      'DEMO-HANDOVER-014: Front Desk lead must confirm the unresolved guest concern, assign an owner, contact the fictional guest and update the receiving shift.',
+      'DEMO-HANDOVER-014: Front Desk lead must confirm the unresolved guest concern, assign an owner, contact the practice guest and update the receiving shift.',
     );
     await page.getByRole('button', { name: 'Check my note' }).click();
     await expect(page.getByTestId('scenario-complete')).toBeVisible();
@@ -159,7 +159,7 @@ test('repeating a completed case retains prior corrections and hints in its expo
   await correctSubmission();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save my results (CSV)' }).click();
+  await page.getByRole('button', { name: 'Save my results' }).click();
   const download = await downloadPromise;
   const { readFile } = await import('node:fs/promises');
   const csv = await readFile((await download.path())!, 'utf8');
@@ -185,7 +185,7 @@ test('original shift handover rejects filler even after correct priority and rou
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
   await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
   await page.getByTestId('scenario-note').fill(
-    'DEMO-HANDOVER-014: Front Desk assigns an on-duty owner to the pending request and will update the fictional guest before the next handover.',
+    'DEMO-HANDOVER-014: Front Desk assigns an on-duty owner to the pending request and will update the practice guest before the next handover.',
   );
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toBeVisible();

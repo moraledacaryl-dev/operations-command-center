@@ -1,0 +1,132 @@
+{
+  "schema": "hidden-oasis-course-report-v1",
+  "source": "isolated-training-device",
+  "exportedAt": "2026-11-03T06:50:38.977Z",
+  "trainee": {
+    "id": "3",
+    "name": "Demo Maya Tan",
+    "role": "manager"
+  },
+  "currentLesson": "management-review",
+  "currentStage": "finished",
+  "completedLessons": [
+    "orientation",
+    "staff-handover",
+    "staff-rooms",
+    "staff-my-work",
+    "team-tasks",
+    "guest-matters",
+    "maintenance",
+    "requests",
+    "shift-writing",
+    "projects",
+    "marketing",
+    "management-review"
+  ],
+  "metrics": {
+    "orientation": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:24:06.253Z"
+    },
+    "staff-handover": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:24:25.639Z"
+    },
+    "staff-rooms": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:24:28.828Z"
+    },
+    "staff-my-work": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:25:00.390Z"
+    },
+    "team-tasks": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:25:36.715Z"
+    },
+    "guest-matters": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:27:30.341Z"
+    },
+    "maintenance": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:29:59.351Z"
+    },
+    "requests": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:30:39.214Z"
+    },
+    "shift-writing": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:31:13.831Z"
+    },
+    "projects": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:31:16.781Z"
+    },
+    "marketing": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:37:37.985Z"
+    },
+    "management-review": {
+      "incorrectAnswers": 1,
+      "hintsViewed": 0,
+      "repeats": 0,
+      "completedAt": "2026-11-03T06:38:19.427Z"
+    }
+  },
+  "verifiedPractice": [
+    {
+      "kind": "shared-no-owner",
+      "reference": "TRN-TASK-9C70C6B7",
+      "completedAt": "2026-11-03T06:25:36.314Z",
+      "stages": 3
+    },
+    {
+      "kind": "guest-ac",
+      "reference": "TRN-GUEST-580783A2",
+      "completedAt": "2026-11-03T06:27:03.860Z",
+      "stages": 2
+    },
+    {
+      "kind": "mt-light-fault",
+      "reference": "TRN-FIX-1A748D4D",
+      "completedAt": "2026-11-03T06:29:59.224Z",
+      "stages": 4
+    },
+    {
+      "kind": "manager-evidence",
+      "reference": "TRN-REQ-B1C60463",
+      "completedAt": "2026-11-03T06:30:39.093Z",
+      "stages": 2
+    },
+    {
+      "kind": "shift-unresolved",
+      "reference": "TRN-SHIFT-61F62D73",
+      "completedAt": "2026-11-03T06:31:13.710Z",
+      "stages": 2
+    }
+  ]
+}

@@ -29,11 +29,11 @@ for (const width of [1440, 1024, 768, 390, 320]) {
       await page.setViewportSize({ width, height });
       await seed(page, role);
       await page.goto('/admin/health');
-      await expect(page.getByRole('heading', { name: 'Health', exact: true })).toBeVisible();
-      const button = page.getByRole('button', { name: 'Run archive', exact: true });
+      await expect(page.getByRole('heading', { name: 'App status', exact: true })).toBeVisible();
+      const button = page.getByRole('button', { name: 'Move finished work to History', exact: true });
       if (role === 'manager') await expect(button).toHaveCount(0);
       else await expect(button).toBeVisible();
-      await expect(page.getByText('Records remain available there.', { exact: false })).toBeVisible();
+      await expect(page.getByText('You can still find it there later.', { exact: false })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
       expect(axe.violations.filter(v => ['critical', 'serious'].includes(v.impact || ''))).toEqual([]);
@@ -54,12 +54,12 @@ test('an archive request stays disabled while pending and reports safe result co
     await route.fulfill({ status: 200, json: { tasks: 2, projects: 0 } });
   });
   await page.goto('/admin/health');
-  await page.getByRole('button', { name: 'Run archive', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Archiving…' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Move finished work to History', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Moving finished work…' })).toBeDisabled();
   expect(calls).toBe(1);
   release();
-  await expect(page.getByRole('status')).toContainText('tasks: 2');
-  await expect(page.getByRole('button', { name: 'Run archive', exact: true })).toBeEnabled();
+  await expect(page.getByRole('status')).toContainText('Moved 2 items to History.');
+  await expect(page.getByRole('button', { name: 'Move finished work to History', exact: true })).toBeEnabled();
 });
 
 test('a revoked archive permission is shown as an error without a success result', async ({ page }) => {
@@ -72,10 +72,10 @@ test('a revoked archive permission is shown as an error without a success result
       : route.fulfill({ status: 403, json: { detail: 'Owner/Admin access required' } });
   });
   await page.goto('/admin/health');
-  await page.getByRole('button', { name: 'Run archive', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('tasks: 1');
-  await page.getByRole('button', { name: 'Run archive', exact: true }).click();
+  await page.getByRole('button', { name: 'Move finished work to History', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Moved 1 item to History.');
+  await page.getByRole('button', { name: 'Move finished work to History', exact: true }).click();
   await expect(page.locator('.admin-health').getByRole('alert')).toContainText('Owner/Admin access required');
   await expect(page.getByRole('status')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Run archive', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Move finished work to History', exact: true })).toBeEnabled();
 });

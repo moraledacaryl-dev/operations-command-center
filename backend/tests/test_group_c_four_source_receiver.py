@@ -89,6 +89,12 @@ def test_every_source_event_has_atomic_receipt_and_idempotent_replay(
                      "event_date": "2026-12-19", "venue": "Function Hall",
                      "services": ["venue"], "guest_count": 40},
         )
+    if source == "accounting_program" and event_type == "room.booking.updated":
+        event = IntegrationEventEnvelope(event_id=event.event_id, event_type=event_type,
+            subject={"type": "room_booking", "id": "551"},
+            payload={"booking_id": 551, "room_id": None, "revision": 1,
+                     "check_in": "2026-11-02", "check_out": "2026-11-03",
+                     "status": "checked_out", "origin": "beds24"})
     first = receive_event(
         source, event, x_integration_api_key=SOURCE_KEYS[source], db=db
     )

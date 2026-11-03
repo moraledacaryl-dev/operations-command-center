@@ -13,7 +13,7 @@ export function CapabilityGuard({ capability, children }: { capability: Capabili
       <section className="login-card">
         <p className="eyebrow">Access restricted</p>
         <h1>This page is not available for your account.</h1>
-        <p className="muted">Your session does not include the required operational capability.</p>
+        <p className="muted">Ask your manager if you need access.</p>
         <Link className="btn" href="/">Return to Today</Link>
       </section>
     </main>

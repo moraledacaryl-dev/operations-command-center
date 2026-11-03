@@ -29,15 +29,15 @@ for (const width of [1440, 1024, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
       await seed(page, state);
       await page.goto('/admin/health');
-      const card = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Offsite backups', exact: true }) });
+      const card = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Extra backup copy', exact: true }) });
       await expect(card).toHaveAttribute('aria-busy', 'false');
-      await expect(card).toContainText(state);
-      if (state === 'current') await expect(card).toContainText('Hourly encrypted offsite copies are current.');
-      if (state === 'failed') await expect(card).toContainText('last offsite attempt failed');
-      if (state === 'stale') await expect(card).toContainText('offsite copy is overdue');
+      await expect(card).toContainText(({current:'Up to date',failed:'Needs attention',stale:'Overdue',unknown:'Not checked'} as Record<string,string>)[state]);
+      if (state === 'current') await expect(card).toContainText('A recent backup is also stored separately.');
+      if (state === 'failed') await expect(card).toContainText('extra copy failed');
+      if (state === 'stale') await expect(card).toContainText('extra copy is overdue');
       if (state === 'unknown') await expect(card).toContainText('Not available');
       else await expect(card).toContainText(/Oct 25|25 Oct/);
-      await expect(page.getByText('Hourly database and uploads backups are current.', { exact: true })).toBeVisible();
+      await expect(page.getByText('Recent work and files have been backed up.', { exact: true })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
       expect(axe.violations.filter(item => ['critical', 'serious'].includes(item.impact || ''))).toEqual([]);
@@ -50,15 +50,15 @@ for (const width of [1440, 1024, 768, 390, 320]) {
 test('failed offsite status request preserves local health and shows an actionable error', async ({ page }) => {
   await seed(page, 'api-failure');
   await page.goto('/admin/health');
-  await expect(page.getByText('Hourly database and uploads backups are current.', { exact: true })).toBeVisible();
-  const card = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Offsite backups', exact: true }) });
-  await expect(card.getByRole('alert')).toHaveText('Offsite status could not be loaded. Refresh this page or ask the system operator.');
-  await expect(page.getByText('Hourly encrypted offsite copies are current.', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Recent work and files have been backed up.', { exact: true })).toBeVisible();
+  const card = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Extra backup copy', exact: true }) });
+  await expect(card.getByRole('alert')).toHaveText('Could not check the extra backup copy. Refresh or ask your administrator.');
+  await expect(page.getByText('A recent backup is also stored separately.', { exact: true })).toHaveCount(0);
 });
 
 test('manager sees offsite health without gaining global archive controls', async ({ page }) => {
   await seed(page, 'current', 'manager');
   await page.goto('/admin/health');
-  await expect(page.getByText('Hourly encrypted offsite copies are current.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Run archive', exact: true })).toHaveCount(0);
+  await expect(page.getByText('A recent backup is also stored separately.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Move finished work to History', exact: true })).toHaveCount(0);
 });

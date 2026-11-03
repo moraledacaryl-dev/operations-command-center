@@ -34,7 +34,7 @@ final class TrainingRuntime {
         var bytes = [UInt8](repeating: 0, count: 48)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
             throw NSError(domain: "HiddenOasisTraining", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: "Could not create private training session keys"])
+                          userInfo: [NSLocalizedDescriptionKey: "Could not prepare this practice account. Try opening the app again."])
         }
         return Data(bytes).base64EncodedString()
     }
@@ -50,7 +50,7 @@ final class TrainingRuntime {
             let result = try JSONDecoder().decode(Settings.self, from: Data(contentsOf: file))
             guard result.sessionSecret.count >= 48, result.integrationKey.count >= 48 else {
                 throw NSError(domain: "HiddenOasisTraining", code: 2,
-                              userInfo: [NSLocalizedDescriptionKey: "Stored demo session settings are invalid"])
+                              userInfo: [NSLocalizedDescriptionKey: "Training settings could not be opened. Ask your trainer for help."])
             }
             return result
         }
@@ -108,7 +108,7 @@ final class TrainingRuntime {
                         env: [String: String], logfile: String) throws -> Process {
         guard FileManager.default.isExecutableFile(atPath: executable.path) else {
             throw NSError(domain: "HiddenOasisTraining", code: 3,
-                          userInfo: [NSLocalizedDescriptionKey: "Packaged training runtime missing: \(executable.lastPathComponent)"])
+                          userInfo: [NSLocalizedDescriptionKey: "A training file is missing: \(executable.lastPathComponent)"])
         }
         let log = state.appendingPathComponent("logs/" + logfile)
         FileManager.default.createFile(atPath: log.path, contents: Data())
@@ -193,7 +193,7 @@ final class TrainingRuntime {
         lock.unlock()
         guard !portTaken(3401) && !portTaken(8401) else {
             throw NSError(domain: "HiddenOasisTraining", code: 5,
-                          userInfo: [NSLocalizedDescriptionKey: "Training ports 3401 or 8401 are already in use. Close any other training instance first."])
+                          userInfo: [NSLocalizedDescriptionKey: "Close the other training window, then try again."])
         }
         for name in ["data", "private", "uploads", "logs"] {
             try makeDirectory(state.appendingPathComponent(name))
@@ -220,11 +220,11 @@ final class TrainingRuntime {
         if initializer.isRunning {
             stopInitializer(initializer)
             throw NSError(domain: "HiddenOasisTraining", code: 8,
-                          userInfo: [NSLocalizedDescriptionKey: "Fictional training setup took too long. Check the training logs; existing records are preserved."])
+                          userInfo: [NSLocalizedDescriptionKey: "Training took too long to open. Try again or ask your trainer for help."])
         }
         guard initializer.terminationStatus == 0 else {
             throw NSError(domain: "HiddenOasisTraining", code: 6,
-                          userInfo: [NSLocalizedDescriptionKey: "Training data could not initialize. Check the local logs; existing practice data was not erased."])
+                          userInfo: [NSLocalizedDescriptionKey: "Could not prepare your practice. Ask your trainer for help."])
         }
 
         progress("Starting isolated Operations training...")
@@ -250,7 +250,7 @@ final class TrainingRuntime {
             Thread.sleep(forTimeInterval: 1)
         }
         throw NSError(domain: "HiddenOasisTraining", code: 7,
-                      userInfo: [NSLocalizedDescriptionKey: "Training did not become ready. View the logs in Application Support."])
+                      userInfo: [NSLocalizedDescriptionKey: "Training could not open. Ask your trainer for help."])
     }
 
     func stop() {
@@ -309,7 +309,7 @@ final class TrainingController: ObservableObject {
                     guard self.startupEpoch == attempt else { return }
                     self.isStarting = false
                     self.isRunning = true
-                    self.status = "Running locally • Practice data is saved"
+                    self.status = "Running on this computer • Your practice is saved"
                     NSWorkspace.shared.open(trainingURL)
                 }
             } catch {
@@ -318,7 +318,7 @@ final class TrainingController: ObservableObject {
                     self.runtime.stop()
                     self.isStarting = false
                     self.isRunning = false
-                    self.status = "Could not start • Live resort records are safe"
+                    self.status = "Could not open training • Ask your trainer for help"
                     let alert = NSAlert()
                     alert.messageText = "Could not start staff training"
                     alert.informativeText = error.localizedDescription +
@@ -334,7 +334,7 @@ final class TrainingController: ObservableObject {
         runtime.stop()
         isRunning = false
         isStarting = false
-        status = "Stopped • Practice data preserved"
+        status = "Stopped • Your practice is saved"
     }
 
     func openBrowser() {
@@ -345,8 +345,8 @@ final class TrainingController: ObservableObject {
         let path = runtime.trainerRosterURL()
         guard FileManager.default.fileExists(atPath: path.path) else { return }
         let alert = NSAlert()
-        alert.messageText = "Trainer-only fictional account roster"
-        alert.informativeText = "Share only one employee's assigned practice credentials, not the complete roster."
+        alert.messageText = "Trainer accounts"
+        alert.informativeText = "Give each employee only their own practice login. Keep the full account list private."
         alert.runModal()
         NSWorkspace.shared.open(path)
     }

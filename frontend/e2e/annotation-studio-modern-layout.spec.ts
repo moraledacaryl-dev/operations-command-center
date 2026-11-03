@@ -30,7 +30,7 @@ async function seed(page: Page) {
   });
 }
 
-test.describe('Annotation Studio modern workspace', () => {
+test.describe('Add feedback to an image modern workspace', () => {
   test.beforeEach(async ({ page }) => {
     await seed(page);
   });
@@ -38,7 +38,7 @@ test.describe('Annotation Studio modern workspace', () => {
   test('keeps the creative canvas prominent on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/posts/editor?conceptId=51&assetId=81&versionId=91');
-    await expect(page.getByRole('heading', { name: 'Annotation studio' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Edit image' })).toBeVisible();
     await expect(page.locator('canvas').first()).toBeVisible();
     const canvas = await page.locator('canvas').first().boundingBox();
     expect(canvas?.width || 0).toBeGreaterThan(300);

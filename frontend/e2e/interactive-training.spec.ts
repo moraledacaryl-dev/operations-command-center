@@ -57,7 +57,7 @@ test('staff have read-only lessons with guided spotlights', async ({ page }) => 
   await expect(library).not.toContainText('Creating and managing a task');
   await library.getByRole('button', { name: /Getting around Operations/ }).click();
   const step = page.getByRole('dialog', { name: /Training step/ });
-  await expect(step).toContainText('You are on the real training dashboard');
+  await expect(step).toContainText('Your start page');
   await expect(page.locator('.ops-guide-spotlight')).toBeVisible();
   await expect(page.locator('.ops-guide-arrow')).toBeVisible();
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-staff-spotlight.png' });
@@ -79,7 +79,7 @@ test('manager sees authorization-appropriate review lessons', async ({ page }) =
   const library = page.getByRole('dialog', { name: 'Interactive staff training' });
   await expect(library).toContainText('Review and approval decisions');
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-manager-library.png' });
-  await expect(library).not.toContainText('People and access administration');
+  await expect(library).not.toContainText('Managing staff accounts');
 });
 
 test('mobile staff can open and close the training library', async ({ page }) => {
@@ -101,13 +101,13 @@ test('supervisor safely opens a task form and cancels without writing', async ({
   await library.getByRole('button', { name: /Creating and managing a task/ }).click();
   const step = page.getByRole('dialog', { name: /Training step/ });
   await expect(page).toHaveURL(/\/tasks$/);
-  await expect(step).toContainText('Board versus List');
+  await expect(step).toContainText('Board or List');
   await step.getByRole('button', { name: /Next/ }).click();
-  await expect(step).toContainText('Search before creating');
+  await expect(step).toContainText('Check for an existing task');
   await step.getByRole('button', { name: /Next/ }).click();
   await expect(step).toContainText('Open New task');
   await page.getByTestId('create-task').click();
-  await expect(step).toContainText('Fill out the task');
+  await expect(step).toContainText('Describe the task');
   await expect(page.getByTestId('create-task-form')).toBeVisible();
   await expect(page.locator('.ops-guide-spotlight')).toBeVisible();
   await expect.poll(async () => {
@@ -120,9 +120,9 @@ test('supervisor safely opens a task form and cancels without writing', async ({
   }).toBeLessThan(0.02);
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-task-form.png' });
   await step.getByRole('button', { name: /Next/ }).click();
-  await expect(step).toContainText('Close without saving');
+  await expect(step).toContainText('Close this example');
   await page.getByTestId('create-task-form').getByRole('button', { name: 'Cancel' }).click();
-  await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toContainText('Tour viewed');
+  await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toContainText('Tour finished');
   await expect(page.getByTestId('create-task-form')).toHaveCount(0);
   expect(writes.filter(w => /\/api\/(tasks|workflow|requests)/.test(w))).toEqual([]);
 });
@@ -130,23 +130,23 @@ test('supervisor safely opens a task form and cancels without writing', async ({
 test('supervisor request walkthrough opens and cancels an unsaved proposal', async ({ page }) => {
   await openMockWorkspace(page, 'supervisor');
   await page.getByRole('dialog', { name: 'Interactive staff training' })
-    .getByRole('button', { name: /Operational request approval/ }).click();
+    .getByRole('button', { name: /Requesting something for work/ }).click();
   const step = page.getByRole('dialog', { name: /Training step/ });
   await expect(page).toHaveURL(/\/requests$/);
   await step.getByRole('button', { name: /Next/ }).click();
   await expect(step).toContainText('Open New request');
   await page.getByTestId('create-request').click();
-  await expect(step).toContainText('Write the reason');
+  await expect(step).toContainText('Explain what is needed');
   await expect(page.getByTestId('create-request-form')).toBeVisible();
   await step.getByRole('button', { name: /Next/ }).click();
-  await expect(step).toContainText('Close the sample request');
+  await expect(step).toContainText('Close this example');
   await page.getByTestId('create-request-form').getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByTestId('create-request-form')).toHaveCount(0);
 });
 
 test('administrator sees people and access lessons', async ({ page }) => {
   await openMockWorkspace(page, 'admin');
-  await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toContainText('People and access administration');
+  await expect(page.getByRole('dialog', { name: 'Interactive staff training' })).toContainText('Managing staff accounts');
 });
 
 test('lesson library keeps keyboard focus within dialog and restores it on close', async ({ page }) => {

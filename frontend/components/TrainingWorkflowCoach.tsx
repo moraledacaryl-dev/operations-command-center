@@ -13,7 +13,7 @@ import { getCurrentDepartmentId } from '@/lib/session';
 import {
   parseWorkflowSession, verifyWorkflowStep, workflowInstructions, workflowStagePath,
   workflowOwnerId, workflowSessionKey, workflowResultsKey,
-  WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS,
+  WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, WORKFLOW_PRACTICE_SITUATIONS, workflowStageLabel,
 } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults } from '@/lib/training-workflows';
 
@@ -29,7 +29,8 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const [session, setSession] = useState<TrainingWorkflowSession | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [showArrows, setShowArrows] = useState(true);
+  // Saved-work practice is the independent attempt. Employees can request arrows.
+  const [showArrows, setShowArrows] = useState(false);
   const [liveFocus, setLiveFocus] = useState<WorkflowFocus | null>(null);
 
   const refresh = useCallback(() => {
@@ -76,7 +77,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       document.removeEventListener('input', schedule, true);
       document.removeEventListener('change', schedule, true);
     };
-  }, [path, session?.kind, session?.reference, session?.step, session?.ownerId]);
+  }, [path, session]);
 
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true' ||
     !session || !hasCapability(user, 'manage_department') ||
@@ -87,7 +88,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const finished = session.step >= definition.stages.length;
   const expectedPath = workflowStagePath(session);
   const onModule = path === expectedPath;
-  const currentStage = definition.stages[session.step];
+  const currentStage = workflowStageLabel(definition.stages[session.step]);
   const instructions = finished ? [] : workflowInstructions(session);
   const focus = !finished ? liveFocus || workflowFocus(session, onModule) : null;
 
@@ -145,7 +146,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       setSession(next);
       window.dispatchEvent(new Event(WORKFLOW_CHANGED));
     } catch (err: unknown) {
-      setMessage('We could not check the saved work. Make sure the training app is open and you are signed in, then try again. ' +
+      setMessage('Could not check your work. Make sure the training app is running and you are signed in, then try again. ' +
         (err instanceof Error ? err.message : ''));
     } finally {
       setBusy(false);
@@ -200,7 +201,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         <span className="training-workflow-kicker">PRACTICE ONLY · MADE-UP RECORDS</span>
         <h2>{definition.name}</h2>
         <p>{finished
-          ? 'All required record changes were verified in the local training database.'
+          ? 'Practice finished. Your changes were saved and checked.'
           : `Stage ${session.step + 1} of ${definition.stages.length}: ${currentStage}`}</p>
       </div>
       <div className="training-workflow-header-actions">
@@ -219,9 +220,10 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         } else setMessage('Select and copy the reference shown above.');
       }}>Copy</button>
     </p>
-    {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>Next step:</strong> {focus?.text}</p>}
+    {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>Next step:</strong> {showArrows ? focus?.text : session.step === 0 ? 'Use the facts below to create the practice record. Save it yourself, then choose Check saved work.' : 'Open the same practice record and do the next step below. Then choose Check saved work.'}</p>}
+    {!finished && session.step === 0 && <p className="training-workflow-safe" data-testid="workflow-practice-facts"><strong>Practice situation:</strong> {WORKFLOW_PRACTICE_SITUATIONS[session.kind]}</p>}
     {!finished && session.step === 0 && <p className="training-workflow-safe" data-testid="workflow-risk-explanation">
-      <strong>How urgent is it?</strong> What is at stake if no one acts? How soon could someone be affected? Routine can wait for planned work. High needs help soon. Critical means someone may be in danger: keep people safe and call a supervisor immediately. The form may say Normal or Urgent instead.
+      <strong>How urgent is it?</strong> What could happen if nobody helps? How soon should someone act? Routine work can use Normal. High means attention is needed soon; choose High where available, or Urgent if the form only offers Normal and Urgent. Critical means someone may be in danger: protect people and call a supervisor immediately.
     </p>}
     {finished ? <p className="training-workflow-finished" role="status">
       Practice finished. The app checked your saved work. A supervisor still needs to check your skills before you use the live system.
@@ -230,8 +232,8 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         {instructions.map(item => <li key={item}>{item}</li>)}
       </ol>
       <p className="training-workflow-modal-help">
-        After you save or change a record, click <strong>Close</strong> on its details.
-        Then click <strong>Check saved work</strong> here. Your saved changes will stay.
+        After you save or change a record, close its details if they are still open.
+        Then choose <strong>Check saved work</strong> here. Your saved changes will stay.
       </p>
       <div className="training-workflow-buttons">
         {!onModule ? <Link className="btn" data-testid="training-open-module" href={expectedPath}>
@@ -244,7 +246,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       </div>
     </>}
     {message && <p className="training-workflow-message" role="status" data-testid="training-workflow-message">{message}</p>}
-    <p className="training-workflow-safe">Use made-up names and details only. This guide checks what you saved in the training app. It cannot save work for you and does not connect to the resort&apos;s live system.</p>
+    <p className="training-workflow-safe">Use made-up names and details. You must save the work yourself, then choose Check saved work. This practice does not change live resort records.</p>
     {showArrows && !finished && focus && <TrainingSpotlight
       key={session.reference + ':' + session.step + ':' + expectedPath}
       title={focus.title} description={focus.text}

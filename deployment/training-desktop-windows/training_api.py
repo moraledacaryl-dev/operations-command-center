@@ -55,9 +55,11 @@ def refresh_fictional_notices(path: Path, state: Path) -> None:
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
-    count = module.ensure_notification_practice_data(path, state)
+    notice_count = module.ensure_notification_practice_data(path, state)
+    room_count = module.ensure_room_practice_data(path, state)
+    module.ensure_shift_challenge_data(path, state)
     module.ensure_private_trainer_guide(state / "private" / "accounts")
-    print(f"PASS: fictional per-user notification drills ready ({count} newly added)")
+    print(f"PASS: fictional notification drills ({notice_count} added) and named room exercises ({room_count} added)")
 
 
 def _first_launch():

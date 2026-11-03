@@ -128,3 +128,22 @@ test('creative Draft is not falsely offered a decision action', async ({ page })
   await expect(page.getByRole('button', { name: 'Needs fix' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Resubmit for review' })).toHaveCount(0);
 });
+
+test('review details show the work and keep transport metadata out of staff screens', async ({ page }) => {
+  const item = { id: 75, title: 'Room Booking Updated', status: 'For Review', department_id: 1,
+    event_type: 'room.booking.updated', source_app: 'accounting_program', external_source: 'accounting_program',
+    schema_version: 1, correlation_id: 'internal-correlation', payload_json: '{"origin":"beds24","revision":44}',
+    can_edit: true, diagnostic_hint: 'INTERNAL_FIELD_MUST_NOT_RENDER',
+    note: 'Check the room before the next arrival.', decision: 'Keep the room unavailable until inspected.', due_date: '2026-11-10' };
+  const called = await setup(page, manager, 'external', item);
+  await page.goto('/review');
+  await page.getByRole('button', { name: /Room booking changed/ }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Room booking changed', exact: true })).toBeVisible();
+  await expect(dialog).toContainText('Check the room before the next arrival.');
+  await expect(dialog).toContainText('Keep the room unavailable until inspected.');
+  await expect(dialog).toContainText(/Nov 10|10 Nov/);
+  await expect(dialog).not.toContainText(/accounting_program|beds24|revision|internal-correlation|schema|Can Edit|INTERNAL_FIELD/);
+  await dialog.getByRole('button', { name: 'Create task', exact: true }).click();
+  await expect.poll(called).toContain('/api/integrations/review-items/75/create-task:');
+});

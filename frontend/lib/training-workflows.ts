@@ -29,43 +29,67 @@ export const WORKFLOW_RESULTS_PREFIX = 'ho-ops-workflow-results-v1:';
 
 export const WORKFLOW_DEFINITIONS = {
   'guest-ac': {
-    name: 'Guest complaint to documented follow-up',
+    name: 'Record a guest problem and follow up',
     path: '/guests',
     resource: 'guests',
-    stages: ['Create a guest matter', 'Record an accountable follow-up'],
+    stages: ['Create a guest matter', 'Record the next follow-up'],
   },
   'shared-no-owner': {
-    name: 'Assign and progress a real task',
+    name: 'Assign and update a task',
     path: '/tasks',
     resource: 'tasks',
     stages: ['Create and assign a task', 'Start the assigned task', 'Submit the task for review'],
   },
   'shift-unresolved': {
-    name: 'Record and carry forward a shift handover',
+    name: 'Write a handover for the next shift',
     path: '/shift',
     resource: 'shift-notes',
     stages: ['Publish a usable handover', 'Carry the unresolved matter forward'],
   },
   'mt-light-fault': {
-    name: 'Maintain and verify a hallway lighting work order',
+    name: 'Report and check a broken hallway light',
     path: '/fixes',
     resource: 'fixes',
     stages: ['Report and assign the maintenance issue', 'Start the work order', 'Mark the work ready for verification', 'Verify the finished work'],
   },
   'manager-evidence': {
-    name: 'Prepare and submit a documented purchase request',
+    name: 'Write a request for equipment',
     path: '/requests',
     resource: 'requests',
-    stages: ['Create a defensible equipment request', 'Submit for authorized review'],
+    stages: ['Explain the equipment request', 'Send for review'],
   },
   'fd-broken-shower': {
-    name: 'Guest report linked to same-department maintenance work',
+    name: 'Link a guest problem to a repair',
     path: '/guests',
     resource: 'guests',
-    stages: ['Log the shower issue with guest follow-up', 'Create the linked maintenance work order',
-      'Start linked maintenance', 'Record maintenance as done', 'Verify work and auto-close the guest case'],
+    stages: ['Log the shower issue with guest follow-up', 'Create the maintenance task',
+      'Start the repair', 'Record maintenance as done', 'Check the repair and guest report'],
   },
 } as const;
+
+/** Facts for the independent saved-record exercise, not a pre-filled answer. */
+export const WORKFLOW_PRACTICE_SITUATIONS: Record<TrainingWorkflowKind, string> = {
+  'guest-ac': 'The Solace AC is blowing warm air and the guest is waiting. Nobody has inspected it yet. Arrange an inspection and a Front Desk update during this shift.',
+  'shared-no-owner': 'A shared task is due today, but nobody is assigned. It needs an owner and attention during this shift; no immediate danger is described.',
+  'shift-unresolved': 'The Twinspire guest has waited 30 minutes for a toilet repair. The next receptionist starts in five minutes and needs to know who will arrange the repair and call the guest.',
+  'mt-light-fault': 'One hallway light is out, while the other corridor lights are working. Arrange prompt inspection and safe temporary lighting. Nobody has checked the fault yet.',
+  'manager-evidence': 'The Front Desk radio has failed and a replacement is needed before the next shift today. The fictional estimate is PHP 2500. A supplier quotation has not arrived; say that clearly in the request.',
+  'fd-broken-shower': 'The Perch 2 guest reports no hot water. Nobody has inspected the fault. Arrange a Maintenance check and a Front Desk update without promising that the shower is repaired.',
+};
+
+/** Display labels are separate so existing saved progress keeps its original step IDs. */
+export function workflowStageLabel(stage: string): string {
+  const labels: Record<string, string> = {
+    'Record the next follow-up': 'Arrange the guest follow-up',
+    'Publish a usable handover': 'Write the next shift’s note',
+    'Carry the unresolved matter forward': 'Leave unfinished work for the next shift',
+    'Mark the work ready for verification': 'Mark the repair Done',
+    'Explain the equipment request': 'Write the equipment request',
+    'Send for review': 'Send the request for review',
+    'Check the repair and guest report': 'Check the repair and close the guest matter',
+  };
+  return labels[stage] || stage;
+}
 
 export const isTrainingWorkflowKind = (value: unknown): value is TrainingWorkflowKind =>
   value === 'guest-ac' || value === 'shared-no-owner' ||
@@ -195,7 +219,7 @@ export function verifyWorkflowStep(
     if (valid) return { passed: true, error: '', recordId: positiveId(valid.id), stepName: definition.stages[0] };
     return { passed: false, error: matched.length
       ? session.kind === 'guest-ac'
-        ? 'A matching case exists, but its saved record must have High urgency, Room or Complaint type, and a note describing the AC fault, Maintenance action, and guest follow-up. Correct the case according to authorized controls, or create a corrected fictional one with the same reference.'
+        ? 'The case is saved. Check that its urgency is High and its type is Room or Complaint. The note should explain the AC problem, what Maintenance will do and when Reception will update the guest.'
         : session.kind === 'fd-broken-shower'
           ? 'The saved guest report must have High urgency, Room or Complaint type, and a note about the faulty shower, maintenance inspection, and Front Desk guest callback.'
         : session.kind === 'shared-no-owner'
@@ -203,13 +227,13 @@ export function verifyWorkflowStep(
           : session.kind === 'shift-unresolved'
             ? 'Your published handover must use Urgent priority, Guest category, and specify the guest concern, a responsible follow-up owner, and the next guest update.'
             : session.kind === 'manager-evidence'
-              ? 'The saved request must use Equipment type, Urgent priority, and a business reason documenting quotation status, cost/budget and the operational justification. Never invent an attached quotation.'
+              ? 'Use Equipment type and Urgent priority. In Business reason, say whether you have a supplier quote, what it may cost and why it is needed. Do not claim a quote is attached if it is missing.'
               : 'Your maintenance report must use High urgency, name a fictional technician, and describe the failed corridor lighting in Problem / scope.'
-      : 'No saved record with your unique training reference was found yet. Open the correct module, use the actual New button, fill in the details, and save before checking again.' };
+      : 'No saved record with this practice number was found. Open the right screen, choose New, fill in the form and save. Then check again.' };
   }
   if (!session.recordId || !detail || positiveId(detail.id) !== session.recordId ||
     !readable(detail.title).includes(session.reference.toLowerCase())) {
-    return { passed: false, error: 'The original training record could not be verified. Refresh the correct record and retry; do not create a different unlinked case.' };
+    return { passed: false, error: 'Could not check the original practice entry. Open the same entry and try again. Do not create a new one.' };
   }
   const status = readable(detail.status);
   if (session.kind === 'fd-broken-shower') {
@@ -218,18 +242,18 @@ export function verifyWorkflowStep(
       positiveId(relatedDetail.id) !== linkedId ||
       positiveId(relatedDetail.linked_guest_note_id) !== session.recordId ||
       !readable(relatedDetail.title).includes(session.reference.toLowerCase())) {
-      return { passed: false, error: 'The original Guest Matter is not yet linked to a reciprocal Maintenance work order. Open the Guest Matter and select Create maintenance. An unrelated ticket does not count.' };
+      return { passed: false, error: 'The original Guest Matter has no matching linked repair yet. Open it and choose Create maintenance. A separate, unrelated repair does not count.' };
     }
     // Actual fix_workflow.verify_fix() atomically resolves a linked GuestNote:
     // during repair the Guest Matter is Follow; after verification it is Done.
     const expectedGuestStatus = session.step === 4 ? 'done' : 'follow';
     if (status !== expectedGuestStatus) {
       return { passed: false, error: session.step === 4
-        ? 'Verifying the linked work order must also close the original Guest Matter as Done. Check the same guest and maintenance records.'
+        ? 'Approve the repair, then check that the original guest report also shows Done.'
         : 'The Guest Matter must remain in Follow while Maintenance handles the issue.' };
     }
     if (session.relatedRecordId && linkedId !== session.relatedRecordId) {
-      return { passed: false, error: 'The linked maintenance ticket has changed. Do not substitute a different work order for the original handoff.' };
+      return { passed: false, error: 'Use the repair created from this guest report.' };
     }
     if (session.step === 1) {
       return { passed: true, error: '', recordId: session.recordId, relatedRecordId: linkedId, stepName: definition.stages[1] };
@@ -237,10 +261,10 @@ export function verifyWorkflowStep(
     const wanted = session.step === 2 ? 'working' : session.step === 3 ? 'done' : 'verified';
     if (readable(relatedDetail.status) !== wanted) {
       return { passed: false, error: session.step === 2
-        ? 'The linked Maintenance work order has not been started. Open that same work order and select Start work.'
+        ? 'Open this repair and choose Start work.'
         : session.step === 3
-          ? 'The linked work order is not Done. Mark the fictional maintenance work ready for independent verification first.'
-          : 'The original linked Maintenance work order needs a verification note and Verified status in the training database.' };
+          ? 'The linked repair is not Done yet. Finish the practice repair step and choose Mark done before asking a manager to check it.'
+          : 'Open the same linked repair. Add a Verification note and choose Verify work.' };
     }
     return { passed: true, error: '', recordId: session.recordId, relatedRecordId: linkedId,
       stepName: definition.stages[session.step] };
@@ -248,7 +272,7 @@ export function verifyWorkflowStep(
   if (session.kind === 'guest-ac') {
     return status === 'follow'
       ? { passed: true, error: '', recordId: session.recordId, stepName: definition.stages[1] }
-      : { passed: false, error: 'The saved guest matter is not in Needs follow-up yet. Open the original matter, choose Needs follow-up, and save that real status transition.' };
+      : { passed: false, error: 'The saved guest matter is not in Needs follow-up yet. Open it, choose Needs follow-up and save.' };
   }
   if (session.kind === 'manager-evidence') {
     if (status !== 'review') {
@@ -263,7 +287,7 @@ export function verifyWorkflowStep(
       readable(approval.status) === 'pending');
     return linked.length === 1 && positiveId(linked[0].id)
       ? { passed: true, error: '', recordId: session.recordId, relatedRecordId: positiveId(linked[0].id), stepName: definition.stages[1] }
-      : { passed: false, error: 'Submitting for review must create one Pending Approval linked to this same request and department. Refresh and check the Approval queue; a Request status alone does not pass.' };
+      : { passed: false, error: 'Send this request for review, then check that it appears as Pending in Approvals.' };
   }
   if (session.kind === 'shift-unresolved') {
     return status === 'follow'
@@ -277,8 +301,8 @@ export function verifyWorkflowStep(
       : { passed: false, error: session.step === 1
           ? 'Open the saved lighting work item and choose Start work before checking.'
           : session.step === 2
-            ? 'Complete the actual fictional repair workflow with Mark done, but do not claim real building work is finished.'
-            : 'Open the original Done item and provide a verification note before clicking Verify work. A status change alone cannot substitute for a genuine real-world inspection.' };
+            ? 'Choose Mark done for this practice repair. This does not mean a real repair has been done.'
+            : 'Open the same Done repair. Write what was checked in Verification note, then choose Verify work. A real repair would need an actual inspection.' };
   }
   if (session.step === 1) {
     return status === 'doing'
@@ -293,74 +317,74 @@ export function verifyWorkflowStep(
 export function workflowInstructions(session: TrainingWorkflowSession): string[] {
   if (session.kind === 'fd-broken-shower') {
     if (session.step === 0) return [
-      'Open Guest Matters. Select New guest matter and place the unique training reference in Matter title.',
-      'Choose Room or Complaint, then decide urgency from the potential impact and the response window. Describe a shower without hot water, the Maintenance inspection, and the Front Desk guest callback in the context note.',
-      'Click Save matter. Close any details drawer, then Check saved work.',
+      'Open Guest Matters and choose New guest matter. Put the practice number in Matter.',
+      'Choose Room or Complaint. Think about how soon the guest needs help, then choose the urgency. In the note, describe the shower problem, the Maintenance check and when Reception will call the guest.',
+      'Choose Save matter. Close the details, then choose Check saved work.',
     ];
     if (session.step === 1) return [
-      'Open the original Guest Matter by its reference, select Create maintenance, and let Operations link the records automatically. The current UI creates the Fix in the Guest Matter’s department; it does NOT automatically transfer it to the Maintenance department.',
-      'Close the details drawer. Select Check saved work to verify BOTH saved links and the guest follow-up status. Do not create a second, unrelated work order.',
+      'Open the same Guest Matter and choose Create maintenance. The app links the guest report and repair for you.',
+      'The repair stays in the Guest Matter’s department. Linking it does not automatically send it to the Maintenance department.',
+      'If the details are still open, close them. Then choose Check saved work. Do not create a separate repair for the same problem.',
     ];
     if (session.step === 2) return [
-      'Open Maintenance. The linked work order has the same reference as the Guest Matter and remains in its originating department unless an authorized handoff is arranged separately.',
-      'Select the original reporting department in the Operations workspace selector if authorized. A Maintenance-only staff account cannot act on a Front Desk work order without department access.',
-      'Open that exact ticket, click Start work and close the drawer. Then Check saved work.',
+      'Open Maintenance and find the linked repair with the same practice number.',
+      'Keep the original department selected. A Maintenance-only login cannot change a Front Desk repair without access to Front Desk.',
+      'Open the repair, choose Start work and close the details. Then choose Check saved work.',
     ];
     if (session.step === 3) return [
-      'In Maintenance, reopen the linked ticket and choose Mark done for this entirely fictional repair.',
-      'Close details and Check saved work. This does not prove any physical shower was repaired.',
+      'Open the same repair in Maintenance and choose Mark done for this practice.',
+      'If the details are still open, close them. Then choose Check saved work. This does not mean a real shower has been repaired.',
     ];
     return [
-      'A Management/Owner account with decision authority must perform the final verification. The server will reject verification from a Supervisor or Lead.',
-      'Open that same Done maintenance ticket. In Verification note describe the fictional inspection, and select Verify work.',
-      'The REAL backend automatically marks the linked Guest Matter Done when the Fix is Verified. Close details, then Check saved work to verify BOTH saved statuses.',
-      'Any actual guest callback must be documented separately; this exercise does not independently prove guest communication.',
+      'A manager or owner with permission to verify repairs must do this step. A lead or supervisor cannot verify it.',
+      'Open the same Done repair. In Verification note, write what was checked. Choose Verify work.',
+      'The app also marks the linked Guest Matter Done. Close the details and choose Check saved work to check both entries.',
+      'Record a real guest callback separately. This exercise does not check whether anyone called the guest.',
     ];
   }
   if (session.kind === 'guest-ac') {
     return session.step === 0
-      ? ['Open Guest Matters and click New guest matter.', 'Include the exact training reference in the Matter title.', 'Select Room or Complaint, assess urgency from the unresolved room fault and guest impact, and use Room 205 if it appears in the fictional room list.', 'In the context note, describe the AC blowing warm air, the Maintenance inspection request, and when Front Desk will update the guest.', 'Click Save matter. Only then click Check saved work.']
-      : ['Find the saved matter with your reference in the Active list.', 'Open it, choose Needs follow-up, and confirm the updated record.', 'Click Check saved work to verify the saved status. Do not resolve an uninspected AC fault.'];
+      ? ['Open Guest Matters and choose New guest matter.', 'Put the practice number in Matter.',
+        'Choose Room or Complaint. Think about how soon the guest needs help, then choose the urgency. Choose Solace if it is in the room list.',
+        'In the note, describe the AC blowing warm air, the Maintenance check and when Reception will update the guest.',
+        'Choose Save matter, then Check saved work.']
+      : ['Find the same guest matter in Active.', 'Open it and choose Needs follow-up.',
+        'If the details are still open, close them. Then choose Check saved work. Do not mark the AC fixed before it has been checked.'];
   }
   if (session.kind === 'manager-evidence') {
     return session.step === 0
-      ? ['Open Requests and click New request.', 'Include the unique training reference in Request title.',
-        'Choose Equipment type and decide urgency from the operational need and how long an authorized review can safely wait.', 'In Business reason, explain the fictional estimated amount, quotation status (if missing, say so), and why the item is operationally needed.',
-        'Click Create draft, then Check saved work. This is not an authorized purchase or approval.']
-      : ['Locate the same saved Draft request and open it.', 'Check that the reason is accurate and does not claim a quotation is attached when it is not.',
-        'Choose Send for review.', 'Close details, then Check saved work. The app must create a Pending Approval tied to the same request and department. Do NOT self-approve.'];
+      ? ['Open Requests and choose New request.', 'Put the practice number in Request.',
+        'Choose Equipment. Think about how soon the item is needed, then choose the urgency.',
+        'In Business reason, write the estimated cost, whether you have a supplier quote and why the item is needed. Use made-up details.',
+        'Choose Create draft, then Check saved work. This does not approve a purchase.']
+      : ['Open the same Draft request.', 'Check the reason. Do not say a quote is attached when it is missing.',
+        'Choose Send for review.', 'If the details are still open, close them. Then choose Check saved work. There should be a Pending Approval for the same request and department. Do not approve it yourself.'];
   }
   if (session.kind === 'shift-unresolved') {
     return session.step === 0
-      ? ['Open Shift Handover and click New handover.', 'Add the unique reference to the Title.',
-        'Choose Guest category and decide urgency from the unresolved guest update during this shift change.', 'In Handover detail, describe the unresolved guest concern, the responsible owner, and the guest update or follow-up needed.',
-        'Publish handover, then Check saved work.']
-      : ['Open the original unresolved handover in the list.', 'Choose Carry forward to leave an actionable follow-up for the next shift.',
-        'Check saved work to prove that its persisted status is Follow.'];
+      ? ['Open Shift Handover and choose New handover.', 'Put the practice number in the Title.',
+        'Choose Guest. Think about how soon the guest needs an update, then choose the urgency.',
+        'In Handover detail, write the problem, who will handle it and when to update the guest.',
+        'Choose Publish handover, then Check saved work.']
+      : ['Open the same unfinished handover.', 'Choose Carry forward so the next shift knows what still needs doing.',
+        'If the details are still open, close them. Then choose Check saved work. Its saved status should be Follow.'];
   }
   if (session.kind === 'mt-light-fault') {
-    if (session.step === 0) return ['Open Maintenance and click Report issue.',
-      'Include your unique training reference in Work item.', 'Assess the corridor-light fault and response window, then choose urgency and a fictional assigned technician.',
-      'Describe the nonfunctioning corridor light and its impact in Problem / scope.', 'Click Create work item, then Check saved work.'];
-    if (session.step === 1) return ['Find and open the saved lighting work item.', 'Click Start work; wait for its status to become Working.', 'Click Check saved work.'];
-    if (session.step === 2) return ['For this synthetic repair only, click Mark done after the practice inspection.', 'Check saved work to prove the record is ready for verification.'];
-    return ['Reopen the saved work order in the To verify column.', 'Enter a meaningful fictional verification note explaining what was tested.',
-      'Click Verify work, then Check saved work. Never use these training steps as evidence of an actual electrical repair.'];
+    if (session.step === 0) return ['Open Maintenance and choose Report issue.',
+      'Put the practice number in Work item.', 'Think about how soon the light needs attention, choose the urgency and assign a practice technician.',
+      'In Problem / scope, say which light is not working and who is affected.', 'Choose Create work item, then Check saved work.'];
+    if (session.step === 1) return ['Open the same lighting repair.', 'Choose Start work and wait for Working.', 'If the details are still open, close them. Then choose Check saved work.'];
+    if (session.step === 2) return ['After the practice check, choose Mark done.', 'If the details are still open, close them. Then choose Check saved work. A manager still needs to check the result.'];
+    return ['Open the same repair in To verify.', 'In Verification note, write what was tested and the result. Use made-up details.',
+      'Choose Verify work, then Check saved work. This practice does not prove that a real electrical repair was done.'];
   }
   if (session.step === 0) return [
-    'Open Tasks and click New task.',
-    'Include your exact training reference in the Task title.',
-    'Assess the consequence of leaving the task unassigned, select a priority, and choose a fictional assignee in the Assigned to menu.',
-    'Click Create task. Verify that it appears in your Tasks workspace, then click Check saved work.',
+    'Open Tasks and choose New task.', 'Put the practice number in Task title.',
+    'Think about how soon the job needs doing, choose the priority and select someone in Assigned to.',
+    'Choose Create task. Check that it appears in the list, then choose Check saved work.',
   ];
-  if (session.step === 1) return [
-    'Locate the same task in To Do and click to open it.',
-    'Click Start work. Verify that it moved to Doing.',
-    'Click Check saved work to validate this saved transition.',
-  ];
-  return [
-    'Open the same Doing task.',
-    'Click Submit for review. This does NOT mean work was independently verified or completed.',
-    'Click Check saved work to validate the persisted Review state.',
-  ];
+  if (session.step === 1) return ['Open the same task in To Do.', 'Choose Start work and wait for Doing.',
+    'If the details are still open, close them. Then choose Check saved work.'];
+  return ['Open the same Doing task.', 'Choose Submit for review. Someone still needs to check the work.',
+    'If the details are still open, close them. Then choose Check saved work. Its saved status should be Review.'];
 }
