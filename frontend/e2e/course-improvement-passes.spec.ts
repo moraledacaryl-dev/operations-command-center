@@ -71,7 +71,7 @@ test('manager can restore read-only lesson history but must recheck saved record
   await init(page,manager,{lessonId:'orientation',stage:'learn',question:0,passed:[]});
   await page.goto('/');
   await expect(page.getByTestId('course-lesson-title')).toContainText('Getting around');
-  const details=page.locator('details.ops-course-help').filter({hasText:'Having trouble?'});
+  const details=page.locator('details.ops-course-help').filter({hasText:'Need help with this lesson?'});
   await details.locator('summary').click();
   const report=reportFor();
   await details.locator('input[type=file]').setInputFiles({
