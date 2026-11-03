@@ -67,6 +67,9 @@ class EventProjectLink(Base):
     source_app = Column(String(80), nullable=False, default="accounting_program")
     source_record_id = Column(String(80), nullable=False)
     event_no = Column(String(100), nullable=False)
+    # Whitelisted booking snapshot only; venue inventory remains independent.
+    venue = Column(String(80), nullable=True)
+    event_date = Column(String(10), nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     created_at = Column(DateTime, default=utc_now, nullable=False)
 

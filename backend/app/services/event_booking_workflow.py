@@ -84,24 +84,34 @@ def prepare_event_project(db: Session, envelope) -> EventProjectLink:
     db.flush()
     link = EventProjectLink(
         source_app="accounting_program", source_record_id=source_id,
-        event_no=event_no, project_id=project.id
+        event_no=event_no, venue=venue if venue in KNOWN_VENUES else None,
+        event_date=day, project_id=project.id
     )
     db.add(link)
 
+    # An event is a booking, not a guest-room turnover or a physical venue.
+    # Keep Housekeeping work separate from the room-cleaning checklist.
+    venue_name = venue if venue in KNOWN_VENUES else "event venue"
+    housekeeping = dept("Housekeeping") or home
     checklist = [
         ("Check event date, venue and booking requirements in Accounting", home, 7),
         ("Confirm layout and event setup plan", home, 5),
-        ("Prepare function room and cleaning plan", dept("Housekeeping") or home, 2),
-        ("Inspect room, facilities and equipment", dept("Maintenance") or home, 2),
-        ("Final venue inspection before guests arrive", home, 0),
-        ("Post-event cleanup and turnover", dept("Housekeeping") or home, -1),
+        (f"Before event: Prepare {venue_name}", housekeeping, 2),
+        (f"Before event: Inspect {venue_name} setup", housekeeping, 1),
+        (f"Inspect {venue_name} facilities and equipment", dept("Maintenance") or home, 2),
+        (f"Final venue inspection before guests arrive: {venue_name}", home, 0),
+        (f"After event: Clean and reset {venue_name}", housekeeping, -1),
+        (f"After event: Inspect {venue_name} for reuse", housekeeping, -1),
     ]
     if "design" in services or "addon" in services:
         checklist.insert(2, ("Confirm design/decorations and approved materials", home, 4))
+    # Food and beverage preparation take place before the final venue inspection.
+    final_index = next(i for i, task in enumerate(checklist) if task[0].startswith("Final venue inspection"))
     if "food" in services or "package" in services:
-        checklist.insert(-2, ("Confirm catering preparations and guest count", dept("Kitchen") or home, 2))
+        checklist.insert(final_index, ("Confirm catering preparations and guest count", dept("Kitchen") or home, 2))
+        final_index += 1
     if "beverage" in services or "package" in services:
-        checklist.insert(-2, ("Confirm drinks and service setup", dept("Café", "Cafe") or home, 2))
+        checklist.insert(final_index, ("Confirm drinks and service setup", dept("Café", "Cafe") or home, 2))
 
     for title, department_id, days_before in checklist:
         date_due = due - timedelta(days=days_before) if days_before >= 0 else due + timedelta(days=1)
