@@ -52,6 +52,14 @@ export default function HousekeepingPage() {
   const [status, setStatus] = useState('All');
   const [rework, setRework] = useState<Record<number,string>>({});
   const selfId = Number(getStoredUser()?.id || 0);
+  const [canSeeVenueWork, setCanSeeVenueWork] = useState(false);
+  useEffect(() => {
+    const account = getStoredUser();
+    setCanSeeVenueWork(Boolean(account && (
+      ['owner', 'admin', 'manager'].includes(String(account.role || '').toLowerCase())
+      || (account.departments || []).some((department: { name?: string }) => department.name === 'Housekeeping')
+    )));
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,7 +98,10 @@ export default function HousekeepingPage() {
   }, [data]);
 
   return <div className="housekeeping-board">
-    <Top title="Room cleaning" right={<Link href="/rooms" className="btn secondary">All rooms</Link>} />
+    <Top title="Room cleaning" right={<div className="hk-nav-actions">
+      {canSeeVenueWork && <Link href="/housekeeping/events" className="btn secondary">Event venue work</Link>}
+      <Link href="/rooms" className="btn secondary">All rooms</Link>
+    </div>} />
     <p className="hk-intro">See which guest rooms need cleaning and what is waiting for inspection. A cleared room is <strong>not automatically marked vacant or available for sale</strong> in Beds24.</p>
     <div className="hk-tools">
       <label>Date <input aria-label="Cleaning date" className="input" type="date" value={day} onChange={e => setDay(e.target.value)} /></label>

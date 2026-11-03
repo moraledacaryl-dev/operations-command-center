@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from .. import models
 from ..clock import utc_now
 from ..database import get_db
+from ..integration_models import EventProjectLink
 from .api import require_user
 
 router = APIRouter(prefix="/api/housekeeping", tags=["Housekeeping"])
@@ -267,3 +268,61 @@ def inspect(turnover_id: int, payload: InspectionRequest,
         row.items_json = json.dumps({key: False for key, _ in ITEMS})
     db.commit()
     return _present(row, db.get(models.RoomArea, row.room_area_id))
+
+
+@router.get("/event-venues")
+def list_event_venues(
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Housekeeping-only view of event-linked venue work, never room turnovers.
+
+    This is a projection of authorized Operations Tasks, not a second booking
+    record and not a venue-availability/cleanliness certification. Accounting
+    remains authoritative for event dates and subsequent booking changes.
+    """
+    _require(_house(db, user))
+    department = db.query(models.Department).filter_by(name="Housekeeping").one_or_none()
+    if department is None:
+        return {"events": []}
+    rows = (
+        db.query(EventProjectLink, models.Project, models.Task)
+        .select_from(EventProjectLink)
+        .join(models.Project, models.Project.id == EventProjectLink.project_id)
+        .join(models.Task, models.Task.project_id == models.Project.id)
+        .filter(
+            EventProjectLink.source_app == "accounting_program",
+            models.Task.department_id == department.id,
+            models.Task.archived_at.is_(None),
+            models.Task.hidden_from_active.is_(False),
+            models.Project.archived_at.is_(None),
+            models.Project.hidden_from_active.is_(False),
+        )
+        .order_by(models.Project.due_date.desc(), models.Task.due_date.asc(), models.Task.id.asc())
+        .limit(1000)
+        .all()
+    )
+    grouped = {}
+    for link, project, task in rows:
+        if link.project_id not in grouped:
+            grouped[link.project_id] = {
+                "event_no": link.event_no,
+                "project_id": project.id,
+                "venue": link.venue or "Check venue in Accounting",
+                "event_date": link.event_date,
+                "tasks": [],
+            }
+        phase = (
+            "Before event" if task.title.startswith("Before event:") else
+            "After event" if task.title.startswith("After event:") else
+            "Other event work"
+        )
+        grouped[link.project_id]["tasks"].append({
+            "id": task.id,
+            "title": task.title,
+            "phase": phase,
+            "status": task.status,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "assigned": task.assigned_to_id is not None,
+        })
+    return {"events": list(grouped.values())}

@@ -26,6 +26,41 @@ On confirmation, Operations creates one Project (Front Desk department, fallback
 4. Staff see tasks in their department's Operations queue; managers may inspect the source reference and assign owners.
 5. Changes/cancellations show in Operations Review. The event owner checks the updated Accounting booking and adjusts tasks or projects manually, avoiding dangerous silent scheduling and duplicate work.
 
+## Event venue work (actual Operations app)
+
+Event bookings and physical venues are separate concepts. A confirmed Accounting
+event references a whitelisted venue; it does not create another room, change the
+venue catalogue, or make the venue available/unavailable for bookings.
+
+The **Housekeeping → Event venue work** page (`/housekeeping/events`) reads
+Housekeeping department tasks linked to Accounting event projects, and shows the
+booking reference, known venue, last confirmed event date, and two distinct
+task groups:
+
+- **Before event:** Prepare the booked venue; inspect its setup.
+- **After event:** Clean/reset that venue; inspect it for reuse.
+
+These are normal Operations Tasks with existing assignee, status, and authorization
+rules. Staff open the Tasks screen to record authorized progress. The new board is
+read-only; it **does not** introduce a separate event approval, venue-cleanliness
+certificate, or room-cleaning checklist. An authorized manager must coordinate
+final inspection and assignments. Separate task statuses alone do not prove
+physical inspection by a different person.
+
+The event linkage stores only `venue` and `event_date` in addition to its
+existing booking and project references. Migration `0013_event_venue_work`
+adds nullable columns for compatibility with older links, which display
+**Check venue in Accounting** rather than guessing from project prose.
+All listed event jobs belong to the Housekeeping department. Front Desk and
+Kitchen staff cannot read that event work board unless their role/departments
+also authorize Housekeeping; the existing room board remains available to
+Front Desk for manual vacancy confirmation.
+
+Changes and cancellations still require explicit Operations review. Dates and
+venue snapshots are not overwritten automatically; Accounting remains the
+booking source of truth. An event task never creates, clears, or edits a
+`RoomTurnover`, room occupancy, or Beds24 sellable status.
+
 ## Housekeeping board
 
 `/housekeeping` provides a daily room-by-room overview and an explicit checklist:
@@ -43,7 +78,7 @@ No room/PMS occupancy or room inventory status is changed when cleaning is clear
 ## Safe release sequence
 
 1. Keep changes in draft PRs; merge and deploy neither without owner approval.
-2. Run the Operations migration `0012_event_turnover` and its backend/authorization + browser tests first, with verified backups. Validate Operations receiver integration keys and read-only visibility.
+2. Run Operations migrations through `0013_event_venue_work` (including `0012_event_turnover`) and backend/authorization + browser tests first, with verified backups. Validate Operations receiver integration keys and read-only visibility.
 3. Deploy Operations receiver **before** enabling Accounting booking event production messages. Otherwise the sender can reach a receiver that rejects this new event type; never replay without inspecting the outbox state.
 4. Roll out Accounting producer with its event-accounting regression and privacy tests, preserving all existing receivables, journals, deposits, and booking records.
 5. Test a fictional booking and the two Operations applications end-to-end in a protected staging environment. Verify exactly one project despite replay, correct tasks, and no private guest/money payload. Test cancellation/change review.
