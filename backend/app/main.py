@@ -22,6 +22,7 @@ from .role_boundary import RoleBoundaryMiddleware
 from .routers.api import router
 from .routers.authorized_crud import router as authorized_crud_router
 from .routers.integrations_v2 import router as integrations_v2_router
+from .routers.housekeeping import router as housekeeping_router
 from .routers.project_workspace import router as project_workspace_router
 from .routers.my_work import router as my_work_router
 from .routers.notifications import router as notifications_router
@@ -138,3 +139,4 @@ app.include_router(workflow_router)
 app.include_router(router)
 app.include_router(authorized_crud_router)
 app.include_router(integrations_v2_router)
+app.include_router(housekeeping_router)

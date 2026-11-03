@@ -54,3 +54,23 @@ class IntegrationDelivery(Base):
         Index("ix_integration_delivery_status_received", "status", "received_at"),
         Index("ix_integration_delivery_correlation", "correlation_id"),
     )
+
+
+class EventProjectLink(Base):
+    """Stable one-to-one link from an Accounting event to its Operations project.
+
+    Booking customers, payment amounts, and contact data never live in this table.
+    """
+    __tablename__ = "event_project_links"
+
+    id = Column(Integer, primary_key=True)
+    source_app = Column(String(80), nullable=False, default="accounting_program")
+    source_record_id = Column(String(80), nullable=False)
+    event_no = Column(String(100), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("source_app", "source_record_id", name="uq_event_project_source"),
+        UniqueConstraint("project_id", name="uq_event_project_project_id"),
+    )
