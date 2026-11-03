@@ -79,7 +79,7 @@ async function dragOnCanvas(page: Page, from: { x: number; y: number }, to: { x:
   await page.mouse.up();
 }
 
-test('Annotation Studio keeps review marks editable, saves state, and restores it from the clean base', async ({ page }) => {
+test('Add feedback to an image keeps review marks editable, saves state, and restores it from the clean base', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const probe = await seed(page);
   await page.goto('/posts/editor?conceptId=51&assetId=81&versionId=91');

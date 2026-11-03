@@ -43,7 +43,7 @@ test('direct annotation link does not request an unavailable historical file', a
   page.on('request', request => { if (request.url().endsWith('/versions/51/download')) downloads++; });
   await page.goto('/posts/editor?postId=41&versionId=51');
   await expect(page.getByRole('heading', { name: 'Edit image' })).toBeVisible();
-  await expect(page.getByText('Some older files cannot be opened. You can still see their saved versions.')).toBeVisible();
+  await expect(page.getByText('Some older files cannot be opened.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open version', exact: true })).toBeDisabled();
   await expect(page.getByRole('combobox', { name: 'Image version' })).toBeDisabled();
   expect(downloads).toBe(0);

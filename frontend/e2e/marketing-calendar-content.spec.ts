@@ -104,7 +104,7 @@ test('calendar date is clickable and prefills canonical concept publishing date'
   await expect(page.getByLabel('Publishing date')).toHaveValue('2026-09-12');
 });
 
-test('Annotation Studio auto-fits and supports direct text and image overlays', async ({ page }) => {
+test('Add feedback to an image auto-fits and supports direct text and image overlays', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await seed(page);
   await page.goto('/posts/editor?conceptId=51&assetId=81&versionId=91');

@@ -30,7 +30,7 @@ async function seed(page: Page) {
   });
 }
 
-test.describe('Annotation Studio modern workspace', () => {
+test.describe('Add feedback to an image modern workspace', () => {
   test.beforeEach(async ({ page }) => {
     await seed(page);
   });
