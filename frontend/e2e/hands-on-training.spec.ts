@@ -48,7 +48,7 @@ test('reception must click choices, type a case note and correct mistakes before
   await page.getByTestId('scenario-priority').selectOption('Routine');
   await page.getByTestId('scenario-department').selectOption('Front Desk');
   await page.getByRole('button', { name: 'Check my choices' }).click();
-  await expect(page.getByText('Check the situation again and change your answer.')).toBeVisible();
+  await expect(page.locator('.practice-notice')).toContainText('Check the situation again and change your answer.');
   await expect(page.getByTestId('priority-feedback')).toContainText('A guest in Twinspire called Reception 30 minutes ago because the toilet will not flush.');
   await expect(page.getByTestId('scenario-document')).toHaveCount(0);
 
@@ -61,7 +61,7 @@ test('reception must click choices, type a case note and correct mistakes before
   await page.getByTestId('scenario-note').fill('The next shift will follow up on this item, but nobody has been assigned a reference.');
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
-  await expect(page.getByText('Check the highlighted answers, make the changes, and try again.')).toBeVisible();
+  await expect(page.locator('.practice-notice')).toContainText('Check the highlighted answers, make the changes, and try again.');
 
   await page.getByTestId('scenario-decision').selectOption('Assign and follow up');
   await page.getByTestId('scenario-note').fill(
@@ -116,7 +116,7 @@ test('complex incident must include concrete response, accountable owner and ver
   await page.getByTestId('scenario-note').fill('DEMO-SHARED-WRONG-ROOM: There is an issue; someone will take care of it eventually. Please just follow up.');
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
-  await expect(page.getByText('Who is responsible for this job?')).toBeVisible();
+  await expect(page.getByRole('alert').filter({hasText:'Say which job role is responsible'})).toBeVisible();
   await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
   await page.getByTestId('scenario-owner').fill('On-duty Front Desk lead');
   await page.getByTestId('scenario-follow-up').fill('The lead confirms the correct room on the booking record and updates the receiving shift.');
@@ -139,7 +139,7 @@ test('repeating a completed case retains prior corrections and hints in its expo
   await page.getByTestId('scenario-priority').selectOption('Routine');
   await page.getByTestId('scenario-department').selectOption('Front Desk');
   await page.getByRole('button', { name: 'Check my choices' }).click();
-  await expect(page.getByText('Check the situation again and change your answer.')).toBeVisible();
+  await expect(page.locator('.practice-notice')).toContainText('Check the situation again and change your answer.');
 
   const correctSubmission = async () => {
     await page.getByTestId('scenario-priority').selectOption('High');
