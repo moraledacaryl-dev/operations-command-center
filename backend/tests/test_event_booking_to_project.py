@@ -53,8 +53,10 @@ def test_booking_confirmation_creates_one_project_and_department_tasks(context):
     assert db.query(models.Project).count() == 1
     project = db.query(models.Project).one()
     assert "EVT-2026-00550" in project.title
+    assert "Accounting" not in project.note
     tasks = db.query(models.Task).filter_by(project_id=project.id).all()
     assert len(tasks) >= 8
+    assert all("Accounting" not in task.title + (task.note or "") for task in tasks)
     assert any("decorations" in x.title.lower() for x in tasks)
     assert any("catering" in x.title.lower() for x in tasks)
     assert any("clean" in x.title.lower() for x in tasks)

@@ -1,5 +1,6 @@
 'use client';
 
+import { displayWorkText } from '@/lib/work-display';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -35,7 +36,7 @@ function titleFor(item: Entity) {
 }
 
 function detailFor(item: Entity) {
-  return item.note || item.description || item.body || item.summary || item.detail || item.reason || item.checklist || item.email || '';
+  return displayWorkText(item.note || item.description || item.body || item.summary || item.detail || item.reason || item.checklist || item.email || '');
 }
 
 function ownerFor(item: Entity) {
@@ -179,7 +180,7 @@ export default function DepartmentsPage() {
   const normalizedQuery = query.trim().toLowerCase();
   const rows = useMemo(() => sortRows(allRows.filter(item => !normalizedQuery || [titleFor(item), detailFor(item), item.status, item.priority, item.urgency, item.role, item.email, ownerFor(item)].filter(Boolean).join(' ').toLowerCase().includes(normalizedQuery))), [allRows, normalizedQuery]);
 
-  const emptyText = normalizedQuery ? 'No matching records' : tab === 'People' ? 'No people linked to this department yet' : tab === 'Docs' ? 'No documents or SOPs yet' : tab === 'History' ? 'No archived activity yet' : `No ${tab.toLowerCase()} yet`;
+  const emptyText = normalizedQuery ? 'No matching records' : tab === 'People' ? 'No team members yet' : tab === 'Docs' ? 'No documents or SOPs yet' : tab === 'History' ? 'No archived activity yet' : `No ${tab.toLowerCase()} yet`;
 
   return <div className={styles.departmentPage} aria-busy={loading}>
     <Top title="Departments" right={<button className="ops-icon-button" aria-label="Refresh department" onClick={() => deptId && loadWorkspace(deptId)} disabled={!deptId || loading}><Icon name="refresh" /></button>} />
@@ -205,7 +206,7 @@ export default function DepartmentsPage() {
       </div>
       <div className={styles.sideColumn}>
         <WorkspaceSection title="Shift handover" href="/shift"><div className={styles.stack}>{handover.length ? handover.slice(0, 3).map(item => <WorkspaceCard key={item.id} item={item} kind="Shift" compact />) : <div className="empty">No open handover notes.</div>}</div></WorkspaceSection>
-        <WorkspaceSection title="Your team"><div className={styles.peopleGrid}>{people.length ? people.slice(0, 6).map(person => <div className={styles.person} key={person.id}><div>{text(person.name).split(' ').map(word => word[0]).slice(0, 2).join('').toUpperCase()}</div><span><strong>{person.name}</strong><small>{person.role || 'Team member'}</small></span></div>) : <div className="empty">No linked people.</div>}</div>{people.length > 6 ? <button className={styles.textButton} onClick={() => setTab('People')}>View all {people.length} people <Icon name="arrow" /></button> : null}</WorkspaceSection>
+        <WorkspaceSection title="Your team"><div className={styles.peopleGrid}>{people.length ? people.slice(0, 6).map(person => <div className={styles.person} key={person.id}><div>{text(person.name).split(' ').map(word => word[0]).slice(0, 2).join('').toUpperCase()}</div><span><strong>{person.name}</strong><small>{person.role || 'Team member'}</small></span></div>) : <div className="empty">No team members.</div>}</div>{people.length > 6 ? <button className={styles.textButton} onClick={() => setTab('People')}>View all {people.length} people <Icon name="arrow" /></button> : null}</WorkspaceSection>
         <section className={styles.resources}><h2>Team essentials</h2><button onClick={() => setTab('Routine')}><span className={styles.resourceIcon}><Icon name="check" /></span><span><strong>Routines</strong><small>{routines.length} recurring checklists</small></span><Icon name="arrow" /></button><button onClick={() => setTab('Docs')}><span className={styles.resourceIcon}><Icon name="review" /></span><span><strong>Docs & guides</strong><small>{docs.length} team resources</small></span><Icon name="arrow" /></button></section>
       </div>
     </div> : <>

@@ -12,9 +12,10 @@ import { WorkspaceStats } from '@/components/WorkspaceStats';
 import { Pill } from '@/components/Pill';
 import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
+import { reviewTitle } from '@/lib/work-display';
 
 const sources = [
-  ['external', 'Imported'],
+  ['external', 'Updates'],
   ['approvals', 'Approvals'],
   ['submissions', 'Inbox'],
   ['posts', 'Posts'],
@@ -25,7 +26,7 @@ const rank: Record<string, number> = { critical: 0, urgent: 0, high: 1, normal: 
 const externalTerminal = new Set(['Approved', 'Rejected']);
 
 function resourceFor(kind: string) {
-  if (kind === 'Imported') return 'external-review-items';
+  if (kind === 'Updates') return 'external-review-items';
   if (kind === 'Inbox') return 'submissions';
   if (kind === 'Verify') return 'fixes';
   return kind.toLowerCase();
@@ -113,7 +114,7 @@ export default function ReviewPage() {
     try {
       if (kind === 'Approvals') await api.decideApproval(selected.id, action, { note: note.trim() || undefined });
       else if (kind === 'Inbox') await api.decideSubmission(selected.id, action as 'Accepted' | 'Rejected', { note: note.trim() || undefined });
-      else if (kind === 'Imported') {
+      else if (kind === 'Updates') {
         if (action === 'Seen') await api.externalMarkSeen(selected.id, { note: note.trim() || undefined });
         if (action === 'Task') await api.externalCreateTask(selected.id, { note: note.trim() || undefined });
         if (action === 'Approval') await api.externalCreateApproval(selected.id, { note: note.trim() || undefined });
@@ -134,10 +135,10 @@ export default function ReviewPage() {
 
   const importedStatus = String(selected?.status || '');
   const importedTerminal = externalTerminal.has(importedStatus);
-  const showImportedSeen = kind === 'Imported' && canManageApprovals && importedStatus === 'For Review';
-  const showImportedTask = kind === 'Imported' && canManage && !importedTerminal && importedStatus !== 'Pending Approval';
-  const showImportedApproval = kind === 'Imported' && canManageApprovals && !importedTerminal && importedStatus !== 'Pending Approval';
-  const showImportedReject = kind === 'Imported' && canDecide && !importedTerminal && importedStatus !== 'Pending Approval';
+  const showImportedSeen = kind === 'Updates' && canManageApprovals && importedStatus === 'For Review';
+  const showImportedTask = kind === 'Updates' && canManage && !importedTerminal && importedStatus !== 'Pending Approval';
+  const showImportedApproval = kind === 'Updates' && canManageApprovals && !importedTerminal && importedStatus !== 'Pending Approval';
+  const showImportedReject = kind === 'Updates' && canDecide && !importedTerminal && importedStatus !== 'Pending Approval';
   const showApprovalDecision = kind === 'Approvals' && canDecide && selected?.status === 'Pending';
   const showInboxDecision = kind === 'Inbox' && canDecide && ['New', 'Review'].includes(String(selected?.review_status || ''));
   const showVerify = kind === 'Verify' && canDecide && selected?.status === 'Done';
@@ -157,17 +158,17 @@ export default function ReviewPage() {
       <div className="toolbar">
         <input className="input" placeholder="Search decisions" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
-      <Tabs values={['All', ...sources.map(([, label]) => label)]} active={filter} onChange={setFilter} label="Decision source" />
+      <Tabs values={['All', ...sources.map(([, label]) => label)]} active={filter} onChange={setFilter} label="Review type" />
     </section>
 
     <section className="ops-review-workspace">
       <div className="queue-heading"><div><h2>Pending decisions</h2></div></div>
       {loading ? <div className="empty">Loading review queue…</div> : items.length ? <div className="ops-card-grid">
-        {items.map(item => <WorkCard key={`${item.review_kind}-${item.id}`} icon={item.review_kind === 'Verify' ? 'maintenance' : item.review_kind === 'Posts' ? 'marketing' : 'approval'} title={item.title || item.name || 'Review item'} description={summary(item)} meta={<><Pill value={item.review_kind} /><Pill value={item.priority || item.urgency || 'Normal'} /></>} footer={<><span>{age(item)}</span><span>Open review</span></>} onOpen={() => void open(item)} />)}
+        {items.map(item => <WorkCard key={`${item.review_kind}-${item.id}`} icon={item.review_kind === 'Verify' ? 'maintenance' : item.review_kind === 'Posts' ? 'marketing' : 'approval'} title={reviewTitle(item)} description={summary(item)} meta={<><Pill value={item.review_kind} /><Pill value={item.priority || item.urgency || 'Normal'} /></>} footer={<><span>{age(item)}</span><span>Open review</span></>} onOpen={() => void open(item)} />)}
       </div> : <div className="empty"><Icon name="check" />No decisions match this view.</div>}
     </section>
 
-    <Drawer item={selected} title={`${kind} decision`} onClose={() => { if (!submitting) setSelected(null); }}>
+    <Drawer item={selected} title={selected ? reviewTitle(selected) : 'Review details'} onClose={() => { if (!submitting) setSelected(null); }}>
       <div className="panel">
         <h2>{hasActions ? 'Decision' : 'Review details'}</h2>
         <div className="form" style={{ marginTop: 12 }}>

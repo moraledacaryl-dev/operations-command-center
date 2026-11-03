@@ -224,7 +224,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       <strong>How urgent is it?</strong> What is at stake if no one acts? How soon could someone be affected? Routine can wait for planned work. High needs help soon. Critical means someone may be in danger: keep people safe and call a supervisor immediately. The form may say Normal or Urgent instead.
     </p>}
     {finished ? <p className="training-workflow-finished" role="status">
-      Practice finished. The app checked your saved work. A supervisor still needs to check your skills before you use the live system.
+      Practice finished. Your trainer can now review your work.
     </p> : <>
       <ol className="training-workflow-instructions">
         {instructions.map(item => <li key={item}>{item}</li>)}
@@ -244,7 +244,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       </div>
     </>}
     {message && <p className="training-workflow-message" role="status" data-testid="training-workflow-message">{message}</p>}
-    <p className="training-workflow-safe">Use made-up names and details only. This guide checks what you saved in the training app. It cannot save work for you and does not connect to the resort&apos;s live system.</p>
+    <p className="training-workflow-safe">Use made-up details. Your practice does not change hotel records.</p>
     {showArrows && !finished && focus && <TrainingSpotlight
       key={session.reference + ':' + session.step + ':' + expectedPath}
       title={focus.title} description={focus.text}

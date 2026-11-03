@@ -1,5 +1,6 @@
 'use client';
 
+import { workTypeLabel } from '@/lib/work-display';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
@@ -108,7 +109,7 @@ export default function ApprovalsPage() {
     <section className="ops-review-workspace">
 
       {loading ? <div className="empty">Loading approvals…</div> : visible.length ? <div className="ops-card-grid">
-        {visible.map(item => <WorkCard key={item.id} icon="approval" title={item.title || 'Approval'} description={item.note || item.decision_note} meta={<><Pill value={item.status} />{item.hidden_from_active ? <Pill value="Archived" /> : null}<Pill value={item.priority || 'Normal'} /></>} footer={<><span>{item.source_type || 'Operational request'}</span><span>{formatDate(item.created_at)}</span></>} onOpen={() => void open(item)} />)}
+        {visible.map(item => <WorkCard key={item.id} icon="approval" title={item.title || 'Approval'} description={item.note || item.decision_note} meta={<><Pill value={item.status} />{item.hidden_from_active ? <Pill value="Archived" /> : null}<Pill value={item.priority || 'Normal'} /></>} footer={<><span>{workTypeLabel(item.source_type)}</span><span>{formatDate(item.created_at)}</span></>} onOpen={() => void open(item)} />)}
       </div> : <div className="empty"><Icon name="check" />No approvals match this view.</div>}
     </section>
 

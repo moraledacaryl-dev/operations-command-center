@@ -32,30 +32,30 @@ test('first training open starts on real dashboard and requires navigating actua
   await course.getByLabel('My Work', { exact: true }).check();
   await page.getByTestId('course-check-answer').click();
   await expect(course).toContainText('You read a notification');
-  await course.getByLabel('Read the linked work and check what action is still needed').check();
+  await course.getByLabel("Read the related task and check what still needs doing").check();
   await page.getByTestId('course-check-answer').click();
   await expect(course).toHaveCount(0);
-  await expect(coach).toContainText('You are on the real training dashboard');
+  await expect(coach).toContainText('Your start page');
 
   await coach.getByRole('button', { name: /Next/ }).click();
-  await expect(coach).toContainText('Find My Work in the actual navigation');
+  await expect(coach).toContainText('Open My Work');
   await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
 
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
   await expect(page).toHaveURL(/\/my-work$/);
-  await expect(coach).toContainText('Review your assigned work');
+  await expect(coach).toContainText('Read your tasks');
 
   await coach.getByRole('button', { name: /Next/ }).click();
-  await expect(coach).toContainText('Find notifications');
+  await expect(coach).toContainText('Open Notifications');
   await page.locator('a.ops-notifications').click();
   await expect(page).toHaveURL(/\/notifications$/);
-  await expect(coach).toContainText('Read your notifications');
+  await expect(coach).toContainText('Read the update');
 
   await coach.getByRole('button', { name: /Next/ }).click();
-  await expect(coach).toContainText('Return to the dashboard');
+  await expect(coach).toContainText('Return to Today');
   await page.locator('.ops-sidebar a.ops-brand[href="/"]').click();
   await expect(page).toHaveURL('/');
-  await expect(coach).toContainText('You know your way around');
+  await expect(coach).toContainText('Getting around complete');
   await coach.getByRole('button', { name: 'Finish practice' }).click();
   await expect(coach).toHaveCount(0);
   await expect(page.getByTestId('course-independent-challenge')).toContainText('No arrows');

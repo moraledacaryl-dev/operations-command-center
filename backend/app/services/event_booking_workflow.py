@@ -76,9 +76,7 @@ def prepare_event_project(db: Session, envelope) -> EventProjectLink:
         due_date=due,
         status="Planned",
         priority="High",
-        note=f"Accounting event {event_no} · {day} · {venue}. "
-             "Booking, client, pricing and payments remain in Accounting. "
-             "Check the source event for changes before final setup.",
+        note=f"Event {event_no} · {day} · {venue}. Check the booking details before setup.",
     )
     db.add(project)
     db.flush()
@@ -89,7 +87,7 @@ def prepare_event_project(db: Session, envelope) -> EventProjectLink:
     db.add(link)
 
     checklist = [
-        ("Check event date, venue and booking requirements in Accounting", home, 7),
+        ("Check the event date, venue and requirements", home, 7),
         ("Confirm layout and event setup plan", home, 5),
         ("Prepare function room and cleaning plan", dept("Housekeeping") or home, 2),
         ("Inspect room, facilities and equipment", dept("Maintenance") or home, 2),
@@ -108,7 +106,7 @@ def prepare_event_project(db: Session, envelope) -> EventProjectLink:
         db.add(models.Task(
             title=title, department_id=department_id, project_id=project.id,
             status="To Do", priority="Normal", due_date=date_due,
-            note=f"Event {event_no}. Coordinate with lead; consult Accounting for booking details.",
+            note=f"Event {event_no}. Check the details with your lead.",
         ))
     db.flush()
     return link

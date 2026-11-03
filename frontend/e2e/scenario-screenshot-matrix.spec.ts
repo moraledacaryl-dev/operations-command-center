@@ -194,7 +194,7 @@ const scenarios: Scenario[] = [
   },
   {
     id: 'maintenance-verify-drawer-open', route: '/fixes', description: 'Maintenance Done item awaiting verification', ready: async page => { await expect(page.getByText('Function hall outlet')).toBeVisible(); },
-    prepare: async page => { await page.getByRole('button', { name: /Function hall outlet/ }).click(); const dialog = page.getByRole('dialog'); await expect(dialog).toBeVisible(); await expect(dialog.getByRole('heading', { name: 'Function hall outlet' })).toBeVisible(); await expect(page.getByRole('heading', { name: 'Verify closure' })).toBeVisible(); },
+    prepare: async page => { await page.getByRole('button', { name: /Function hall outlet/ }).click(); const dialog = page.getByRole('dialog'); await expect(dialog).toBeVisible(); await expect(dialog.getByRole('heading', { name: 'Function hall outlet' })).toBeVisible(); await expect(page.getByRole('heading', { name: 'Check the repair' })).toBeVisible(); },
   },
 ];
 
@@ -218,7 +218,7 @@ test.describe('scenario screenshot matrix', () => {
       coverage: {
         baseline: 'route × role × desktop/mobile',
         supplement: ['workflow-status fixtures', 'mobile navigation open', 'create surfaces open', 'detail drawers open', 'verification/action state'],
-        nextCandidates: ['validation errors', 'destructive confirmations', 'empty/loading/API-error states', 'dropdown/date-picker states', 'success/error toasts', 'Marketing editor states', 'Annotation Studio tool/object states'],
+        nextCandidates: ['validation errors', 'destructive confirmations', 'empty/loading/API-error states', 'dropdown/date-picker states', 'success/error toasts', 'Marketing editor states', 'Add feedback to an image tool/object states'],
       },
     }, null, 2));
   });

@@ -100,7 +100,7 @@ export default function UsersPage() {
     try {
       await api.adminUpdateUser(Number(selected.id), editForm);
       await load(null, appliedQuery);
-      closeAfterSuccess('Account updated. Existing sessions were revoked when access changed.');
+      closeAfterSuccess('Account updated. The employee will need to sign in again if their access changed.');
     } catch (err: any) { setError(err.message || 'Could not update account.'); setBusy(false); }
   }
 
@@ -177,13 +177,13 @@ export default function UsersPage() {
       </section> : null}
 
       {mode === 'reset' ? <section className="panel">
-        <h2>Reset {selected?.name || 'user'} password</h2><p className="muted">This is a security-sensitive action and may invalidate existing sessions.</p>
+        <h2>Reset {selected?.name || 'user'} password</h2><p className="muted">This signs the employee out. Give the new password only to them.</p>
         <label className="label">New password<input className="input" type="password" value={resetForm.new_password} onChange={event => setResetForm({ ...resetForm, new_password: event.target.value })} /></label>
         <div className="toolbar"><button className="btn" disabled={busy || !resetForm.new_password} onClick={resetPassword}>{busy ? 'Resetting…' : 'Confirm password reset'}</button></div>
       </section> : null}
 
       {mode === 'edit' ? <section className="panel">
-        <h2>Edit {selected?.name || 'account'}</h2><p className="muted">Role or active-state changes revoke existing sessions.</p>
+        <h2>Edit {selected?.name || 'account'}</h2><p className="muted">Changing the role or stopping this account signs the employee out.</p>
         <div className="form-grid" style={{ marginTop: 12 }}>
           <label className="label">Name<input className="input" value={String(editForm.name || '')} onChange={event => setEditForm({ ...editForm, name: event.target.value })} /></label>
           <label className="label">Email<input className="input" type="email" value={String(editForm.email || '')} onChange={event => setEditForm({ ...editForm, email: event.target.value })} /></label>

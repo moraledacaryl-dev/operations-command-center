@@ -4,9 +4,10 @@ import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Entity } from '@/lib/api';
 import { Pill } from './Pill';
+import { detailLabels, displayWorkText } from '@/lib/work-display';
 
 const hidden = new Set([
-  'id', 'created_at', 'updated_at', 'hidden_from_active', 'archived_at',
+  'title', 'name', 'id', 'created_at', 'updated_at', 'hidden_from_active', 'archived_at',
   'archive_reason', 'completed_at', 'comments', 'attachments', 'activity',
 ]);
 
@@ -15,15 +16,16 @@ function isPresent(value: unknown) {
 }
 
 function shouldShowDetail(key: string, value: unknown) {
-  if (hidden.has(key) || key.endsWith('_id') || !isPresent(value)) return false;
+  if (hidden.has(key) || !Object.prototype.hasOwnProperty.call(detailLabels, key) || !isPresent(value)) return false;
   return ['string', 'number', 'boolean'].includes(typeof value);
 }
 
 function detailLabel(key: string) {
-  return key.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+  return detailLabels[key];
 }
 
 function detailValue(key: string, value: unknown) {
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'string' && (key.endsWith('_at') || key.endsWith('_date'))) {
     const date = new Date(value);
@@ -35,7 +37,7 @@ function detailValue(key: string, value: unknown) {
       }).format(date);
     }
   }
-  return String(value);
+  return displayWorkText(value);
 }
 
 export function Drawer({ item, title, onClose, children, showSupplemental = true }: {
@@ -124,7 +126,7 @@ export function Drawer({ item, title, onClose, children, showSupplemental = true
 
   if (!item || typeof document === 'undefined') return null;
 
-  const displayTitle = title || item.title || item.name || 'Item';
+  const displayTitle = displayWorkText(title || item.title || item.name || 'Item');
   const details = Object.entries(item).filter(([key, value]) =>
     shouldShowDetail(key, value)
     && !((key === 'title' || key === 'name') && value === displayTitle)
