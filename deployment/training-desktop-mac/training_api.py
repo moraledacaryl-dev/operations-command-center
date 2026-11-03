@@ -53,6 +53,7 @@ def refresh_fictional_notices(path: Path, state: Path) -> None:
     spec.loader.exec_module(module)
     notice_count = module.ensure_notification_practice_data(path, state)
     room_count = module.ensure_room_practice_data(path, state)
+    module.ensure_shift_challenge_data(path, state)
     module.ensure_private_trainer_guide(state / "private" / "accounts")
     print(f"PASS: fictional notification drills ({notice_count} added) and named room exercises ({room_count} added)", flush=True)
 

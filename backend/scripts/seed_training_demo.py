@@ -363,6 +363,8 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                     priority="Normal",
                 ), "notifications")
 
+        counts.update(add_shift_challenge_records(db, now))
+
         private_file=private_dir/"PRIVATE_training_accounts.json"
         manifest_file=private_dir/"training_manifest.json"
         roster_fd=os.open(private_file,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
@@ -375,6 +377,58 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
         db.commit()
     ensure_private_trainer_guide(private_dir)
     return dict(counts)
+
+
+def add_shift_challenge_records(db, now=None) -> Counter:
+    """Append practice jobs, handovers and personal notices; never reset work."""
+    from app import models, foundation_models as fm
+    now = now or datetime.now(timezone.utc)
+    cases = json.loads(Path(__file__).with_name("shift_challenge_cases.json").read_text(encoding="utf-8"))
+    counts = Counter()
+    for case in cases:
+        department = db.query(models.Department).filter_by(name=case["department"]).one_or_none()
+        if not department:
+            continue
+        staff = db.query(models.User).filter_by(role="staff", department_id=department.id).all()
+        staff = [person for person in staff if person.email and person.email.endswith("@training.invalid")]
+        if not staff:
+            continue
+        ref = case["reference"]
+        title = PREFIX + ref + " — " + case["title"]
+        handover_title = PREFIX + ref + " — shift handover"
+        if not db.query(models.ShiftNote.id).filter_by(title=handover_title, department_id=department.id).first():
+            db.add(models.ShiftNote(title=handover_title, department_id=department.id,
+                submitted_by_id=staff[0].id, shift="Night", category="Other", status="Follow",
+                urgency="Urgent" if case["priority"] == "Critical" else "Normal",
+                note=case["situation"] + " The check is still pending. Leave the next shift a clear follow-up; do not mark it finished."))
+            counts["shift_notes"] += 1
+        for person in staff:
+            if not db.query(models.Task.id).filter_by(title=title, department_id=department.id, assigned_to_id=person.id).first():
+                db.add(models.Task(title=title, department_id=department.id, assigned_to_id=person.id,
+                    status="To Do", priority="Urgent" if case["priority"] == "Critical" else "High",
+                    due_date=now+timedelta(hours=1), note=case["situation"] + " Read the shift handover, check your notice, and save a follow-up on this job. Keep its current status; no physical work has been confirmed."))
+                counts["tasks"] += 1
+            notice_title = PREFIX + ref + " — shift notice"
+            if not db.query(fm.Notification.id).filter_by(user_id=person.id, kind="Shift notice", title=notice_title).first():
+                db.add(fm.Notification(user_id=person.id, kind="Shift notice", title=notice_title,
+                    body=case["situation"] + " Your lead needs a follow-up before the next shift takes over.",
+                    source_type=None, source_id=None, action_url=None, priority="High"))
+                counts["notifications"] += 1
+    db.flush()
+    return counts
+
+
+def ensure_shift_challenge_data(db_path: Path, state: Path) -> int:
+    """Add seven role challenges to a validated fictional desktop installation."""
+    # Reuse the existing strict path, environment, roster, and synthetic-user
+    # checks. It only appends missing named-room records and never resets them.
+    ensure_room_practice_data(db_path, state)
+    from app.database import SessionLocal
+    with SessionLocal() as db:
+        counts = add_shift_challenge_records(db)
+        db.commit()
+    return sum(counts.values())
+
 
 def ensure_private_trainer_guide(private_dir: Path) -> Path:
     """Present the already-private fictional JSON credentials in a readable trainer-only format.

@@ -8,6 +8,7 @@ import { InteractiveTraining } from '@/components/InteractiveTraining';
 import { TrainingWorkflowCoach } from '@/components/TrainingWorkflowCoach';
 import { FrontDeskRoomPractice } from '@/components/FrontDeskRoomPractice';
 import { DepartmentShiftPractice } from '@/components/DepartmentShiftPractice';
+import { IndependentShiftChallenge } from '@/components/IndependentShiftChallenge';
 import { api, Entity } from '@/lib/api';
 import { Capability, hasCapability } from '@/lib/capabilities';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
@@ -250,7 +251,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {trainingMode ? <TrainingWorkflowCoach user={user} path={path} /> : null}
         {trainingMode ? <FrontDeskRoomPractice user={user} path={path} /> : null}
         {trainingMode ? <DepartmentShiftPractice user={user} path={path} /> : null}
-        <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{children}</main>
+        <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{trainingMode ? <IndependentShiftChallenge user={user} path={path} /> : null}{children}</main>
         {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <InteractiveTraining user={user} path={path} /> : null}
       </div>
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">

@@ -1,5 +1,7 @@
 # Full staff browser walkthrough — November 3, 2026
 
+**Follow-up:** Seven independent staff shift challenges and a trainer view have now been added. See [Independent shift challenges and the new graphical walkthrough](INDEPENDENT_SHIFT_CHALLENGES.md) for the current extension, retests and exact-head CI delivery record. The counts and CI history below describe the preceding nine-role course audit.
+
 PR [#224](https://github.com/moraledacaryl-dev/operations-command-center/pull/224) remains **draft**, stacked on #222. No merge, deployment or production changes were performed.
 
 The actual graphical walkthrough is complete for **nine role/account combinations**: seven frontline departments, one Front Desk supervisor and one manager. They completed **50 distinct account/lesson combinations**: 28 frontline, 10 supervisor and 12 manager. Including the original receptionist baseline, the fresh final receptionist acceptance and one completed repeat, there were **59 completed lesson attempts**. These counts exclude automated test runs and optional tours. Twelve of the thirteen curriculum types were exercised; the owner-only account-administration lesson was outside the requested supervisor/manager scope.
