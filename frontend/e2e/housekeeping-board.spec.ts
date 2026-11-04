@@ -198,7 +198,6 @@ test('a mistaken checkout can be corrected and the reason is sent', async ({ pag
     guest_stay: { id: 55, checked_in_at: '2026-11-04T01:00:00Z', checked_out_at: '2026-11-04T02:00:00Z' as string | null },
   }] };
   await visit(page, 'front', () => snapshot);
-  page.on('dialog', dialog => dialog.accept(dialog.type() === 'prompt' ? 'Guest is still here' : undefined));
   let sentReason = '';
   await page.route('**/api/housekeeping/rooms/**/correct', route => {
     sentReason = route.request().postDataJSON().reason;
@@ -207,6 +206,8 @@ test('a mistaken checkout can be corrected and the reason is sent', async ({ pag
   });
   const card = page.getByTestId('cleaning-room-31');
   await card.getByRole('button', { name: 'Correct checkout' }).click();
+  await card.getByLabel('What was recorded incorrectly?').fill('Guest is still here');
+  await card.getByRole('button', { name: 'Undo checkout', exact: true }).click();
   await expect(card).toContainText('Checked in. Do not start a checkout clean.');
   expect(sentReason).toBe('Guest is still here');
 });
@@ -244,4 +245,29 @@ test('arrival and departure plans are clear and separate from guest status', asy
   await expect(card).not.toContainText('Arrival · Departure');
   await expect(card.getByText('Arrival', { exact: true })).toBeVisible();
   await expect(card.getByText('Departure', { exact: true })).toHaveCount(0);
+});
+
+test('staff can filter arrivals and departures without losing the cleaning controls', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-04T03:00:00Z'));
+  const base = fakeBoard('cleaner', true, 'Needs cleaning');
+  await visit(page, 'cleaner', () => ({ ...base, rooms: [
+    { ...base.rooms[0], booking_updates: [{ status: 'confirmed', origin: 'accounting', check_in: '2026-11-04', check_out: '2026-11-06', reported_at: '2026-11-04T02:00:00Z' }] },
+    { ...base.rooms[0], room_area_id: 32, room_name: 'Crown', booking_updates: [{ status: 'confirmed', origin: 'accounting', check_in: '2026-11-01', check_out: '2026-11-04', reported_at: '2026-11-04T02:00:00Z' }] },
+  ] }));
+  await page.getByLabel('Room plans', { exact: true }).selectOption('Arrivals');
+  await expect(page.getByRole('heading', { name: 'Solace', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Crown', exact: true })).toHaveCount(0);
+  await page.getByLabel('Room plans', { exact: true }).selectOption('Departures');
+  await expect(page.getByRole('heading', { name: 'Crown', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Solace', exact: true })).toHaveCount(0);
+  await page.getByLabel('Room plans', { exact: true }).selectOption('All');
+  await expect(page.locator('.hk-room-card')).toHaveCount(2);
+});
+
+test('a future clean explains when checkout can be confirmed', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-03T03:00:00Z'));
+  await visit(page, 'front', () => fakeBoard('front', true, 'Needs cleaning'));
+  const card = page.getByTestId('cleaning-room-31');
+  await expect(card).toContainText('Front Desk can confirm the room is empty on the cleaning date.');
+  await expect(card.getByRole('button', { name: 'Confirm guest has left' })).toHaveCount(0);
 });
