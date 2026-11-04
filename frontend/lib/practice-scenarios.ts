@@ -312,7 +312,7 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
       return !namedAction && !check.alternatives.some(term => matchesActionCriterion(note, term));
     });
     if (missing.length) {
-      errors.note = 'Your note does not clearly explain ' + missing.map(check => check.label).join(' and ') +
+      errors.note = 'Check that your note includes ' + missing.map(check => check.label).join(' and ') +
         '. Say what someone should do, using your own words.';
     }
   }

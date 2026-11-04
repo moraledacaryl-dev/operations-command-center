@@ -385,6 +385,14 @@ export default function PracticeTrainingPage() {
     if (next) switchScenario(next.id);
   }
 
+  function tryAnotherSituation() {
+    const index = scenarios.findIndex(s => s.id === selectedId);
+    const next = scenarios.find((s, i) => i > index && !progress[s.id]) ||
+      scenarios.find(s => s.id !== selectedId && !progress[s.id]) ||
+      scenarios.find(s => s.id !== selectedId);
+    if (next) switchScenario(next.id);
+  }
+
   const reasoningReady = Boolean(reasoning.consequence && reasoning.timing);
   const lessonStage = selected ? scenarioCoachStage(selected, phase, answers, result, !guided || reasoningReady, Boolean(reasoning.consequence)) : null;
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return <p>Open the practice app to use these lessons.</p>;
@@ -610,7 +618,11 @@ export default function PracticeTrainingPage() {
             {selected.noteChecks && <small>Make sure your note explains {selected.noteChecks.map(rule => rule.label).join(' and ')}. Say what the person should do.</small>}
             {result?.errors.note && <><small className="practice-error" role="alert">{result.errors.note}</small><small>If your note already covers this, ask your trainer to review it.</small><details><summary>See an example note</summary><p>{selected.example}</p></details></>}
           </label>
-          {result?.errors.note && <button type="button" className="practice-secondary" onClick={saveNoteForTrainer}>Save note for trainer</button>}
+          {result?.errors.note && <div className="practice-actions">
+            <button type="button" className="practice-secondary" onClick={saveNoteForTrainer}>Save note for trainer</button>
+            {scenarios.length > 1 && <button type="button" className="practice-secondary" onClick={tryAnotherSituation}>Try another situation</button>}
+          </div>}
+          {result?.errors.note && storageAvailable && <p className="practice-instruction">Your note stays in progress, so you can return to it later.</p>}
           {result && !result.passed && <p className="practice-notice" role="status">Check the highlighted answers, make the changes, and try again.</p>}
           <div className="practice-actions">
             <button type="submit" className="practice-primary" data-testid="scenario-submit">Check my note</button>

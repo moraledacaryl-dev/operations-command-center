@@ -118,7 +118,7 @@ test('complex incident must include concrete response, accountable owner and ver
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
   await expect(page.getByRole('alert').filter({hasText:'Say which job role is responsible'})).toBeVisible();
-  await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
+  await expect(page.getByText('Check that your note includes')).toBeVisible();
   await page.getByTestId('scenario-owner').fill('On-duty Front Desk lead');
   await page.getByTestId('scenario-follow-up').fill('The lead confirms the correct room on the booking record and updates the receiving shift.');
   await page.getByTestId('scenario-note').fill(
@@ -184,7 +184,7 @@ test('original shift handover rejects filler even after correct priority and rou
   );
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
-  await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
+  await expect(page.getByText('Check that your note includes')).toBeVisible();
   await expect(page.getByText('If your note already covers this, ask your trainer to review it.')).toBeVisible();
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save note for trainer' }).click();
@@ -195,6 +195,14 @@ test('original shift handover rejects filler even after correct priority and rou
   expect(noteFile).toContain('DEMO-HANDOVER-014');
   expect(noteFile).toContain('This practice has not been marked complete.');
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Try another situation' }).click();
+  await expect(page.getByTestId('scenario-guest-ac')).toHaveAttribute('aria-current', 'step');
+  await expect(page.locator('.practice-progress strong')).toHaveText(/^0 \/ \d+$/);
+  await page.getByTestId('scenario-shift-unresolved').click();
+  await expect(page.getByTestId('scenario-note')).toHaveValue(/only generic statements/);
+  await page.reload();
+  await expect(page.getByTestId('scenario-note')).toHaveValue(/only generic statements/);
+  await page.getByRole('button', { name: 'Check my note' }).click();
   await page.getByText('See an example note').click();
   await expect(page.getByText('DEMO-HANDOVER-014: Twinspire guest says the toilet will not flush.', { exact: false })).toBeVisible();
   await page.getByTestId('scenario-note').fill(
@@ -220,7 +228,7 @@ test('critical kitchen drill rejects explicit instructions not to stop or notify
   );
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
-  await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
+  await expect(page.getByText('Check that your note includes')).toBeVisible();
   await page.getByTestId('scenario-note').fill(
     'DEMO-KT-RAW-CONTACT: Stop plating and hold the contaminated food from service. Sanitize safely under protocol and notify the kitchen lead.',
   );

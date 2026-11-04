@@ -64,7 +64,7 @@ test('explicitly negated actions are not accepted as correct safety intervention
     ': Do not stop serving this plate. Do not notify the kitchen lead; the item is fine and can proceed with food service immediately.';
   const result = assessPractice(scenario, responses(scenario, text));
   expect(result.passed).toBe(false);
-  expect(result.errors.note).toContain('does not clearly explain');
+  expect(result.errors.note).toContain('Check that your note includes');
 });
 
 test('substring tricks and placeholder owners cannot satisfy written evidence', () => {
