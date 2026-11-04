@@ -89,28 +89,28 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'A task is a specific job with a title, priority and person responsible. Search first so you do not create duplicates. When saving, make sure the correct teammate is actually assigned.',
     example: 'A shared job has no owner. Assign the right practice teammate, start the work, and submit the saved task for review.',
     repeatVariant: { example:'A staff member reports a broken hallway sign but nobody is assigned. Find whether the job exists, assign the right practice teammate, and follow its progress.', questions:[
-      q('A task already exists for the same sign. What should you do?', ['Create a second copy','Review the existing task and update it if appropriate','Ignore both'],1,'Duplicate tasks confuse ownership.'),
+      q('A task already exists for the same sign. What should you do?', ['Create another task for the next shift','Review the existing task and update it if appropriate','Wait for the original reporter to follow up'],1,'Duplicate tasks confuse ownership.'),
       q('When can a task be submitted for review?', ['After it actually reaches the required work stage','The moment it is created without work','By changing the title only'],0,'Complete each step and save your changes.'),
     ] },
     remember: 'Save your task and move it through each step. Choose Check saved work after each change.',
     handsOn: 'shared-no-owner',
     questions: [
       q('A task is unassigned and needs attention today. What matters most?', ['Assigning someone who will handle it','Changing the due date without asking anyone','Leaving it unassigned for the next shift'], 0, 'Work can be forgotten when nobody is responsible.'),
-      q('Before creating a task, what should you do?', ['Create duplicates to be safe','Search for an existing task','Mark somebody else’s task as done'], 1, 'Searching first reduces duplicate and conflicting work.'),
+      q('Before creating a task, what should you do?', ['Ask the next shift to create it','Search for an existing task','Add the task first and check for a duplicate later'], 1, 'Searching first reduces duplicate and conflicting work.'),
     ],
   },
   'guest-matters': {
     explanation: 'A guest matter is a record of a guest’s problem. A good record states what happened, which room or service is affected, who should investigate and when Reception will call the guest back.',
     example: 'Solace reports an AC that is blowing warm air. Record the complaint, arrange an inspection and keep the guest informed.',
     repeatVariant: { example:'A practice guest in Perch 2 says their bathroom sink is leaking. Nobody has inspected the room. Record what is known and arrange an update without promising a repair time.', questions:[
-      q('The guest asks if the sink is already repaired. What should Reception say?', ['It is repaired without inspection','We will confirm with Maintenance and update you','We do not care'],1,'Do not promise a finished repair before checking.'),
-      q('What is useful in the guest matter?', ['Perch 2, leaking sink, responsible team and follow-up','Only the guest mood','A fake completion note'],0,'The right details help the next employee act.'),
+      q('The guest asks if the sink is already repaired. What should Reception say?', ['It should be ready because the repair was assigned','We will confirm with Maintenance and update you','Please call again after the next shift starts'],1,'Do not promise a finished repair before checking.'),
+      q('What is useful in the guest matter?', ['Perch 2, leaking sink, responsible team and follow-up','Perch 2 and the complaint, with no follow-up yet','The repair request, without the room name'],0,'The right details help the next employee act.'),
     ] },
     remember: 'Do not claim the guest problem is solved before it has actually been checked.',
     incorrectExample: 'Reception tells the guest the air conditioner is repaired even though no technician has inspected it.',
     whyIncorrect: 'Promising a result that has not been checked can mislead the guest and hide an unfinished repair.',
     branches: [{question:'What if the guest says the room is too hot to stay in?',
-      choices:['Ignore the new information','Ask the lead about safe immediate assistance or a room option and update the guest','Say maintenance will arrive at a made-up time'],
+      choices:['Keep the original follow-up time without checking the new concern','Ask the lead about safe immediate assistance or a room option and update the guest','Give the usual repair time before asking Maintenance'],
       correct:1, response:'New information can change the response. Ask an authorized lead for a way to help the guest now.'}],
     handsOn: 'guest-ac',
     questions: [
@@ -148,7 +148,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     incorrectExample: 'An employee writes “quotation attached” to make the request look complete, but no quotation exists.',
     whyIncorrect: 'The reviewer needs accurate information, including what is still missing, before deciding.',
     branches: [{question:'What if the supplier sends a different price later?',
-      choices:['Hide the new price','Update the request with the new quoted price and explain the change','Approve it without checking'],
+      choices:['Keep the earlier estimate in the request until the invoice arrives','Update the request with the new quoted price and explain the change','Tell the reviewer the price changed but leave the saved amount as it is'],
       correct:1, response:'Changes in price must be visible to the person allowed to review it.'}],
     handsOn: 'manager-evidence',
     questions: [
@@ -191,7 +191,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'A purchase request has no reliable price quotation. Ask for the missing information instead of guessing.',
     remember: 'Only someone with approval permission should make that decision.',
     questions: [
-      q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Approve without looking','Ignore the missing details'], 0, 'Authorized reviewers need adequate evidence.'),
+      q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Use a similar earlier request as the evidence','Wait for the next reviewer without leaving a note'], 0, 'Authorized reviewers need adequate evidence.'),
       q('A request is approved. Does this prove the item was delivered?', ['No, delivery or implementation must be checked separately','Yes, always','Only if the reviewer was busy'], 0, 'The approval decision is not proof that the work was carried out.'),
     ],
   },
