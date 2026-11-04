@@ -107,3 +107,136 @@ def test_housekeeping_access_is_scoped_to_correct_department(state):
     with pytest.raises(HTTPException) as err:
         confirm_vacated(10, user=p["outsider"], db=db)
     assert err.value.status_code == 403
+
+
+def test_board_includes_stays_spanning_today_without_inventing_historical_status(state):
+    import json
+    from datetime import datetime, timezone
+    from app.integration_models import AccountingRoomBooking
+    db, people, room = state
+    db.add(AccountingRoomBooking(
+        booking_id="practice-stay", revision=1, room_ids_json=json.dumps([room.id]),
+        check_in="2026-11-04", check_out="2026-11-08", status="checked_in",
+        origin="practice", reported_at=datetime(2026, 11, 6, tzinfo=timezone.utc),
+    ))
+    db.commit()
+    today = list_turnovers(service_date="2026-11-06", user=people["front"], db=db)
+    assert [item["status"] for item in today["rooms"][0]["booking_updates"]] == ["checked_in"]
+    for day in ("2026-11-05", "2026-11-07"):
+        board = list_turnovers(service_date=day, user=people["front"], db=db)
+        assert board["rooms"][0]["booking_updates"] == []
+
+
+def test_unresolved_checkin_is_visible_after_scheduled_departure(state):
+    import json
+    from datetime import datetime, timezone
+    from app.integration_models import AccountingRoomBooking
+    db, people, room = state
+    db.add(AccountingRoomBooking(
+        booking_id="practice-late-departure", revision=1, room_ids_json=json.dumps([room.id]),
+        check_in="2026-11-01", check_out="2026-11-05", status="checked_in",
+        origin="practice", reported_at=datetime(2026, 11, 5, tzinfo=timezone.utc),
+    ))
+    db.commit()
+    board = list_turnovers(service_date="2026-11-06", user=people["front"], db=db)
+    assert board["rooms"][0]["booking_updates"][0]["status"] == "checked_in"
+
+
+def test_front_desk_records_stays_and_guest_blocks_cleaning(state):
+    from app.routers.housekeeping import check_in, check_out
+    db, people, room = state
+    turnover = plan_turnover(PlanRequest(room_area_id=room.id, service_date='2026-11-06'), user=people['front'], db=db)
+    confirm_vacated(turnover['id'], user=people['front'], db=db)
+    with pytest.raises(HTTPException) as error:
+        check_in(room.id, user=people['cleaner'], db=db)
+    assert error.value.status_code == 403
+    stay = check_in(room.id, user=people['front'], db=db)
+    board = list_turnovers(service_date='2026-11-06', user=people['cleaner'], db=db)
+    assert board['rooms'][0]['guest_stay']['id'] == stay['id']
+    assert board['rooms'][0]['vacated_confirmed'] is False
+    for action in (lambda: check_in(room.id, user=people['front'], db=db),
+                   lambda: confirm_vacated(turnover['id'], user=people['front'], db=db),
+                   lambda: start(turnover['id'], user=people['cleaner'], db=db)):
+        with pytest.raises(HTTPException) as error:
+            action()
+        assert error.value.status_code == 409
+    with pytest.raises(HTTPException) as error:
+        check_out(room.id, stay['id'], user=people['cleaner'], db=db)
+    assert error.value.status_code == 403
+    assert check_out(room.id, stay['id'], user=people['front'], db=db)['checked_out_at']
+    with pytest.raises(HTTPException) as error:
+        check_out(room.id, stay['id'], user=people['front'], db=db)
+    assert error.value.status_code == 409
+    confirm_vacated(turnover['id'], user=people['front'], db=db)
+    assert start(turnover['id'], user=people['cleaner'], db=db)['status'] == 'Cleaning'
+    assert list_turnovers(service_date='2026-11-05', user=people['front'], db=db)['rooms'][0]['guest_stay'] is None
+
+
+def test_only_one_active_stay_is_allowed_by_database(state):
+    from sqlalchemy.exc import IntegrityError
+    db, people, room = state
+    db.add_all([models.RoomStay(room_area_id=room.id, checked_in_by_id=people['front'].id),
+                models.RoomStay(room_area_id=room.id, checked_in_by_id=people['front'].id)])
+    with pytest.raises(IntegrityError):
+        db.commit()
+    db.rollback()
+
+
+def test_new_checkin_invalidates_cleaning_already_in_progress(state):
+    from app.routers.housekeeping import check_in, check_out
+    db, people, room = state
+    turnover = plan_turnover(PlanRequest(room_area_id=room.id, service_date='2026-11-06'), user=people['front'], db=db)
+    confirm_vacated(turnover['id'], user=people['front'], db=db)
+    start(turnover['id'], user=people['cleaner'], db=db)
+    stay = check_in(room.id, user=people['front'], db=db)
+    check_out(room.id, stay['id'], user=people['front'], db=db)
+    with pytest.raises(HTTPException) as error:
+        tick(turnover['id'], 'linen', TickRequest(checked=True), user=people['cleaner'], db=db)
+    assert error.value.status_code == 409
+
+
+def test_second_guest_gets_a_new_cleaning_record(state, monkeypatch):
+    from datetime import datetime, timezone, timedelta
+    from app.routers.housekeeping import check_in, check_out
+    db, people, room = state
+    time = datetime(2026, 11, 6, tzinfo=timezone.utc)
+    monkeypatch.setattr('app.routers.housekeeping.utc_now', lambda: time)
+    old = plan_turnover(PlanRequest(room_area_id=room.id, service_date='2026-11-06'), user=people['front'], db=db)
+    confirm_vacated(old['id'], user=people['front'], db=db)
+    start(old['id'], user=people['cleaner'], db=db)
+    time += timedelta(minutes=1)
+    stay = check_in(room.id, user=people['front'], db=db)
+    time += timedelta(minutes=1)
+    check_out(room.id, stay['id'], user=people['front'], db=db)
+    assert list_turnovers(service_date='2026-11-06', user=people['front'], db=db)['rooms'][0]['needs_another_clean']
+    new = plan_turnover(PlanRequest(room_area_id=room.id, service_date='2026-11-06'), user=people['front'], db=db)
+    assert new['id'] != old['id']
+    assert db.query(models.RoomTurnover).count() == 2
+    with pytest.raises(HTTPException):
+        plan_turnover(PlanRequest(room_area_id=room.id, service_date='2026-11-06'), user=people['front'], db=db)
+    assert list_turnovers(service_date='2026-11-06', user=people['front'], db=db)['rooms'][0]['id'] == new['id']
+    time += timedelta(minutes=1)
+    confirm_vacated(new['id'], user=people['front'], db=db)
+    assert start(new['id'], user=people['cleaner'], db=db)['status'] == 'Cleaning'
+    with pytest.raises(HTTPException):
+        tick(old['id'], 'linen', TickRequest(checked=True), user=people['cleaner'], db=db)
+
+
+def test_front_desk_corrects_mistakes_with_audit_history(state):
+    from app.routers.housekeeping import check_in, check_out, correct_stay, CorrectionRequest
+    db, people, room = state
+    stay = check_in(room.id, user=people['front'], db=db)
+    check_out(room.id, stay['id'], user=people['front'], db=db)
+    with pytest.raises(HTTPException) as error:
+        correct_stay(room.id, stay['id'], CorrectionRequest(reason='wrong checkout'), user=people['cleaner'], db=db)
+    assert error.value.status_code == 403
+    correct_stay(room.id, stay['id'], CorrectionRequest(reason='wrong checkout'), user=people['front'], db=db)
+    assert list_turnovers(service_date='2026-11-06', user=people['front'], db=db)['rooms'][0]['guest_stay']['checked_out_at'] is None
+    correct_stay(room.id, stay['id'], CorrectionRequest(reason='wrong room'), user=people['front'], db=db)
+    assert list_turnovers(service_date='2026-11-06', user=people['front'], db=db)['rooms'][0]['guest_stay'] is None
+    events = db.query(models.RoomStayCorrection).order_by(models.RoomStayCorrection.id).all()
+    assert [e.action for e in events] == ['undo_checkout', 'void_checkin']
+    assert all(e.previous_at and e.previous_by_id == people['front'].id for e in events)
+    assert check_in(room.id, user=people['front'], db=db)['id'] != stay['id']
+    with pytest.raises(HTTPException):
+        correct_stay(room.id, stay['id'], CorrectionRequest(reason='wrong room'), user=people['front'], db=db)

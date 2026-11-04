@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { API_BASE } from '@/lib/api';
 import { Top } from '@/components/Top';
@@ -11,11 +11,13 @@ type Check = { key: string; label: string; checked: boolean };
 type Turnover = {
   id: number | null; room_area_id: number; room_name: string;
   service_date: string; status: string; source: string | null;
-  vacated_confirmed: boolean; checklist: Check[];
+  vacated_confirmed: boolean; vacated_at?: string | null; checklist: Check[];
   started_by_id?: number | null; submitted_by_id?: number | null;
   inspected_by_id?: number | null; inspected_at?: string | null;
   rework_note?: string | null;
-  booking_updates?: { status: string; origin: string; check_out: string; reported_at: string }[];
+  guest_stay?: { id: number; checked_in_at: string; checked_out_at: string | null } | null;
+  needs_another_clean?: boolean;
+  booking_updates?: { status: string; origin: string; check_in: string; check_out: string; reported_at: string }[];
 };
 type Board = { date: string; rooms: Turnover[]; can_schedule: boolean; can_clean: boolean; can_inspect: boolean; accounting_connected?: boolean };
 const STATUS_TEXT: Record<string,string> = {
@@ -26,6 +28,14 @@ const STATUS_TEXT: Record<string,string> = {
   'Cleared': 'Inspected and cleared',
   'Needs rework': 'Return for cleaning',
 };
+
+function previousGuestClean(row: Turnover) {
+  return Boolean(['Cleaning', 'For inspection', 'Cleared'].includes(row.status) && row.vacated_at && row.guest_stay && (!row.guest_stay.checked_out_at || new Date(row.vacated_at).getTime() <= Math.max(new Date(row.guest_stay.checked_in_at).getTime(), new Date(row.guest_stay.checked_out_at).getTime())));
+}
+
+function recordedTime(value: string) {
+  return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(value));
+}
 
 function propertyDay() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -52,17 +62,28 @@ export default function HousekeepingPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('All');
   const [rework, setRework] = useState<Record<number,string>>({});
+  const latestRequest = useRef(0);
   const selfId = Number(getStoredUser()?.id || 0);
 
   const load = useCallback(async () => {
+    const requestId = ++latestRequest.current;
+    if (!day) {
+      setData(null);
+      setLoading(false);
+      setError('Choose a date to see rooms.');
+      return;
+    }
     setLoading(true);
     try {
       const value = await call<Board>('/turnovers?service_date=' + encodeURIComponent(day));
+      if (requestId !== latestRequest.current) return;
       setData(value);
       setError('');
     } catch (err) {
+      if (requestId !== latestRequest.current) return;
+      setData(null);
       setError(err instanceof Error ? err.message : 'Could not load room cleaning.');
-    } finally { setLoading(false); }
+    } finally { if (requestId === latestRequest.current) setLoading(false); }
   }, [day]);
   useEffect(() => { void load(); }, [load]);
 
@@ -76,25 +97,26 @@ export default function HousekeepingPage() {
     finally { setBusy(null); }
   }
 
-  const visible = useMemo(() => (data?.rooms || []).filter(room => {
+  const board = data?.date === day ? data : null;
+  const visible = useMemo(() => (board?.rooms || []).filter(room => {
     const matched = room.room_name.toLowerCase().includes(search.trim().toLowerCase());
     return matched && (status === 'All' || room.status === status);
-  }), [data, search, status]);
+  }), [board, search, status]);
   const counts = useMemo(() => {
-    const rooms = data?.rooms || [];
+    const rooms = board?.rooms || [];
     return {
-      waiting: rooms.filter(room => room.status === 'Needs cleaning' || room.status === 'Needs rework').length,
-      cleaning: rooms.filter(room => room.status === 'Cleaning').length,
-      inspection: rooms.filter(room => room.status === 'For inspection').length,
-      cleared: rooms.filter(room => room.status === 'Cleared').length,
+      waiting: rooms.filter(room => room.status === 'Needs cleaning' || room.status === 'Needs rework' || room.needs_another_clean).length,
+      cleaning: rooms.filter(room => room.status === 'Cleaning' && !previousGuestClean(room)).length,
+      inspection: rooms.filter(room => room.status === 'For inspection' && !previousGuestClean(room)).length,
+      cleared: rooms.filter(room => room.status === 'Cleared' && !previousGuestClean(room)).length,
     };
-  }, [data]);
+  }, [board]);
 
-  return <div className="housekeeping-board">
+  return <div className="housekeeping-board" aria-busy={loading}>
     <Top title="Room cleaning" right={<Link href="/rooms" className="btn secondary">All rooms</Link>} />
-    <p className="hk-intro">Check cleaning progress and rooms waiting for inspection.</p>
+    <p className="hk-intro">This page is for cleaning after checkout. If a guest is staying and asks for cleaning, ask your lead to arrange a time with them.</p>
     <div className="hk-tools">
-      <label>Date <input aria-label="Cleaning date" className="input" type="date" value={day} onChange={e => setDay(e.target.value)} /></label>
+      <label>Date <input aria-label="Cleaning date" className="input" type="date" value={day} disabled={busy !== null} onChange={e => setDay(e.target.value)} /></label>
       <label>Find room <input aria-label="Find room" className="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Solace, Perch 1…" /></label>
       <label>Show <select aria-label="Cleaning status" className="select" value={status} onChange={e => setStatus(e.target.value)}>
         <option>All</option>{Object.keys(STATUS_TEXT).map(key => <option key={key} value={key}>{STATUS_TEXT[key]}</option>)}
@@ -102,65 +124,88 @@ export default function HousekeepingPage() {
       <button type="button" className="btn secondary" disabled={loading} onClick={() => void load()}>Refresh</button>
     </div>
     {error ? <p role="alert" className="hk-error">{error}</p> : null}
-    <div className="hk-counts" aria-label="Cleaning progress">
+    {board && <div className="hk-counts" aria-label="Cleaning progress">
       <div><strong>{counts.waiting}</strong><span>To clean</span></div>
       <div><strong>{counts.cleaning}</strong><span>Cleaning</span></div>
       <div><strong>{counts.inspection}</strong><span>Inspection</span></div>
       <div><strong>{counts.cleared}</strong><span>Cleared</span></div>
-    </div>
-    {!data && loading && <p role="status">Loading rooms…</p>}
+    </div>}
+    {!board && loading && <p role="status">Loading rooms…</p>}
     <div className="hk-room-grid">
       {visible.map(row => {
-        const isBusy = busy === row.room_area_id;
+        const isBusy = loading || busy !== null;
+        const guestHere = day === propertyDay() && Boolean(row.guest_stay && !row.guest_stay.checked_out_at);
+        const previousClean = previousGuestClean(row);
         const mine = Number(row.started_by_id) === selfId;
         const checks = row.checklist.filter(item => item.checked).length;
         return <article key={row.room_area_id} className="hk-room-card" data-testid={'cleaning-room-' + row.room_area_id}>
-          <header><h2>{row.room_name}</h2><span className="hk-status">{STATUS_TEXT[row.status] || row.status}</span></header>
-          {Array.from(new Set((row.booking_updates || []).map(update => update.status))).map(status => <p key={status} className="hk-booking-status">
-            {({ confirmed: 'Checkout scheduled', checked_in: 'Guest still checked in', checked_out: 'Checkout recorded', cancelled: 'Booking cancelled — check with Front Desk', no_show: 'Guest did not arrive — check with Front Desk', unknown: 'Check the booking with Front Desk' } as Record<string,string>)[status] || 'Check the booking with Front Desk'}
-          </p>)}
-          {row.id === null ? <>
-            <p>There is no cleaning request for this room on {day}.</p>
-            {data?.can_schedule && <button type="button" className="btn" disabled={isBusy}
+          <header><h2>{row.room_name}</h2><span className="hk-status">Cleaning: {previousClean ? "Previous guest’s cleaning" : STATUS_TEXT[row.status] || row.status}</span></header>
+          <div className="hk-guest-status">
+            <strong>Guest status</strong>
+            {day !== propertyDay() ? <p>Guest status is shown for today only.</p>
+              : !row.guest_stay ? <p>Not recorded. Check with Front Desk.</p>
+              : guestHere ? <p>Checked in. Do not start a checkout clean. <br />Recorded {recordedTime(row.guest_stay.checked_in_at)}.</p>
+              : <p>Last checkout recorded. Check with Front Desk before entering. <br />Recorded {recordedTime(row.guest_stay.checked_out_at!)}.</p>}
+            {day === propertyDay() && board?.can_schedule && <button type="button" className="btn secondary" disabled={isBusy}
+              onClick={() => {
+                const action = guestHere ? 'checkout' : 'check-in';
+                if (window.confirm(`Record ${action} for ${row.room_name}?`)) {
+                  void act(row, guestHere ? `/rooms/${row.room_area_id}/stays/${row.guest_stay!.id}/check-out` : `/rooms/${row.room_area_id}/check-in`);
+                }
+              }}>{guestHere ? 'Record checkout' : 'Record check-in'}</button>}
+            {day === propertyDay() && board?.can_schedule && row.guest_stay && <button type="button" className="btn secondary" disabled={isBusy}
+              onClick={() => {
+                const reason = window.prompt('What was recorded incorrectly?');
+                if (reason?.trim() && window.confirm(guestHere ? 'Remove this check-in record?' : 'Undo this checkout and show the guest as checked in?')) {
+                  void act(row, `/rooms/${row.room_area_id}/stays/${row.guest_stay!.id}/correct`, { reason: reason.trim() });
+                }
+              }}>{guestHere ? 'Correct check-in' : 'Correct checkout'}</button>}
+            {guestHere && ['Cleaning', 'For inspection'].includes(row.status) && <p>Cleaning was already in progress. Tell your lead and check with Front Desk.</p>}
+            {previousClean && <p>This cleaning was for an earlier guest. {guestHere ? 'Tell your lead and wait until checkout.' : 'Schedule another clean.'}</p>}
+            {row.needs_another_clean && board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
+              onClick={() => void act(row, '/turnovers', { room_area_id: row.room_area_id, service_date: day })}>Schedule another clean</button>}
+          </div>
+          {!previousClean && (row.id === null ? <>
+            {board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
               onClick={() => void act(row, '/turnovers', { room_area_id: row.room_area_id, service_date: day })}>Schedule cleaning</button>}
           </> : <>
-            {!row.vacated_confirmed ? <div className="hk-warning">
+            {!row.vacated_confirmed && !guestHere ? <div className="hk-warning">
               <strong>Waiting for Front Desk.</strong>
               <p>Front Desk needs to confirm the guest has left.</p>
-              {data?.can_schedule && <button type="button" className="btn" disabled={isBusy}
+              {board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
                 onClick={() => { if (window.confirm('Has the guest left and is the room empty?')) void act(row, '/turnovers/' + row.id + '/confirm-vacated'); }}>
                 Confirm guest has left</button>}
             </div> : null}
             {row.status === 'Needs rework' && <p className="hk-warning"><strong>Check again:</strong> {row.rework_note || 'The supervisor asked for another clean.'}</p>}
-            {row.vacated_confirmed && ['Needs cleaning', 'Needs rework'].includes(row.status) && data?.can_clean && <button type="button"
+            {!guestHere && row.vacated_confirmed && ['Needs cleaning', 'Needs rework'].includes(row.status) && board?.can_clean && <button type="button"
               className="btn" disabled={isBusy} onClick={() => void act(row, '/turnovers/' + row.id + '/start')}>Start cleaning</button>}
             {['Cleaning', 'For inspection', 'Cleared'].includes(row.status) && <>
               <div className="hk-check-progress"><strong>Checklist</strong><span>{checks} of {row.checklist.length} finished</span></div>
               <div className="hk-checklist">
                 {row.checklist.map(item => <label key={item.key}>
-                  <input type="checkbox" checked={item.checked} disabled={isBusy || row.status !== 'Cleaning' || !mine || !data?.can_clean}
+                  <input type="checkbox" checked={item.checked} disabled={isBusy || row.status !== 'Cleaning' || !mine || !board?.can_clean}
                     onChange={event => void act(row, '/turnovers/' + row.id + '/items/' + item.key, { checked: event.target.checked }, 'PATCH')} />
                   <span>{item.label}</span>
                 </label>)}
               </div>
             </>}
-            {row.status === 'Cleaning' && mine && data?.can_clean && <button className="btn" type="button"
+            {row.status === 'Cleaning' && mine && board?.can_clean && <button className="btn" type="button"
               disabled={isBusy || checks !== row.checklist.length}
               onClick={() => void act(row, '/turnovers/' + row.id + '/submit')}>Send for inspection</button>}
             {row.status === 'For inspection' && <div className="hk-inspect">
               <p><strong>Waiting for inspection.</strong> A different supervisor must check this room.</p>
-              {data?.can_inspect && row.started_by_id !== selfId && <>
+              {board?.can_inspect && row.started_by_id !== selfId && <>
                 <button className="btn" disabled={isBusy} onClick={() => void act(row, '/turnovers/' + row.id + '/inspect', { cleared: true })}>Approve cleaning</button>
                 <label>What needs fixing? <textarea className="textarea" value={rework[row.id!] || ''} onChange={event => setRework(v => ({ ...v, [row.id!]: event.target.value }))} placeholder="Example: Bathroom mirror still has water marks." /></label>
                 <button className="btn secondary" disabled={isBusy || (rework[row.id!] || '').trim().length < 5}
                   onClick={() => void act(row, '/turnovers/' + row.id + '/inspect', { cleared: false, note: rework[row.id!] })}>Return for cleaning</button>
               </>}
             </div>}
-            {row.status === 'Cleared' && <p className="hk-cleared">Cleaning approved. Check the booking before assigning the room.</p>}
-          </>}
+            {row.status === 'Cleared' && !previousClean && <p className="hk-cleared">Cleaning approved. Check the booking before assigning the room.</p>}
+          </>)}
         </article>;
       })}
     </div>
-    {data && !visible.length && <p role="status">No rooms match this view.</p>}
+    {board && !visible.length && <p role="status">No rooms match this view.</p>}
   </div>;
 }
