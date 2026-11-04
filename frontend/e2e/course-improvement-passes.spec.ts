@@ -48,7 +48,7 @@ test('portable reports reject malformed data and never restore saved-record less
   expect(parseTrainingReport(report)?.trainee.id).toBe('8401');
   expect(report.metrics.orientation.incorrectAnswers).toBe(2);
   expect(portableLearningCredit(report,['orientation','staff-handover','staff-rooms','room-arrivals','staff-my-work','team-tasks']))
-    .toEqual(completed);
+    .toEqual(completed.filter(id => id !== 'room-arrivals'));
   expect(parseTrainingReport({...report,schema:'other'})).toBeNull();
   expect(parseTrainingReport({...report,trainee:{id:'x'}})).toBeNull();
 });
@@ -78,9 +78,9 @@ test('manager can restore read-only lesson history but must recheck saved record
     name:'progress.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(report)),
   });
   await expect(details).toContainText('Repeat any hands-on practice that needs saved work on this device.');
-  await expect(page.getByTestId('course-lesson-title')).toContainText('Creating and managing a task');
+  await expect(page.getByTestId('course-lesson-title')).toContainText('Arrivals, departures and room cleaning');
   const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('ho-ops-structured-course-v2:8401')||'null'));
-  expect(progress.passed).toEqual(completed);
+  expect(progress.passed).toEqual(completed.filter(id => id !== 'room-arrivals'));
   expect(progress.stage).toBe('learn');
 });
 

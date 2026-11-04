@@ -15,6 +15,7 @@ import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
 import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
 import { TrainerReports } from '@/components/TrainerReports';
+import { ROOM_ARRIVAL_FINISHED } from '@/components/RoomArrivalPractice';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
 
@@ -117,7 +118,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const courseLesson = course && lessons.find(item => item.id === course.lessonId);
   const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
   const basePlan = courseLesson ? PRACTICE_PLANS[courseLesson.id] : undefined;
-  const practicePlan = basePlan && courseLesson?.id === 'staff-rooms' && !isFrontDeskStaff
+  const practicePlan = basePlan && courseLesson?.id === 'room-arrivals' && isFrontDeskStaff
+    ? { ...basePlan, goal: 'Record a practice arrival and departure, then try a second room yourself.',
+        show: 'Use Record check-in when the guest arrives. When the guest leaves, use Record checkout for the same room.',
+        self: 'Complete check-in and checkout in two practice rooms. The first room has a guide; the second starts without arrows.',
+        checks: 'The app reads back both saved stays and checks that your login recorded the arrival and departure.' }
+    : basePlan && courseLesson?.id === 'staff-rooms' && !isFrontDeskStaff
     ? { ...basePlan, goal: 'Find guest rooms and shared areas.',
         show: 'Choose Guest rooms, search Solace, and open its room details. Read the records available to your department.',
         self: 'Switch between Guest rooms and Shared areas without arrows.',
@@ -187,8 +193,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const independentAction = course && independentActions?.[course.independentStep || 0];
   // Keep a click listener mounted before navigation. Installing the listener
   // after each route change can miss a fast employee click on a real link.
-  const independentStateRef = useRef({ course, action: independentAction, path });
-  independentStateRef.current = { course, action: independentAction, path };
+  const roomArrivalPractice = isFrontDeskStaff && course?.lessonId === 'room-arrivals';
+  const independentStateRef = useRef({ course, action: independentAction, path, roomArrivalPractice });
+  independentStateRef.current = { course, action: independentAction, path, roomArrivalPractice };
 
   useEffect(() => {
     try {
@@ -227,13 +234,24 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           ...(current.metrics?.['staff-handover'] || {}), completedAt: new Date().toISOString(),
         } } };
     });
+    const completeArrivalPractice = (event: Event) => setCourse(current => {
+      if (!isFrontDeskStaff || !current || current.lessonId !== 'room-arrivals' || current.stage !== 'independent') return current;
+      const hints = Number((event as CustomEvent).detail?.hints);
+      return { ...current, stage: 'done', passed: Array.from(new Set([...current.passed, 'room-arrivals'])),
+        metrics: { ...(current.metrics || {}), 'room-arrivals': {
+          ...(current.metrics?.['room-arrivals'] || {}), completedAt: new Date().toISOString(),
+          hintsViewed: (current.metrics?.['room-arrivals']?.hintsViewed || 0) + (Number.isInteger(hints) && hints > 0 ? hints : 0),
+        } } };
+    });
     window.addEventListener(ROOM_PRACTICE_FINISHED, completeRoomPractice);
     window.addEventListener(SHIFT_PRACTICE_FINISHED, completeShiftPractice);
+    window.addEventListener(ROOM_ARRIVAL_FINISHED, completeArrivalPractice);
     return () => {
       window.removeEventListener(ROOM_PRACTICE_FINISHED, completeRoomPractice);
       window.removeEventListener(SHIFT_PRACTICE_FINISHED, completeShiftPractice);
+      window.removeEventListener(ROOM_ARRIVAL_FINISHED, completeArrivalPractice);
     };
-  }, []);
+  }, [isFrontDeskStaff]);
 
   // Keep the current guided step across pause, refresh and app restart.
   useEffect(() => {
@@ -279,8 +297,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   // No Next button, synthetic click or just opening a screen awards completion.
   useEffect(() => {
     const onInteraction = (event: Event) => {
-      const { course: expected, action, path: currentPath } = independentStateRef.current;
-      if (!expected || expected.stage !== 'independent' || !action || currentPath !== action.path) return;
+      const { course: expected, action, path: currentPath, roomArrivalPractice: savedRoomPractice } = independentStateRef.current;
+      if (!expected || savedRoomPractice || expected.stage !== 'independent' || !action || currentPath !== action.path) return;
       const target = event.target;
       if (!(target instanceof Element) ||
         !independentActionMatches(action, target, event.type as 'click' | 'input')) return;
@@ -699,7 +717,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </>}
         {course.stage === 'done' && <>
           <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
-          <p>You answered the questions and finished the practice.{courseGuide.handsOn && course.reference ? ' The app checked your saved work.' : ''}</p>
+          <p>You answered the questions and finished the practice.{(courseGuide.handsOn && course.reference) || roomArrivalPractice ? ' The app checked your saved work.' : ''}</p>
           <p>You can repeat this lesson at any time. Your earlier results will stay saved.</p>
           <button type="button" className="ops-course-quiet" data-testid="export-training-report"
             onClick={exportTrainingProgress}>Save my training report</button>
@@ -716,7 +734,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <button type="button" className="ops-course-primary" onClick={() => { const index = course.tourStep || 0; setActive({ id: course.lessonId, index }); router.push(courseLesson?.steps[index]?.path || '/'); }}>Resume practical lesson →</button>
       </section>
     </div>}
-    {course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
+    {course?.stage === 'independent' && independentAction && !roomArrivalPractice && <div className="ops-course-independent-status"
       data-testid="course-independent-challenge" role="status">
       <strong>YOUR TURN · {1 + (course.independentStep || 0)} OF 2 — No arrows</strong>
       {practicePlan && <p className="ops-practice-self-goal">{practicePlan.self}</p>}

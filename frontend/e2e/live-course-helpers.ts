@@ -57,7 +57,30 @@ export async function completeReadOnlyLesson(page: import('@playwright/test').Pa
       }
       else await coach.getByRole('button', { name: index === lesson.steps.length - 1 ? 'Finish practice' : 'Next →', exact: true }).click();
       }
-      for (const action of INDEPENDENT_CHECKS[lesson.id]) {
+      if (lesson.id === 'room-arrivals' && department === 'Front Desk' && (await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}').role)) === 'staff') {
+        const mission = page.getByTestId('room-arrival-practice');
+        const pm = await page.evaluate(() => String(JSON.parse(localStorage.getItem('cc_user') || '{}').email).startsWith('reception-pm@'));
+        for (const [index, room] of (pm ? ['Grandeur', 'Skyroom'] : ['Cafe Suite', 'Crown']).entries()) {
+          await mission.getByRole('button', { name: index === 0 ? 'Start with a guide' : 'Try the next room', exact: true }).click();
+          if (index === 0) await mission.getByRole('button', { name: 'Hide arrow', exact: true }).click();
+          await page.getByRole('button', { name: 'Check saved work', exact: true }).click();
+          await expect(page.getByText(/Your new check-in has not been found/)).toBeVisible();
+          await page.getByLabel('Find room', { exact: true }).fill(room);
+          const card = page.locator('.hk-room-card').filter({ has: page.getByRole('heading', { name: room, exact: true }) });
+          page.once('dialog', dialog => dialog.accept());
+          await card.getByRole('button', { name: 'Record check-in', exact: true }).click();
+          await expect(card).toContainText('Checked in.');
+          await page.getByRole('button', { name: 'Check saved work', exact: true }).click();
+          await expect(mission.getByRole('heading')).toHaveText('Record checkout in ' + room);
+          if (index === 0) await mission.getByRole('button', { name: 'Hide arrow', exact: true }).click();
+          await page.getByRole('button', { name: 'Check saved work', exact: true }).click();
+          await expect(page.getByText(/Your checkout has not been found/)).toBeVisible();
+          page.once('dialog', dialog => dialog.accept());
+          await card.getByRole('button', { name: 'Record checkout', exact: true }).click();
+          await expect(card).toContainText('Last checkout recorded');
+          await page.getByRole('button', { name: 'Check saved work', exact: true }).click();
+        }
+      } else for (const action of INDEPENDENT_CHECKS[lesson.id]) {
       await expect(page.getByTestId('course-independent-challenge')).toContainText(action.title);
       // The last tour click can navigate while the independent stage is opening.
       // Click only after its real target screen is active.

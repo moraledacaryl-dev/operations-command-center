@@ -34,7 +34,9 @@ test('fresh receptionist completes all required lessons using the real local API
   page.on('request', r => { if (r.url().includes('/api/') && r.method() !== 'GET') writes.push(r.method() + ' ' + new URL(r.url()).pathname); });
   for (const lesson of lessons) await completeReadOnlyLesson(page, lesson);
   await expect(page.getByTestId('course-progress-summary')).toContainText('5');
-  expect(writes).toEqual([]);
+  expect(writes).toHaveLength(4);
+  expect(writes.filter(path => /\/housekeeping\/rooms\/\d+\/check-in$/.test(path))).toHaveLength(2);
+  expect(writes.filter(path => /\/housekeeping\/rooms\/\d+\/stays\/\d+\/check-out$/.test(path))).toHaveLength(2);
   mkdirSync('test-results/ui-audit', { recursive: true });
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-live-staff-finished.png', fullPage: true });
 });

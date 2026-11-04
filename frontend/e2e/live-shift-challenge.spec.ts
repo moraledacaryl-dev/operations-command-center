@@ -1,5 +1,5 @@
 import { test,expect } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync } from 'node:fs';
 import { availableTrainingLessons } from '../lib/interactive-training';
 import { completeReadOnlyLesson } from './live-course-helpers';
 import cases from '../lib/shift-challenge-cases.json';
@@ -32,4 +32,6 @@ for(const [i,c]of cases.entries())test('real '+c.department+' shift: own login, 
  await page.getByRole('button',{name:'Save follow-up on my job',exact:true}).click();await expect(page.getByText('Your follow-up is saved on your assigned job. Choose Check shift challenge when you are ready.',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Check shift challenge',exact:true}).click();await expect(page.getByRole('heading',{name:'Shift challenge completed',exact:true})).toBeVisible();
  await page.reload();await expect(page.getByRole('heading',{name:'Shift challenge completed',exact:true})).toBeVisible();await page.getByRole('button',{name:'Check saved records again',exact:true}).click();await expect(page.getByText('Checked against your saved job, follow-up and notice.',{exact:true})).toBeVisible();
+ mkdirSync('test-results/ui-audit',{recursive:true});
+ await page.screenshot({path:'test-results/ui-audit/interactive-training-final-'+accounts[i]+'.png',fullPage:true});
 });

@@ -228,18 +228,18 @@ def test_front_desk_corrects_mistakes_with_audit_history(state):
     stay = check_in(room.id, user=people['front'], db=db)
     check_out(room.id, stay['id'], user=people['front'], db=db)
     with pytest.raises(HTTPException) as error:
-        correct_stay(room.id, stay['id'], CorrectionRequest(reason='wrong checkout'), user=people['cleaner'], db=db)
+        correct_stay(room.id, stay['id'], CorrectionRequest(action='undo_checkout', reason='wrong checkout'), user=people['cleaner'], db=db)
     assert error.value.status_code == 403
-    correct_stay(room.id, stay['id'], CorrectionRequest(reason='wrong checkout'), user=people['front'], db=db)
+    correct_stay(room.id, stay['id'], CorrectionRequest(action='undo_checkout', reason='wrong checkout'), user=people['front'], db=db)
     assert list_turnovers(service_date='2026-11-06', user=people['front'], db=db)['rooms'][0]['guest_stay']['checked_out_at'] is None
-    correct_stay(room.id, stay['id'], CorrectionRequest(reason='wrong room'), user=people['front'], db=db)
+    correct_stay(room.id, stay['id'], CorrectionRequest(action='void_checkin', reason='wrong room'), user=people['front'], db=db)
     assert list_turnovers(service_date='2026-11-06', user=people['front'], db=db)['rooms'][0]['guest_stay'] is None
     events = db.query(models.RoomStayCorrection).order_by(models.RoomStayCorrection.id).all()
     assert [e.action for e in events] == ['undo_checkout', 'void_checkin']
     assert all(e.previous_at and e.previous_by_id == people['front'].id for e in events)
     assert check_in(room.id, user=people['front'], db=db)['id'] != stay['id']
     with pytest.raises(HTTPException):
-        correct_stay(room.id, stay['id'], CorrectionRequest(reason='wrong room'), user=people['front'], db=db)
+        correct_stay(room.id, stay['id'], CorrectionRequest(action='void_checkin', reason='wrong room'), user=people['front'], db=db)
 
 
 def test_planned_arrival_and_departure_available_for_selected_upcoming_day(state):
@@ -261,3 +261,22 @@ def test_planned_arrival_and_departure_available_for_selected_upcoming_day(state
     today = list_turnovers(service_date='2026-11-06', user=people['front'], db=db)['rooms'][0]
     assert any(x['check_in'] == '2026-11-06' and x['check_out'] is None for x in today['booking_updates'])
     assert list_turnovers(service_date='2026-11-05', user=people['front'], db=db)['rooms'][0]['booking_updates'] == []
+
+
+def test_stale_correction_cannot_undo_a_different_action(state):
+    from app.routers.housekeeping import check_in, check_out, correct_stay, CorrectionRequest
+    db, people, room = state
+    stay = check_in(room.id, user=people['front'], db=db)
+    check_out(room.id, stay['id'], user=people['front'], db=db)
+    with pytest.raises(HTTPException) as error:
+        correct_stay(room.id, stay['id'], CorrectionRequest(action='void_checkin', reason='Wrong room selected'), user=people['front'], db=db)
+    assert error.value.status_code == 409
+    assert db.get(models.RoomStay, stay['id']).checked_out_at is not None
+    assert db.query(models.RoomStayCorrection).count() == 0
+    correct_stay(room.id, stay['id'], CorrectionRequest(action='undo_checkout', reason='Guest is still here'), user=people['front'], db=db)
+    with pytest.raises(HTTPException) as error:
+        correct_stay(room.id, stay['id'], CorrectionRequest(action='undo_checkout', reason='Guest is still here'), user=people['front'], db=db)
+    assert error.value.status_code == 409
+    current = db.get(models.RoomStay, stay['id'])
+    assert current.checked_out_at is None and current.voided_at is None
+    assert db.query(models.RoomStayCorrection).count() == 1
