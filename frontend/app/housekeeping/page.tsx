@@ -17,7 +17,7 @@ type Turnover = {
   rework_note?: string | null;
   guest_stay?: { id: number; checked_in_at: string; checked_out_at: string | null } | null;
   needs_another_clean?: boolean;
-  booking_updates?: { status: string; origin: string; check_in: string; check_out: string; reported_at: string }[];
+  booking_updates?: { status: string; origin: string; check_in: string | null; check_out: string | null; reported_at: string }[];
 };
 type Board = { date: string; rooms: Turnover[]; can_schedule: boolean; can_clean: boolean; can_inspect: boolean; accounting_connected?: boolean };
 const STATUS_TEXT: Record<string,string> = {
@@ -133,6 +133,9 @@ export default function HousekeepingPage() {
     {!board && loading && <p role="status">Loading rooms…</p>}
     <div className="hk-room-grid">
       {visible.map(row => {
+        const planned = (row.booking_updates || []).filter(update => ['confirmed', 'checked_in', 'checked_out'].includes(update.status));
+        const arrival = planned.some(update => update.check_in === day);
+        const departure = planned.some(update => update.check_out === day);
         const isBusy = loading || busy !== null;
         const guestHere = day === propertyDay() && Boolean(row.guest_stay && !row.guest_stay.checked_out_at);
         const previousClean = previousGuestClean(row);
@@ -141,6 +144,11 @@ export default function HousekeepingPage() {
         return <article key={row.room_area_id} className="hk-room-card" data-testid={'cleaning-room-' + row.room_area_id}>
           <header><h2>{row.room_name}</h2><span className="hk-status">Cleaning: {previousClean ? "Previous guest’s cleaning" : STATUS_TEXT[row.status] || row.status}</span></header>
           <div className="hk-guest-status">
+            <strong>Plans for this date</strong>
+            {day < propertyDay() ? <p>Past plans are not shown. Check with Front Desk.</p>
+              : arrival || departure ? <p>{arrival && <span>Arrival</span>}{arrival && departure && ' · '}{departure && <span>Departure</span>}</p>
+              : <p>No arrival or departure shown. Check with Front Desk.</p>}
+            {(arrival || departure) && <p>Planned dates can change. Check guest status before cleaning.</p>}
             <strong>Guest status</strong>
             {day !== propertyDay() ? <p>Guest status is shown for today only.</p>
               : !row.guest_stay ? <p>Not recorded. Check with Front Desk.</p>

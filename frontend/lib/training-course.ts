@@ -64,7 +64,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'room-arrivals': {
-    explanation: 'Room cleaning shows the guest status and the cleaning work separately. Front Desk records arrivals and departures. Housekeeping waits for confirmation that the guest has left before starting a checkout clean.',
+    explanation: 'Room cleaning shows planned arrivals and departures, guest status, and cleaning work separately. Front Desk records actual arrivals and departures. Housekeeping waits for confirmation that the guest has left before starting a checkout clean.',
     example: 'A practice guest leaves Solace. Front Desk records checkout and confirms the room is empty. Housekeeping cleans and a supervisor checks the work.',
     remember: 'A recorded checkout does not mean a room is clean. If a status is wrong, Front Desk can correct it and explain the mistake.',
     questions: [
