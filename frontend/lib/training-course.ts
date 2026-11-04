@@ -30,7 +30,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'You arrive for your shift. You need to see your assigned tasks, check any important new messages, then return to the dashboard.',
     repeatVariant: { example:'The next shift starts and you need to find one assigned task, read a new alert, and return home without changing anything.', questions:[
       q('Which control normally takes you back to the dashboard?', ['A request approval button','The Hidden Oasis logo','The room filter'],1,'The Hidden Oasis logo returns to the main dashboard.'),
-      q('How do you find an alert about your assignments?', ['Use Notifications and read the related task','Mark every alert done','Ask another employee for their password'],0,'Read the notification and related work with your own login.'),
+      q('How do you find an alert about your assignments?', ['Use Notifications and read the related task','Read only the alert without opening the task','Wait for the next shift to check it'],0,'Read the notification and related work with your own login.'),
     ] },
     remember: 'You will click the real My Work link, Notifications link and logo yourself. Clicking Next cannot replace these actions.',
     incorrectExample: 'An employee sees a red notification number, assumes the task is already done, and ignores it.',
@@ -47,11 +47,11 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     incorrectExample: 'A receptionist sees a note saying the toilet repair is waiting, then tells the guest that it is fixed.',
     whyIncorrect: 'The note only records an unfinished problem. Staff need to ask the responsible team what actually happened.',
     branches: [{question:'What if Maintenance cannot come before the next shift?',
-      choices:['Mark the repair complete','Tell the next receptionist who will follow up and update the guest','Delete the report'],
+      choices:['Leave a note about the repair but no guest update','Tell the next receptionist who will follow up and update the guest','Tell the guest to call back without leaving a handover'],
       correct:1, response:'The next employee must know the problem is still open and who will follow up with the guest.'}],
     questions: [
-      q('What should a useful shift note tell the next employee?', ['Only that the guest was upset','The problem, who should act and what to check next','Only the shift end time'], 1, 'The next employee needs enough information to continue the work.'),
-      q('You read a handover about a repair that is not checked yet. What should you do?', ['Assume it is repaired','Delete the note','Check the situation or tell the person responsible'], 2, 'An unresolved problem needs follow-up, not an assumed completion.'),
+      q('What should a useful shift note tell the next employee?', ['The room and problem, without the next action','The problem, who should act and what to check next','The next action, without saying which room is affected'], 1, 'The next employee needs enough information to continue the work.'),
+      q('You read a handover about a repair that is not checked yet. What should you do?', ['Wait until the guest calls again','Ask the next shift to assume it is repaired','Check the situation or tell the person responsible'], 2, 'An unresolved problem needs follow-up, not an assumed completion.'),
     ],
   },
   'staff-rooms': {
@@ -67,13 +67,13 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'My Work shows the jobs assigned to your account. Read the due date, urgency and instructions. If something is blocked, tell the appropriate lead instead of pretending it is complete.',
     example: 'An item due today is waiting for materials. Open it, understand what is missing, and tell the lead so they can help.',
     repeatVariant: { example:'You open My Work and see a job blocked because a part has not arrived. Report the blocker rather than falsely closing the task.', questions:[
-      q('A task is Waiting for another team. What should you do?', ['Check the blocker and keep the responsible person informed','Delete it','Mark it done'],0,'Waiting is not the same as finished work.'),
+      q('A task is Waiting for another team. What should you do?', ['Check the blocker and keep the responsible person informed','Leave it without an update until the due date','Move it to Done while another team is still working'],0,'Waiting is not the same as finished work.'),
       q('Where should you look for tasks assigned to your login?', ['My Work','The room directory','The shift handover'],0,'My Work shows your assigned workload.'),
     ] },
     remember: 'A task waiting for approval or another team is not automatically finished.',
     questions: [
       q('A task is due today but you cannot finish it. What should you do?', ['Say nothing until tomorrow','Tell the lead what is blocking it','Mark it done to clear the list'], 1, 'The responsible lead needs a truthful update so the issue can be addressed.'),
-      q('What does a task marked Waiting normally mean?', ['It may still need something before work can finish','It is always fully completed','It should be deleted'], 0, 'Waiting means another action or dependency may be pending.'),
+      q('What does a task marked Waiting normally mean?', ['It may still need something before work can finish','It is finished but has not been filed yet','No one needs to follow it up'], 0, 'Waiting means another action or dependency may be pending.'),
     ],
   },
   'team-tasks': {
@@ -86,7 +86,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     remember: 'Save your task and move it through each step. Choose Check saved work after each change.',
     handsOn: 'shared-no-owner',
     questions: [
-      q('A task is unassigned and needs attention today. What matters most?', ['Assigning someone who will handle it','Changing its color','Closing it without work'], 0, 'Work can be forgotten when nobody is responsible.'),
+      q('A task is unassigned and needs attention today. What matters most?', ['Assigning someone who will handle it','Changing the due date without asking anyone','Leaving it unassigned for the next shift'], 0, 'Work can be forgotten when nobody is responsible.'),
       q('Before creating a task, what should you do?', ['Create duplicates to be safe','Search for an existing task','Mark somebody else’s task as done'], 1, 'Searching first reduces duplicate and conflicting work.'),
     ],
   },
@@ -125,7 +125,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     handsOn: 'mt-light-fault',
     questions: [
       q('A repair is marked Done but has not been tested. What does that mean?', ['A final check may still be needed','The building is definitely safe','The task should be forgotten'], 0, 'Done and Verified are different steps in the work process.'),
-      q('What should a maintenance report include?', ['The exact location and what is not working','Only the employee’s nickname','An invented completed repair'], 0, 'A useful report identifies the defect and where staff need to inspect.'),
+      q('What should a maintenance report include?', ['The exact location and what is not working','The location without saying what is wrong','The fault without saying where it is'], 0, 'A useful report identifies the defect and where staff need to inspect.'),
     ],
   },
   requests: {
@@ -165,7 +165,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     remember: 'Only mark a project complete when the agreed work is finished.',
     questions: [
       q('Before creating another project for the same event, what should you do?', ['Check whether it already exists','Use an unrelated name','Mark the old project complete'], 0, 'Checking the portfolio avoids duplicate plans.'),
-      q('What makes a project easier for the team to follow?', ['A goal, deadline and next actions','A title with no owner','Only a photo'], 0, 'Clear responsibility and milestones make the project actionable.'),
+      q('What makes a project easier for the team to follow?', ['A goal, deadline and next actions','A goal without a deadline or assigned team','A deadline without the work to be done'], 0, 'Clear responsibility and milestones make the project actionable.'),
     ],
   },
   marketing: {
@@ -174,7 +174,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     remember: 'Do not publish a real poster while using the fictional training app.',
     questions: [
       q('A poster has a spelling mistake before approval. What should happen?', ['Request a correction','Publish it anyway','Delete all designs'], 0, 'The problem should be corrected before authorized publication.'),
-      q('Does a post being in Review mean it is already published?', ['Yes','No, it is awaiting a decision','Only if the file is large'], 1, 'Review and Posted are distinct stages.'),
+      q('Does a post being in Review mean it is already published?', ['Yes, once it reaches Review','No, it is awaiting a decision','Yes, if a supervisor has seen the draft'], 1, 'Review and Posted are distinct stages.'),
     ],
   },
   'management-review': {

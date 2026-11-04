@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { API_BASE } from '@/lib/api';
 import { Top } from '@/components/Top';
@@ -52,17 +52,28 @@ export default function HousekeepingPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('All');
   const [rework, setRework] = useState<Record<number,string>>({});
+  const latestRequest = useRef(0);
   const selfId = Number(getStoredUser()?.id || 0);
 
   const load = useCallback(async () => {
+    const requestId = ++latestRequest.current;
+    if (!day) {
+      setData(null);
+      setLoading(false);
+      setError('Choose a date to see rooms.');
+      return;
+    }
     setLoading(true);
     try {
       const value = await call<Board>('/turnovers?service_date=' + encodeURIComponent(day));
+      if (requestId !== latestRequest.current) return;
       setData(value);
       setError('');
     } catch (err) {
+      if (requestId !== latestRequest.current) return;
+      setData(null);
       setError(err instanceof Error ? err.message : 'Could not load room cleaning.');
-    } finally { setLoading(false); }
+    } finally { if (requestId === latestRequest.current) setLoading(false); }
   }, [day]);
   useEffect(() => { void load(); }, [load]);
 
@@ -76,25 +87,26 @@ export default function HousekeepingPage() {
     finally { setBusy(null); }
   }
 
-  const visible = useMemo(() => (data?.rooms || []).filter(room => {
+  const board = data?.date === day ? data : null;
+  const visible = useMemo(() => (board?.rooms || []).filter(room => {
     const matched = room.room_name.toLowerCase().includes(search.trim().toLowerCase());
     return matched && (status === 'All' || room.status === status);
-  }), [data, search, status]);
+  }), [board, search, status]);
   const counts = useMemo(() => {
-    const rooms = data?.rooms || [];
+    const rooms = board?.rooms || [];
     return {
       waiting: rooms.filter(room => room.status === 'Needs cleaning' || room.status === 'Needs rework').length,
       cleaning: rooms.filter(room => room.status === 'Cleaning').length,
       inspection: rooms.filter(room => room.status === 'For inspection').length,
       cleared: rooms.filter(room => room.status === 'Cleared').length,
     };
-  }, [data]);
+  }, [board]);
 
-  return <div className="housekeeping-board">
+  return <div className="housekeeping-board" aria-busy={loading}>
     <Top title="Room cleaning" right={<Link href="/rooms" className="btn secondary">All rooms</Link>} />
     <p className="hk-intro">This page is for cleaning after checkout. If a guest is staying and asks for cleaning, ask your lead to arrange a time with them.</p>
     <div className="hk-tools">
-      <label>Date <input aria-label="Cleaning date" className="input" type="date" value={day} onChange={e => setDay(e.target.value)} /></label>
+      <label>Date <input aria-label="Cleaning date" className="input" type="date" value={day} disabled={busy !== null} onChange={e => setDay(e.target.value)} /></label>
       <label>Find room <input aria-label="Find room" className="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Solace, Perch 1…" /></label>
       <label>Show <select aria-label="Cleaning status" className="select" value={status} onChange={e => setStatus(e.target.value)}>
         <option>All</option>{Object.keys(STATUS_TEXT).map(key => <option key={key} value={key}>{STATUS_TEXT[key]}</option>)}
@@ -102,16 +114,16 @@ export default function HousekeepingPage() {
       <button type="button" className="btn secondary" disabled={loading} onClick={() => void load()}>Refresh</button>
     </div>
     {error ? <p role="alert" className="hk-error">{error}</p> : null}
-    <div className="hk-counts" aria-label="Cleaning progress">
+    {board && <div className="hk-counts" aria-label="Cleaning progress">
       <div><strong>{counts.waiting}</strong><span>To clean</span></div>
       <div><strong>{counts.cleaning}</strong><span>Cleaning</span></div>
       <div><strong>{counts.inspection}</strong><span>Inspection</span></div>
       <div><strong>{counts.cleared}</strong><span>Cleared</span></div>
-    </div>
-    {!data && loading && <p role="status">Loading rooms…</p>}
+    </div>}
+    {!board && loading && <p role="status">Loading rooms…</p>}
     <div className="hk-room-grid">
       {visible.map(row => {
-        const isBusy = busy === row.room_area_id;
+        const isBusy = loading || busy !== null;
         const mine = Number(row.started_by_id) === selfId;
         const checks = row.checklist.filter(item => item.checked).length;
         return <article key={row.room_area_id} className="hk-room-card" data-testid={'cleaning-room-' + row.room_area_id}>
@@ -126,35 +138,35 @@ export default function HousekeepingPage() {
               {' · Stay: '}{update.check_in} to {update.check_out}</p>)}<p>Confirm with Front Desk before entering.</p></>}
           </div>
           {row.id === null ? <>
-            {data?.can_schedule && <button type="button" className="btn" disabled={isBusy}
+            {board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
               onClick={() => void act(row, '/turnovers', { room_area_id: row.room_area_id, service_date: day })}>Schedule cleaning</button>}
           </> : <>
             {!row.vacated_confirmed ? <div className="hk-warning">
               <strong>Waiting for Front Desk.</strong>
               <p>Front Desk needs to confirm the guest has left.</p>
-              {data?.can_schedule && <button type="button" className="btn" disabled={isBusy}
+              {board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
                 onClick={() => { if (window.confirm('Has the guest left and is the room empty?')) void act(row, '/turnovers/' + row.id + '/confirm-vacated'); }}>
                 Confirm guest has left</button>}
             </div> : null}
             {row.status === 'Needs rework' && <p className="hk-warning"><strong>Check again:</strong> {row.rework_note || 'The supervisor asked for another clean.'}</p>}
-            {row.vacated_confirmed && ['Needs cleaning', 'Needs rework'].includes(row.status) && data?.can_clean && <button type="button"
+            {row.vacated_confirmed && ['Needs cleaning', 'Needs rework'].includes(row.status) && board?.can_clean && <button type="button"
               className="btn" disabled={isBusy} onClick={() => void act(row, '/turnovers/' + row.id + '/start')}>Start cleaning</button>}
             {['Cleaning', 'For inspection', 'Cleared'].includes(row.status) && <>
               <div className="hk-check-progress"><strong>Checklist</strong><span>{checks} of {row.checklist.length} finished</span></div>
               <div className="hk-checklist">
                 {row.checklist.map(item => <label key={item.key}>
-                  <input type="checkbox" checked={item.checked} disabled={isBusy || row.status !== 'Cleaning' || !mine || !data?.can_clean}
+                  <input type="checkbox" checked={item.checked} disabled={isBusy || row.status !== 'Cleaning' || !mine || !board?.can_clean}
                     onChange={event => void act(row, '/turnovers/' + row.id + '/items/' + item.key, { checked: event.target.checked }, 'PATCH')} />
                   <span>{item.label}</span>
                 </label>)}
               </div>
             </>}
-            {row.status === 'Cleaning' && mine && data?.can_clean && <button className="btn" type="button"
+            {row.status === 'Cleaning' && mine && board?.can_clean && <button className="btn" type="button"
               disabled={isBusy || checks !== row.checklist.length}
               onClick={() => void act(row, '/turnovers/' + row.id + '/submit')}>Send for inspection</button>}
             {row.status === 'For inspection' && <div className="hk-inspect">
               <p><strong>Waiting for inspection.</strong> A different supervisor must check this room.</p>
-              {data?.can_inspect && row.started_by_id !== selfId && <>
+              {board?.can_inspect && row.started_by_id !== selfId && <>
                 <button className="btn" disabled={isBusy} onClick={() => void act(row, '/turnovers/' + row.id + '/inspect', { cleared: true })}>Approve cleaning</button>
                 <label>What needs fixing? <textarea className="textarea" value={rework[row.id!] || ''} onChange={event => setRework(v => ({ ...v, [row.id!]: event.target.value }))} placeholder="Example: Bathroom mirror still has water marks." /></label>
                 <button className="btn secondary" disabled={isBusy || (rework[row.id!] || '').trim().length < 5}
@@ -166,6 +178,6 @@ export default function HousekeepingPage() {
         </article>;
       })}
     </div>
-    {data && !visible.length && <p role="status">No rooms match this view.</p>}
+    {board && !visible.length && <p role="status">No rooms match this view.</p>}
   </div>;
 }

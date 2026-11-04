@@ -123,3 +123,46 @@ test('a recorded check-in is shown separately from cleaning and remains subject 
   await expect(card).toContainText('Confirm with Front Desk before entering.');
   await expect(card.getByRole('button', { name: 'Start cleaning' })).toHaveCount(0);
 });
+
+test('changing dates cannot show an older room list after a slower request finishes', async ({ page }) => {
+  await visit(page, 'front', () => fakeBoard('front', false, 'No cleaning request'));
+  let releaseOld!: () => void;
+  const oldRequest = new Promise<void>(resolve => { releaseOld = resolve; });
+  let oldStarted!: () => void;
+  const started = new Promise<void>(resolve => { oldStarted = resolve; });
+  await page.route('**/api/housekeeping/turnovers?*', async route => {
+    const day = new URL(route.request().url()).searchParams.get('service_date');
+    if (day === '2026-11-05') { oldStarted(); await oldRequest; }
+    const board = fakeBoard('front', false, 'No cleaning request');
+    board.date = day || '';
+    board.rooms[0].room_name = day === '2026-11-06' ? 'Perch 1' : 'Old room';
+    await route.fulfill({ status: 200, json: board });
+  });
+  await page.getByLabel('Cleaning date').fill('2026-11-05');
+  await started;
+  await expect(page.getByRole('heading', { name: 'Solace' })).toHaveCount(0);
+  await page.getByLabel('Cleaning date').fill('2026-11-06');
+  await expect(page.getByRole('heading', { name: 'Perch 1' })).toBeVisible();
+  const lateResponse = page.waitForResponse(response => response.url().includes('service_date=2026-11-05'));
+  releaseOld();
+  await lateResponse;
+  await expect(page.getByRole('heading', { name: 'Old room' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Perch 1' })).toBeVisible();
+});
+
+test('a failed refresh removes the old room list instead of presenting it as current', async ({ page }) => {
+  await visit(page, 'front', () => fakeBoard('front', false, 'No cleaning request'));
+  await expect(page.getByRole('heading', { name: 'Solace' })).toBeVisible();
+  await page.route('**/api/housekeeping/turnovers?*', route => route.fulfill({ status: 503, json: {} }));
+  await page.getByRole('button', { name: 'Refresh' }).click();
+  await expect(page.locator('.hk-error')).toContainText('Room cleaning is unavailable');
+  await expect(page.getByRole('heading', { name: 'Solace' })).toHaveCount(0);
+  await expect(page.getByLabel('Cleaning progress')).toHaveCount(0);
+});
+
+test('clearing the date asks staff to choose a date without showing a room list', async ({ page }) => {
+  await visit(page, 'front', () => fakeBoard('front', false, 'No cleaning request'));
+  await page.getByLabel('Cleaning date').fill('');
+  await expect(page.locator('.hk-error')).toHaveText('Choose a date to see rooms.');
+  await expect(page.getByRole('heading', { name: 'Solace' })).toHaveCount(0);
+});
