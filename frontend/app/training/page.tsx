@@ -293,6 +293,27 @@ export default function PracticeTrainingPage() {
     }
   }
 
+  function saveNoteForTrainer() {
+    if (!selected || !result?.errors.note) return;
+    const contents = [
+      'PRACTICE ONLY — NEEDS TRAINER REVIEW',
+      'Situation: ' + selected.title,
+      'Practice number: ' + selected.reference,
+      '', 'Note for the next shift:', answers.note.trim(),
+      ...(answers.owner ? ['', 'Responsible person: ' + answers.owner.trim()] : []),
+      ...(answers.followUp ? ['', 'Next check: ' + answers.followUp.trim()] : []),
+      '', 'This practice has not been marked complete.',
+    ].join('\n');
+    const objectUrl = URL.createObjectURL(new Blob([contents], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = 'practice-note-for-trainer.txt';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }
+
   function exportResults() {
     if (!user) return;
     // Each row is a self-reported, device-local learning result, not a signed
@@ -589,6 +610,7 @@ export default function PracticeTrainingPage() {
             {selected.noteChecks && <small>Make sure your note explains {selected.noteChecks.map(rule => rule.label).join(' and ')}. Say what the person should do.</small>}
             {result?.errors.note && <><small className="practice-error" role="alert">{result.errors.note}</small><small>If your note already covers this, ask your trainer to review it.</small><details><summary>See an example note</summary><p>{selected.example}</p></details></>}
           </label>
+          {result?.errors.note && <button type="button" className="practice-secondary" onClick={saveNoteForTrainer}>Save note for trainer</button>}
           {result && !result.passed && <p className="practice-notice" role="status">Check the highlighted answers, make the changes, and try again.</p>}
           <div className="practice-actions">
             <button type="submit" className="practice-primary" data-testid="scenario-submit">Check my note</button>

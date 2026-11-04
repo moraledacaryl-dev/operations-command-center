@@ -186,6 +186,15 @@ test('original shift handover rejects filler even after correct priority and rou
   await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
   await expect(page.getByText('Your note does not clearly explain')).toBeVisible();
   await expect(page.getByText('If your note already covers this, ask your trainer to review it.')).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save note for trainer' }).click();
+  const download = await downloadPromise;
+  const { readFile } = await import('node:fs/promises');
+  const noteFile = await readFile((await download.path())!, 'utf8');
+  expect(noteFile).toContain('NEEDS TRAINER REVIEW');
+  expect(noteFile).toContain('DEMO-HANDOVER-014');
+  expect(noteFile).toContain('This practice has not been marked complete.');
+  await expect(page.getByTestId('scenario-complete')).toHaveCount(0);
   await page.getByText('See an example note').click();
   await expect(page.getByText('DEMO-HANDOVER-014: Twinspire guest says the toilet will not flush.', { exact: false })).toBeVisible();
   await page.getByTestId('scenario-note').fill(
