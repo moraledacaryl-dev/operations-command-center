@@ -33,6 +33,14 @@ function previousGuestClean(row: Turnover) {
   return Boolean(['Cleaning', 'For inspection', 'Cleared'].includes(row.status) && row.vacated_at && row.guest_stay && (!row.guest_stay.checked_out_at || new Date(row.vacated_at).getTime() <= Math.max(new Date(row.guest_stay.checked_in_at).getTime(), new Date(row.guest_stay.checked_out_at).getTime())));
 }
 
+function roomPlans(row: Turnover, day: string) {
+  const planned = (row.booking_updates || []).filter(update => ['confirmed', 'checked_in', 'checked_out'].includes(update.status));
+  return {
+    arrival: planned.some(update => update.check_in === day),
+    departure: planned.some(update => update.check_out === day),
+  };
+}
+
 function recordedTime(value: string) {
   return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(value));
 }
@@ -61,6 +69,9 @@ export default function HousekeepingPage() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('All');
+  const [plans, setPlans] = useState('All');
+  const [correcting, setCorrecting] = useState<number | null>(null);
+  const [correctionReason, setCorrectionReason] = useState('');
   const [rework, setRework] = useState<Record<number,string>>({});
   const latestRequest = useRef(0);
   const selfId = Number(getStoredUser()?.id || 0);
@@ -78,6 +89,7 @@ export default function HousekeepingPage() {
       const value = await call<Board>('/turnovers?service_date=' + encodeURIComponent(day));
       if (requestId !== latestRequest.current) return;
       setData(value);
+      setCorrecting(null); setCorrectionReason('');
       setError('');
     } catch (err) {
       if (requestId !== latestRequest.current) return;
@@ -92,6 +104,10 @@ export default function HousekeepingPage() {
     setError('');
     try {
       await call(path, { method, ...(payload ? { body: JSON.stringify(payload) } : {}) });
+      if (process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' && /\/(check-in|check-out|correct)$/.test(path)) {
+        window.dispatchEvent(new CustomEvent('ho-room-status-saved', { detail: { roomId: row.room_area_id } }));
+      }
+      if (path.endsWith('/correct')) { setCorrecting(null); setCorrectionReason(''); }
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save the cleaning update.'); }
     finally { setBusy(null); }
@@ -100,8 +116,11 @@ export default function HousekeepingPage() {
   const board = data?.date === day ? data : null;
   const visible = useMemo(() => (board?.rooms || []).filter(room => {
     const matched = room.room_name.toLowerCase().includes(search.trim().toLowerCase());
-    return matched && (status === 'All' || room.status === status);
-  }), [board, search, status]);
+    const plan = roomPlans(room, day);
+    const matchesPlan = plans === 'All' || (plans === 'Arrivals' && plan.arrival)
+      || (plans === 'Departures' && plan.departure) || (plans === 'Both' && plan.arrival && plan.departure);
+    return matched && matchesPlan && (status === 'All' || room.status === status);
+  }), [board, search, status, plans, day]);
   const counts = useMemo(() => {
     const rooms = board?.rooms || [];
     return {
@@ -118,6 +137,9 @@ export default function HousekeepingPage() {
     <div className="hk-tools">
       <label>Date <input aria-label="Cleaning date" className="input" type="date" value={day} disabled={busy !== null} onChange={e => setDay(e.target.value)} /></label>
       <label>Find room <input aria-label="Find room" className="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Solace, Perch 1…" /></label>
+      <label>Room plans <select aria-label="Room plans" className="select" value={plans} onChange={e => setPlans(e.target.value)}>
+        <option value="All">All rooms</option><option>Arrivals</option><option>Departures</option><option value="Both">Arrival and departure</option>
+      </select></label>
       <label>Show <select aria-label="Cleaning status" className="select" value={status} onChange={e => setStatus(e.target.value)}>
         <option>All</option>{Object.keys(STATUS_TEXT).map(key => <option key={key} value={key}>{STATUS_TEXT[key]}</option>)}
       </select></label>
@@ -133,9 +155,7 @@ export default function HousekeepingPage() {
     {!board && loading && <p role="status">Loading rooms…</p>}
     <div className="hk-room-grid">
       {visible.map(row => {
-        const planned = (row.booking_updates || []).filter(update => ['confirmed', 'checked_in', 'checked_out'].includes(update.status));
-        const arrival = planned.some(update => update.check_in === day);
-        const departure = planned.some(update => update.check_out === day);
+        const { arrival, departure } = roomPlans(row, day);
         const isBusy = loading || busy !== null;
         const guestHere = day === propertyDay() && Boolean(row.guest_stay && !row.guest_stay.checked_out_at);
         const previousClean = previousGuestClean(row);
@@ -163,11 +183,20 @@ export default function HousekeepingPage() {
               }}>{guestHere ? 'Record checkout' : 'Record check-in'}</button>}
             {day === propertyDay() && board?.can_schedule && row.guest_stay && <button type="button" className="btn secondary" disabled={isBusy}
               onClick={() => {
-                const reason = window.prompt('What was recorded incorrectly?');
-                if (reason?.trim() && window.confirm(guestHere ? 'Remove this check-in record?' : 'Undo this checkout and show the guest as checked in?')) {
-                  void act(row, `/rooms/${row.room_area_id}/stays/${row.guest_stay!.id}/correct`, { reason: reason.trim() });
-                }
+                setCorrecting(row.room_area_id); setCorrectionReason('');
               }}>{guestHere ? 'Correct check-in' : 'Correct checkout'}</button>}
+            {correcting === row.room_area_id && row.guest_stay && board?.can_schedule && day === propertyDay() && <form className="hk-correction"
+              onSubmit={event => { event.preventDefault(); if (correctionReason.trim().length >= 5) void act(row, `/rooms/${row.room_area_id}/stays/${row.guest_stay!.id}/correct`, { reason: correctionReason.trim(), action: guestHere ? 'void_checkin' : 'undo_checkout' }); }}>
+              <p>{guestHere ? 'Remove this check-in if it was recorded by mistake.' : 'Undoing checkout shows the guest as checked in again. Tell Housekeeping if cleaning has started.'}</p>
+              <label>What was recorded incorrectly?
+                <textarea className="textarea" value={correctionReason} maxLength={400} disabled={isBusy}
+                  onChange={event => setCorrectionReason(event.target.value)} placeholder="Example: I selected the wrong room." />
+              </label>
+              <small>Add a short reason, at least 5 characters. The correction stays in the record.</small>
+              <button className="btn" type="submit" disabled={isBusy || correctionReason.trim().length < 5}>{guestHere ? 'Remove check-in record' : 'Undo checkout'}</button>
+              <button className="btn secondary" type="button" disabled={isBusy} onClick={() => setCorrecting(null)}>Cancel correction</button>
+            </form>}
+            {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' && <div data-room-practice-check={row.room_area_id} />}
             {guestHere && ['Cleaning', 'For inspection'].includes(row.status) && <p>Cleaning was already in progress. Tell your lead and check with Front Desk.</p>}
             {previousClean && <p>This cleaning was for an earlier guest. {guestHere ? 'Tell your lead and wait until checkout.' : 'Schedule another clean.'}</p>}
             {row.needs_another_clean && board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
@@ -179,13 +208,13 @@ export default function HousekeepingPage() {
           </> : <>
             {!row.vacated_confirmed && !guestHere ? <div className="hk-warning">
               <strong>Waiting for Front Desk.</strong>
-              <p>Front Desk needs to confirm the guest has left.</p>
-              {board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
+              <p>{day > propertyDay() ? 'Front Desk can confirm the room is empty on the cleaning date.' : 'Front Desk needs to confirm the guest has left.'}</p>
+              {day <= propertyDay() && board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
                 onClick={() => { if (window.confirm('Has the guest left and is the room empty?')) void act(row, '/turnovers/' + row.id + '/confirm-vacated'); }}>
                 Confirm guest has left</button>}
             </div> : null}
             {row.status === 'Needs rework' && <p className="hk-warning"><strong>Check again:</strong> {row.rework_note || 'The supervisor asked for another clean.'}</p>}
-            {!guestHere && row.vacated_confirmed && ['Needs cleaning', 'Needs rework'].includes(row.status) && board?.can_clean && <button type="button"
+            {day <= propertyDay() && !guestHere && row.vacated_confirmed && ['Needs cleaning', 'Needs rework'].includes(row.status) && board?.can_clean && <button type="button"
               className="btn" disabled={isBusy} onClick={() => void act(row, '/turnovers/' + row.id + '/start')}>Start cleaning</button>}
             {['Cleaning', 'For inspection', 'Cleared'].includes(row.status) && <>
               <div className="hk-check-progress"><strong>Checklist</strong><span>{checks} of {row.checklist.length} finished</span></div>

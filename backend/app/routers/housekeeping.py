@@ -6,6 +6,7 @@ Neither action changes PMS reservations or Rooms inventory status.
 """
 import json
 import os
+from typing import Literal
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -43,6 +44,7 @@ class PlanRequest(BaseModel):
 
 
 class CorrectionRequest(BaseModel):
+    action: Literal["undo_checkout", "void_checkin"] | None = None
     reason: str = Field(min_length=5, max_length=400)
 
 
@@ -163,6 +165,8 @@ def _stay_data(stay):
     if not stay:
         return None
     return {"id": stay.id, "checked_in_at": stay.checked_in_at.isoformat(),
+            "checked_in_by_id": stay.checked_in_by_id,
+            "checked_out_by_id": stay.checked_out_by_id,
             "checked_out_at": stay.checked_out_at.isoformat() if stay.checked_out_at else None}
 
 
@@ -219,6 +223,9 @@ def correct_stay(room_id: int, stay_id: int, payload: CorrectionRequest,
     stay = db.query(models.RoomStay).filter_by(room_area_id=room_id, voided_at=None).order_by(models.RoomStay.id.desc()).with_for_update().first()
     if not stay or stay.id != stay_id:
         raise HTTPException(status_code=409, detail="The room status changed. Refresh and check again.")
+    expected_action = "undo_checkout" if stay.checked_out_at else "void_checkin"
+    if payload.action != expected_action:
+        raise HTTPException(status_code=409, detail="The room status changed. Refresh and check again before correcting it.")
     now = utc_now()
     if stay.checked_out_at:
         action, previous_at, previous_by = "undo_checkout", stay.checked_out_at, stay.checked_out_by_id
