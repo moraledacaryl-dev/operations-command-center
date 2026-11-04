@@ -258,8 +258,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {trainingMode ? <FrontDeskRoomPractice user={user} path={path} /> : null}
         {trainingMode ? <RoomArrivalPractice user={user} path={path} /> : null}
         {trainingMode ? <DepartmentShiftPractice user={user} path={path} /> : null}
-        <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{trainingMode ? <IndependentShiftChallenge user={user} path={path} /> : null}{children}</main>
         {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <InteractiveTraining user={user} path={path} /> : null}
+        <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{trainingMode ? <IndependentShiftChallenge user={user} path={path} /> : null}{children}</main>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         {[homeNavigationItems[0], homeNavigationItems[1], workItems[0], decisionItems[0]].map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
