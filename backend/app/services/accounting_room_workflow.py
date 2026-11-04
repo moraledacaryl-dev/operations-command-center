@@ -78,7 +78,7 @@ def _reconcile(db, room_id, day):
         AccountingRoomBooking.check_out == day,
         AccountingRoomBooking.status.in_(ACTIVE),
     ).all())
-    row = db.query(models.RoomTurnover).filter_by(room_area_id=room_id, service_date=day).with_for_update().first()
+    row = db.query(models.RoomTurnover).filter_by(room_area_id=room_id, service_date=day).order_by(models.RoomTurnover.cycle.desc()).with_for_update().first()
     if active and not row:
         db.add(models.RoomTurnover(room_area_id=room_id, service_date=day,
             source="accounting", status="Needs cleaning", vacated_confirmed=False,

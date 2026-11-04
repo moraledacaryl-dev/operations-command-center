@@ -11,10 +11,12 @@ type Check = { key: string; label: string; checked: boolean };
 type Turnover = {
   id: number | null; room_area_id: number; room_name: string;
   service_date: string; status: string; source: string | null;
-  vacated_confirmed: boolean; checklist: Check[];
+  vacated_confirmed: boolean; vacated_at?: string | null; checklist: Check[];
   started_by_id?: number | null; submitted_by_id?: number | null;
   inspected_by_id?: number | null; inspected_at?: string | null;
   rework_note?: string | null;
+  guest_stay?: { id: number; checked_in_at: string; checked_out_at: string | null } | null;
+  needs_another_clean?: boolean;
   booking_updates?: { status: string; origin: string; check_in: string; check_out: string; reported_at: string }[];
 };
 type Board = { date: string; rooms: Turnover[]; can_schedule: boolean; can_clean: boolean; can_inspect: boolean; accounting_connected?: boolean };
@@ -26,6 +28,14 @@ const STATUS_TEXT: Record<string,string> = {
   'Cleared': 'Inspected and cleared',
   'Needs rework': 'Return for cleaning',
 };
+
+function previousGuestClean(row: Turnover) {
+  return Boolean(['Cleaning', 'For inspection', 'Cleared'].includes(row.status) && row.vacated_at && row.guest_stay && (!row.guest_stay.checked_out_at || new Date(row.vacated_at).getTime() <= Math.max(new Date(row.guest_stay.checked_in_at).getTime(), new Date(row.guest_stay.checked_out_at).getTime())));
+}
+
+function recordedTime(value: string) {
+  return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(value));
+}
 
 function propertyDay() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -95,10 +105,10 @@ export default function HousekeepingPage() {
   const counts = useMemo(() => {
     const rooms = board?.rooms || [];
     return {
-      waiting: rooms.filter(room => room.status === 'Needs cleaning' || room.status === 'Needs rework').length,
-      cleaning: rooms.filter(room => room.status === 'Cleaning').length,
-      inspection: rooms.filter(room => room.status === 'For inspection').length,
-      cleared: rooms.filter(room => room.status === 'Cleared').length,
+      waiting: rooms.filter(room => room.status === 'Needs cleaning' || room.status === 'Needs rework' || room.needs_another_clean).length,
+      cleaning: rooms.filter(room => room.status === 'Cleaning' && !previousGuestClean(room)).length,
+      inspection: rooms.filter(room => room.status === 'For inspection' && !previousGuestClean(room)).length,
+      cleared: rooms.filter(room => room.status === 'Cleared' && !previousGuestClean(room)).length,
     };
   }, [board]);
 
@@ -124,24 +134,42 @@ export default function HousekeepingPage() {
     <div className="hk-room-grid">
       {visible.map(row => {
         const isBusy = loading || busy !== null;
+        const guestHere = day === propertyDay() && Boolean(row.guest_stay && !row.guest_stay.checked_out_at);
+        const previousClean = previousGuestClean(row);
         const mine = Number(row.started_by_id) === selfId;
         const checks = row.checklist.filter(item => item.checked).length;
         return <article key={row.room_area_id} className="hk-room-card" data-testid={'cleaning-room-' + row.room_area_id}>
-          <header><h2>{row.room_name}</h2><span className="hk-status">Cleaning: {STATUS_TEXT[row.status] || row.status}</span></header>
+          <header><h2>{row.room_name}</h2><span className="hk-status">Cleaning: {previousClean ? "Previous guest’s cleaning" : STATUS_TEXT[row.status] || row.status}</span></header>
           <div className="hk-guest-status">
             <strong>Guest status</strong>
-            {day !== propertyDay() ? <p>Not available for this date. Check with Front Desk.</p>
-              : !(row.booking_updates || []).length ? <p>Not confirmed. Check with Front Desk.</p>
-              : <>{(row.booking_updates || []).map((update, index) => <p key={index}>
-                {({ checked_in: 'Check-in recorded', checked_out: 'Checkout recorded', confirmed: 'Booking confirmed; check-in not confirmed', cancelled: 'Booking cancelled', no_show: 'Guest did not arrive' } as Record<string,string>)[update.status] || 'Guest status not confirmed'}
-                {' · Received: '}{new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(update.reported_at.endsWith('Z') || /[+-]\d\d:\d\d$/.test(update.reported_at) ? update.reported_at : update.reported_at + 'Z'))}
-              {' · Stay: '}{update.check_in} to {update.check_out}</p>)}<p>Confirm with Front Desk before entering.</p></>}
+            {day !== propertyDay() ? <p>Guest status is shown for today only.</p>
+              : !row.guest_stay ? <p>Not recorded. Check with Front Desk.</p>
+              : guestHere ? <p>Checked in. Do not start a checkout clean. <br />Recorded {recordedTime(row.guest_stay.checked_in_at)}.</p>
+              : <p>Last checkout recorded. Check with Front Desk before entering. <br />Recorded {recordedTime(row.guest_stay.checked_out_at!)}.</p>}
+            {day === propertyDay() && board?.can_schedule && <button type="button" className="btn secondary" disabled={isBusy}
+              onClick={() => {
+                const action = guestHere ? 'checkout' : 'check-in';
+                if (window.confirm(`Record ${action} for ${row.room_name}?`)) {
+                  void act(row, guestHere ? `/rooms/${row.room_area_id}/stays/${row.guest_stay!.id}/check-out` : `/rooms/${row.room_area_id}/check-in`);
+                }
+              }}>{guestHere ? 'Record checkout' : 'Record check-in'}</button>}
+            {day === propertyDay() && board?.can_schedule && row.guest_stay && <button type="button" className="btn secondary" disabled={isBusy}
+              onClick={() => {
+                const reason = window.prompt('What was recorded incorrectly?');
+                if (reason?.trim() && window.confirm(guestHere ? 'Remove this check-in record?' : 'Undo this checkout and show the guest as checked in?')) {
+                  void act(row, `/rooms/${row.room_area_id}/stays/${row.guest_stay!.id}/correct`, { reason: reason.trim() });
+                }
+              }}>{guestHere ? 'Correct check-in' : 'Correct checkout'}</button>}
+            {guestHere && ['Cleaning', 'For inspection'].includes(row.status) && <p>Cleaning was already in progress. Tell your lead and check with Front Desk.</p>}
+            {previousClean && <p>This cleaning was for an earlier guest. {guestHere ? 'Tell your lead and wait until checkout.' : 'Schedule another clean.'}</p>}
+            {row.needs_another_clean && board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
+              onClick={() => void act(row, '/turnovers', { room_area_id: row.room_area_id, service_date: day })}>Schedule another clean</button>}
           </div>
-          {row.id === null ? <>
+          {!previousClean && (row.id === null ? <>
             {board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
               onClick={() => void act(row, '/turnovers', { room_area_id: row.room_area_id, service_date: day })}>Schedule cleaning</button>}
           </> : <>
-            {!row.vacated_confirmed ? <div className="hk-warning">
+            {!row.vacated_confirmed && !guestHere ? <div className="hk-warning">
               <strong>Waiting for Front Desk.</strong>
               <p>Front Desk needs to confirm the guest has left.</p>
               {board?.can_schedule && <button type="button" className="btn" disabled={isBusy}
@@ -149,7 +177,7 @@ export default function HousekeepingPage() {
                 Confirm guest has left</button>}
             </div> : null}
             {row.status === 'Needs rework' && <p className="hk-warning"><strong>Check again:</strong> {row.rework_note || 'The supervisor asked for another clean.'}</p>}
-            {row.vacated_confirmed && ['Needs cleaning', 'Needs rework'].includes(row.status) && board?.can_clean && <button type="button"
+            {!guestHere && row.vacated_confirmed && ['Needs cleaning', 'Needs rework'].includes(row.status) && board?.can_clean && <button type="button"
               className="btn" disabled={isBusy} onClick={() => void act(row, '/turnovers/' + row.id + '/start')}>Start cleaning</button>}
             {['Cleaning', 'For inspection', 'Cleared'].includes(row.status) && <>
               <div className="hk-check-progress"><strong>Checklist</strong><span>{checks} of {row.checklist.length} finished</span></div>
@@ -173,8 +201,8 @@ export default function HousekeepingPage() {
                   onClick={() => void act(row, '/turnovers/' + row.id + '/inspect', { cleared: false, note: rework[row.id!] })}>Return for cleaning</button>
               </>}
             </div>}
-            {row.status === 'Cleared' && <p className="hk-cleared">Cleaning approved. Check the booking before assigning the room.</p>}
-          </>}
+            {row.status === 'Cleared' && !previousClean && <p className="hk-cleared">Cleaning approved. Check the booking before assigning the room.</p>}
+          </>)}
         </article>;
       })}
     </div>
