@@ -223,3 +223,25 @@ test('a later guest needs a new clean, not the old approval', async ({ page }) =
   await expect(card.getByRole('button', { name: 'Schedule another clean' })).toBeVisible();
   await expect(card.getByText('Cleaning approved.', { exact: false })).toHaveCount(0);
 });
+
+test('arrival and departure plans are clear and separate from guest status', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-04T03:00:00Z'));
+  let snapshot = { ...fakeBoard('cleaner', true, 'Needs cleaning'), rooms: [{
+    ...fakeBoard('cleaner', true, 'Needs cleaning').rooms[0],
+    booking_updates: [
+      { status: 'confirmed', origin: 'accounting', check_in: '2026-11-04', check_out: '2026-11-06', reported_at: '2026-11-04T02:00:00Z' },
+      { status: 'confirmed', origin: 'accounting', check_in: '2026-11-01', check_out: '2026-11-04', reported_at: '2026-11-04T02:00:00Z' },
+    ],
+  }] };
+  await visit(page, 'cleaner', () => snapshot);
+  const card = page.getByTestId('cleaning-room-31');
+  await expect(card).toContainText('Plans for this date');
+  await expect(card).toContainText('Arrival · Departure');
+  await expect(card).toContainText('Not recorded. Check with Front Desk.');
+  await expect(card.getByRole('button', { name: 'Start cleaning' })).toHaveCount(0);
+  snapshot.rooms[0].booking_updates[1].status = 'cancelled';
+  await page.getByRole('button', { name: 'Refresh' }).click();
+  await expect(card).not.toContainText('Arrival · Departure');
+  await expect(card.getByText('Arrival', { exact: true })).toBeVisible();
+  await expect(card.getByText('Departure', { exact: true })).toHaveCount(0);
+});

@@ -240,3 +240,24 @@ def test_front_desk_corrects_mistakes_with_audit_history(state):
     assert check_in(room.id, user=people['front'], db=db)['id'] != stay['id']
     with pytest.raises(HTTPException):
         correct_stay(room.id, stay['id'], CorrectionRequest(reason='wrong room'), user=people['front'], db=db)
+
+
+def test_planned_arrival_and_departure_available_for_selected_upcoming_day(state):
+    import json
+    from datetime import datetime, timezone
+    from app.integration_models import AccountingRoomBooking
+    db, people, room = state
+    for key, arrival, departure in [('a', '2026-11-07', '2026-11-09'),
+                                    ('b', '2026-11-05', '2026-11-07'),
+                                    ('c', '2026-11-06', None)]:
+        db.add(AccountingRoomBooking(booking_id=key, revision=1, room_ids_json=json.dumps([room.id]),
+            check_in=arrival, check_out=departure, status='confirmed', origin='accounting',
+            reported_at=datetime(2026, 11, 6, tzinfo=timezone.utc)))
+    db.commit()
+    day = list_turnovers(service_date='2026-11-07', user=people['cleaner'], db=db)['rooms'][0]
+    assert sum(x['check_in'] == '2026-11-07' for x in day['booking_updates']) == 1
+    assert sum(x['check_out'] == '2026-11-07' for x in day['booking_updates']) == 1
+    assert day['guest_stay'] is None and not day['vacated_confirmed']
+    today = list_turnovers(service_date='2026-11-06', user=people['front'], db=db)['rooms'][0]
+    assert any(x['check_in'] == '2026-11-06' and x['check_out'] is None for x in today['booking_updates'])
+    assert list_turnovers(service_date='2026-11-05', user=people['front'], db=db)['rooms'][0]['booking_updates'] == []

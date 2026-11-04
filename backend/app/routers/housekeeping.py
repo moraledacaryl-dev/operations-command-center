@@ -261,15 +261,17 @@ def list_turnovers(
         "service_date": day, "status": "No cleaning request", "source": None,
         "vacated_confirmed": False, "checklist": [],
     } for r in rooms]
-    # Booking snapshots describe the latest report, not a history of past days.
-    # Include stays spanning today and outstanding check-ins past departure;
-    # do not present today's status as a
-    # historical or future occupancy record.
+    # Booking snapshots show planned dates, not proof a guest has arrived or left.
+    # Past-day snapshots are not a reliable history, so only use today or later.
     today = utc_now().astimezone(TZ).date().isoformat()
-    snapshots = (db.query(AccountingRoomBooking).filter(
-        AccountingRoomBooking.check_in <= day,
-        or_(AccountingRoomBooking.check_out >= day, AccountingRoomBooking.status == "checked_in"),
-    ).all() if day == today else [])
+    if day >= today:
+        date_filter = or_(AccountingRoomBooking.check_in == day, AccountingRoomBooking.check_out == day)
+        if day == today:
+            date_filter = or_(date_filter, (AccountingRoomBooking.check_in <= day) &
+                or_(AccountingRoomBooking.check_out >= day, AccountingRoomBooking.status == "checked_in"))
+        snapshots = db.query(AccountingRoomBooking).filter(date_filter).all()
+    else:
+        snapshots = []
     stays = db.query(models.RoomStay).filter_by(voided_at=None).order_by(models.RoomStay.id.desc()).all() if day == today else []
     latest_stays = {}
     for stay in stays:
