@@ -60,7 +60,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     steps: [
       { path: '/housekeeping', selector: '.hk-tools button', targetText: 'Refresh', title: 'Refresh the room list', body: 'Choose Refresh to see the latest room updates. This lesson uses practice details.', advanceOnClick: true, requiresAction: true },
       { path: '/housekeeping', selector: '.hk-guest-status, .hk-room-card, .hk-tools', title: 'Read guest status', body: 'Front Desk records check-in when the guest arrives and checkout when they leave. If the status is not recorded, ask Front Desk before entering.' },
-      { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'After checkout', body: 'Front Desk confirms the guest has left and schedules cleaning. Housekeeping cleans, then a different supervisor inspects. A second guest needs a fresh clean.' },
+      { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'After checkout', body: 'Front Desk schedules cleaning and confirms the guest has left. Housekeeping cleans, then a different supervisor inspects. A second guest needs a fresh clean.' },
       { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'Fix a mistake', body: 'Front Desk can choose Correct check-in or Correct checkout and explain what happened. Tell your lead if cleaning has already started.' },
     ],
   },

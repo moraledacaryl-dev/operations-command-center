@@ -95,7 +95,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
       { label: 'recording checkout', alternatives: ['checkout', 'check-out', 'checked out'] },
       { label: 'arranging cleaning', alternatives: ['clean', 'housekeeping'] },
     ],
-    example: 'DEMO-SOLACE-OUT: record checkout for Solace, confirm the guest has left, and arrange cleaning. Wait for inspection before saying the room is ready.',
+    example: 'DEMO-SOLACE-OUT: record checkout for Solace, schedule cleaning, and confirm the guest has left. Wait for inspection before saying the room is ready.',
     why: 'A recorded checkout helps the team, but it does not mean the room has been cleaned or inspected.',
   },
   {
