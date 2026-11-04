@@ -14,7 +14,7 @@ async function startDemo(page: import('@playwright/test').Page, withWorkflow = f
     // Spotlight tests intentionally start with a completed fictional course;
     // first-sign-in lesson requirements are verified in required-course.spec.ts.
     localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
-      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
+      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms room-arrivals staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
     }));
     localStorage.setItem('cc_department_id', '41');
     if (workflow) localStorage.setItem('ho-ops-verified-workflow-v1:' + String(user.id), JSON.stringify({

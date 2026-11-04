@@ -6,7 +6,7 @@ import { parseScenarioProgress } from '../lib/training-progress';
 
 const staff = { id: 6111, name: 'Fictional New Receptionist', email: 'new@training.invalid', role: 'staff',
   departments: [{ id: 41, name: 'Front Desk' }], primary_department_id: 41, capabilities: {} };
-const courseDone = ['orientation', 'staff-handover', 'staff-rooms', 'staff-my-work'];
+const courseDone = ['orientation', 'staff-handover', 'staff-rooms', 'room-arrivals', 'staff-my-work'];
 async function login(page: import('@playwright/test').Page, finished = false) {
   await page.addInitScript(({ user, done, passed }) => {
     if (!localStorage.getItem('cc_user')) {

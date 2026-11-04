@@ -20,6 +20,8 @@ export const INDEPENDENT_CHECKS: Record<string, readonly [IndependentAction,Inde
     tab('/shift','Shift note filters','Unresolved','Find unfinished handovers')],
   'staff-rooms': [tab('/rooms','Space type','Guest rooms','Find the guest rooms'),
     tab('/rooms','Space type','Shared areas','Find shared areas')],
+  'room-arrivals': [{ path: '/housekeeping', selector: 'input[aria-label="Find room"]', type: 'input', title: 'Find a room', instruction: 'Type a practice room name in Find room.' },
+    { path: '/housekeeping', selector: '.hk-tools button', containsText: 'Refresh', title: 'Refresh the room list', instruction: 'Refresh the list to see the latest room updates.' }],
   'staff-my-work': [home, back],
   'team-tasks': [tab('/tasks','Task view','List','Switch tasks to List'),
     tab('/tasks','Task view','Board','Switch back to Board')],

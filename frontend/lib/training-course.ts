@@ -57,10 +57,19 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   'staff-rooms': {
     explanation: 'The Rooms screen lists actual Hidden Oasis room names, with made-up practice reports. First find the correct room and check whether the problem has already been reported.',
     example: 'A guest in Solace says the air conditioner is not cooling. Open Solace and check its saved guest report before creating another report.',
-    remember: 'Check the correct room name. Never mix one guest’s information with another guest’s report.',
+    remember: 'Check the correct room name. Front Desk records check-in and checkout on Room cleaning. If a record is wrong, choose Correct and explain the mistake. If guest status is not recorded, ask Front Desk before entering.',
     questions: [
       q('Before reporting another problem in Solace, what should you check?', ['Whether the issue is already recorded','Only whether the room has been cleaned','Only whether a different room has a problem'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
-      q('Why should you confirm the room name?', ['To send the right team to the correct place','To check whether the room is clean','To decide when the next shift starts'], 0, 'The correct room name prevents wasted trips and mistaken guest updates.'),
+      q('A room says guest status is not recorded. What should you do before entering?', ['Ask Front Desk to check','Assume the guest has left','Start the checkout clean'], 0, 'A missing record does not mean the room is empty.'),
+    ],
+  },
+  'room-arrivals': {
+    explanation: 'Room cleaning shows the guest status and the cleaning work separately. Front Desk records arrivals and departures. Housekeeping waits for confirmation that the guest has left before starting a checkout clean.',
+    example: 'A practice guest leaves Solace. Front Desk records checkout and confirms the room is empty. Housekeeping cleans and a supervisor checks the work.',
+    remember: 'A recorded checkout does not mean a room is clean. If a status is wrong, Front Desk can correct it and explain the mistake.',
+    questions: [
+      q('A guest is recorded as checked in. Can Housekeeping start a checkout clean?', ['No. Check with Front Desk first','Yes, if the cleaner is available','Yes, if another guest is arriving'], 0, 'The guest may still be in the room. Check with Front Desk.'),
+      q('A guest has checked out and the room was used again later. What cleaning does it need?', ['A new clean after the later checkout','No clean because it was approved earlier','Only a new status without a clean'], 0, 'The earlier cleaning was for the previous guest.'),
     ],
   },
   'staff-my-work': {

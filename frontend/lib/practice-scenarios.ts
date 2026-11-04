@@ -85,6 +85,20 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     why: 'Check the facts before promising the guest that a room is ready.',
   },
   {
+    id: 'front-desk-checkout', level: 2, department: 'Front Desk',
+    title: 'A guest checks out',
+    situation: 'A practice guest in Solace has returned their key and confirmed they are leaving. Another guest is expected later today.',
+    goal: 'Record the checkout and help Housekeeping know when the room is empty.',
+    context: ['Reference: DEMO-SOLACE-OUT', 'This is a practice guest', 'The room still needs cleaning and inspection'],
+    priority: 'Routine', route: 'Housekeeping', decision: 'Assign and follow up', reference: 'DEMO-SOLACE-OUT',
+    noteChecks: [
+      { label: 'recording checkout', alternatives: ['checkout', 'check-out', 'checked out'] },
+      { label: 'arranging cleaning', alternatives: ['clean', 'housekeeping'] },
+    ],
+    example: 'DEMO-SOLACE-OUT: record checkout for Solace, confirm the guest has left, and arrange cleaning. Wait for inspection before saying the room is ready.',
+    why: 'A recorded checkout helps the team, but it does not mean the room has been cleaned or inspected.',
+  },
+  {
     id: 'housekeeping-turnover', level: 2, department: 'Housekeeping',
     title: 'Missing room item during turnover',
     situation: 'During Twinspire turnover, the standard towels are missing and an incoming guest is expected.',

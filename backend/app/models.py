@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Boolean, Column, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, Boolean, Column, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .clock import UTCDateTime as DateTime, utc_now
 from .database import Base
@@ -60,6 +60,36 @@ class RoomArea(Base, TimestampMixin):
     note = Column(Text, nullable=True)
 
 
+class RoomStay(Base):
+    """Front Desk's record of a guest's arrival and departure in one room."""
+    __tablename__ = "room_stays"
+    id = Column(Integer, primary_key=True)
+    room_area_id = Column(Integer, ForeignKey("rooms_areas.id"), nullable=False)
+    checked_in_at = Column(DateTime, nullable=False, default=utc_now)
+    checked_in_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    checked_out_at = Column(DateTime, nullable=True)
+    checked_out_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    voided_at = Column(DateTime, nullable=True)
+    voided_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    __table_args__ = (
+        Index("uq_room_stays_active_room", "room_area_id", unique=True,
+              sqlite_where=checked_out_at.is_(None) & voided_at.is_(None), postgresql_where=checked_out_at.is_(None) & voided_at.is_(None)),
+        Index("ix_room_stays_room_id", "room_area_id", "id"),
+    )
+
+
+class RoomStayCorrection(Base):
+    __tablename__ = "room_stay_corrections"
+    id = Column(Integer, primary_key=True)
+    stay_id = Column(Integer, ForeignKey("room_stays.id"), nullable=False)
+    action = Column(String(32), nullable=False)
+    reason = Column(Text, nullable=False)
+    previous_at = Column(DateTime, nullable=True)
+    previous_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    corrected_at = Column(DateTime, nullable=False, default=utc_now)
+    corrected_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+
 class RoomTurnover(Base, TimestampMixin):
     """Manual housekeeping clearance for a single room on one service date.
 
@@ -69,6 +99,7 @@ class RoomTurnover(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     room_area_id = Column(Integer, ForeignKey("rooms_areas.id"), nullable=False)
     service_date = Column(String(10), nullable=False)
+    cycle = Column(Integer, default=1, nullable=False)
     status = Column(String(32), default="Needs cleaning", nullable=False)
     source = Column(String(24), default="manual", nullable=False)
     vacated_confirmed = Column(Boolean, default=False, nullable=False)
@@ -81,7 +112,7 @@ class RoomTurnover(Base, TimestampMixin):
     inspected_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     inspected_at = Column(DateTime, nullable=True)
     __table_args__ = (
-        UniqueConstraint("room_area_id", "service_date", name="uq_room_turnover_date"),
+        UniqueConstraint("room_area_id", "service_date", "cycle", name="uq_room_turnover_cycle"),
     )
 
 

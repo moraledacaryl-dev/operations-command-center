@@ -16,6 +16,7 @@ export type TrainingLesson = {
   summary: string;
   requirement?: TrainingRequirement;
   marketingOnly?: boolean;
+  roomsTeamOnly?: boolean;
   steps: readonly TrainingStep[];
 };
 
@@ -51,6 +52,16 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
       { path: '/rooms', selector: '[aria-label="Space type"] button', targetText: 'Guest rooms', title: "Choose rooms or shared areas", advanceOnClick: true, requiresAction: true, body: "Select Guest rooms or Shared areas." },
       { path: '/rooms', selector: '[aria-label="Search rooms and areas"]', title: "Find a room", body: "Enter the room name, then open its card." },
       { path: '/rooms', selector: '.room-memory-columns, .space-card, .ops-module', title: "Check existing reports", body: "Read any open guest issues or repairs before reporting the same problem again." },
+    ],
+  },
+  {
+    id: 'room-arrivals', title: 'Arrivals, departures and room cleaning', summary: 'See what to check when a guest arrives or leaves.',
+    roomsTeamOnly: true,
+    steps: [
+      { path: '/housekeeping', selector: '.hk-tools button', targetText: 'Refresh', title: 'Refresh the room list', body: 'Choose Refresh to see the latest room updates. This lesson uses practice details.', advanceOnClick: true, requiresAction: true },
+      { path: '/housekeeping', selector: '.hk-guest-status, .hk-room-card, .hk-tools', title: 'Read guest status', body: 'Front Desk records check-in when the guest arrives and checkout when they leave. If the status is not recorded, ask Front Desk before entering.' },
+      { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'After checkout', body: 'Front Desk confirms the guest has left and schedules cleaning. Housekeeping cleans, then a different supervisor inspects. A second guest needs a fresh clean.' },
+      { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'Fix a mistake', body: 'Front Desk can choose Correct check-in or Correct checkout and explain what happened. Tell your lead if cleaning has already started.' },
     ],
   },
   {
@@ -162,8 +173,10 @@ export function availableTrainingLessons(
 ): TrainingLesson[] {
   const marketing = Boolean(capabilities.view_all_operations)
     || departments.some(d => String(d.name || '').toLowerCase().includes('marketing'));
+  const roomsTeam = Boolean(capabilities.view_all_operations) || departments.some(d => ['front desk', 'housekeeping'].includes(String(d.name || '').toLowerCase()));
   return TRAINING_LESSONS.filter(lesson =>
     (!lesson.requirement || capabilities[lesson.requirement] === true)
     && (!lesson.marketingOnly || marketing)
+    && (!lesson.roomsTeamOnly || roomsTeam)
   );
 }

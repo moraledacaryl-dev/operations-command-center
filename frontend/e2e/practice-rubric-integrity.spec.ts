@@ -21,8 +21,8 @@ function caseById(id: string): PracticeScenario {
   return found!;
 }
 
-test('all 117 fictional scenarios have unique ids, actions, and independent handover checks', () => {
-  expect(PRACTICE_SCENARIOS).toHaveLength(117);
+test('all 118 fictional scenarios have unique ids, actions, and independent handover checks', () => {
+  expect(PRACTICE_SCENARIOS).toHaveLength(118);
   const ids = PRACTICE_SCENARIOS.map(item => item.id);
   expect(new Set(ids).size).toBe(ids.length);
   for (const scenario of PRACTICE_SCENARIOS) {
