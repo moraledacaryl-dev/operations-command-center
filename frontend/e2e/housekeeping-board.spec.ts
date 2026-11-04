@@ -69,6 +69,8 @@ async function visit(page: import('@playwright/test').Page, role: Role, response
 test('front desk sees room and cannot start cleaning without checkout verification', async ({ page }) => {
   await visit(page, 'front', () => fakeBoard('front', false, 'No cleaning request'));
   await expect(page.getByRole('heading', { name: 'Room cleaning' })).toBeVisible();
+  await expect(page.getByText(/This page is for cleaning after checkout/)).toBeVisible();
+  await expect(page.getByText(/If a guest is staying and asks for cleaning/)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Solace' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Schedule cleaning' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start cleaning' })).toHaveCount(0);

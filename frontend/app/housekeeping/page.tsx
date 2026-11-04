@@ -92,7 +92,7 @@ export default function HousekeepingPage() {
 
   return <div className="housekeeping-board">
     <Top title="Room cleaning" right={<Link href="/rooms" className="btn secondary">All rooms</Link>} />
-    <p className="hk-intro">Check cleaning progress and rooms waiting for inspection.</p>
+    <p className="hk-intro">This page is for cleaning after checkout. If a guest is staying and asks for cleaning, ask your lead to arrange a time with them.</p>
     <div className="hk-tools">
       <label>Date <input aria-label="Cleaning date" className="input" type="date" value={day} onChange={e => setDay(e.target.value)} /></label>
       <label>Find room <input aria-label="Find room" className="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Solace, Perch 1…" /></label>
