@@ -142,3 +142,18 @@ def test_board_http_route_is_not_shadowed_by_generic_resource_route(db):
     finally:
         app.dependency_overrides.pop(get_db, None)
         app.dependency_overrides.pop(require_user, None)
+
+
+def test_checked_in_update_reaches_room_board_without_confirming_departure(db):
+    from app.routers.housekeeping import list_turnovers
+    user = models.User(name='Reception', role='manager')
+    db.add(user)
+    db.commit()
+    send(db, 1, status='checked_in', check_out='2026-11-04')
+    board = list_turnovers(service_date='2026-11-03', user=user, db=db)
+    assert len(board['rooms']) == 2
+    assert all(room['booking_updates'][0]['status'] == 'checked_in' for room in board['rooms'])
+    send(db, 2, status='checked_out', check_out='2026-11-03')
+    board = list_turnovers(service_date='2026-11-03', user=user, db=db)
+    assert all(room['booking_updates'][0]['status'] == 'checked_out' for room in board['rooms'])
+    assert all(not room['vacated_confirmed'] for room in board['rooms'])
