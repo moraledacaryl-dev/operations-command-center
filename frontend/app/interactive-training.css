@@ -202,7 +202,7 @@
 .ops-course-branch { margin: 14px 0; border: 1px solid #c3d8cd; border-radius: 11px;
   background: #f5faf6; padding: 13px 15px; }
 .ops-course-branch h3 { margin-top: 0; }
-.ops-course-independent-status { position: sticky; top: 0; z-index: 10030; margin: 10px;
+.ops-course-independent-status { position: sticky; top: 0; z-index: 12; margin: 10px;
   padding: 14px 18px; border: 2px solid #18704d; border-radius: 12px;
   background: #f1fbf3; color: #184b34; display: grid; gap: 6px; }
 .ops-course-independent-status button { width: fit-content; border-radius: 7px;

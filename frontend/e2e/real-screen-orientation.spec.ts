@@ -100,5 +100,13 @@ for (const viewport of [
     await expect(directions).toBeInViewport({ ratio: 0.9 });
     await expect(directions.getByRole('button', { name: 'Open the right screen' })).toBeInViewport();
     await expect(page.locator('body')).toHaveJSProperty('scrollWidth', viewport.width);
+    if (viewport.width < 1024) {
+      await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
+      const myWork = page.locator('.ops-sidebar a[aria-label="My Work"]');
+      // The lesson must not intercept clicks on the opened navigation drawer.
+      await myWork.click({ timeout: 3000 });
+      await expect(page).toHaveURL(/\/my-work$/);
+      await expect(directions).toContainText('Find your notifications');
+    }
   });
 }
