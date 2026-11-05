@@ -15,6 +15,7 @@ import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
 import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
 import { TrainerReports } from '@/components/TrainerReports';
+import { LessonText } from '@/components/LessonText';
 import { ROOM_ARRIVAL_FINISHED } from '@/components/RoomArrivalPractice';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
@@ -668,13 +669,13 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           </section>}
           <p className="ops-course-scroll-help">Read the lesson below, then choose Answer two questions. Scroll inside this panel if the button is below the screen.</p>
           <h2 data-testid="course-lesson-title">{courseLesson.title}</h2>
-          <p className="ops-course-explanation">{courseGuide.explanation}</p>
-          {practicePlan && <div className="ops-practice-mission-summary"><strong>Show me</strong><p>{practicePlan.show}</p></div>}
+          <p className="ops-course-explanation"><LessonText text={courseGuide.explanation} terms={courseGuide.keyTerms} /></p>
+          {practicePlan && <div className="ops-practice-mission-summary"><strong>Show me</strong><p><LessonText text={practicePlan.show} terms={courseGuide.keyTerms} /></p></div>}
           <h3>Example at work</h3>
-          <p className="ops-course-example">{currentExample}</p>
+          <p className="ops-course-example"><LessonText text={currentExample} terms={courseGuide.keyTerms} /></p>
           <h3>A mistake to avoid</h3>
-          <p className="ops-course-wrong-example">{courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'}</p>
-          <p><strong>Why it matters:</strong> {courseGuide.whyIncorrect || 'Check what happened before telling someone that the work is finished.'}</p>
+          <p className="ops-course-wrong-example"><LessonText text={courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'} terms={courseGuide.keyTerms} /></p>
+          <p><strong>Why it matters:</strong> <LessonText text={courseGuide.whyIncorrect || 'Check what happened before telling someone that the work is finished.'} terms={courseGuide.keyTerms} /></p>
           {courseGuide.branches?.[0] && <div className="ops-course-branch" data-testid="course-situation-branch">
             <h3>What would you do if this happened?</h3>
             <p>{courseGuide.branches[0].question}</p>
@@ -687,7 +688,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
             <button type="button" className="ops-course-quiet" disabled={branchAnswer===null}
               onClick={()=>setBranchExplained(true)}>Check this answer</button>
           </div>}
-          <p><strong>Remember:</strong> {courseGuide.remember}</p>
+          <p><strong>Remember:</strong> <LessonText text={courseGuide.remember} terms={courseGuide.keyTerms} /></p>
           <p className="ops-course-next-explainer">Next: Answer two short questions. Then the app will show one action at a time. You will use the real buttons yourself.</p>
           <details className="ops-course-help">
             <summary>Need help with this lesson?</summary>

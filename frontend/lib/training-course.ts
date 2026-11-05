@@ -8,6 +8,7 @@ export type CheckQuestion = {
   explanation: string;
 };
 export type CourseGuide = {
+  keyTerms: readonly string[];
   explanation: string;
   incorrectExample?: string;
   repeatVariant?: { example: string; questions: readonly [CheckQuestion,CheckQuestion] };
@@ -26,6 +27,7 @@ const q = (prompt: string, choices: [string,string,string], correct: 0|1|2, expl
  */
 export const COURSE_GUIDES: Record<string, CourseGuide> = {
   orientation: {
+    keyTerms: ['My Work', 'tasks assigned to you', 'Notifications', 'Hidden Oasis logo'],
     explanation: 'This practice app uses the same screens as Operations, with made-up guest and employee details. My Work shows tasks assigned to you. Notifications tells you when something needs your attention. The Hidden Oasis logo returns you to the main page.',
     example: 'You arrive for your shift. You need to see your assigned tasks, check any important new messages, then return to the dashboard.',
     repeatVariant: { example:'The next shift starts and you need to find one assigned task, read a new alert, and return home without changing anything.', questions:[
@@ -41,6 +43,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'staff-handover': {
+    keyTerms: ['handover', 'still unfinished', 'who is handling them', 'what to do next'],
     explanation: 'A handover is a note from the employee finishing a shift to the employee starting the next one. It explains problems that are still unfinished, who is handling them and what to do next.',
     example: 'A guest reported a broken toilet. Reception has called Maintenance but the repair is not confirmed. The next receptionist needs to know what to check and when to update the guest.',
     remember: 'Reading a note is not the same as fixing the problem. Do not mark it finished until work really is confirmed.',
@@ -55,6 +58,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'staff-rooms': {
+    keyTerms: ['Rooms', 'correct room', 'already been reported', 'guest status is not recorded', 'Front Desk'],
     explanation: 'The Rooms screen lists actual Hidden Oasis room names, with made-up practice reports. First find the correct room and check whether the problem has already been reported.',
     example: 'A guest in Solace says the air conditioner is not cooling. Open Solace and check its saved guest report before creating another report.',
     remember: 'Check the correct room name. Front Desk records check-in and checkout on Room cleaning. If a record is wrong, choose Correct and explain the mistake. If guest status is not recorded, ask Front Desk before entering.',
@@ -64,6 +68,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'room-arrivals': {
+    keyTerms: ['Room cleaning', 'planned arrivals and departures', 'guest status', 'actual arrivals and departures', 'guest has left', 'does not mean a room is clean'],
     explanation: 'Room cleaning shows planned arrivals and departures, guest status, and cleaning work separately. Front Desk records actual arrivals and departures. Housekeeping waits for confirmation that the guest has left before starting a checkout clean.',
     example: 'A practice guest leaves Solace. Front Desk records checkout and confirms the room is empty. Housekeeping cleans and a supervisor checks the work.',
     remember: 'A recorded checkout does not mean a room is clean. If a status is wrong, Front Desk can correct it and explain the mistake.',
@@ -73,6 +78,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'staff-my-work': {
+    keyTerms: ['My Work', 'due date', 'urgency', 'blocked', 'waiting'],
     explanation: 'My Work shows the jobs assigned to your account. Read the due date, urgency and instructions. If something is blocked, tell the appropriate lead instead of pretending it is complete.',
     example: 'An item due today is waiting for materials. Open it, understand what is missing, and tell the lead so they can help.',
     repeatVariant: { example:'You open My Work and see a job blocked because a part has not arrived. Report the blocker rather than falsely closing the task.', questions:[
@@ -86,6 +92,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'team-tasks': {
+    keyTerms: ['Search first', 'person responsible', 'actually assigned', 'review', 'Check saved work'],
     explanation: 'A task is a specific job with a title, priority and person responsible. Search first so you do not create duplicates. When saving, make sure the correct teammate is actually assigned.',
     example: 'A shared job has no owner. Assign the right practice teammate, start the work, and submit the saved task for review.',
     repeatVariant: { example:'A staff member reports a broken hallway sign but nobody is assigned. Find whether the job exists, assign the right practice teammate, and follow its progress.', questions:[
@@ -100,6 +107,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'guest-matters': {
+    keyTerms: ['guest matter', 'what happened', 'which room or service', 'who should investigate', 'call the guest back', 'actually been checked'],
     explanation: 'A guest matter is a record of a guest’s problem. A good record states what happened, which room or service is affected, who should investigate and when Reception will call the guest back.',
     example: 'Solace reports an AC that is blowing warm air. Record the complaint, arrange an inspection and keep the guest informed.',
     repeatVariant: { example:'A practice guest in Perch 2 says their bathroom sink is leaking. Nobody has inspected the room. Record what is known and arrange an update without promising a repair time.', questions:[
@@ -119,6 +127,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   maintenance: {
+    keyTerms: ['Maintenance', 'where it is', 'Working', 'Done', 'Verified', 'person with permission'],
     explanation: 'Maintenance records show what is broken, where it is and who is fixing it. Working means repair is underway. Done means someone says the repair is finished. Verified means a person with permission has checked it.',
     example: 'A corridor light is out. Record the affected area, ask a practice technician to inspect it and make sure the finished work is checked.',
     repeatVariant: { example:'The pool-side walkway light is out after rain. Do not touch wiring. Record the area, protect access if necessary and request a qualified inspection.', questions:[
@@ -138,6 +147,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   requests: {
+    keyTerms: ['request', 'what is needed', 'why it matters', 'quotation', 'verified', 'approval'],
     explanation: 'A request asks for something to be purchased or changed. Explain what is needed, why it matters and whether the price or quotation has been verified. Requesting approval is not approving your own request.',
     example: 'A department needs equipment but the supplier quotation is missing. Save the truthful reason and send it to a person allowed to review it.',
     repeatVariant: { example:'The kitchen requests replacement equipment but only has an estimate, not a supplier quote. Clearly describe what is missing before asking for review.', questions:[
@@ -157,6 +167,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'shift-writing': {
+    keyTerms: ['shift note', 'what happened', 'who is supposed to handle it', 'when', 'another update'],
     explanation: 'A useful shift note tells the next employee what happened, who is supposed to handle it and when the guest or team needs another update.',
     example: 'A guest is still waiting for a toilet repair. Write who will contact Maintenance and who must call the guest back after the shift changes.',
     remember: 'Publishing a note does not automatically make the unfinished work go away.',
@@ -169,6 +180,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   projects: {
+    keyTerms: ['project', 'clear goal', 'deadline', 'responsible team', 'existing projects', 'agreed work is finished'],
     explanation: 'A project is a larger goal made up of smaller steps, such as preparing an event. Use a clear goal, deadline and responsible team. Read existing projects before adding a new one.',
     example: 'The resort is preparing a holiday event. Find its project first, then inspect the tasks and the people responsible.',
     remember: 'Only mark a project complete when the agreed work is finished.',
@@ -178,6 +190,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   marketing: {
+    keyTerms: ['draft', 'review', 'publication', 'approved to publish', 'requested correction', 'authorized approval'],
     explanation: 'Marketing posts move from an idea to a draft, review, changes and publication. A reviewed design is not automatically approved to publish.',
     example: 'A Halloween poster has a spelling mistake. Find the draft, record the requested correction and wait for the authorized approval.',
     remember: 'Do not publish a real poster while using the fictional training app.',
@@ -187,6 +200,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'management-review': {
+    keyTerms: ['evidence', 'proof', 'missing information', 'approval permission'],
     explanation: 'A manager reviews the underlying evidence before approving, rejecting or asking for changes. A request that lacks proof should not be approved just to clear the queue.',
     example: 'A purchase request has no reliable price quotation. Ask for the missing information instead of guessing.',
     remember: 'Only someone with approval permission should make that decision.',
@@ -196,6 +210,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   accounts: {
+    keyTerms: ['own account', 'Roles', 'department access', 'Never share a password', 'must be approved'],
     explanation: 'Each staff member should use their own account. Roles and department access determine what they can view and change. Never share a password to work around a permission limit.',
     example: 'A new practice receptionist needs access only to the correct department and tasks; do not give unrestricted manager powers.',
     remember: 'Changing an employee’s access must be approved and follow the resort’s rules.',
