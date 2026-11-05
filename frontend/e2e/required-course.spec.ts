@@ -99,7 +99,7 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(coach).toContainText('Your start page');
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Open My Work');
-  await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
+  await expect(coach.getByText('Select the highlighted item to continue.', { exact: true })).toBeVisible();
   await page.keyboard.press('ArrowRight');
   await expect(coach).toContainText('Open My Work');
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
@@ -118,7 +118,7 @@ test('finished curriculum unlocks its completed tour without giving unearned sta
   await page.addInitScript(user => {
     localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
       lessonId: 'staff-my-work', stage: 'finished', question: 0,
-      passed: ['orientation','staff-handover','staff-rooms','staff-my-work'],
+      passed: ['orientation','staff-handover','staff-rooms','room-arrivals','staff-my-work'],
     }));
   }, staff);
   await page.goto('/');
@@ -138,7 +138,7 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
     localStorage.setItem('cc_department_id', '41');
     localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
       lessonId: 'team-tasks', stage: 'quiz', question: 1,
-      passed: ['orientation', 'staff-handover', 'staff-rooms', 'staff-my-work'],
+      passed: ['orientation', 'staff-handover', 'staff-rooms', 'room-arrivals', 'staff-my-work'],
     }));
   }, manager);
   await page.route('**/api/**', route => route.fulfill({
@@ -156,7 +156,7 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   await coach.getByRole('button', { name: /Next/ }).click();
   await coach.getByRole('button', { name: /Next/ }).click();
   await expect(coach).toContainText('Open New task');
-  await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
+  await expect(coach.getByText('Select the highlighted item to continue.', { exact: true })).toBeVisible();
   await page.getByTestId('create-task').click();
   await expect(coach).toContainText('Describe the task');
   await coach.getByRole('button', { name: /Next/ }).click();

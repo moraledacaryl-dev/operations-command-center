@@ -281,3 +281,6 @@
 @media(max-width:600px){.shift-challenge{width:100%;margin-top:10px}.shift-challenge h1{font-size:26px}.shift-challenge-brief{padding:18px}.shift-challenge-fields{grid-template-columns:1fr}.shift-challenge-entry{margin:0 0 18px;padding:18px;display:block}.shift-challenge-entry .btn{margin-top:12px;width:100%}.shift-challenge-return{margin:0 0 18px;padding:12px;align-items:flex-start;flex-direction:column;gap:4px}.shift-challenge .toolbar .btn{width:100%}}
 
 .ops-stage:has(.shift-challenge) > .ops-guide-launch{display:none}
+
+.practice-skip { display: inline-block; color: #145d43; font-size: 14px; font-weight: 750; margin: 0 0 10px; text-decoration: underline; }
+.practice-skip:focus-visible, .practice-workspace:focus { outline: 3px solid #8dbfa5; outline-offset: 3px; }

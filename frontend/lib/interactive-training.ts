@@ -16,6 +16,8 @@ export type TrainingLesson = {
   summary: string;
   requirement?: TrainingRequirement;
   marketingOnly?: boolean;
+  roomsTeamOnly?: boolean;
+  maintenanceStaffOnly?: boolean;
   steps: readonly TrainingStep[];
 };
 
@@ -50,7 +52,17 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     steps: [
       { path: '/rooms', selector: '[aria-label="Space type"] button', targetText: 'Guest rooms', title: "Choose rooms or shared areas", advanceOnClick: true, requiresAction: true, body: "Select Guest rooms or Shared areas." },
       { path: '/rooms', selector: '[aria-label="Search rooms and areas"]', title: "Find a room", body: "Enter the room name, then open its card." },
-      { path: '/rooms', selector: '.room-memory-columns, .space-card, .ops-module', title: "Check existing reports", body: "Read any open guest issues or repairs before reporting the same problem again." },
+      { path: '/rooms', selector: '.room-memory-columns, .space-card, .ops-module', title: "Check existing reports", body: "Read the information your team can see. If a report is not visible, ask the responsible team to check." },
+    ],
+  },
+  {
+    id: 'room-arrivals', title: 'Arrivals, departures and room cleaning', summary: 'See what to check when a guest arrives or leaves.',
+    roomsTeamOnly: true,
+    steps: [
+      { path: '/housekeeping', selector: '.hk-tools button', targetText: 'Refresh', title: 'Refresh the room list', body: 'Choose Refresh to see the latest room updates. This lesson uses practice details.', advanceOnClick: true, requiresAction: true },
+      { path: '/housekeeping', selector: '.hk-guest-status, .hk-room-card, .hk-tools', title: 'Read guest status', body: 'Plans show arrivals and departures for the selected date. Front Desk records when the guest actually arrives or leaves. If guest status is not recorded, ask Front Desk before entering.' },
+      { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'After checkout', body: 'Front Desk schedules cleaning and confirms the guest has left. Housekeeping cleans, then a different supervisor inspects. A second guest needs a fresh clean.' },
+      { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'Fix a mistake', body: 'Front Desk can choose Correct check-in or Correct checkout and explain what happened. Tell your lead if cleaning has already started.' },
     ],
   },
   {
@@ -59,7 +71,15 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
       { path: '/my-work', selector: '.ops-agenda-overdue, .ops-agenda', title: "Check overdue tasks", body: "Read the task and due date. Tell your lead if you need help meeting the deadline." },
       { path: '/my-work', selector: '.ops-agenda-today, .ops-agenda', title: "Plan today's work", body: "Open each task to see what needs doing during your shift." },
       { path: '/my-work', selector: '.ops-agenda-waiting, .ops-agenda', title: "Check waiting tasks", body: "A task in Review or Waiting may still need a supervisor's decision." },
-      { path: '/my-work', selector: 'a.ops-brand[href="/"]', title: "Return to Today", body: "Select the Hidden Oasis logo to finish this lesson.", advanceOnClick: true, requiresAction: true },
+      { path: '/my-work', selector: 'a.ops-brand[href="/"]', title: "Return to Today", body: "Select the Hidden Oasis logo to return to Today.", advanceOnClick: true, requiresAction: true },
+    ],
+  },
+  {
+    id: 'maintenance-status', title: 'Reading repair status', summary: 'See what a repair status means and what still needs checking.',
+    maintenanceStaffOnly: true,
+    steps: [
+      { path: '/fixes', selector: '[aria-label="Maintenance filters"] button', targetText: 'Urgent', title: 'Find repair work', body: 'Choose Urgent to find repairs needing attention.', advanceOnClick: true, requiresAction: true },
+      { path: '/fixes', selector: '[aria-label="Maintenance work orders"], .ops-module', title: 'Read the status', body: 'The board says In progress for Working and To verify for Done. Verified means an authorized person checked the repair.' },
     ],
   },
   {
@@ -158,12 +178,16 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
 
 export function availableTrainingLessons(
   capabilities: Record<string, boolean>,
-  departments: { name?: string }[] = [],
+  departments: { name?: string; is_primary?: boolean }[] = [],
 ): TrainingLesson[] {
   const marketing = Boolean(capabilities.view_all_operations)
     || departments.some(d => String(d.name || '').toLowerCase().includes('marketing'));
+  const roomsTeam = Boolean(capabilities.view_all_operations) || departments.some(d => ['front desk', 'housekeeping'].includes(String(d.name || '').toLowerCase()));
+  const primaryDepartment = departments.find(d => d.is_primary) || departments[0];
   return TRAINING_LESSONS.filter(lesson =>
     (!lesson.requirement || capabilities[lesson.requirement] === true)
     && (!lesson.marketingOnly || marketing)
+    && (!lesson.roomsTeamOnly || roomsTeam)
+    && (!lesson.maintenanceStaffOnly || (!capabilities.manage_department && String(primaryDepartment?.name || '').toLowerCase() === 'maintenance'))
   );
 }

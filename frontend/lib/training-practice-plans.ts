@@ -44,6 +44,22 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     checks: 'The app checks navigation actions; a trainer should observe how you prioritize real work.',
     safety: 'Do not change work status or use someone else’s account.',
   },
+  'room-arrivals': {
+    goal: 'Read room plans and check the recorded guest status.',
+    show: 'Open Room cleaning. Choose a date and read the Arrival or Departure label separately from Guest status.',
+    help: 'Find the room name, then check what is planned and what Front Desk has recorded.',
+    self: 'Find a room and refresh its latest update without arrows.',
+    checks: 'This role checks room information and navigation. Front Desk staff also practise saving arrivals and departures.',
+    safety: 'A planned departure does not confirm that a guest has left.',
+  },
+  'maintenance-status': {
+    goal: 'Understand where a repair stands.',
+    show: 'Open Maintenance and read the repair statuses.',
+    help: 'Use the filters to find repairs and read their saved status.',
+    self: 'Open a practice repair, read its status, then return to Active repairs without arrows.',
+    checks: 'The app checks that you opened a repair and returned to Active; a trainer checks your understanding.',
+    safety: 'Do not mark a repair verified unless the authorized check is complete.',
+  },
   'team-tasks': {
     goal: 'Give a job to the right person and follow it until review.',
     show: 'Find the team task list, search for existing work, and open the New task form.',

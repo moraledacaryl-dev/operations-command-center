@@ -155,6 +155,8 @@
 .ops-course-panel h2 { font-size: clamp(22px, 4vw, 29px); line-height: 1.2; margin: 8px 0 13px; }
 .ops-course-panel h3 { font-size: 16px; margin: 18px 0 9px; }
 .ops-course-explanation { margin: 12px 0; font-size: 16px; line-height: 1.7; }
+.ops-lesson-key-term { color: #174b35; background: #e3f0e7; font-weight: 800;
+  border-radius: 3px; padding-inline: 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .ops-course-example { padding: 15px 17px; background: #edf8f0; border-left: 4px solid #319470;
   border-radius: 7px; margin: 10px 0 16px; }
 .ops-course-next-explainer { padding: 10px 12px; color: #3e5b4c; border: 1px solid #d1e4d9;
@@ -202,7 +204,7 @@
 .ops-course-branch { margin: 14px 0; border: 1px solid #c3d8cd; border-radius: 11px;
   background: #f5faf6; padding: 13px 15px; }
 .ops-course-branch h3 { margin-top: 0; }
-.ops-course-independent-status { position: sticky; top: 0; z-index: 10030; margin: 10px;
+.ops-course-independent-status { position: sticky; top: 0; z-index: 12; margin: 10px;
   padding: 14px 18px; border: 2px solid #18704d; border-radius: 12px;
   background: #f1fbf3; color: #184b34; display: grid; gap: 6px; }
 .ops-course-independent-status button { width: fit-content; border-radius: 7px;
@@ -292,3 +294,5 @@
   .ops-practice-mission-summary { padding: 12px; }
   .ops-practice-show-help { font-size: 14px; }
 }
+
+.ops-guide-action-instruction { align-self: center; color: #24543a; font-size: 13px; line-height: 1.4; }

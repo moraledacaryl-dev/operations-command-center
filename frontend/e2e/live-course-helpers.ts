@@ -1,13 +1,16 @@
 import { expect } from '@playwright/test';
 import { availableTrainingLessons } from '../lib/interactive-training';
-import { COURSE_GUIDES } from '../lib/training-course';
+import { courseGuideFor } from '../lib/training-course';
 import { INDEPENDENT_CHECKS } from '../lib/training-independent';
 
 export async function completeReadOnlyLesson(page: import('@playwright/test').Page, lesson: ReturnType<typeof availableTrainingLessons>[number], department = 'Front Desk') {
     const course = page.getByRole('dialog', { name: 'Required training lesson', exact: true });
     await expect(page.getByTestId('course-lesson-title')).toContainText(lesson.title);
     await page.getByTestId('course-start-quiz').click();
-    for (const question of COURSE_GUIDES[lesson.id].questions) {
+    const trainee = await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}'));
+    const primary = trainee.departments?.find((d: {id: number}) => Number(d.id) === Number(trainee.primary_department_id)) || trainee.departments?.[0];
+    const isFrontDeskStaff = trainee.role === 'staff' && trainee.departments?.some((d: {name: string}) => d.name === 'Front Desk');
+    for (const question of courseGuideFor(lesson.id, String(primary?.name || department), Boolean(isFrontDeskStaff))!.questions) {
       await course.getByRole('radio', { name: question.choices[question.correct], exact: true }).check();
       await page.getByTestId('course-check-answer').click();
     }
@@ -57,7 +60,34 @@ export async function completeReadOnlyLesson(page: import('@playwright/test').Pa
       }
       else await coach.getByRole('button', { name: index === lesson.steps.length - 1 ? 'Finish practice' : 'Next →', exact: true }).click();
       }
-      for (const action of INDEPENDENT_CHECKS[lesson.id]) {
+      if (lesson.id === 'room-arrivals' && department === 'Front Desk' && (await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}').role)) === 'staff') {
+        const mission = page.getByTestId('room-arrival-practice');
+        const pm = await page.evaluate(() => String(JSON.parse(localStorage.getItem('cc_user') || '{}').email).startsWith('reception-pm@'));
+        for (const [index, room] of (pm ? ['Grandeur', 'Skyroom'] : ['Cafe Suite', 'Crown']).entries()) {
+          await mission.getByRole('button', { name: index === 0 ? 'Start with a guide' : 'Try the next room', exact: true }).click();
+          if (index === 0) await mission.getByRole('button', { name: 'Hide arrow', exact: true }).click();
+          await page.getByRole('button', { name: 'Check saved work', exact: true }).click();
+          await expect(page.getByText(/Your new check-in has not been found/)).toBeVisible();
+          await page.getByLabel('Find room', { exact: true }).fill(room);
+          const card = page.locator('.hk-room-card').filter({ has: page.getByRole('heading', { name: room, exact: true }) });
+          page.once('dialog', dialog => dialog.accept());
+          await card.getByRole('button', { name: 'Record check-in', exact: true }).click();
+          await expect(card).toContainText('Checked in.');
+          await page.getByRole('button', { name: 'Check saved work', exact: true }).click();
+          await expect(mission.getByRole('heading')).toHaveText('Record checkout in ' + room);
+          if (index === 0) await mission.getByRole('button', { name: 'Hide arrow', exact: true }).click();
+          await page.getByRole('button', { name: 'Check saved work', exact: true }).click();
+          await expect(page.getByText(/Your checkout has not been found/)).toBeVisible();
+          page.once('dialog', dialog => dialog.accept());
+          await card.getByRole('button', { name: 'Record checkout', exact: true }).click();
+          await expect(card).toContainText('Last checkout recorded');
+          await page.getByRole('button', { name: 'Check saved work', exact: true }).click();
+        }
+      } else for (const action of INDEPENDENT_CHECKS[lesson.id]) {
+      if (lesson.id === 'maintenance-status' && action.title === 'Return to active repairs') {
+        await expect(page.getByRole('dialog')).toBeVisible();
+        await page.getByRole('button', { name: 'Close details', exact: true }).click();
+      }
       await expect(page.getByTestId('course-independent-challenge')).toContainText(action.title);
       // The last tour click can navigate while the independent stage is opening.
       // Click only after its real target screen is active.

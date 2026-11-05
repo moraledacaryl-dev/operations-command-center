@@ -3,6 +3,7 @@ from test_training_named_room_upgrade import isolated_desktop  # noqa: F401
 from app import models
 from app import foundation_models as fm
 from scripts.seed_training_demo import ensure_shift_challenge_data
+from scripts.seed_training_demo import improve_existing_staff_examples
 import pytest
 
 
@@ -45,3 +46,49 @@ def test_frontend_and_seed_catalogs_match_across_isolated_build_contexts():
     backend = json.loads((root / "backend/scripts/shift_challenge_cases.json").read_text())
     assert frontend == backend
     assert len({case["department"] for case in frontend}) == 7
+
+
+def test_old_examples_preserve_changes_and_add_personal_practice_idempotently(isolated_desktop):
+    _, _, Session = isolated_desktop
+    with Session() as db:
+        dept = db.query(models.Department).filter_by(name='Front Desk').one()
+        worker = db.query(models.User).filter_by(email='reception-pm@training.invalid').one()
+        old = 'TRAINING ONLY — record responsible person and pending follow-up.'
+        untouched = models.ShiftNote(title='[TRAINING] Front Desk Night handover #3',
+                                     department_id=dept.id, status='Follow', note=old)
+        edited = models.ShiftNote(title='[TRAINING] Front Desk PM handover #2',
+                                  department_id=dept.id, status='Seen', note='My own saved note')
+        db.add_all([untouched, edited]); db.commit()
+        assert improve_existing_staff_examples(db) > 0
+        db.commit()
+        assert 'hot water' in untouched.note
+        assert edited.note == 'My own saved note'
+        personal = db.query(models.Task).filter_by(assigned_to_id=worker.id).all()
+        assert {item.status for item in personal} >= {'To Do', 'Review'}
+        personal[0].note = 'My saved work'; db.commit()
+        assert improve_existing_staff_examples(db) == 0
+        db.commit()
+        assert personal[0].note == 'My saved work'
+
+
+def test_old_repair_examples_change_only_untouched_placeholders(isolated_desktop):
+    _, _, Session = isolated_desktop
+    with Session() as db:
+        department = models.Department(name='Maintenance')
+        solace = models.RoomArea(name='Solace', kind='room', status='active')
+        pool = models.RoomArea(name='Pool', kind='area', status='active')
+        db.add_all([department, solace, pool]); db.flush()
+        generic = 'Fictional repair scenario for practical training.'
+        untouched = models.Fix(title='[TRAINING] Solace: simulated maintenance issue',
+                               problem=generic, status='Working', department_id=department.id, room_area_id=solace.id)
+        changed = models.Fix(title='[TRAINING] Pool: simulated maintenance issue',
+                             problem=generic, status='Open', department_id=department.id, room_area_id=pool.id)
+        db.add_all([untouched, changed]); db.flush()
+        db.add(models.Comment(parent_type='fixes', parent_id=changed.id, body='Keep my work'))
+        db.commit()
+        improve_existing_staff_examples(db); db.commit()
+        assert 'air conditioner' in untouched.problem
+        assert 'air conditioner' in untouched.title.lower()
+        assert changed.problem == generic
+        assert changed.title == '[TRAINING] Pool: simulated maintenance issue'
+        assert improve_existing_staff_examples(db) == 0

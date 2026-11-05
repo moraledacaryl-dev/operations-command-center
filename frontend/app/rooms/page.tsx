@@ -74,7 +74,7 @@ export default function RoomsPage() {
         const roomMedia = media[Number(room.id)];
         return <Link className="space-card" key={room.id} href={`/rooms/${room.id}`} aria-label={`Open ${room.name}`} onClick={() => sendRoomPracticeAction({ kind: 'open', name: String(room.name), id: Number(room.id) })}>
           <SpaceVisual name={room.name} kind={room.kind} photo={roomMedia?.configured ? roomMedia.content_url : undefined} />
-          <div className="space-card-copy"><div className="space-card-type">{room.kind === 'room' ? 'Guest room' : 'Shared space'}<Pill value={room.status || 'Active'} /></div>
+          <div className="space-card-copy"><div className="space-card-type">{room.kind === 'room' ? 'Guest room' : 'Shared space'}{room.status && room.status !== 'active' ? <Pill value={room.status} /> : null}</div>
             <h2>{room.name}</h2><p>{room.note}</p>
             <span className="space-card-footer">Explore space<Icon name="arrow" /></span>
           </div>

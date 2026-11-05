@@ -56,6 +56,22 @@ LEADS = {
     "Security": "security-lead", "Management": "manager", "Admin": "administrator",
 }
 
+# Short, role-relevant repair reports for reading practice.
+REPAIR_EXAMPLES = {
+    "Solace": ("Air conditioner blowing warm air", "The guest says the air conditioner is blowing warm air. Check the unit and tell Front Desk what you find."),
+    "Pool": ("Pool pump making a loud noise", "The pool pump is making an unusual noise. A qualified person needs to inspect the pump."),
+    "Crown": ("Low water pressure", "The bathroom tap has low water pressure. Check the supply and report what you find."),
+    "Café": ("Coffee station light is out", "The light above the coffee station is not working. A qualified person needs to check it."),
+    "Kitchen": ("Cold room temperature check", "The cold room is warmer than expected. Tell the Kitchen lead and arrange a qualified check."),
+    "Function Hall": ("Door latch sticking", "The function hall door latch sticks when the door closes. Inspect the latch and report the result."),
+    "Perch 1": ("Bathroom tap dripping", "The bathroom tap keeps dripping after it is turned off. Inspect the tap and report the result."),
+    "Garden": ("Garden light is out", "A garden pathway light is not working. Ask a qualified person to inspect it."),
+    "Lobby": ("Lobby fan making noise", "The lobby fan makes a rattling sound when running. Inspect the fan and report the result."),
+    "Laundry": ("Laundry machine vibrating", "A laundry machine vibrates more than usual. Ask the Laundry lead when it can be inspected."),
+    "Parking": ("Parking light is out", "The parking area light is not working. Ask a qualified person to inspect it."),
+    "Storage": ("Storage door handle loose", "The storage door handle is loose. Inspect the handle and report the result."),
+}
+
 def guard() -> Path:
     if os.environ.get("ENVIRONMENT", "").strip().lower() not in {"local", "test"}:
         raise SystemExit("REFUSED: ENVIRONMENT must explicitly be local/test")
@@ -230,9 +246,9 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
         for i,area in enumerate(fix_areas):
             status=["Working","Open","Done","Working","Open","Done","Verified"][i%7]
             linked=guests[1] if i==0 else guests[8] if i==2 else None
-            fix=add(models.Fix(title=PREFIX+f"{area}: simulated maintenance issue",
+            fix=add(models.Fix(title=PREFIX+f"{area}: {REPAIR_EXAMPLES[area][0]}",
                 department_id=departments["Maintenance"].id, room_area_id=rooms[area].id,
-                problem="Fictional repair scenario for practical training.",
+                problem=REPAIR_EXAMPLES[area][1],
                 status=status, urgency="Urgent" if i in (0,2) else "Normal",
                 assigned_to_id=users["maintenance-lead"].id,
                 linked_guest_note_id=linked.id if linked else None,
@@ -418,6 +434,83 @@ def add_shift_challenge_records(db, now=None) -> Counter:
     return counts
 
 
+def improve_existing_staff_examples(db) -> int:
+    """Refresh only untouched placeholder notes and add missing personal practice jobs.
+
+    Called only after the desktop training database and fictional roster were validated.
+    Existing employee edits, statuses, accounts and job records are preserved.
+    """
+    from app import models
+    examples = {
+        "Front Desk": "The guest is waiting for an update about the room's hot water.",
+        "Housekeeping": "A room still needs an inspection before the next arrival.",
+        "Café": "A breakfast order is delayed and the guest needs an update.",
+        "Kitchen": "An allergy order is waiting for an ingredient check. Keep it out of service.",
+        "Maintenance": "A repair still needs an inspection before the area can be used.",
+        "Marketing": "A draft post has the wrong event date and needs the lead's review.",
+        "Security": "The pool gate has not been checked. Keep guests away and tell the lead.",
+        "Management": "A request is waiting for supporting information.",
+        "Admin": "An account access question is waiting for the lead's check.",
+    }
+    changed = 0
+    placeholder = "TRAINING ONLY — record responsible person and pending follow-up."
+    for dept, situation in examples.items():
+        department = db.query(models.Department).filter_by(name=dept).one_or_none()
+        if not department:
+            continue
+        for shift, number, status in (("Night", 3, "Follow"), ("PM", 2, "Seen")):
+            note = db.query(models.ShiftNote).filter_by(
+                title=PREFIX + f"{dept} {shift} handover #{number}", department_id=department.id,
+                note=placeholder, status=status, seen_by_id=None, seen_at=None,
+                linked_task_id=None, linked_guest_note_id=None, linked_fix_id=None,
+                hidden_from_active=False).one_or_none()
+            if note:
+                note.note = "TRAINING ONLY — " + situation + " The check is still pending. Ask the " + dept + " lead to follow up and tell the next shift what happens."
+                changed += 1
+    # Replace only the original, unmodified placeholder repair reports. A
+    # changed status, added comment or attachment, or later edit means the
+    # learner's work wins and the old record is left alone.
+    maintenance = db.query(models.Department).filter_by(name="Maintenance").one_or_none()
+    initial_statuses = ["Working", "Open", "Done", "Working", "Open", "Done", "Verified"]
+    if maintenance:
+        for index, (area, (title, problem)) in enumerate(REPAIR_EXAMPLES.items()):
+            room = db.query(models.RoomArea).filter_by(name=area).one_or_none()
+            if not room:
+                continue
+            fix = db.query(models.Fix).filter_by(
+                title=PREFIX + f"{area}: simulated maintenance issue",
+                department_id=maintenance.id, room_area_id=room.id,
+                problem="Fictional repair scenario for practical training.",
+                status=initial_statuses[index % len(initial_statuses)],
+                hidden_from_active=False).one_or_none()
+            if not fix or abs((fix.updated_at - fix.created_at).total_seconds()) > 2:
+                continue
+            if (db.query(models.Comment).filter_by(parent_type="fixes", parent_id=fix.id).first()
+                    or db.query(models.Attachment).filter_by(parent_type="fixes", parent_id=fix.id).first()):
+                continue
+            fix.title = PREFIX + f"{area}: {title}"
+            fix.problem = problem
+            changed += 1
+    now = datetime.now(timezone.utc)
+    for _, role, slug, dept in PEOPLE:
+        if role != "staff" or dept not in examples:
+            continue
+        user = db.query(models.User).filter_by(email=slug + "@training.invalid").one_or_none()
+        department = db.query(models.Department).filter_by(name=dept).one_or_none()
+        if not user or not department or user.department_id != department.id:
+            continue
+        for title, status, days in (("Overdue follow-up — personal practice", "To Do", -1),
+                                    ("Waiting for lead review — personal practice", "Review", 1)):
+            title = PREFIX + title
+            if db.query(models.Task).filter_by(title=title, assigned_to_id=user.id).first():
+                continue
+            db.add(models.Task(title=title, department_id=department.id, assigned_to_id=user.id,
+                status=status, priority="Normal", due_date=now + timedelta(days=days),
+                note="TRAINING ONLY — " + examples[dept] + " Ask your lead what still needs checking."))
+            changed += 1
+    return changed
+
+
 def ensure_shift_challenge_data(db_path: Path, state: Path) -> int:
     """Add seven role challenges to a validated fictional desktop installation."""
     # Reuse the existing strict path, environment, roster, and synthetic-user
@@ -426,8 +519,9 @@ def ensure_shift_challenge_data(db_path: Path, state: Path) -> int:
     from app.database import SessionLocal
     with SessionLocal() as db:
         counts = add_shift_challenge_records(db)
+        improved = improve_existing_staff_examples(db)
         db.commit()
-    return sum(counts.values())
+    return sum(counts.values()) + improved
 
 
 def ensure_private_trainer_guide(private_dir: Path) -> Path:

@@ -18,7 +18,7 @@ async function setup(page: Page, manager: boolean) {
   await page.addInitScript(value => {
     localStorage.setItem('cc_user', JSON.stringify(value));
     localStorage.setItem('ho-ops-structured-course-v2:' + String(value.id), JSON.stringify({
-      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
+      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms room-arrivals staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
     }));
     localStorage.setItem('cc_department_id', '1');
   }, user);

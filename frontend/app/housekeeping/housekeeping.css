@@ -34,3 +34,9 @@
  .hk-room-card button { width: 100%; }
 }
 @media(max-width:390px) { .hk-tools { grid-template-columns: 1fr; } }
+
+.hk-guest-status { display: grid; gap: 4px; padding: 10px 12px; border-radius: 9px; background: #f1f5f2; color: #304f3b; font-size: 13px; }
+.hk-correction { display: grid; gap: 9px; margin-top: 8px; padding: 12px; border: 1px solid #b7cdbf; border-radius: 9px; background: var(--panel,#fff); }
+.hk-correction label { display: grid; gap: 5px; font-weight: 700; }
+.hk-correction textarea { min-height: 78px; font-size: 16px; }
+.hk-practice-check { display: grid; gap: 8px; border-top: 1px solid #b7cdbf; padding-top: 12px; margin-top: 8px; }

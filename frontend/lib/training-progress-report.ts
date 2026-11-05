@@ -91,7 +91,7 @@ export function parseTrainingReport(input: unknown): TrainingProgressReport | nu
  * isolated training database and a new verified hands-on run.
  */
 export function portableLearningCredit(report: TrainingProgressReport, available: readonly string[]): string[] {
-  const recordEditing = new Set(['team-tasks','guest-matters','maintenance','requests','shift-writing']);
+  const recordEditing = new Set(['team-tasks','guest-matters','maintenance','requests','shift-writing','room-arrivals']);
   const known = new Set(available);
   return report.completedLessons.filter(id => known.has(id) && !recordEditing.has(id));
 }

@@ -1,5 +1,5 @@
 import { test,expect } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync } from 'node:fs';
 import { availableTrainingLessons } from '../lib/interactive-training';
 import { completeReadOnlyLesson } from './live-course-helpers';
 import cases from '../lib/shift-challenge-cases.json';
@@ -25,11 +25,13 @@ for(const [i,c]of cases.entries())test('real '+c.department+' shift: own login, 
  await page.getByRole('link',{name:/^Notifications,/}).click();const notice=page.getByRole('article').filter({hasText:c.reference+' — shift notice'});await notice.getByRole('button',{name:'Mark read',exact:true}).click();
  await expect(notice.getByRole('button',{name:'Mark read',exact:true})).toHaveCount(0);await expect(notice).not.toContainText('Unread');await page.getByRole('link',{name:'Return to your challenge',exact:true}).click();
  const answers=modelShiftAnswers(c);
- for(const [label,field]of [['What status is saved on the handover?','status'],['How soon should staff act?','priority'],['Which team should handle the problem?','team'],['What should happen next?','decision']]as const)await page.getByLabel(label,{exact:true}).selectOption(answers[field]);
+ for(const [label,field]of [['What status is saved on the handover?','status'],['How soon should staff act?','priority'],[c.department === 'Café' ? 'Which team should follow up with the guest?' : 'Which team should handle the problem?','team'],['What should happen next?','decision']]as const)await page.getByLabel(label,{exact:true}).selectOption(answers[field]);
  for(const [label,field]of [['Who should take responsibility?','owner'],['What will be checked next, and when?','followUp'],['Your note for the next shift','note']]as const)await page.getByLabel(label,{exact:true}).fill(answers[field]);
  await page.reload();await expect(page.getByLabel('Your note for the next shift',{exact:true})).toHaveValue(answers.note);
  await page.getByRole('button',{name:'Check shift challenge',exact:true}).click();await expect(page.getByText('Your follow-up has not been found on this job. Save it below, then check again.',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Save follow-up on my job',exact:true}).click();await expect(page.getByText('Your follow-up is saved on your assigned job. Choose Check shift challenge when you are ready.',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Check shift challenge',exact:true}).click();await expect(page.getByRole('heading',{name:'Shift challenge completed',exact:true})).toBeVisible();
  await page.reload();await expect(page.getByRole('heading',{name:'Shift challenge completed',exact:true})).toBeVisible();await page.getByRole('button',{name:'Check saved records again',exact:true}).click();await expect(page.getByText('Checked against your saved job, follow-up and notice.',{exact:true})).toBeVisible();
+ mkdirSync('test-results/ui-audit',{recursive:true});
+ await page.screenshot({path:'test-results/ui-audit/interactive-training-final-'+accounts[i]+'.png',fullPage:true});
 });

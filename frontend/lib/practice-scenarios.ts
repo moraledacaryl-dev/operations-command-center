@@ -51,7 +51,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     priority: 'High', route: 'Front Desk', decision: 'Assign and follow up', reference: 'DEMO-HANDOVER-014',
     noteChecks: [
       { label: "who is responsible for handling the problem", alternatives: ["assign", "owner", "ownership", "responsib"] },
-      { label: "telling the guest what happens next or informing the next shift", alternatives: ["update", "call back", "callback", "follow up"] },
+      { label: "telling the guest what happens next or informing the next shift", alternatives: ["update", "updat", "call back", "callback", "follow up", "tell the guest", "inform the guest", "tell the next shift"] },
     ],
     example: 'DEMO-HANDOVER-014: Twinspire guest says the toilet will not flush. Assign the Front Desk lead as owner to contact Maintenance and call the guest with an update. Tell the next receptionist that the repair is still waiting for inspection.',
     why: 'The guest is still waiting and a new receptionist starts soon. Someone must contact the right team, tell the guest what is happening, and make sure the next shift knows who is responsible.',
@@ -83,6 +83,20 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     ],
     example: 'DEMO-PERCH2-203: verify readiness with Housekeeping, communicate an accurate update to the guest and log the next follow-up.',
     why: 'Check the facts before promising the guest that a room is ready.',
+  },
+  {
+    id: 'front-desk-checkout', level: 2, department: 'Front Desk',
+    title: 'A guest checks out',
+    situation: 'A practice guest in Solace has returned their key and confirmed they are leaving. Another guest is expected later today.',
+    goal: 'Record the checkout and help Housekeeping know when the room is empty.',
+    context: ['Reference: DEMO-SOLACE-OUT', 'This is a practice guest', 'The room still needs cleaning and inspection'],
+    priority: 'Routine', route: 'Housekeeping', decision: 'Assign and follow up', reference: 'DEMO-SOLACE-OUT',
+    noteChecks: [
+      { label: 'recording checkout', alternatives: ['checkout', 'check-out', 'checked out'] },
+      { label: 'arranging cleaning', alternatives: ['clean', 'housekeeping'] },
+    ],
+    example: 'DEMO-SOLACE-OUT: record checkout for Solace, schedule cleaning, and confirm the guest has left. Wait for inspection before saying the room is ready.',
+    why: 'A recorded checkout helps the team, but it does not mean the room has been cleaned or inspected.',
   },
   {
     id: 'housekeeping-turnover', level: 2, department: 'Housekeeping',
@@ -291,7 +305,7 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
     errors.priority = 'Think about who could be harmed and how soon staff need to act.';
   }
   if (answers.department !== scenario.route) {
-    errors.department = 'Choose the team that can do the next job.';
+    errors.department = scenario.id === 'shift-unresolved' ? 'Front Desk should follow up with the guest and ask Maintenance to repair the toilet.' : 'Choose the team that can do the next job.';
   }
   if (answers.decision !== scenario.decision) {
     errors.decision = 'Choose what staff should do next, based on the facts in this situation.';
@@ -303,11 +317,16 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
   } else if (!note.includes(scenario.reference.toLowerCase())) {
     errors.note = 'Include the practice number so the next shift can find the same problem.';
   } else if (scenario.noteChecks?.length) {
-    const missing = scenario.noteChecks.filter(check =>
-      !check.alternatives.some(term => matchesActionCriterion(note, term))
-    );
+    const missing = scenario.noteChecks.filter((check, index) => {
+      // A named person or role taking a specific action is responsibility,
+      // even when the employee does not use the word "assigned".
+      const unassignedAction = /\b(?:nobody|no one|someone|anyone|no staff member)(?:\s+at\s+front\s+desk)?\s+will\s+(?:call|contact|handle|follow|ask|tell)\b/.test(note);
+      const namedAction = !unassignedAction && scenario.id === 'shift-unresolved' && index === 0 &&
+        /\b(?!(?:nobody|someone|somebody|anyone|anybody|everyone|everybody|whoever)\b)(?:[a-z]+(?:\s+at\s+front\s+desk)?|front\s+desk|reception)\s+will\s+(?:call|contact|handle|follow|ask|tell)\b/.test(note);
+      return !namedAction && !check.alternatives.some(term => matchesActionCriterion(note, term));
+    });
     if (missing.length) {
-      errors.note = 'Your note does not clearly explain ' + missing.map(check => check.label).join(' and ') +
+      errors.note = 'Check that your note includes ' + missing.map(check => check.label).join(' and ') +
         '. Say what someone should do, using your own words.';
     }
   }

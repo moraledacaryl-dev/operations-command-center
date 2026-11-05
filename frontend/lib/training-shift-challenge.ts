@@ -33,18 +33,27 @@ export function readShiftAttempt(raw: string | null, c: ShiftCase): ShiftAttempt
       ...(typeof a.completedAt === 'string' && Number.isFinite(Date.parse(a.completedAt)) ? {completedAt:a.completedAt}:{})};
   } catch { return null; }
 }
+const noteHints: Record<string, [string, string]> = {
+  'Front Desk': ['the hot water or shower problem', 'who will inspect it'],
+  'Housekeeping': ['the wet floor or bathroom', 'the dry-floor check'],
+  'Café': ['the delayed order or table', 'the Kitchen check or guest update'],
+  'Kitchen': ['that the dessert must be kept out of service', 'the ingredient or allergy check'],
+  'Maintenance': ['that people must be kept away', 'the qualified inspection'],
+  'Marketing': ['the wrong event date', 'the lead’s review of the draft'],
+  'Security': ['the blocked exit', 'the action to clear the exit'],
+};
 export function assessShiftNote(c: ShiftCase, a: ShiftAnswers): Record<string,string> {
   const scenario: PracticeScenario = {id:c.reference,department:c.department as PracticeScenario['department'],level:3,
     title:c.title,situation:c.situation,goal:'Leave a useful follow-up.',context:[],reference:c.reference,
     priority:c.priority as PracticeScenario['priority'],route:c.team as PracticeScenario['route'],decision:c.decision as PracticeScenario['decision'],
-    example:'',why:c.why,noteChecks:c.checks.map((alternatives,i)=>({label:i === 0 ? 'the actual problem and safe next action' : 'the check still needed',alternatives}))};
+    example:'',why:c.why,noteChecks:c.checks.map((alternatives,i)=>({label:noteHints[c.department]?.[i] || 'the next check',alternatives}))};
   const result = assessPractice(scenario,{priority:a.priority as PracticeAnswers['priority'],department:a.team as PracticeAnswers['department'],decision:a.decision as PracticeAnswers['decision'],owner:a.owner,followUp:a.followUp,note:a.note});
   const errors: Record<string,string> = {...result.errors};
   if (!a.status) errors.status = 'Choose the status you read on the handover.';
   if (errors.owner) errors.owner = 'Name the responsible role, such as the on-duty ' + c.department + ' lead.';
   if (errors.note && (a.note.trim().length < 45 || errors.note.includes('characters'))) errors.note = 'Describe the unfinished problem and what someone needs to do next. A word such as done does not explain the follow-up.';
   if (errors.priority) errors.priority = c.why;
-  if (errors.department) {errors.team = !a.team ? 'Choose the team that should handle this problem.' : 'Think about who can carry out the next check. ' + c.help;delete errors.department;}
+  if (errors.department) {errors.team = !a.team ? 'Choose the team for this situation.' : 'Check who should handle the next step. ' + c.help;delete errors.department;}
   if (!errors.followUp && !/\b(?:now|immediately|before|after|today|shift|minutes?|hours?|am|pm)\b|\d\s*[:.]\s*\d/i.test(a.followUp))
     errors.followUp = 'Add when the next check is due, such as in ten minutes or before service.';
   // A role cannot report an unchecked repair, room or allergy order as finished.

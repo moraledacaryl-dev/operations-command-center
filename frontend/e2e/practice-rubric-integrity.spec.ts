@@ -21,8 +21,8 @@ function caseById(id: string): PracticeScenario {
   return found!;
 }
 
-test('all 117 fictional scenarios have unique ids, actions, and independent handover checks', () => {
-  expect(PRACTICE_SCENARIOS).toHaveLength(117);
+test('all 118 fictional scenarios have unique ids, actions, and independent handover checks', () => {
+  expect(PRACTICE_SCENARIOS).toHaveLength(118);
   const ids = PRACTICE_SCENARIOS.map(item => item.id);
   expect(new Set(ids).size).toBe(ids.length);
   for (const scenario of PRACTICE_SCENARIOS) {
@@ -64,7 +64,7 @@ test('explicitly negated actions are not accepted as correct safety intervention
     ': Do not stop serving this plate. Do not notify the kitchen lead; the item is fine and can proceed with food service immediately.';
   const result = assessPractice(scenario, responses(scenario, text));
   expect(result.passed).toBe(false);
-  expect(result.errors.note).toContain('does not clearly explain');
+  expect(result.errors.note).toContain('Check that your note includes');
 });
 
 test('substring tricks and placeholder owners cannot satisfy written evidence', () => {
@@ -119,5 +119,19 @@ test('every situation rejects each wrong classification and incomplete written f
       expect(result.passed, scenario.id + ': invalid ' + field).toBe(false);
       expect(result.errors[field], scenario.id + ': missing correction for ' + field).toBeTruthy();
     }
+  }
+});
+
+
+test('a naturally worded handover naming a person and guest update is accepted', () => {
+  const scenario = caseById('shift-unresolved');
+  const note = 'DEMO-HANDOVER-014: Twinspire toilet will not flush. Ana at Front Desk will call Maintenance, update the guest in ten minutes, and tell the next shift the repair is still waiting.';
+  expect(assessPractice(scenario, responses(scenario, note)).errors.note).toBeFalsy();
+  const alternative = note.replace('update the guest', 'updating the guest');
+  expect(assessPractice(scenario, responses(scenario, alternative)).errors.note).toBeFalsy();
+  const noOwner = note.replace('Ana at Front Desk will call', 'Nobody will call');
+  expect(assessPractice(scenario, responses(scenario, noOwner)).errors.note).toBeTruthy();
+  for (const subject of ['Nobody at Front Desk', 'No one', 'Someone']) {
+    expect(assessPractice(scenario, responses(scenario, note.replace('Ana at Front Desk', subject))).errors.note).toBeTruthy();
   }
 });

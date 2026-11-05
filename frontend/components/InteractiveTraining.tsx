@@ -10,11 +10,13 @@ import { ROOM_MISSION_PREFIX, ROOM_PRACTICE_FINISHED } from '@/lib/training-room
 import { SHIFT_MISSION_PREFIX, SHIFT_PRACTICE_FINISHED } from '@/lib/training-shift-mission';
 import { PRACTICE_PLANS } from '@/lib/training-practice-plans';
 import type { TrainingStep } from '@/lib/interactive-training';
-import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
+import { courseGuideFor, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
 import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
 import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
 import { TrainerReports } from '@/components/TrainerReports';
+import { LessonText } from '@/components/LessonText';
+import { ROOM_ARRIVAL_FINISHED } from '@/components/RoomArrivalPractice';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
 
@@ -115,9 +117,15 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const latestLessons = useRef(lessons);
   latestLessons.current = lessons;
   const courseLesson = course && lessons.find(item => item.id === course.lessonId);
-  const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
+  const primaryDepartment = user.departments?.find((dept: Entity) => Number(dept.id) === Number(user.primary_department_id)) || user.departments?.[0];
+  const courseGuide = courseLesson ? courseGuideFor(courseLesson.id, String(primaryDepartment?.name || ''), isFrontDeskStaff) : undefined;
   const basePlan = courseLesson ? PRACTICE_PLANS[courseLesson.id] : undefined;
-  const practicePlan = basePlan && courseLesson?.id === 'staff-rooms' && !isFrontDeskStaff
+  const practicePlan = basePlan && courseLesson?.id === 'room-arrivals' && isFrontDeskStaff
+    ? { ...basePlan, goal: 'Record a practice arrival and departure, then try a second room yourself.',
+        show: 'Use Record check-in when the guest arrives. When the guest leaves, use Record checkout for the same room.',
+        self: 'Complete check-in and checkout in two practice rooms. The first room has a guide; the second starts without arrows.',
+        checks: 'The app reads back both saved stays and checks that your login recorded the arrival and departure.' }
+    : basePlan && courseLesson?.id === 'staff-rooms' && !isFrontDeskStaff
     ? { ...basePlan, goal: 'Find guest rooms and shared areas.',
         show: 'Choose Guest rooms, search Solace, and open its room details. Read the records available to your department.',
         self: 'Switch between Guest rooms and Shared areas without arrows.',
@@ -187,8 +195,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const independentAction = course && independentActions?.[course.independentStep || 0];
   // Keep a click listener mounted before navigation. Installing the listener
   // after each route change can miss a fast employee click on a real link.
-  const independentStateRef = useRef({ course, action: independentAction, path });
-  independentStateRef.current = { course, action: independentAction, path };
+  const roomArrivalPractice = isFrontDeskStaff && course?.lessonId === 'room-arrivals';
+  const independentStateRef = useRef({ course, action: independentAction, path, roomArrivalPractice });
+  independentStateRef.current = { course, action: independentAction, path, roomArrivalPractice };
 
   useEffect(() => {
     try {
@@ -227,13 +236,24 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           ...(current.metrics?.['staff-handover'] || {}), completedAt: new Date().toISOString(),
         } } };
     });
+    const completeArrivalPractice = (event: Event) => setCourse(current => {
+      if (!isFrontDeskStaff || !current || current.lessonId !== 'room-arrivals' || current.stage !== 'independent') return current;
+      const hints = Number((event as CustomEvent).detail?.hints);
+      return { ...current, stage: 'done', passed: Array.from(new Set([...current.passed, 'room-arrivals'])),
+        metrics: { ...(current.metrics || {}), 'room-arrivals': {
+          ...(current.metrics?.['room-arrivals'] || {}), completedAt: new Date().toISOString(),
+          hintsViewed: (current.metrics?.['room-arrivals']?.hintsViewed || 0) + (Number.isInteger(hints) && hints > 0 ? hints : 0),
+        } } };
+    });
     window.addEventListener(ROOM_PRACTICE_FINISHED, completeRoomPractice);
     window.addEventListener(SHIFT_PRACTICE_FINISHED, completeShiftPractice);
+    window.addEventListener(ROOM_ARRIVAL_FINISHED, completeArrivalPractice);
     return () => {
       window.removeEventListener(ROOM_PRACTICE_FINISHED, completeRoomPractice);
       window.removeEventListener(SHIFT_PRACTICE_FINISHED, completeShiftPractice);
+      window.removeEventListener(ROOM_ARRIVAL_FINISHED, completeArrivalPractice);
     };
-  }, []);
+  }, [isFrontDeskStaff]);
 
   // Keep the current guided step across pause, refresh and app restart.
   useEffect(() => {
@@ -279,8 +299,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   // No Next button, synthetic click or just opening a screen awards completion.
   useEffect(() => {
     const onInteraction = (event: Event) => {
-      const { course: expected, action, path: currentPath } = independentStateRef.current;
-      if (!expected || expected.stage !== 'independent' || !action || currentPath !== action.path) return;
+      const { course: expected, action, path: currentPath, roomArrivalPractice: savedRoomPractice } = independentStateRef.current;
+      if (!expected || savedRoomPractice || expected.stage !== 'independent' || !action || currentPath !== action.path) return;
       const target = event.target;
       if (!(target instanceof Element) ||
         !independentActionMatches(action, target, event.type as 'click' | 'input')) return;
@@ -650,13 +670,13 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           </section>}
           <p className="ops-course-scroll-help">Read the lesson below, then choose Answer two questions. Scroll inside this panel if the button is below the screen.</p>
           <h2 data-testid="course-lesson-title">{courseLesson.title}</h2>
-          <p className="ops-course-explanation">{courseGuide.explanation}</p>
-          {practicePlan && <div className="ops-practice-mission-summary"><strong>Show me</strong><p>{practicePlan.show}</p></div>}
+          <p className="ops-course-explanation"><LessonText text={courseGuide.explanation} terms={courseGuide.keyTerms} /></p>
+          {practicePlan && <div className="ops-practice-mission-summary"><strong>Show me</strong><p><LessonText text={practicePlan.show} terms={courseGuide.keyTerms} /></p></div>}
           <h3>Example at work</h3>
-          <p className="ops-course-example">{currentExample}</p>
+          <p className="ops-course-example"><LessonText text={currentExample} terms={courseGuide.keyTerms} /></p>
           <h3>A mistake to avoid</h3>
-          <p className="ops-course-wrong-example">{courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'}</p>
-          <p><strong>Why it matters:</strong> {courseGuide.whyIncorrect || 'Check what happened before telling someone that the work is finished.'}</p>
+          <p className="ops-course-wrong-example"><LessonText text={courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'} terms={courseGuide.keyTerms} /></p>
+          <p><strong>Why it matters:</strong> <LessonText text={courseGuide.whyIncorrect || 'Check what happened before telling someone that the work is finished.'} terms={courseGuide.keyTerms} /></p>
           {courseGuide.branches?.[0] && <div className="ops-course-branch" data-testid="course-situation-branch">
             <h3>What would you do if this happened?</h3>
             <p>{courseGuide.branches[0].question}</p>
@@ -669,7 +689,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
             <button type="button" className="ops-course-quiet" disabled={branchAnswer===null}
               onClick={()=>setBranchExplained(true)}>Check this answer</button>
           </div>}
-          <p><strong>Remember:</strong> {courseGuide.remember}</p>
+          <p><strong>Remember:</strong> <LessonText text={courseGuide.remember} terms={courseGuide.keyTerms} /></p>
           <p className="ops-course-next-explainer">Next: Answer two short questions. Then the app will show one action at a time. You will use the real buttons yourself.</p>
           <details className="ops-course-help">
             <summary>Need help with this lesson?</summary>
@@ -699,7 +719,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </>}
         {course.stage === 'done' && <>
           <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
-          <p>You answered the questions and finished the practice.{courseGuide.handsOn && course.reference ? ' The app checked your saved work.' : ''}</p>
+          <p>You answered the questions and finished the practice.{(courseGuide.handsOn && course.reference) || roomArrivalPractice ? ' The app checked your saved work.' : ''}</p>
           <p>You can repeat this lesson at any time. Your earlier results will stay saved.</p>
           <button type="button" className="ops-course-quiet" data-testid="export-training-report"
             onClick={exportTrainingProgress}>Save my training report</button>
@@ -716,7 +736,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         <button type="button" className="ops-course-primary" onClick={() => { const index = course.tourStep || 0; setActive({ id: course.lessonId, index }); router.push(courseLesson?.steps[index]?.path || '/'); }}>Resume practical lesson →</button>
       </section>
     </div>}
-    {course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
+    {course?.stage === 'independent' && independentAction && !roomArrivalPractice && <div className="ops-course-independent-status"
       data-testid="course-independent-challenge" role="status">
       <strong>YOUR TURN · {1 + (course.independentStep || 0)} OF 2 — No arrows</strong>
       {practicePlan && <p className="ops-practice-self-goal">{practicePlan.self}</p>}
@@ -799,13 +819,14 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         {!onStepPage ? <p className="ops-guide-hint">Opening the correct page…</p>
           : needsNavigation ? <p className="ops-guide-hint">Open the highlighted navigation menu, then find the link named above. The lesson continues after you select that link.</p>
           : !targetFound ? <p className="ops-guide-hint">The control is not showing yet. Check the page has loaded, or go Back to reopen the form. You can also pause and resume this lesson; finished lessons are kept.</p>
-          : step.requiresAction ? <p className="ops-guide-hint">↖ Click the highlighted link to continue.</p>
+          : step.requiresAction ? <p className="ops-guide-hint">↖ Select the highlighted item to continue.</p>
           : step.advanceOnClick ? <p className="ops-guide-hint">↖ Click the highlighted button, or choose Next.</p>
           : <p className="ops-guide-hint">↖ Read the highlighted section, then choose {atLastStep ? 'Finish practice' : 'Next'}.</p>}
         <div className="ops-guide-actions">
           <button type="button" className="ops-guide-button-secondary" onClick={previous} disabled={stepIndex === 0}>Back</button>
-          <button type="button" className="ops-guide-button-primary" onClick={() => next()}
-            disabled={Boolean(step.requiresAction && (course?.stage === 'tour' || targetFound))}>{step.requiresAction ? 'Click highlighted link →' : atLastStep ? 'Finish practice' : 'Next →'}</button>
+          {step.requiresAction && (course?.stage === 'tour' || targetFound)
+            ? <span className="ops-guide-action-instruction">Select the highlighted item to continue.</span>
+            : <button type="button" className="ops-guide-button-primary" onClick={() => next()}>{atLastStep ? 'Finish practice' : 'Next →'}</button>}
         </div>
         <button type="button" className="ops-guide-more" onClick={() => { exit(); setMenuOpen(true); }}>See lesson list</button>
       </section>

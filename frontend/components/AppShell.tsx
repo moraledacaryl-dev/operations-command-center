@@ -7,6 +7,7 @@ import { Icon, IconName } from '@/components/Icon';
 import { InteractiveTraining } from '@/components/InteractiveTraining';
 import { TrainingWorkflowCoach } from '@/components/TrainingWorkflowCoach';
 import { FrontDeskRoomPractice } from '@/components/FrontDeskRoomPractice';
+import { RoomArrivalPractice } from '@/components/RoomArrivalPractice';
 import { DepartmentShiftPractice } from '@/components/DepartmentShiftPractice';
 import { IndependentShiftChallenge } from '@/components/IndependentShiftChallenge';
 import { api, Entity } from '@/lib/api';
@@ -255,9 +256,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <div className="ops-demo-banner" role="note" aria-label="Practice only"><strong>PRACTICE ONLY</strong> · Use made-up guest details</div> : process.env.NEXT_PUBLIC_DEMO_PREVIEW === 'true' ? <div className="ops-demo-banner"><span>Demo workspace</span> Sample data</div> : null}
         {trainingMode ? <TrainingWorkflowCoach user={user} path={path} /> : null}
         {trainingMode ? <FrontDeskRoomPractice user={user} path={path} /> : null}
+        {trainingMode ? <RoomArrivalPractice user={user} path={path} /> : null}
         {trainingMode ? <DepartmentShiftPractice user={user} path={path} /> : null}
-        <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{trainingMode ? <IndependentShiftChallenge user={user} path={path} /> : null}{children}</main>
         {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <InteractiveTraining user={user} path={path} /> : null}
+        <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{trainingMode ? <IndependentShiftChallenge user={user} path={path} /> : null}{children}</main>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         {[homeNavigationItems[0], homeNavigationItems[1], workItems[0], decisionItems[0]].map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}

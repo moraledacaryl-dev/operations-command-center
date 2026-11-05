@@ -240,7 +240,8 @@ final class TrainingRuntime {
         try setProcess(uiProcess, api: false, generation: run)
 
         progress("Checking training website and database...")
-        for _ in 0..<90 {
+        let readinessDeadline = Date().addingTimeInterval(60)
+        while Date() < readinessDeadline {
             if isCancelled(run) {
                 throw NSError(domain: "HiddenOasisTraining", code: 4,
                               userInfo: [NSLocalizedDescriptionKey: "Training startup cancelled"])

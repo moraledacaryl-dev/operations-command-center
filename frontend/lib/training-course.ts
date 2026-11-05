@@ -8,6 +8,7 @@ export type CheckQuestion = {
   explanation: string;
 };
 export type CourseGuide = {
+  keyTerms: readonly string[];
   explanation: string;
   incorrectExample?: string;
   repeatVariant?: { example: string; questions: readonly [CheckQuestion,CheckQuestion] };
@@ -26,82 +27,108 @@ const q = (prompt: string, choices: [string,string,string], correct: 0|1|2, expl
  */
 export const COURSE_GUIDES: Record<string, CourseGuide> = {
   orientation: {
+    keyTerms: ['My Work', 'tasks assigned to you', 'Notifications', 'Hidden Oasis logo'],
     explanation: 'This practice app uses the same screens as Operations, with made-up guest and employee details. My Work shows tasks assigned to you. Notifications tells you when something needs your attention. The Hidden Oasis logo returns you to the main page.',
     example: 'You arrive for your shift. You need to see your assigned tasks, check any important new messages, then return to the dashboard.',
     repeatVariant: { example:'The next shift starts and you need to find one assigned task, read a new alert, and return home without changing anything.', questions:[
       q('Which control normally takes you back to the dashboard?', ['A request approval button','The Hidden Oasis logo','The room filter'],1,'The Hidden Oasis logo returns to the main dashboard.'),
-      q('How do you find an alert about your assignments?', ['Use Notifications and read the related task','Mark every alert done','Ask another employee for their password'],0,'Read the notification and related work with your own login.'),
+      q('How do you find an alert about your assignments?', ['Use Notifications and read the related task','Read only the alert without opening the task','Wait for the next shift to check it'],0,'Read the notification and related work with your own login.'),
     ] },
     remember: 'You will click the real My Work link, Notifications link and logo yourself. Clicking Next cannot replace these actions.',
     incorrectExample: 'An employee sees a red notification number, assumes the task is already done, and ignores it.',
     whyIncorrect: 'A notification is a message, not confirmation that a task was finished. Open the related task to see what still needs doing.',
     questions: [
       q('Where do you go first to see tasks assigned to you?', ['My Work','Rooms','Marketing'], 0, 'My Work shows assignments for your own account.'),
-      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the related task and check what still needs doing','Change another employee’s password'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
+      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the related task and check what still needs doing','Wait until the next shift without checking'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
     ],
   },
   'staff-handover': {
+    keyTerms: ['handover', 'still unfinished', 'who is handling them', 'what to do next'],
     explanation: 'A handover is a note from the employee finishing a shift to the employee starting the next one. It explains problems that are still unfinished, who is handling them and what to do next.',
     example: 'A guest reported a broken toilet. Reception has called Maintenance but the repair is not confirmed. The next receptionist needs to know what to check and when to update the guest.',
     remember: 'Reading a note is not the same as fixing the problem. Do not mark it finished until work really is confirmed.',
     incorrectExample: 'A receptionist sees a note saying the toilet repair is waiting, then tells the guest that it is fixed.',
     whyIncorrect: 'The note only records an unfinished problem. Staff need to ask the responsible team what actually happened.',
     branches: [{question:'What if Maintenance cannot come before the next shift?',
-      choices:['Mark the repair complete','Tell the next receptionist who will follow up and update the guest','Delete the report'],
+      choices:['Leave a note about the repair but no guest update','Tell the next receptionist who will follow up and update the guest','Tell the guest to call back without leaving a handover'],
       correct:1, response:'The next employee must know the problem is still open and who will follow up with the guest.'}],
     questions: [
-      q('What should a useful shift note tell the next employee?', ['Only that the guest was upset','The problem, who should act and what to check next','Only the shift end time'], 1, 'The next employee needs enough information to continue the work.'),
-      q('You read a handover about a repair that is not checked yet. What should you do?', ['Assume it is repaired','Delete the note','Check the situation or tell the person responsible'], 2, 'An unresolved problem needs follow-up, not an assumed completion.'),
+      q('What should a useful shift note tell the next employee?', ['The room and problem, without the next action','The problem, who should act and what to check next','The next action, without saying which room is affected'], 1, 'The next employee needs enough information to continue the work.'),
+      q('You read a handover about a repair that is not checked yet. What should you do?', ['Wait until the guest calls again','Ask the next shift to assume it is repaired','Check the situation or tell the person responsible'], 2, 'An unresolved problem needs follow-up, not an assumed completion.'),
     ],
   },
   'staff-rooms': {
+    keyTerms: ['Rooms', 'correct room', 'already been reported', 'guest status is not recorded', 'Front Desk'],
     explanation: 'The Rooms screen lists actual Hidden Oasis room names, with made-up practice reports. First find the correct room and check whether the problem has already been reported.',
     example: 'A guest in Solace says the air conditioner is not cooling. Open Solace and check its saved guest report before creating another report.',
-    remember: 'Check the correct room name. Never mix one guest’s information with another guest’s report.',
+    remember: 'Check the correct room name. Front Desk records check-in and checkout on Room cleaning. If a record is wrong, choose Correct and explain the mistake. If guest status is not recorded, ask Front Desk before entering.',
     questions: [
-      q('Before reporting another problem in Solace, what should you check?', ['Whether the issue is already recorded','Whether it is payday','Whether the café menu changed'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
-      q('Why should you confirm the room name?', ['To send the right team to the correct place','To make the record longer','To avoid telling the next shift anything'], 0, 'The correct room name prevents wasted trips and mistaken guest updates.'),
+      q('Before reporting another problem in Solace, what should you check?', ['Whether the issue is already recorded','Only whether the room has been cleaned','Only whether a different room has a problem'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
+      q('A room says guest status is not recorded. What should you do before entering?', ['Ask Front Desk to check','Assume the guest has left','Start the checkout clean'], 0, 'A missing record does not mean the room is empty.'),
+    ],
+  },
+  'room-arrivals': {
+    keyTerms: ['Room cleaning', 'planned arrivals and departures', 'guest status', 'actual arrivals and departures', 'guest has left', 'does not mean a room is clean'],
+    explanation: 'Room cleaning shows planned arrivals and departures, guest status, and cleaning work separately. Front Desk records actual arrivals and departures. Housekeeping waits for confirmation that the guest has left before starting a checkout clean.',
+    example: 'A practice guest leaves Solace. Front Desk records checkout and confirms the room is empty. Housekeeping cleans and a supervisor checks the work.',
+    remember: 'A recorded checkout does not mean a room is clean. If a status is wrong, Front Desk can correct it and explain the mistake.',
+    questions: [
+      q('A guest is recorded as checked in. Can Housekeeping start a checkout clean?', ['No. Check with Front Desk first','Yes, if the cleaner is available','Yes, if another guest is arriving'], 0, 'The guest may still be in the room. Check with Front Desk.'),
+      q('A guest has checked out and the room was used again later. What cleaning does it need?', ['A new clean after the later checkout','No clean because it was approved earlier','Only a new status without a clean'], 0, 'The earlier cleaning was for the previous guest.'),
     ],
   },
   'staff-my-work': {
+    keyTerms: ['My Work', 'due date', 'urgency', 'blocked', 'waiting'],
     explanation: 'My Work shows the jobs assigned to your account. Read the due date, urgency and instructions. If something is blocked, tell the appropriate lead instead of pretending it is complete.',
     example: 'An item due today is waiting for materials. Open it, understand what is missing, and tell the lead so they can help.',
     repeatVariant: { example:'You open My Work and see a job blocked because a part has not arrived. Report the blocker rather than falsely closing the task.', questions:[
-      q('A task is Waiting for another team. What should you do?', ['Check the blocker and keep the responsible person informed','Delete it','Mark it done'],0,'Waiting is not the same as finished work.'),
-      q('Where should you look for tasks assigned to your login?', ['My Work','A coworker’s payroll','Marketing drafts'],0,'My Work shows your assigned workload.'),
+      q('A task is Waiting for another team. What should you do?', ['Check the blocker and keep the responsible person informed','Leave it without an update until the due date','Move it to Done while another team is still working'],0,'Waiting is not the same as finished work.'),
+      q('Where should you look for tasks assigned to your login?', ['My Work','The room directory','The shift handover'],0,'My Work shows your assigned workload.'),
     ] },
     remember: 'A task waiting for approval or another team is not automatically finished.',
     questions: [
       q('A task is due today but you cannot finish it. What should you do?', ['Say nothing until tomorrow','Tell the lead what is blocking it','Mark it done to clear the list'], 1, 'The responsible lead needs a truthful update so the issue can be addressed.'),
-      q('What does a task marked Waiting normally mean?', ['It may still need something before work can finish','It is always fully completed','It should be deleted'], 0, 'Waiting means another action or dependency may be pending.'),
+      q('What does a task marked Waiting normally mean?', ['It may still need something before work can finish','It is finished but has not been filed yet','No one needs to follow it up'], 0, 'Waiting means another action or dependency may be pending.'),
+    ],
+  },
+  'maintenance-status': {
+    keyTerms: ['Open', 'Working', 'In progress', 'Done', 'To verify', 'Verified'],
+    explanation: 'Open means work is waiting. Working means it has started; the board calls this In progress. Done means someone reported it finished; the board calls this To verify. Verified means an authorized person checked the finished work.',
+    example: 'A corridor light is marked Done. A final check is still needed before it can be marked Verified.',
+    remember: 'Do not say a repair is verified until the authorized check has actually happened.',
+    questions: [
+      q('A repair is Done but not Verified. What does that mean?', ['A final check may still be needed','It is definitely verified','Nobody needs to check it'],0,'Done and Verified are different steps.'),
+      q('Who can mark the final check Verified?', ['An authorized person after checking','Anyone who opens the repair','The next guest'],0,'Only an authorized person can verify the completed repair.'),
     ],
   },
   'team-tasks': {
+    keyTerms: ['Search first', 'person responsible', 'actually assigned', 'review', 'Check saved work'],
     explanation: 'A task is a specific job with a title, priority and person responsible. Search first so you do not create duplicates. When saving, make sure the correct teammate is actually assigned.',
     example: 'A shared job has no owner. Assign the right practice teammate, start the work, and submit the saved task for review.',
     repeatVariant: { example:'A staff member reports a broken hallway sign but nobody is assigned. Find whether the job exists, assign the right practice teammate, and follow its progress.', questions:[
-      q('A task already exists for the same sign. What should you do?', ['Create a second copy','Review the existing task and update it if appropriate','Ignore both'],1,'Duplicate tasks confuse ownership.'),
+      q('A task already exists for the same sign. What should you do?', ['Create another task for the next shift','Review the existing task and update it if appropriate','Wait for the original reporter to follow up'],1,'Duplicate tasks confuse ownership.'),
       q('When can a task be submitted for review?', ['After it actually reaches the required work stage','The moment it is created without work','By changing the title only'],0,'Complete each step and save your changes.'),
     ] },
     remember: 'Save your task and move it through each step. Choose Check saved work after each change.',
     handsOn: 'shared-no-owner',
     questions: [
-      q('A task is unassigned and needs attention today. What matters most?', ['Assigning someone who will handle it','Changing its color','Closing it without work'], 0, 'Work can be forgotten when nobody is responsible.'),
-      q('Before creating a task, what should you do?', ['Create duplicates to be safe','Search for an existing task','Mark somebody else’s task as done'], 1, 'Searching first reduces duplicate and conflicting work.'),
+      q('A task is unassigned and needs attention today. What matters most?', ['Assigning someone who will handle it','Changing the due date without asking anyone','Leaving it unassigned for the next shift'], 0, 'Work can be forgotten when nobody is responsible.'),
+      q('Before creating a task, what should you do?', ['Ask the next shift to create it','Search for an existing task','Add the task first and check for a duplicate later'], 1, 'Searching first reduces duplicate and conflicting work.'),
     ],
   },
   'guest-matters': {
+    keyTerms: ['guest matter', 'what happened', 'which room or service', 'who should investigate', 'call the guest back', 'actually been checked'],
     explanation: 'A guest matter is a record of a guest’s problem. A good record states what happened, which room or service is affected, who should investigate and when Reception will call the guest back.',
     example: 'Solace reports an AC that is blowing warm air. Record the complaint, arrange an inspection and keep the guest informed.',
     repeatVariant: { example:'A practice guest in Perch 2 says their bathroom sink is leaking. Nobody has inspected the room. Record what is known and arrange an update without promising a repair time.', questions:[
-      q('The guest asks if the sink is already repaired. What should Reception say?', ['It is repaired without inspection','We will confirm with Maintenance and update you','We do not care'],1,'Do not promise a finished repair before checking.'),
-      q('What is useful in the guest matter?', ['Perch 2, leaking sink, responsible team and follow-up','Only the guest mood','A fake completion note'],0,'The right details help the next employee act.'),
+      q('The guest asks if the sink is already repaired. What should Reception say?', ['It should be ready because the repair was assigned','We will confirm with Maintenance and update you','Please call again after the next shift starts'],1,'Do not promise a finished repair before checking.'),
+      q('What is useful in the guest matter?', ['Perch 2, leaking sink, responsible team and follow-up','Perch 2 and the complaint, with no follow-up yet','The repair request, without the room name'],0,'The right details help the next employee act.'),
     ] },
     remember: 'Do not claim the guest problem is solved before it has actually been checked.',
     incorrectExample: 'Reception tells the guest the air conditioner is repaired even though no technician has inspected it.',
     whyIncorrect: 'Promising a result that has not been checked can mislead the guest and hide an unfinished repair.',
     branches: [{question:'What if the guest says the room is too hot to stay in?',
-      choices:['Ignore the new information','Ask the lead about safe immediate assistance or a room option and update the guest','Say maintenance will arrive at a made-up time'],
+      choices:['Keep the original follow-up time without checking the new concern','Ask the lead about safe immediate assistance or a room option and update the guest','Give the usual repair time before asking Maintenance'],
       correct:1, response:'New information can change the response. Ask an authorized lead for a way to help the guest now.'}],
     handsOn: 'guest-ac',
     questions: [
@@ -110,6 +137,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   maintenance: {
+    keyTerms: ['Maintenance', 'where it is', 'Working', 'Done', 'Verified', 'person with permission'],
     explanation: 'Maintenance records show what is broken, where it is and who is fixing it. Working means repair is underway. Done means someone says the repair is finished. Verified means a person with permission has checked it.',
     example: 'A corridor light is out. Record the affected area, ask a practice technician to inspect it and make sure the finished work is checked.',
     repeatVariant: { example:'The pool-side walkway light is out after rain. Do not touch wiring. Record the area, protect access if necessary and request a qualified inspection.', questions:[
@@ -125,10 +153,11 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     handsOn: 'mt-light-fault',
     questions: [
       q('A repair is marked Done but has not been tested. What does that mean?', ['A final check may still be needed','The building is definitely safe','The task should be forgotten'], 0, 'Done and Verified are different steps in the work process.'),
-      q('What should a maintenance report include?', ['The exact location and what is not working','Only the employee’s nickname','An invented completed repair'], 0, 'A useful report identifies the defect and where staff need to inspect.'),
+      q('What should a maintenance report include?', ['The exact location and what is not working','The location without saying what is wrong','The fault without saying where it is'], 0, 'A useful report identifies the defect and where staff need to inspect.'),
     ],
   },
   requests: {
+    keyTerms: ['request', 'what is needed', 'why it matters', 'quotation', 'verified', 'approval'],
     explanation: 'A request asks for something to be purchased or changed. Explain what is needed, why it matters and whether the price or quotation has been verified. Requesting approval is not approving your own request.',
     example: 'A department needs equipment but the supplier quotation is missing. Save the truthful reason and send it to a person allowed to review it.',
     repeatVariant: { example:'The kitchen requests replacement equipment but only has an estimate, not a supplier quote. Clearly describe what is missing before asking for review.', questions:[
@@ -139,7 +168,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     incorrectExample: 'An employee writes “quotation attached” to make the request look complete, but no quotation exists.',
     whyIncorrect: 'The reviewer needs accurate information, including what is still missing, before deciding.',
     branches: [{question:'What if the supplier sends a different price later?',
-      choices:['Hide the new price','Update the request with the new quoted price and explain the change','Approve it without checking'],
+      choices:['Keep the earlier estimate in the request until the invoice arrives','Update the request with the new quoted price and explain the change','Tell the reviewer the price changed but leave the saved amount as it is'],
       correct:1, response:'Changes in price must be visible to the person allowed to review it.'}],
     handsOn: 'manager-evidence',
     questions: [
@@ -148,6 +177,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'shift-writing': {
+    keyTerms: ['shift note', 'what happened', 'who is supposed to handle it', 'when', 'another update'],
     explanation: 'A useful shift note tells the next employee what happened, who is supposed to handle it and when the guest or team needs another update.',
     example: 'A guest is still waiting for a toilet repair. Write who will contact Maintenance and who must call the guest back after the shift changes.',
     remember: 'Publishing a note does not automatically make the unfinished work go away.',
@@ -160,33 +190,37 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   projects: {
+    keyTerms: ['project', 'clear goal', 'deadline', 'responsible team', 'existing projects', 'agreed work is finished'],
     explanation: 'A project is a larger goal made up of smaller steps, such as preparing an event. Use a clear goal, deadline and responsible team. Read existing projects before adding a new one.',
     example: 'The resort is preparing a holiday event. Find its project first, then inspect the tasks and the people responsible.',
     remember: 'Only mark a project complete when the agreed work is finished.',
     questions: [
       q('Before creating another project for the same event, what should you do?', ['Check whether it already exists','Use an unrelated name','Mark the old project complete'], 0, 'Checking the portfolio avoids duplicate plans.'),
-      q('What makes a project easier for the team to follow?', ['A goal, deadline and next actions','A title with no owner','Only a photo'], 0, 'Clear responsibility and milestones make the project actionable.'),
+      q('What makes a project easier for the team to follow?', ['A goal, deadline and next actions','A goal without a deadline or assigned team','A deadline without the work to be done'], 0, 'Clear responsibility and milestones make the project actionable.'),
     ],
   },
   marketing: {
+    keyTerms: ['draft', 'review', 'publication', 'approved to publish', 'requested correction', 'authorized approval'],
     explanation: 'Marketing posts move from an idea to a draft, review, changes and publication. A reviewed design is not automatically approved to publish.',
     example: 'A Halloween poster has a spelling mistake. Find the draft, record the requested correction and wait for the authorized approval.',
     remember: 'Do not publish a real poster while using the fictional training app.',
     questions: [
       q('A poster has a spelling mistake before approval. What should happen?', ['Request a correction','Publish it anyway','Delete all designs'], 0, 'The problem should be corrected before authorized publication.'),
-      q('Does a post being in Review mean it is already published?', ['Yes','No, it is awaiting a decision','Only if the file is large'], 1, 'Review and Posted are distinct stages.'),
+      q('Does a post being in Review mean it is already published?', ['Yes, once it reaches Review','No, it is awaiting a decision','Yes, if a supervisor has seen the draft'], 1, 'Review and Posted are distinct stages.'),
     ],
   },
   'management-review': {
+    keyTerms: ['evidence', 'proof', 'missing information', 'approval permission'],
     explanation: 'A manager reviews the underlying evidence before approving, rejecting or asking for changes. A request that lacks proof should not be approved just to clear the queue.',
     example: 'A purchase request has no reliable price quotation. Ask for the missing information instead of guessing.',
     remember: 'Only someone with approval permission should make that decision.',
     questions: [
-      q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Approve without looking','Ignore the missing details'], 0, 'Authorized reviewers need adequate evidence.'),
+      q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Use a similar earlier request as the evidence','Wait for the next reviewer without leaving a note'], 0, 'Authorized reviewers need adequate evidence.'),
       q('A request is approved. Does this prove the item was delivered?', ['No, delivery or implementation must be checked separately','Yes, always','Only if the reviewer was busy'], 0, 'The approval decision is not proof that the work was carried out.'),
     ],
   },
   accounts: {
+    keyTerms: ['own account', 'Roles', 'department access', 'Never share a password', 'must be approved'],
     explanation: 'Each staff member should use their own account. Roles and department access determine what they can view and change. Never share a password to work around a permission limit.',
     example: 'A new practice receptionist needs access only to the correct department and tasks; do not give unrestricted manager powers.',
     remember: 'Changing an employee’s access must be approved and follow the resort’s rules.',
@@ -208,6 +242,35 @@ export type CourseProgress = {
   passed: string[];
   metrics?: Record<string, { incorrectAnswers?: number; repeats?: number; completedAt?: string; hintsViewed?: number }>;
 };
+
+/** Adapt shared lessons to the work the employee actually does. */
+export function courseGuideFor(id: string, department: string, isFrontDesk: boolean): CourseGuide | undefined {
+  const base = COURSE_GUIDES[id];
+  if (!base) return undefined;
+  if (id === 'staff-rooms' && !isFrontDesk) return {
+    ...base,
+    explanation: 'Rooms lists guest rooms and shared areas. Find the right place and read the information available to your team. Some reports may be visible only to the team handling them.',
+    example: 'You need to find Solace. Open its room details and see what your team can read. If you cannot see a report, ask the responsible team rather than assuming there is no problem.',
+    questions: [q('You cannot see a report in a room. What should you do?', ['Ask the responsible team to check','Assume no problem exists','Use another employee’s account'], 0, 'A report may be available only to the team handling it.'), base.questions[1]],
+  };
+  if (id !== 'staff-handover') return base;
+  const examples: Record<string, [string,string]> = {
+    'housekeeping': ['A room still needs an inspection before the next arrival.', 'Housekeeping lead'],
+    'café': ['A breakfast order is delayed and the guest is waiting for an update.', 'Café lead'],
+    'kitchen': ['An allergy order is waiting for an ingredient check.', 'Kitchen lead'],
+    'maintenance': ['A repair still needs an inspection before the area can be used.', 'Maintenance lead'],
+    'marketing': ['A draft post has the wrong event date and needs a review.', 'Marketing lead'],
+    'security': ['A pool gate has not yet been checked and guests must be kept away.', 'Security lead'],
+  };
+  const item = examples[department.toLowerCase()];
+  if (!item) return base;
+  const [situation, lead] = item;
+  return { ...base, example: situation + ' The ' + lead + ' needs to know what is still waiting and what to check next.',
+    incorrectExample: 'An employee tells the next shift the work is finished without checking.',
+    branches: [{question: 'What if the check cannot be finished before your shift ends?', choices: ['Leave without an update', 'Tell the next shift what is waiting, who will check it and when', 'Say the work is finished'], correct: 1, response: 'The next shift needs the unfinished problem, the person responsible and the next check.'}],
+    questions: [base.questions[0], q('The handover says a check is still pending. What should you do?', ['Assume it is done','Wait without telling anyone','Check the situation or tell the person responsible'],2,'Unfinished work needs a follow-up.')],
+  };
+}
 
 /** Read data as untrusted browser state: it is a convenience resume marker,
  * not an official competency credential or proof of saved work.

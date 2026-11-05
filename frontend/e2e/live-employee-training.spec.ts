@@ -11,6 +11,7 @@ test.skip(!rosterPath, 'Requires a disposable local training DB and private synt
 
 async function signIn(page: import('@playwright/test').Page, email: string) {
   await page.goto('/login');
+  await page.waitForLoadState('networkidle');
   expect(new URL(page.url()).hostname).toBe('127.0.0.1');
   const roster = JSON.parse(readFileSync(rosterPath!, 'utf8'));
   const account = roster.accounts.find((a: { email: string }) => a.email === email);
@@ -28,12 +29,14 @@ async function signIn(page: import('@playwright/test').Page, email: string) {
 test('fresh receptionist completes all required lessons using the real local API and real controls', async ({ page }) => {
   const user = await signIn(page, 'reception-pm@training.invalid');
   const lessons = availableTrainingLessons(user.capabilities, user.departments);
-  expect(lessons.map(l => l.id)).toEqual(['orientation', 'staff-handover', 'staff-rooms', 'staff-my-work']);
+  expect(lessons.map(l => l.id)).toEqual(['orientation', 'staff-handover', 'staff-rooms', 'room-arrivals', 'staff-my-work']);
   const writes: string[] = [];
   page.on('request', r => { if (r.url().includes('/api/') && r.method() !== 'GET') writes.push(r.method() + ' ' + new URL(r.url()).pathname); });
   for (const lesson of lessons) await completeReadOnlyLesson(page, lesson);
-  await expect(page.getByTestId('course-progress-summary')).toContainText('4');
-  expect(writes).toEqual([]);
+  await expect(page.getByTestId('course-progress-summary')).toContainText('5');
+  expect(writes).toHaveLength(4);
+  expect(writes.filter(path => /\/housekeeping\/rooms\/\d+\/check-in$/.test(path))).toHaveLength(2);
+  expect(writes.filter(path => /\/housekeeping\/rooms\/\d+\/stays\/\d+\/check-out$/.test(path))).toHaveLength(2);
   mkdirSync('test-results/ui-audit', { recursive: true });
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-live-staff-finished.png', fullPage: true });
 });
@@ -41,8 +44,8 @@ test('fresh receptionist completes all required lessons using the real local API
 test('fresh manager learns the first five lessons and saves, starts and submits an assigned task against the real API', async ({ page }) => {
   const user = await signIn(page, 'manager@training.invalid');
   const lessons = availableTrainingLessons(user.capabilities, user.departments);
-  for (const lesson of lessons.slice(0, 4)) await completeReadOnlyLesson(page, lesson);
-  const lesson = lessons[4];
+  for (const lesson of lessons.slice(0, 5)) await completeReadOnlyLesson(page, lesson);
+  const lesson = lessons[5];
   expect(lesson.id).toBe('team-tasks');
   const course = page.getByRole('dialog', { name: 'Required training lesson', exact: true });
   await page.getByTestId('course-start-quiz').click();
@@ -98,7 +101,7 @@ test('fresh manager learns the first five lessons and saves, starts and submits 
     await expect(page.getByTestId('course-independent-challenge')).toContainText(action.title);
     await page.locator(action.selector).filter({ hasText: action.containsText, visible: true }).first().click();
   }
-  await expect(page.getByTestId('course-completed')).toContainText('Lesson 5 completed');
+  await expect(page.getByTestId('course-completed')).toContainText('Lesson 6 completed');
   mkdirSync('test-results/ui-audit', { recursive: true });
   await page.screenshot({ path: 'test-results/ui-audit/interactive-training-live-manager-task.png', fullPage: true });
 });

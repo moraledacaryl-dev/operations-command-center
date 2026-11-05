@@ -135,7 +135,7 @@ export function IndependentShiftChallenge({user,path}:{user:Entity;path:string})
             {([
               ['status','What status is saved on the handover?',['New','Seen','Follow','Done']],
               ['priority','How soon should staff act?',['Routine','High','Critical']],
-              ['team','Which team should handle the problem?',['Front Desk','Housekeeping','Café','Kitchen','Maintenance','Marketing','Security']],
+              ['team',c.department === 'Café' ? 'Which team should follow up with the guest?' : 'Which team should handle the problem?',['Front Desk','Housekeeping','Café','Kitchen','Maintenance','Marketing','Security']],
               ['decision','What should happen next?',['Document and monitor','Assign and follow up','Escalate immediately','Return for changes']],
             ] as [keyof ShiftAnswers,string,string[]][]).map(([field,label,options])=><label key={field} htmlFor={'shift-field-'+field}>{label}<select id={'shift-field-'+field} aria-label={label} value={attempt.answers[field]} onChange={e=>answer(field,e.target.value)} aria-invalid={Boolean(errors[field])} aria-describedby={errors[field]?'shift-error-'+field:undefined}><option value="">Choose…</option>{options.map(v=><option key={v} value={v}>{({Routine:'Routine — planned work',High:'High — help soon',Critical:'Critical — get help now','Escalate immediately':'Get the lead’s help now','Assign and follow up':'Ask the right team and follow up','Return for changes':'Ask for a correction','Document and monitor':'Write it down and keep checking'} as Record<string,string>)[v]||v}</option>)}</select>{errors[field]&&<span id={'shift-error-'+field} className="shift-challenge-error">{errors[field]}</span>}</label>)}
           </div>

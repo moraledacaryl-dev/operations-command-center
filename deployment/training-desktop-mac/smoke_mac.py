@@ -367,6 +367,10 @@ def main() -> None:
                     ).fetchone()[0]
                     assert count == 40, f"Each of the 20 fictional roles needs two visible notices: {count}"
                     if i == 0:
+                        # Real installed-version upgrade: the frozen initializer
+                        # must migrate an older completed practice database.
+                        before_tasks = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+                        before_roster = (accounts_dir / "PRIVATE_training_accounts.json").read_bytes()
                         # Simulate an existing installed training DB with a
                         # missing sample. Initialization must repair it without
                         # resetting user data or credentials.
@@ -374,6 +378,16 @@ def main() -> None:
                             "DELETE FROM notifications WHERE id=(SELECT MIN(id) FROM notifications WHERE kind='training_practice_read')"
                         )
                         conn.commit()
+                if i == 0:
+                    subprocess.run([sys.executable, "-m", "alembic", "downgrade", "0011_project_collaboration"],
+                                   env=env, cwd=Path(__file__).resolve().parents[2] / "backend",
+                                   check=True, timeout=60)
+                else:
+                    with sqlite3.connect(db) as upgraded:
+                        assert upgraded.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0014_room_stays"
+                        assert upgraded.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == before_tasks
+                    assert (accounts_dir / "PRIVATE_training_accounts.json").read_bytes() == before_roster
+                    assert len(list((state / "backups").glob("*.sqlite"))) == 1
             roster = json.loads((state / "private" / "accounts" / "PRIVATE_training_accounts.json").read_text())
             assert len(roster["accounts"]) == 20
             guide = state / "private" / "accounts" / "PRIVATE_TRAINER_ACCOUNTS.txt"

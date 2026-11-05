@@ -174,8 +174,19 @@ jobs:
           $backupRoster = @(Get-ChildItem (Join-Path $state 'recovery') -Filter 'PRIVATE_training_accounts.json' -File -Recurse)
           if ($backupRoster.Count -ne 1) { throw 'Interrupted private roster was not preserved' }
           if (Test-Path $journal) { throw 'Successful initialization left an incomplete setup journal' }
+          $beforeRosterHash = (Get-FileHash (Join-Path $privateAccounts 'PRIVATE_training_accounts.json') -Algorithm SHA256).Hash
+          # An already-initialized older installation must upgrade, not skip migrations.
+          Push-Location backend
+          try {
+            python -m alembic downgrade 0011_project_collaboration
+            if ($LASTEXITCODE -ne 0) { throw 'Old installed-schema fixture failed' }
+          } finally { Pop-Location }
           & dist/desktop/backend/training-api/training-api.exe init
           if ($LASTEXITCODE -ne 0) { throw "Frozen runtime did not preserve training data" }
+          if ((Get-FileHash (Join-Path $privateAccounts 'PRIVATE_training_accounts.json') -Algorithm SHA256).Hash -ne $beforeRosterHash) { throw 'Upgrade changed existing training credentials' }
+          python -c "import sqlite3,os; c=sqlite3.connect(os.environ['DATABASE_URL'][10:]); assert c.execute('SELECT version_num FROM alembic_version').fetchone()[0]=='0014_room_stays'; assert c.execute('SELECT COUNT(*) FROM tasks').fetchone()[0]>0; c.close()"
+          if ($LASTEXITCODE -ne 0) { throw 'Existing training schema did not upgrade with practice intact' }
+          if (@(Get-ChildItem (Join-Path $state 'backups') -Filter '*.sqlite').Count -ne 1) { throw 'Existing training upgrade backup missing' }
           $env:HOSTNAME = '127.0.0.1'
           $env:PORT = '3401'
           $env:NODE_ENV = 'production'
