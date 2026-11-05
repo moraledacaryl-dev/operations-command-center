@@ -7,7 +7,10 @@ export async function completeReadOnlyLesson(page: import('@playwright/test').Pa
     const course = page.getByRole('dialog', { name: 'Required training lesson', exact: true });
     await expect(page.getByTestId('course-lesson-title')).toContainText(lesson.title);
     await page.getByTestId('course-start-quiz').click();
-    for (const question of courseGuideFor(lesson.id, department, department === 'Front Desk')!.questions) {
+    const trainee = await page.evaluate(() => JSON.parse(localStorage.getItem('cc_user') || '{}'));
+    const primary = trainee.departments?.find((d: {id: number}) => Number(d.id) === Number(trainee.primary_department_id)) || trainee.departments?.[0];
+    const isFrontDeskStaff = trainee.role === 'staff' && trainee.departments?.some((d: {name: string}) => d.name === 'Front Desk');
+    for (const question of courseGuideFor(lesson.id, String(primary?.name || department), Boolean(isFrontDeskStaff))!.questions) {
       await course.getByRole('radio', { name: question.choices[question.correct], exact: true }).check();
       await page.getByTestId('course-check-answer').click();
     }
