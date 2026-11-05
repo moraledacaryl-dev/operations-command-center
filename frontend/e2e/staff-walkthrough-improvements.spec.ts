@@ -14,6 +14,7 @@ test('technicians receive the new repair status lesson without losing earlier pr
   const lessons = availableTrainingLessons({}, [{ name: 'Maintenance' }]);
   expect(lessons.map(l => l.id)).toContain('maintenance-status');
   expect(availableTrainingLessons({}, [{ name: 'Kitchen' }]).map(l => l.id)).not.toContain('maintenance-status');
+  expect(availableTrainingLessons({}, [{ name: 'Housekeeping', is_primary: true }, { name: 'Maintenance' }]).map(l => l.id)).not.toContain('maintenance-status');
   const passed = lessons.map(l => l.id).filter(id => id !== 'maintenance-status');
   const restored = readCourseProgress(JSON.stringify({ lessonId: 'staff-my-work', stage: 'finished', passed }), lessons);
   expect(restored.lessonId).toBe('maintenance-status');

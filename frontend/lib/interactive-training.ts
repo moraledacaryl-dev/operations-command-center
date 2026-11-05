@@ -178,15 +178,16 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
 
 export function availableTrainingLessons(
   capabilities: Record<string, boolean>,
-  departments: { name?: string }[] = [],
+  departments: { name?: string; is_primary?: boolean }[] = [],
 ): TrainingLesson[] {
   const marketing = Boolean(capabilities.view_all_operations)
     || departments.some(d => String(d.name || '').toLowerCase().includes('marketing'));
   const roomsTeam = Boolean(capabilities.view_all_operations) || departments.some(d => ['front desk', 'housekeeping'].includes(String(d.name || '').toLowerCase()));
+  const primaryDepartment = departments.find(d => d.is_primary) || departments[0];
   return TRAINING_LESSONS.filter(lesson =>
     (!lesson.requirement || capabilities[lesson.requirement] === true)
     && (!lesson.marketingOnly || marketing)
     && (!lesson.roomsTeamOnly || roomsTeam)
-    && (!lesson.maintenanceStaffOnly || (!capabilities.manage_department && departments.some(d => String(d.name || "").toLowerCase() === "maintenance")))
+    && (!lesson.maintenanceStaffOnly || (!capabilities.manage_department && String(primaryDepartment?.name || '').toLowerCase() === 'maintenance'))
   );
 }

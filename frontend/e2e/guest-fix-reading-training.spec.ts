@@ -19,7 +19,7 @@ test('front desk staff inspect a saved guest matter without editing operational 
     localStorage.setItem('cc_user', JSON.stringify(value));
     // These established tests inspect fictional operational records, not first-login teaching.
     localStorage.setItem('ho-ops-structured-course-v2:' + String(value.id), JSON.stringify({
-      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms room-arrivals staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
+      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms room-arrivals staff-my-work maintenance-status team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
     }));
     localStorage.setItem('cc_department_id', '41');
   }, staff(41, 'Front Desk', 'reception-am@training.invalid'));
@@ -81,7 +81,7 @@ test('maintenance staff inspect a saved work order without verify/repair privile
     localStorage.setItem('cc_user', JSON.stringify(value));
     // These established tests inspect fictional operational records, not first-login teaching.
     localStorage.setItem('ho-ops-structured-course-v2:' + String(value.id), JSON.stringify({
-      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms room-arrivals staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
+      lessonId:'orientation', stage:'finished', question:0, passed:'orientation staff-handover staff-rooms room-arrivals staff-my-work maintenance-status team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
     }));
     localStorage.setItem('cc_department_id', '43');
   }, staff(43, 'Maintenance', 'technician@training.invalid'));
