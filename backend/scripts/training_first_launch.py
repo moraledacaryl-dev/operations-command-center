@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 import os
 from pathlib import Path
 import secrets
+import json
+import sqlite3
 
 JOURNAL_NAME = ".first_launch_pending"
 JOURNAL_CONTENT = "HIDDEN_OASIS_FICTIONAL_TRAINING_FIRST_LAUNCH_V1\n"
@@ -160,3 +162,46 @@ def tidy_completed_launch(state: Path) -> None:
     if _journal(data).exists():
         _assert_journal(data)
         _journal(data).unlink()
+
+
+def upgrade_initialized_database(state: Path, database: Path, backend_root: Path) -> None:
+    """Back up and migrate installed fictional practice; never reseed accounts."""
+    data, accounts, _ = _layout(state, database)
+    for path in (database, data / ".initialized", accounts / "PRIVATE_training_accounts.json"):
+        _check_private_path(path)
+        if not path.is_file():
+            _refuse("initialized training files are missing")
+    if (os.environ.get("ENVIRONMENT") != "local"
+            or os.environ.get("ALLOW_DEMO_SEED") != "false"
+            or os.environ.get("ALLOW_DEFAULT_ADMIN_BOOTSTRAP") != "false"
+            or os.environ.get("DATABASE_URL") != "sqlite:///" + database.as_posix()):
+        _refuse("schema upgrades are limited to the private local training database")
+    roster = json.loads((accounts / "PRIVATE_training_accounts.json").read_text(encoding="utf-8"))
+    if not isinstance(roster, dict) or roster.get("synthetic") is not True:
+        _refuse("fictional training account marker missing")
+
+    from alembic import command
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    config = Config(str(backend_root / "alembic.ini"))
+    config.set_main_option("script_location", str(backend_root / "alembic"))
+    head = ScriptDirectory.from_config(config).get_current_head()
+    with sqlite3.connect(database) as connection:
+        versions = {row[0] for row in connection.execute("SELECT version_num FROM alembic_version")}
+        if versions == {head}:
+            return
+        folder = state / "backups"
+        _check_private_path(folder)
+        folder.mkdir(mode=0o700, exist_ok=True)
+        if os.name != "nt" and folder.stat().st_mode & 0o077:
+            _refuse("training backup directory is not private (0700)")
+        backup = folder / ("before-upgrade-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+                           + "-" + secrets.token_hex(6) + ".sqlite")
+        descriptor = os.open(backup, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.close(descriptor)
+        with sqlite3.connect(backup) as destination:
+            connection.backup(destination)
+    print("Saved a private backup before updating existing training practice.", flush=True)
+    command.upgrade(config, "head")
+    print("PASS: training schema updated; existing practice and accounts preserved", flush=True)

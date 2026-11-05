@@ -81,6 +81,7 @@ def init() -> None:
         first_launch.tidy_completed_launch(state)
         if not path.is_file() or not roster.is_file():
             abort("Incomplete initialized training database; do not clear manually")
+        first_launch.upgrade_initialized_database(state, path, resources())
         refresh_fictional_notices(path, state)
         print("PASS: existing fictional training data preserved")
         return

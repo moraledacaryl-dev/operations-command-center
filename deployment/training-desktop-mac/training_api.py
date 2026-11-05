@@ -77,6 +77,7 @@ def init() -> None:
         first_launch.tidy_completed_launch(state)
         if not path.is_file() or not roster.is_file():
             refuse("Training initialization incomplete; do not reset practice data")
+        first_launch.upgrade_initialized_database(state, path, bundled_backend())
         refresh_fictional_notices(path, state)
         print("PASS: existing synthetic training records preserved", flush=True)
         return
