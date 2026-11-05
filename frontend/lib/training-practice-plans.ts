@@ -52,6 +52,14 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     checks: 'This role checks room information and navigation. Front Desk staff also practise saving arrivals and departures.',
     safety: 'A planned departure does not confirm that a guest has left.',
   },
+  'maintenance-status': {
+    goal: 'Understand where a repair stands.',
+    show: 'Open Maintenance and read the repair statuses.',
+    help: 'Use the filters to find repairs and read their saved status.',
+    self: 'Open a practice repair, read its status, then return to Active repairs without arrows.',
+    checks: 'The app checks that you opened a repair and returned to Active; a trainer checks your understanding.',
+    safety: 'Do not mark a repair verified unless the authorized check is complete.',
+  },
   'team-tasks': {
     goal: 'Give a job to the right person and follow it until review.',
     show: 'Find the team task list, search for existing work, and open the New task form.',

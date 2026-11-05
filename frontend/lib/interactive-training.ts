@@ -17,6 +17,7 @@ export type TrainingLesson = {
   requirement?: TrainingRequirement;
   marketingOnly?: boolean;
   roomsTeamOnly?: boolean;
+  maintenanceStaffOnly?: boolean;
   steps: readonly TrainingStep[];
 };
 
@@ -51,7 +52,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     steps: [
       { path: '/rooms', selector: '[aria-label="Space type"] button', targetText: 'Guest rooms', title: "Choose rooms or shared areas", advanceOnClick: true, requiresAction: true, body: "Select Guest rooms or Shared areas." },
       { path: '/rooms', selector: '[aria-label="Search rooms and areas"]', title: "Find a room", body: "Enter the room name, then open its card." },
-      { path: '/rooms', selector: '.room-memory-columns, .space-card, .ops-module', title: "Check existing reports", body: "Read any open guest issues or repairs before reporting the same problem again." },
+      { path: '/rooms', selector: '.room-memory-columns, .space-card, .ops-module', title: "Check existing reports", body: "Read the information your team can see. If a report is not visible, ask the responsible team to check." },
     ],
   },
   {
@@ -71,6 +72,14 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
       { path: '/my-work', selector: '.ops-agenda-today, .ops-agenda', title: "Plan today's work", body: "Open each task to see what needs doing during your shift." },
       { path: '/my-work', selector: '.ops-agenda-waiting, .ops-agenda', title: "Check waiting tasks", body: "A task in Review or Waiting may still need a supervisor's decision." },
       { path: '/my-work', selector: 'a.ops-brand[href="/"]', title: "Return to Today", body: "Select the Hidden Oasis logo to return to Today.", advanceOnClick: true, requiresAction: true },
+    ],
+  },
+  {
+    id: 'maintenance-status', title: 'Reading repair status', summary: 'See what a repair status means and what still needs checking.',
+    maintenanceStaffOnly: true,
+    steps: [
+      { path: '/fixes', selector: '[aria-label="Maintenance filters"] button', targetText: 'Urgent', title: 'Find repair work', body: 'Choose Urgent to find repairs needing attention.', advanceOnClick: true, requiresAction: true },
+      { path: '/fixes', selector: '[aria-label="Maintenance work orders"], .ops-module', title: 'Read the status', body: 'The board says In progress for Working and To verify for Done. Verified means an authorized person checked the repair.' },
     ],
   },
   {
@@ -178,5 +187,6 @@ export function availableTrainingLessons(
     (!lesson.requirement || capabilities[lesson.requirement] === true)
     && (!lesson.marketingOnly || marketing)
     && (!lesson.roomsTeamOnly || roomsTeam)
+    && (!lesson.maintenanceStaffOnly || (!capabilities.manage_department && departments.some(d => String(d.name || "").toLowerCase() === "maintenance")))
   );
 }

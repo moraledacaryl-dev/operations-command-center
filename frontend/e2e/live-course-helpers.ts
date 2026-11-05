@@ -1,13 +1,13 @@
 import { expect } from '@playwright/test';
 import { availableTrainingLessons } from '../lib/interactive-training';
-import { COURSE_GUIDES } from '../lib/training-course';
+import { courseGuideFor } from '../lib/training-course';
 import { INDEPENDENT_CHECKS } from '../lib/training-independent';
 
 export async function completeReadOnlyLesson(page: import('@playwright/test').Page, lesson: ReturnType<typeof availableTrainingLessons>[number], department = 'Front Desk') {
     const course = page.getByRole('dialog', { name: 'Required training lesson', exact: true });
     await expect(page.getByTestId('course-lesson-title')).toContainText(lesson.title);
     await page.getByTestId('course-start-quiz').click();
-    for (const question of COURSE_GUIDES[lesson.id].questions) {
+    for (const question of courseGuideFor(lesson.id, department, department === 'Front Desk')!.questions) {
       await course.getByRole('radio', { name: question.choices[question.correct], exact: true }).check();
       await page.getByTestId('course-check-answer').click();
     }
@@ -81,6 +81,10 @@ export async function completeReadOnlyLesson(page: import('@playwright/test').Pa
           await page.getByRole('button', { name: 'Check saved work', exact: true }).click();
         }
       } else for (const action of INDEPENDENT_CHECKS[lesson.id]) {
+      if (lesson.id === 'maintenance-status' && action.title === 'Return to active repairs') {
+        await expect(page.getByRole('dialog')).toBeVisible();
+        await page.getByRole('button', { name: 'Close details', exact: true }).click();
+      }
       await expect(page.getByTestId('course-independent-challenge')).toContainText(action.title);
       // The last tour click can navigate while the independent stage is opening.
       // Click only after its real target screen is active.

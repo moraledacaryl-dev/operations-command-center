@@ -10,7 +10,7 @@ import { ROOM_MISSION_PREFIX, ROOM_PRACTICE_FINISHED } from '@/lib/training-room
 import { SHIFT_MISSION_PREFIX, SHIFT_PRACTICE_FINISHED } from '@/lib/training-shift-mission';
 import { PRACTICE_PLANS } from '@/lib/training-practice-plans';
 import type { TrainingStep } from '@/lib/interactive-training';
-import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
+import { courseGuideFor, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
 import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
 import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
@@ -117,7 +117,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const latestLessons = useRef(lessons);
   latestLessons.current = lessons;
   const courseLesson = course && lessons.find(item => item.id === course.lessonId);
-  const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
+  const primaryDepartment = user.departments?.find((dept: Entity) => Number(dept.id) === Number(user.primary_department_id)) || user.departments?.[0];
+  const courseGuide = courseLesson ? courseGuideFor(courseLesson.id, String(primaryDepartment?.name || ''), isFrontDeskStaff) : undefined;
   const basePlan = courseLesson ? PRACTICE_PLANS[courseLesson.id] : undefined;
   const practicePlan = basePlan && courseLesson?.id === 'room-arrivals' && isFrontDeskStaff
     ? { ...basePlan, goal: 'Record a practice arrival and departure, then try a second room yourself.',
