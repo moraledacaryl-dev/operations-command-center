@@ -57,7 +57,7 @@ test('successful browser login persists metadata only and uses cookie transport'
   });
 
   await page.goto('/login');
-  await page.getByLabel('Email').fill('cookie-owner@example.test');
+  await page.getByLabel('Username or email').fill('cookie-owner@example.test');
   await page.getByLabel('Password').fill('correct-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
   // Production lands on Today; the isolated native training build intentionally

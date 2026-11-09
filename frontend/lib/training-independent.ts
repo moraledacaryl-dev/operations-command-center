@@ -39,7 +39,7 @@ export const INDEPENDENT_CHECKS: Record<string, readonly [IndependentAction,Inde
     title:'Search for a decision',instruction:'Type a fictional keyword such as repair in Search decisions. Do not enter guest information.'},
     {path:'/review',selector:'a.ops-brand[href="/"]',title:'Return without approving',
     instruction:'Use the logo to return home; this lesson does not require an actual approval.'}],
-  accounts: [{path:'/admin/users',selector:'input[placeholder="Search name, email, or role"]',type:'input',
+  accounts: [{path:'/admin/users',selector:'input[placeholder="Search name, username, or role"]',type:'input',
     title:'Search existing staff accounts',instruction:'Type a fictional search term such as reception. Do not change any account.'},
     {path:'/admin/users',selector:'a.ops-brand[href="/"]',title:'Return without changing access',
     instruction:'Use the logo to return home. Do not change anyone’s permissions as practice.'}],

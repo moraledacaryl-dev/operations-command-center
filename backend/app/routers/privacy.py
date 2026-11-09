@@ -126,9 +126,9 @@ def create_user(
     if not name:
         raise HTTPException(status_code=400, detail="Name is required.")
     if not email:
-        raise HTTPException(status_code=400, detail="Email is required.")
+        raise HTTPException(status_code=400, detail="Username or email is required.")
     if find_user_by_email(db, email):
-        raise HTTPException(status_code=400, detail="A user with that email already exists.")
+        raise HTTPException(status_code=400, detail="That username or email is already in use.")
     new_user = models.User(
         name=name,
         email=email,
@@ -186,10 +186,10 @@ def update_user(
     if "email" in data:
         data["email"] = normalize_email(data["email"])
         if not data["email"]:
-            raise HTTPException(status_code=422, detail="Email is required.")
+            raise HTTPException(status_code=422, detail="Username or email is required.")
         duplicate = db.query(models.User).filter(models.User.id != target.id, models.User.email == data["email"]).first()
         if duplicate:
-            raise HTTPException(status_code=409, detail="A user with that email already exists.")
+            raise HTTPException(status_code=409, detail="That username or email is already in use.")
     if "name" in data:
         data["name"] = str(data["name"] or "").strip()
     _ensure_owner_survives(db, target, data.get("role"), data.get("is_active"))

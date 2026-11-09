@@ -1,28 +1,28 @@
 /* Operations UI v3 — Pass 5: people, system and account surfaces. */
 
 /* People & access */
-.main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type {
+.main:has(input[placeholder="Search name, username, or role"]) > .panel:first-of-type {
   padding: 24px 26px;
   margin-bottom: 26px !important;
 }
 
-.main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type .toolbar {
+.main:has(input[placeholder="Search name, username, or role"]) > .panel:first-of-type .toolbar {
   max-width: 760px;
   gap: 12px;
 }
 
-.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 {
+.main:has(input[placeholder="Search name, username, or role"]) > .grid.cols-2 {
   gap: 18px;
 }
 
-.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 > .card {
+.main:has(input[placeholder="Search name, username, or role"]) > .grid.cols-2 > .card {
   min-height: 178px;
   padding: 20px;
   gap: 12px;
   align-content: start;
 }
 
-.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 > .card .toolbar {
+.main:has(input[placeholder="Search name, username, or role"]) > .grid.cols-2 > .card .toolbar {
   margin-top: auto !important;
   padding-top: 6px;
 }
@@ -112,11 +112,11 @@
     grid-column: auto;
   }
 
-  .main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 {
+  .main:has(input[placeholder="Search name, username, or role"]) > .grid.cols-2 {
     grid-template-columns: 1fr;
   }
 
-  .main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type,
+  .main:has(input[placeholder="Search name, username, or role"]) > .panel:first-of-type,
   .main:has(.form-grid input[type="password"]) > .panel {
     padding: 20px;
   }

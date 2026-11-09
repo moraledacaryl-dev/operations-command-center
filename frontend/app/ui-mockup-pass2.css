@@ -171,10 +171,10 @@
 .main:has(input[aria-label="Search operational history"]) .grid.cols-2 > .card { min-height: 48px; padding: 7px 8px; gap: 4px; }
 
 /* People, system, account ---------------------------------------------- */
-.main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type { padding: 9px; margin-bottom: 9px !important; }
-.main:has(input[placeholder="Search name, email, or role"]) > .panel:first-of-type .toolbar { max-width: none; gap: 6px; }
-.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 { grid-template-columns: 1fr !important; gap: 6px; }
-.main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 > .card { min-height: 58px; padding: 7px 9px; gap: 4px; }
+.main:has(input[placeholder="Search name, username, or role"]) > .panel:first-of-type { padding: 9px; margin-bottom: 9px !important; }
+.main:has(input[placeholder="Search name, username, or role"]) > .panel:first-of-type .toolbar { max-width: none; gap: 6px; }
+.main:has(input[placeholder="Search name, username, or role"]) > .grid.cols-2 { grid-template-columns: 1fr !important; gap: 6px; }
+.main:has(input[placeholder="Search name, username, or role"]) > .grid.cols-2 > .card { min-height: 58px; padding: 7px 9px; gap: 4px; }
 .admin-health > .grid.cols-2 { gap: 8px; }
 .admin-health > .grid.cols-2 > .panel { min-height: 96px; padding: 10px; }
 .admin-health > .grid.cols-2 > .panel:first-child { min-height: 84px; }
@@ -194,7 +194,7 @@
   [data-testid="tasks-board"] { grid-template-columns: repeat(4,minmax(245px,82vw)); }
   [data-testid="tasks-board"] > .panel { min-width: 245px; }
   .main:has(a[href^="/rooms/"]) > .grid.cols-3 { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .main:has(input[placeholder="Search name, email, or role"]) > .grid.cols-2 { grid-template-columns: 1fr !important; }
+  .main:has(input[placeholder="Search name, username, or role"]) > .grid.cols-2 { grid-template-columns: 1fr !important; }
 }
 
 @media (max-width:520px) {
