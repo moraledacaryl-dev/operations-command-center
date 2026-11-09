@@ -147,7 +147,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     id: 'accounts', title: "Managing staff accounts", summary: "Give each employee the access needed for their work.",
     requirement: 'manage_accounts',
     steps: [
-      { path: '/admin/users', selector: '[placeholder="Search name, email, or role"]', title: "Find the employee", body: "Search before creating an account or resetting a password. Each employee uses their own login." },
+      { path: '/admin/users', selector: '[placeholder="Search name, username, or role"]', title: "Find the employee", body: "Search before creating an account or resetting a password. Each employee uses their own login." },
       { path: '/admin/users', selector: '.ops-module, main', title: "Choose the right role", body: "Staff see their assigned work. Leads manage their team's work. Give manager or administrator access only when it is needed." },
       { path: '/admin/users', selector: '.ops-module, main', title: "Choose departments and a password", body: "Give access only to the employee's departments. Changing their role or stopping their account may require them to sign in again." },
       { path: '/admin/users', selector: 'a.ops-brand[href="/"]', title: "Finish this lesson", body: "Select the Hidden Oasis logo. Change account access only when the lesson asks you to.", advanceOnClick: true, requiresAction: true },

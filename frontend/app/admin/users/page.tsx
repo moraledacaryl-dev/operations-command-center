@@ -7,7 +7,7 @@ import { Pill } from '@/components/Pill';
 import { Drawer } from '@/components/Drawer';
 import { LoadingPanel } from '@/components/LoadingPanel';
 
-const EMPTY_CREATE: Entity = { name: '', email: '', role: 'manager', department_id: '', password: '', is_active: true };
+const EMPTY_CREATE: Entity = { name: '', email: '', role: 'staff', department_id: '', password: '', is_active: true };
 
 type Mode = 'create' | 'edit' | 'reset' | 'access' | '';
 
@@ -138,7 +138,7 @@ export default function UsersPage() {
 
     <section className="panel people-controls" style={{ marginBottom: 16 }}>
       <div className="toolbar" style={{ marginBottom: 0 }}>
-        <input className="input" placeholder="Search name, email, or role" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void searchDirectory(query); }} />
+        <input className="input" placeholder="Search name, username, or role" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void searchDirectory(query); }} />
         <button className="btn secondary" onClick={() => void searchDirectory(query)}>Search</button>
         {(query || appliedQuery) ? <button className="btn secondary" onClick={() => { setQuery(''); void searchDirectory(''); }}>Clear</button> : null}
       </div>
@@ -167,7 +167,7 @@ export default function UsersPage() {
         <h2>New account</h2><p className="muted">Create the identity first. Additional department access can be added afterward.</p>
         <div className="form-grid" style={{ marginTop: 12 }}>
           <label className="label">Name<input className="input" value={createForm.name} onChange={event => setCreateForm({ ...createForm, name: event.target.value })} /></label>
-          <label className="label">Email<input className="input" type="email" value={createForm.email} onChange={event => setCreateForm({ ...createForm, email: event.target.value })} /></label>
+          <label className="label">Username or email<input className="input" type="text" autoComplete="off" value={createForm.email} onChange={event => setCreateForm({ ...createForm, email: event.target.value })} /></label>
           <label className="label">Role<select className="select" value={createForm.role} onChange={event => setCreateForm({ ...createForm, role: event.target.value })}>{['owner', 'admin', 'manager', 'lead', 'supervisor', 'staff'].map(role => <option key={role}>{role}</option>)}</select></label>
           <label className="label">Primary department<select className="select" value={createForm.department_id} onChange={event => setCreateForm({ ...createForm, department_id: event.target.value })}><option value="">Optional</option>{meta.departments?.map((department: Entity) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
           <label className="label">Temporary password<input className="input" type="password" value={createForm.password} onChange={event => setCreateForm({ ...createForm, password: event.target.value })} /></label>
@@ -186,7 +186,7 @@ export default function UsersPage() {
         <h2>Edit {selected?.name || 'account'}</h2><p className="muted">Changing the role or stopping this account signs the employee out.</p>
         <div className="form-grid" style={{ marginTop: 12 }}>
           <label className="label">Name<input className="input" value={String(editForm.name || '')} onChange={event => setEditForm({ ...editForm, name: event.target.value })} /></label>
-          <label className="label">Email<input className="input" type="email" value={String(editForm.email || '')} onChange={event => setEditForm({ ...editForm, email: event.target.value })} /></label>
+          <label className="label">Username or email<input className="input" type="text" autoComplete="off" value={String(editForm.email || '')} onChange={event => setEditForm({ ...editForm, email: event.target.value })} /></label>
           <label className="label">Role<select className="select" value={String(editForm.role || 'staff')} onChange={event => setEditForm({ ...editForm, role: event.target.value })}>{['owner', 'admin', 'manager', 'lead', 'supervisor', 'staff'].map(role => <option key={role}>{role}</option>)}</select></label>
           <label className="label inline"><input type="checkbox" checked={Boolean(editForm.is_active)} onChange={event => setEditForm({ ...editForm, is_active: event.target.checked })} /> Active account</label>
         </div>
