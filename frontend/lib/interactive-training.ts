@@ -15,6 +15,7 @@ export type TrainingLesson = {
   summary: string;
   requirement?: TrainingRequirement;
   marketingOnly?: boolean;
+  barOnly?: boolean;
   steps: readonly TrainingStep[];
 };
 
@@ -124,10 +125,23 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     ],
   },
   {
+    id: 'bar', title: 'Bar reports and handovers', summary: 'Report Bar problems and check what the next shift needs.',
+    barOnly: true,
+    steps: [
+      { path: '/bar', selector: '#bar-checks', title: 'Opening and closing', body: 'Read the actual approved checks if your lead has added them. This example does not make a new rule.' },
+      { path: '/bar', selector: '[data-testid="bar-open-report"]', title: 'Open a report', body: 'Select Report a problem. Use Bar for alcoholic drinks and mocktails. Food goes to Kitchen; café drinks and café service go to Café.', advanceOnClick: true, requiresAction: true },
+      { path: '/bar', selector: '[data-testid="bar-report-form"]', title: 'Describe what happened', body: 'Choose a type, describe the problem and say what the next person should do. Example: the mocktail blender stopped while preparing an order. Tell your lead if urgent.' },
+      { path: '/bar', selector: '[data-testid="bar-report-form"] button.secondary', title: 'Close without saving', body: 'Select Cancel here. In your separate practice, use made-up details and save the report yourself.', advanceOnClick: true, requiresAction: true },
+      { path: '/bar', selector: '[data-testid="bar-reports"]', title: 'Read Bar handovers', body: 'Open the report, read its status and add an update if something changed. Your lead can assign follow-up work.' },
+    ],
+  },
+  {
     id: 'marketing', title: 'Preparing a marketing post', summary: "Prepare a post and ask for a review.",
     requirement: 'manage_department', marketingOnly: true,
     steps: [
+      { path: '/posts', selector: '[aria-label="Filter Marketing by area"]', title: 'Find the promotion by area', body: 'Select Pool to see pool work, then Café for café work. A campaign may cover more than one area. Older work can show Areas not set.' },
       { path: '/posts', selector: '[aria-label="Marketing status"]', title: "Find posts that need work", body: "Use the status filters to find a draft or post waiting for review." },
+      { path: '/posts', selector: '.marketing-workspace', title: 'Try single and combined promotions', body: 'For a Pool-only promotion, choose Pool when you create the campaign and post. For a Café and Bar event, tick both. Save only inside practice training, then find them using the area filter.' },
       { path: '/posts', selector: '.ops-content-heading, .ops-module', title: "Read the review status", body: "Review means waiting for a decision. Fix means changes are needed before approval." },
       { path: '/posts/editor', selector: '.ops-module, main', title: "Add feedback to an image", body: "Open an image and use text, arrows or highlights to explain the changes. Save a new version to keep your edits." },
       { path: '/posts/editor', selector: 'a.ops-brand[href="/"]', title: "Return to Today", body: "Select the Hidden Oasis logo to finish this lesson.", advanceOnClick: true, requiresAction: true },
@@ -159,10 +173,12 @@ export function availableTrainingLessons(
   capabilities: Record<string, boolean>,
   departments: { name?: string }[] = [],
 ): TrainingLesson[] {
+  const bar = Boolean(capabilities.view_all_operations) || departments.some(d => String(d.name || '') === 'Bar');
   const marketing = Boolean(capabilities.view_all_operations)
     || departments.some(d => String(d.name || '').toLowerCase().includes('marketing'));
   return TRAINING_LESSONS.filter(lesson =>
     (!lesson.requirement || capabilities[lesson.requirement] === true)
     && (!lesson.marketingOnly || marketing)
+    && (!lesson.barOnly || bar)
   );
 }
