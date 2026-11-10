@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { TRAINING_LESSONS } from '../lib/interactive-training';
 
 const session = { id: 85, name: 'Demo Marketing lead', role: 'lead', email: 'marketing@training.invalid',
   primary_department_id: 4, departments: [{ id: 4, name: 'Marketing', is_primary: true }],
@@ -10,10 +11,13 @@ async function mockMarketing(page: Page) {
   const calendar: any[] = [];
   const createdCampaigns: any[] = [];
   const createdPosts: any[] = [];
-  await page.addInitScript(s => {
-    localStorage.setItem('cc_user', JSON.stringify(s));
+  await page.addInitScript(({ user, passed }) => {
+    localStorage.setItem('cc_user', JSON.stringify(user));
     localStorage.setItem('cc_department_id', '4');
-  }, session);
+    // The exercise tests Marketing's actual controls, not the mandatory orientation modal.
+    localStorage.setItem('ho-ops-structured-course-v2:' + user.id,
+      JSON.stringify({ lessonId: 'orientation', stage: 'finished', question: 0, passed }));
+  }, { user: session, passed: TRAINING_LESSONS.map(lesson => lesson.id) });
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()); const method = route.request().method();
     let body: any = [];
