@@ -14,6 +14,7 @@ from ..authorization_policy import Action, DEPARTMENT_SCOPED_RESOURCES, SYSTEM_O
 from ..clock import as_utc, utc_now
 from ..database import get_db
 from ..domain_values import WORKFLOW_RESOURCES
+from ..marketing_areas import validate_marketing_areas
 from ..pagination import cursor_page
 from ..schemas.resources import validate_resource_payload
 from ..services.operational_workflow import allowed_actions_for
@@ -159,6 +160,20 @@ def _validate_linked_references(
             )
 
 
+def _validate_marketing_scope(db: Session, resource: str, values: dict, department_id: int | None, existing_areas=None) -> None:
+    if resource not in {"posts", "tasks"}:
+        return
+    if "marketing_areas" not in values and existing_areas is None:
+        return
+    areas = values.get("marketing_areas", existing_areas)
+    validate_marketing_areas(areas)
+    if areas is None:
+        return
+    department = db.get(models.Department, department_id) if department_id else None
+    if not department or department.name != "Marketing":
+        raise HTTPException(status_code=422, detail="Areas covered can only be set on Marketing work.")
+
+
 def _commit_or_conflict(db: Session) -> None:
     try:
         db.commit()
@@ -220,6 +235,7 @@ def create_resource_authorized(
     _reject_workflow_owned_links(resource, payload)
     clean = _validate_payload(resource, payload)
     authorize_action(db, user, resource, Action.CREATE, department_id=clean.get("department_id"))
+    _validate_marketing_scope(db, resource, clean, clean.get("department_id"))
     obj = model()
     if resource == "requests":
         clean["status"] = "Draft"
@@ -320,6 +336,7 @@ def update_resource_authorized(
         # unscoped location or to another department they do not manage.
         authorize_action(db, user, resource, Action.EDIT, department_id=clean["department_id"])
     next_department = clean.get("department_id", getattr(obj, "department_id", None))
+    _validate_marketing_scope(db, resource, clean, next_department, getattr(obj, "marketing_areas", None))
     next_assignee_id = clean.get("assigned_to_id", previous_assignee)
     if next_assignee_id != previous_assignee or next_department != getattr(obj, "department_id", None):
         _require_assignee_visibility(db, resource, next_assignee_id, next_department)
