@@ -2,7 +2,7 @@ import { EXTENDED_PRACTICE_SCENARIOS } from './extended-practice-scenarios';
 
 export type TrainingPriority = 'Routine' | 'High' | 'Critical';
 export type TrainingDepartment =
-  'Front Desk' | 'Housekeeping' | 'Café' | 'Kitchen' | 'Maintenance' |
+  'Front Desk' | 'Housekeeping' | 'Café' | 'Kitchen' | 'Bar' | 'Maintenance' |
   'Security' | 'Marketing' | 'Management';
 export type TrainingDecision =
   'Document and monitor' | 'Assign and follow up' |
@@ -32,7 +32,7 @@ export type PracticeScenario = {
 
 export const PRIORITIES: readonly TrainingPriority[] = ['Routine', 'High', 'Critical'];
 export const DEPARTMENTS: readonly TrainingDepartment[] = [
-  'Front Desk', 'Housekeeping', 'Café', 'Kitchen', 'Maintenance',
+  'Front Desk', 'Housekeeping', 'Café', 'Kitchen', 'Bar', 'Maintenance',
   'Security', 'Marketing', 'Management',
 ];
 export const DECISIONS: readonly TrainingDecision[] = [
@@ -223,6 +223,56 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     ],
     example: 'DEMO-GUEST-012: review prior attempts, assign a named lead, confirm the remedy with the guest and track documented verification before closure.',
     why: 'Repeated service failure needs management ownership, a recovery action, and an evidence-backed follow-up.',
+  },
+  {
+    id: 'bar-low-stock', level: 2, department: 'Bar', title: 'Mocktail syrup almost finished',
+    situation: 'During a fictional Bar shift, mango syrup is nearly finished and another bartender starts in 20 minutes.',
+    goal: 'Record the shortage under Bar and tell the next bartender what needs checking.',
+    context: ['Reference: DEMO-BAR-201', 'Only enough syrup remains for a few mocktails', 'Stock has not been counted yet'],
+    priority: 'Routine', route: 'Bar', decision: 'Document and monitor', reference: 'DEMO-BAR-201',
+    noteChecks: [{ label: 'what stock is low', alternatives: ['mango', 'syrup', 'stock'] }, { label: 'next action', alternatives: ['count', 'check', 'tell', 'lead', 'shift'] }],
+    example: 'DEMO-BAR-201: Mango syrup is almost finished. Please count the remaining bottles and inform the Bar lead before the next shift.',
+    why: 'A Bar report lets the next shift check the shortage; it does not change POS stock.',
+  },
+  {
+    id: 'bar-broken-blender', level: 3, department: 'Bar', title: 'Bar blender stopped during mocktail service',
+    situation: 'The fictional Bar blender stopped working and made an unusual smell during a mocktail order.',
+    goal: 'Stop using the equipment, alert the lead and record where the problem happened.',
+    context: ['Reference: DEMO-BAR-202', 'The blender is unsafe to continue using', 'A second blender may be available but has not been checked'],
+    priority: 'High', route: 'Bar', decision: 'Assign and follow up', reference: 'DEMO-BAR-202',
+    noteChecks: [{ label: 'equipment safety', alternatives: ['stop', 'unplug', 'do not use', 'unsafe'] }, { label: 'lead follow-up', alternatives: ['lead', 'maintenance', 'report', 'check'] }],
+    example: 'DEMO-BAR-202: Stop using the blender. Tell the Bar lead and ask Maintenance to check it. Record what happened for the next shift.',
+    why: 'An equipment fault needs a record and a named follow-up; never guess that a broken machine is safe.',
+  },
+  {
+    id: 'bar-drink-complaint', level: 3, department: 'Bar', title: 'Guest complains about an alcoholic drink',
+    situation: 'A fictional guest says the cocktail prepared by Bar does not match the order and wants it checked.',
+    goal: 'Listen, check the drink order with the Bar lead, and keep a clear record without promising a refund yourself.',
+    context: ['Reference: DEMO-BAR-203', 'The complaint is about a cocktail, not café coffee', 'No refund has been authorized'],
+    priority: 'High', route: 'Bar', decision: 'Assign and follow up', reference: 'DEMO-BAR-203',
+    noteChecks: [{ label: 'drink problem', alternatives: ['cocktail', 'drink', 'order'] }, { label: 'next action', alternatives: ['check', 'lead', 'guest', 'follow up'] }],
+    example: 'DEMO-BAR-203: Guest says the cocktail was not the one ordered. Confirm the order with the Bar lead and tell the guest the next step.',
+    why: 'The Bar team handles the drink complaint; any payment decision remains with the authorized person.',
+  },
+  {
+    id: 'marketing-pool-only', level: 2, department: 'Marketing', title: 'Pool-only promotion',
+    situation: 'Marketing is making a fictional pool-day poster. It does not include rooms, food or drinks.',
+    goal: 'Choose Pool only under Areas covered, then find it using the Pool filter.',
+    context: ['Reference: DEMO-MKT-301', 'Area: Pool only', 'No other area is advertised'],
+    priority: 'Routine', route: 'Marketing', decision: 'Document and monitor', reference: 'DEMO-MKT-301',
+    noteChecks: [{ label: 'area chosen', alternatives: ['pool'] }, { label: 'find by area', alternatives: ['filter', 'find', 'search', 'pool'] }],
+    example: 'DEMO-MKT-301: Tick Pool only in Areas covered. Create the practice campaign and post, then choose Pool in the area filter to find it.',
+    why: 'One checked area makes the promotion easy to find without claiming it includes other departments.',
+  },
+  {
+    id: 'marketing-cafe-bar', level: 3, department: 'Marketing', title: 'Café and Bar event promotion',
+    situation: 'Marketing is preparing a fictional poster for a drinks event featuring café coffee, cocktails and mocktails.',
+    goal: 'Select both Café and Bar, save the practice work, and check it appears under either area filter.',
+    context: ['Reference: DEMO-MKT-302', 'Areas: Café and Bar', 'This is a combined offer, not a Kitchen food promotion'],
+    priority: 'Routine', route: 'Marketing', decision: 'Document and monitor', reference: 'DEMO-MKT-302',
+    noteChecks: [{ label: 'two areas', alternatives: ['café', 'cafe'] }, { label: 'Bar included', alternatives: ['bar'] }],
+    example: 'DEMO-MKT-302: Tick Café and Bar. Create the practice campaign and post. Filter by Café, then Bar; the same campaign should appear in both.',
+    why: 'Each relevant area is explicit, so combined offers stay findable.',
   },
   ...EXTENDED_PRACTICE_SCENARIOS,
 ];
