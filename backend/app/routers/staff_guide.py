@@ -144,22 +144,26 @@ def list_guides(
 
 @router.get("/mine")
 def my_reading(user: models.User = Depends(require_user), db: Session = Depends(get_db)):
-    visible_ids = visible_guide_query(db, user).with_entities(GuideDocument.id).subquery()
-    rows = (db.query(GuideReading, GuideRevision, GuideDocument)
-        .join(GuideRevision, GuideRevision.id == GuideReading.revision_id)
-        .join(GuideDocument, GuideDocument.id == GuideRevision.document_id)
-        .filter(GuideReading.user_id == user.id,
-                GuideDocument.id.in_(db.query(visible_ids.c.id)),
-                GuideDocument.current_revision_id == GuideRevision.id)
-        .order_by(GuideReading.assigned_at.desc()).all())
+    # Visibility includes newly assigned staff immediately, even before the
+    # daily reminder job creates their reading assignment and notification.
+    documents = visible_guide_query(db, user).all()
+    readings = {reading.revision_id: reading for reading in
+                db.query(GuideReading).filter_by(user_id=user.id).all()}
     acknowledged = {value for (value,) in db.query(GuideAcknowledgment.revision_id)
                     .filter(GuideAcknowledgment.user_id == user.id).all()}
-    return [{
-        "document_id": doc.id, "revision_id": rev.id,
-        "title": rev.title, "due_at": reading.due_at,
-        "published_at": rev.published_at,
-        "acknowledged": rev.id in acknowledged,
-    } for reading, rev, doc in rows]
+    result = []
+    for doc in documents:
+        rev = db.get(GuideRevision, doc.current_revision_id)
+        if not rev or not rev.requires_ack:
+            continue
+        reading = readings.get(rev.id)
+        result.append({
+            "document_id": doc.id, "revision_id": rev.id,
+            "title": rev.title, "due_at": reading.due_at if reading else None,
+            "published_at": rev.published_at,
+            "acknowledged": rev.id in acknowledged,
+        })
+    return sorted(result, key=lambda item: item["revision_id"], reverse=True)
 
 
 @router.get("/manage")

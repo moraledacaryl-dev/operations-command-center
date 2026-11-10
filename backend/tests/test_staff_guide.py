@@ -204,3 +204,23 @@ def test_unauthorized_guide_file_download_does_not_leak_attachment(context):
     db.add(attachment)
     db.commit()
     reject(404, lambda: download_guide_file(attachment.id, house, db))
+
+
+def test_new_department_member_sees_policy_and_gets_single_assignment(context):
+    db, bar, _, _, owner, _, _, _, _, _, _ = context
+    doc_id = make_guide(db, owner, [bar.id])
+    publish(db, owner, doc_id)
+    newcomer = models.User(name="New Demo worker", role="staff", department_id=bar.id, is_active=True)
+    db.add(newcomer)
+    db.commit()
+    assert my_reading(newcomer, db)[0]["acknowledged"] is False
+    assert my_reading(newcomer, db)[0]["due_at"] is None
+    assert db.query(GuideReading).filter_by(user_id=newcomer.id).count() == 0
+    send_due_reminders(db)
+    assert db.query(GuideReading).filter_by(user_id=newcomer.id).count() == 1
+    notifications = db.query(fm.Notification).filter_by(
+        user_id=newcomer.id, source_type="staff-guide").all()
+    assert len(notifications) == 1
+    send_due_reminders(db)
+    assert db.query(fm.Notification).filter_by(
+        user_id=newcomer.id, source_type="staff-guide").count() == 1
