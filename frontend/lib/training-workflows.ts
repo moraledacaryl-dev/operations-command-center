@@ -206,7 +206,9 @@ export function verifyWorkflowStep(
     });
     if (valid) return { passed: true, error: '', recordId: positiveId(valid.id), stepName: definition.stages[0] };
     return { passed: false, error: matched.length
-      ? session.kind === 'guest-ac'
+      ? session.kind === 'bar-report'
+        ? 'Your saved Bar report needs the practice number in its title, Low stock as the type, and a note about mocktail syrup, counting or checking the stock, and the next shift. Make a corrected report with the same practice number and check again.'
+        : session.kind === 'guest-ac'
         ? 'A matching case exists, but its saved record must have High urgency, Room or Complaint type, and a note describing the AC fault, Maintenance action, and guest follow-up. Correct the case according to authorized controls, or create a corrected fictional one with the same reference.'
         : session.kind === 'fd-broken-shower'
           ? 'The saved guest report must have High urgency, Room or Complaint type, and a note about the faulty shower, maintenance inspection, and Front Desk guest callback.'
@@ -217,7 +219,9 @@ export function verifyWorkflowStep(
             : session.kind === 'manager-evidence'
               ? 'Choose Equipment and Urgent. Explain what is needed, the cost or budget, and whether you have a quote. Do not claim a quote is attached if it is missing.'
               : 'Your maintenance report must use High urgency, name a fictional technician, and describe the failed corridor lighting in Problem / scope.'
-      : 'No saved record with your unique training reference was found yet. Open the correct module, use the actual New button, fill in the details, and save before checking again.' };
+      : session.kind === 'bar-report'
+        ? 'No Bar report with your practice number was found. On the Bar page select Report a problem, write the practice number in the title, select Low stock, explain what the next shift should do, then Save Bar report. Choose Check saved work again.'
+        : 'No saved record with your unique training reference was found yet. Open the correct module, use the actual New button, fill in the details, and save before checking again.' };
   }
   if (!session.recordId || !detail || positiveId(detail.id) !== session.recordId ||
     !readable(detail.title).includes(session.reference.toLowerCase())) {
