@@ -101,6 +101,26 @@ def test_publish_targets_only_relevant_active_people_and_deduplicates(context):
     assert list_guides("", "", house, db) == []
 
 
+def test_department_updates_do_not_notify_unrelated_managers(context):
+    db, bar, _, housekeeping, owner, _, bartender, _, _, _, _ = context
+    other_manager = models.User(
+        name="Demo housekeeping manager", role="manager",
+        department_id=housekeeping.id, is_active=True,
+    )
+    db.add(other_manager)
+    db.commit()
+    doc_id = make_guide(db, owner, [bar.id], title="New Bar-only procedure")
+    publish(db, owner, doc_id)
+    messages = db.query(fm.Notification).filter_by(
+        source_type="staff-guide", source_id=str(doc_id)).all()
+    recipient_ids = {notice.user_id for notice in messages}
+    assert owner.id in recipient_ids and bartender.id in recipient_ids
+    assert other_manager.id not in recipient_ids
+    # Management may consult other departments' approved material without
+    # receiving every unrelated frontline publication alert.
+    assert get_guide(doc_id, other_manager, db)["published"]["title"] == "New Bar-only procedure"
+
+
 def test_acknowledgment_is_explicit_revision_specific_and_idempotent(context):
     db, bar, _, _, owner, _, bartender, _, _, _, _ = context
     doc_id = make_guide(db, owner, [bar.id])
