@@ -112,10 +112,16 @@ export default function TeamTasksPage() {
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
-    if (!canManageWork) return;
     let active = true;
-    api.meta().then(meta => { if (active) { setPeople(meta.users || []); setMarketingDepartmentId(Number((meta.departments || []).find((d: Entity) => d.name === 'Marketing')?.id || 0) || null); } })
-      .catch(() => { if (active) setPeopleError('Team choices could not be loaded. Reopen this page to retry.'); });
+    // Everyone needs the Marketing department ID to search by area;
+    // only leads need the list of people for assigning tasks.
+    api.meta().then(meta => {
+      if (!active) return;
+      setMarketingDepartmentId(Number((meta.departments || []).find((d: Entity) => d.name === 'Marketing')?.id || 0) || null);
+      if (canManageWork) setPeople(meta.users || []);
+    }).catch(() => {
+      if (active && canManageWork) setPeopleError('Team choices could not be loaded. Reopen this page to retry.');
+    });
     return () => { active = false; };
   }, [canManageWork]);
 
