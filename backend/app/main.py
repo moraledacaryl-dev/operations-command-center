@@ -7,6 +7,7 @@ from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from . import integration_models  # noqa: F401 - register integration tables with SQLAlchemy
+from . import staff_guide_models  # noqa: F401 - register controlled guide models
 from .api_read_boundary import ApiReadBoundaryMiddleware
 from .authorization_freshness import AuthorizationFreshnessMiddleware
 from .csrf_protection import CsrfProtectionMiddleware
@@ -28,6 +29,7 @@ from .routers.my_work import router as my_work_router
 from .routers.notifications import router as notifications_router
 from .routers.marketing import router as marketing_router
 from .routers.bar import router as bar_router
+from .routers.staff_guide import router as staff_guide_router
 from .routers.marketing_assets import router as marketing_assets_router
 from .routers.operational_meta import router as operational_meta_router
 from .routers.observability import router as observability_router
@@ -131,6 +133,7 @@ app.include_router(my_work_router)
 app.include_router(notifications_router)
 app.include_router(marketing_router)
 app.include_router(bar_router)
+app.include_router(staff_guide_router)
 app.include_router(marketing_assets_router)
 app.include_router(privacy_router)
 app.include_router(operational_meta_router)
