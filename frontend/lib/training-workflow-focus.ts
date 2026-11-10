@@ -11,10 +11,13 @@ export type WorkflowFocus = {
  * Only the real backend verifier, never the spotlight, advances a stage.
  */
 export function workflowFocus(session: TrainingWorkflowSession, onModule: boolean): WorkflowFocus {
-  if (session.kind === 'bar-report' && onModule) return {
+  if (session.kind === 'bar-report') return onModule ? {
     title: 'Save a practice Bar report',
     text: 'Select Report a problem. Put the practice number in the title, explain the low mocktail syrup, and save. Then choose Check saved work.',
     targets: [ { selector: '[data-testid="bar-open-report"]' }, { selector: '[data-testid="bar-report-form"]' }, { selector: '[data-testid="training-check-work"]' } ],
+  } : {
+    title: 'Open Bar practice', text: 'Select Open to go to Bar, then follow the next step.',
+    targets: [{ selector: '[data-testid="training-open-module"]' }],
   };
   if (!onModule) return {
     title: 'Open the practice page',
