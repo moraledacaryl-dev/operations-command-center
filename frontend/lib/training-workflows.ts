@@ -13,6 +13,7 @@ export type TrainingWorkflowSession = {
   step: number;
   recordId?: number;
   relatedRecordId?: number;
+  departmentId?: number;
 };
 export type TrainingWorkflowEvidence = {
   reference: string;
@@ -111,6 +112,9 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
       typeof value.createdAt !== 'string') return null;
     const recordId = positiveId(value.recordId);
     const relatedRecordId = positiveId(value.relatedRecordId);
+    const departmentId = positiveId(value.departmentId);
+    // A Bar practical must be bound to an actual department from the trainee's session.
+    if (value.kind === 'bar-report' && !departmentId) return null;
     return {
       kind: value.kind,
       ownerId,
@@ -119,6 +123,7 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
       step: value.step,
       ...(recordId ? { recordId } : {}),
       ...(relatedRecordId ? { relatedRecordId } : {}),
+      ...(departmentId ? { departmentId } : {}),
     };
   } catch {
     return null;
@@ -154,7 +159,8 @@ export function verifyWorkflowStep(
       if (!positiveId(item.id)) return false;
       if (session.kind === 'bar-report') {
         const note = readable(item.note);
-        return readable(item.category) === 'low stock' && /syrup|mocktail/.test(note) &&
+        return Boolean(session.departmentId && Number(item.department_id) === session.departmentId) &&
+          readable(item.category) === 'low stock' && /syrup|mocktail/.test(note) &&
           /count|check/.test(note) && /next shift|next bartender/.test(note);
       }
       if (session.kind === 'fd-broken-shower') {
