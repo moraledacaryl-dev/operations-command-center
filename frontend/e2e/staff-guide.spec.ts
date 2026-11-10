@@ -11,7 +11,7 @@ async function mockGuide(page: Page) {
     localStorage.setItem('cc_user', JSON.stringify(person));
     localStorage.setItem('ho-ops-structured-course-v2:' + person.id, JSON.stringify({
       lessonId: 'orientation', stage: 'finished', question: 0,
-      passed: 'orientation staff-handover staff-rooms staff-my-work team-tasks guest-matters maintenance requests shift-writing projects marketing management-review accounts'.split(' '),
+      passed: 'orientation staff-handover staff-rooms staff-my-work team-tasks guest-matters maintenance requests shift-writing projects bar marketing management-review accounts'.split(' '),
     }));
   }, user);
   let acknowledged = false;
