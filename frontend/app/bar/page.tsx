@@ -13,8 +13,8 @@ const actionNames: Record<string, string> = {
   'resolve-new': 'Mark finished', 'resolve-seen': 'Mark finished', 'resolve-follow': 'Mark finished',
   reopen: 'Reopen',
 };
-type Report = { title: string; kind: typeof kinds[number]; details: string; urgency: string; shift: string };
-const empty: Report = { title: '', kind: 'Low stock', details: '', urgency: 'Normal', shift: 'AM' };
+type Report = { title: string; kind: typeof kinds[number] | ''; details: string; urgency: string; shift: string };
+const empty: Report = { title: '', kind: '', details: '', urgency: 'Normal', shift: '' };
 
 export default function BarPage() {
   const [departmentId, setDepartmentId] = useState<number | null>(null);
@@ -57,7 +57,7 @@ export default function BarPage() {
   }, [load]);
 
   async function submit() {
-    if (!departmentId || busy || report.title.trim().length < 4 || report.details.trim().length < 8) return;
+    if (!departmentId || busy || !report.kind || report.title.trim().length < 4 || report.details.trim().length < 8) return;
     setBusy(true); setError(''); setSuccess('');
     try {
       await api.reportBarProblem({ title: report.title.trim(), kind: report.kind, details: report.details.trim(),
@@ -99,13 +99,13 @@ export default function BarPage() {
       <p>Describe the problem and what the next person needs to do. Use real details only in the live app.</p>
       <div className="form">
         <label className="label">What happened?<input className="input" maxLength={180} value={report.title} onChange={e => setReport({ ...report, title: e.target.value })} placeholder="Example: Mocktail blender stopped working" /></label>
-        <label className="label">Type of report<select className="select" value={report.kind} onChange={e => setReport({ ...report, kind: e.target.value as Report['kind'] })}>{kinds.map(kind => <option key={kind}>{kind}</option>)}</select></label>
+        <label className="label">Type of report<select className="select" value={report.kind} required onChange={e => setReport({ ...report, kind: e.target.value as Report['kind'] })}><option value="">Choose the type</option>{kinds.map(kind => <option key={kind}>{kind}</option>)}</select></label>
         <label className="label">What should the next shift know?<textarea className="textarea" rows={4} maxLength={3000} value={report.details} onChange={e => setReport({ ...report, details: e.target.value })} placeholder="Where is the problem? What have you done? Who needs to check it next?" /></label>
         <div className="form-grid">
           <label className="label">When does this need attention?<select className="select" value={report.urgency} onChange={e => setReport({ ...report, urgency: e.target.value })}><option value="Low">Can wait</option><option value="Normal">Normal</option><option value="High">Soon</option><option value="Urgent">Urgent — tell your lead now</option></select></label>
-          <label className="label">Your shift<select className="select" value={report.shift} onChange={e => setReport({ ...report, shift: e.target.value })}><option>AM</option><option>PM</option><option>Night</option></select></label>
+          <label className="label">Your shift (optional)<select className="select" value={report.shift} onChange={e => setReport({ ...report, shift: e.target.value })}><option value="">Choose your shift</option><option>AM</option><option>PM</option><option>Night</option></select></label>
         </div>
-        <div className="toolbar"><button className="btn" data-testid="bar-save-report" disabled={busy || report.title.trim().length < 4 || report.details.trim().length < 8} onClick={() => void submit()}>{busy ? 'Saving…' : 'Save Bar report'}</button><button className="btn secondary" disabled={busy} onClick={() => setShowForm(false)}>Cancel</button></div>
+        <div className="toolbar"><button className="btn" data-testid="bar-save-report" disabled={busy || !report.kind || report.title.trim().length < 4 || report.details.trim().length < 8} onClick={() => void submit()}>{busy ? 'Saving…' : 'Save Bar report'}</button><button className="btn secondary" disabled={busy} onClick={() => setShowForm(false)}>Cancel</button></div>
       </div>
     </section> : null}
     <div className="grid cols-2" style={{ marginTop: 16 }}>
