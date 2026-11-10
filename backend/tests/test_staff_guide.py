@@ -78,7 +78,12 @@ def test_drafts_do_not_notify_or_leak_to_staff(context):
     assert list_guides("", "", bartender, db) == []
     submit_guide(doc_id, owner, db)
     approve_guide(doc_id, owner, db)
-    assert db.query(fm.Notification).count() == 0
+    # Draft submissions notify authorized reviewers, not frontline staff.
+    # Publication notifications must never be created before publishing.
+    notices = db.query(fm.Notification).all()
+    assert all(row.kind == "staff-guide-review" for row in notices)
+    assert {row.user_id for row in notices} == {owner.id}
+    assert _visible_notifications(db, bartender).count() == 0
     reject(404, lambda: get_guide(doc_id, bartender, db))
 
 
