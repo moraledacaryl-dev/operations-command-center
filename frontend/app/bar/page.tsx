@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
-import { getStoredUser } from '@/lib/session';
+import { getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 import { hasCapability } from '@/lib/capabilities';
 import { Top } from '@/components/Top';
 
@@ -50,6 +50,7 @@ export default function BarPage() {
       const bar = (meta.departments || []).find((item: Entity) => item.name === 'Bar');
       const id = bar ? Number(bar.id) : null;
       setDepartmentId(id); setChecked(true);
+      if (id && getStoredUser()?.departments?.some((dept: Entity) => Number(dept.id) === id)) setCurrentDepartmentId(id);
       if (id) void load(id);
     }).catch(err => { if (active) { setError(err.message || 'Could not open Bar.'); setChecked(true); } });
     return () => { active = false; };
@@ -76,7 +77,7 @@ export default function BarPage() {
     if (!selected || !departmentId || busy) return;
     setBusy(true); setError('');
     try {
-      if (action) await api.workflowAction('shift-notes', selected.id, action);
+      if (action) await api.workflowAction('shift-notes', selected.id, action, { note: comment.trim() || null });
       else if (comment.trim()) await api.comment('shift-notes', selected.id, comment.trim());
       setSelected(await api.get('shift-notes', selected.id)); setComment(''); await load(departmentId);
     } catch (err: any) { setError(err.message || 'Could not save this update.'); }
@@ -114,12 +115,12 @@ export default function BarPage() {
         <h2>Closing checks</h2>
         {checks('clos').length ? checks('clos').map(item => <p key={item.id}><strong>{item.title}</strong><span className="muted"> — {item.checklist || 'Ask your lead for the steps.'}</span></p>) : <p>No closing checklist has been added for Bar. Ask your lead to add the approved steps under Routines.</p>}
         <p className="muted">Only follow checklists approved by your workplace. This screen does not set a new policy.</p>
-        {canManage ? <Link className="btn secondary" href="/departments">View Bar routines</Link> : null}
+        {canManage ? <Link className="btn secondary" href="/departments" onClick={() => setCurrentDepartmentId(departmentId)}>View Bar routines</Link> : null}
       </section>
       <section className="panel">
         <h2>Bar tasks</h2>
         {tasks.length ? tasks.slice(0, 8).map(item => <p key={item.id}><strong>{item.title}</strong> · {item.status || 'To Do'}</p>) : <p>No active Bar tasks.</p>}
-        <Link className="btn secondary" href="/tasks">See tasks</Link>
+        <Link className="btn secondary" href="/tasks" onClick={() => setCurrentDepartmentId(departmentId)}>See tasks</Link>
       </section>
     </div>
     <section className="panel" style={{ marginTop: 16 }}>
@@ -134,7 +135,7 @@ export default function BarPage() {
       {(selected.comments || []).map((item: Entity) => <p key={item.id}><strong>{item.author_name || 'Team member'}:</strong> {item.body}</p>)}
       <label className="label">Add an update<textarea className="textarea" value={comment} onChange={e => setComment(e.target.value)} placeholder="What changed? What still needs to happen?" /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !comment.trim()} onClick={() => void followUp()}>Save update</button>
-        {canManage && (selected.allowed_actions || []).map((action: string) => <button className="btn secondary" disabled={busy} key={action} onClick={() => void followUp(action)}>{actionNames[action] || action}</button>)}
+        {canManage && (selected.allowed_actions || []).map((action: string) => <button className="btn secondary" disabled={busy || (action === "reopen" && !comment.trim())} key={action} onClick={() => void followUp(action)}>{actionNames[action] || action}</button>)}
         <button className="btn secondary" onClick={() => setSelected(null)}>Close report</button>
       </div>
       {canManage ? <p className="muted">Need someone to handle this? Create and assign a Bar task in <Link href="/tasks">Tasks</Link>.</p> : <p className="muted">Tell your lead if the problem is urgent or needs an assignment.</p>}
