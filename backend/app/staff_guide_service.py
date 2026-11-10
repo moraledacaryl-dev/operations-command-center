@@ -83,7 +83,7 @@ def eligible_users(db: Session, revision: GuideRevision, departments: list[int])
         .filter(models.UserDepartment.department_id.in_(department_set)).all())
     extra = {uid for uid, did in members}
     return [user for user in people if (
-        str(user.role or "").lower() in MANAGEMENT
+        str(user.role or "").lower() in PUBLISHERS
         or user.department_id in department_set
         or user.id in extra
     )]
