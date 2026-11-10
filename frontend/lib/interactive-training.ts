@@ -173,7 +173,8 @@ export function availableTrainingLessons(
   capabilities: Record<string, boolean>,
   departments: { name?: string }[] = [],
 ): TrainingLesson[] {
-  const bar = Boolean(capabilities.view_all_operations) || departments.some(d => String(d.name || '') === 'Bar');
+  // Bar orientation is mandatory for actual Bar members, not managers viewing all departments.
+  const bar = departments.some(d => String(d.name || '') === 'Bar');
   const marketing = Boolean(capabilities.view_all_operations)
     || departments.some(d => String(d.name || '').toLowerCase().includes('marketing'));
   return TRAINING_LESSONS.filter(lesson =>
