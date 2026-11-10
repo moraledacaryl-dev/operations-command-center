@@ -258,7 +258,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       const kind = courseGuide?.handsOn;
       // Bar staff may complete their own report. Other record-editing exercises
       // remain restricted to the existing authorized management roles.
-      const barDepartment = (user.departments || []).find((d: { name?: string }) => d.name === 'Bar');
+      const barDepartment = (user.departments || []).find((d: { id?: string | number; name?: string }) => d.name === 'Bar');
       if (kind && (capabilities.manage_department || (kind === 'bar-report' && barDepartment))
           && (kind !== 'mt-light-fault' || capabilities.make_decisions)) {
         const reference = makeTrainingReference(kind);
