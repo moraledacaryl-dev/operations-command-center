@@ -10,6 +10,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..authorization_policy import department_ids_for
 from ..clock import utc_now
 from ..database import get_db
 from ..services.notifications import notify_user
@@ -161,10 +162,19 @@ def my_reading(user: models.User = Depends(require_user), db: Session = Depends(
     acknowledged = {value for (value,) in db.query(GuideAcknowledgment.revision_id)
                     .filter(GuideAcknowledgment.user_id == user.id).all()}
     result = []
+    memberships = department_ids_for(db, user)
+    publisher = is_publisher(user)
     for doc in documents:
         rev = db.get(GuideRevision, doc.current_revision_id)
         if not rev or not rev.requires_ack:
             continue
+        # Management may consult guides in every department, but only their
+        # own departments' policies (and all-staff policies) are required reading.
+        if rev.audience == "departments" and not publisher:
+            targets = {row.department_id for row in db.query(GuideRevisionDepartment)
+                       .filter_by(revision_id=rev.id).all()}
+            if not memberships.intersection(targets):
+                continue
         reading = readings.get(rev.id)
         result.append({
             "document_id": doc.id, "revision_id": rev.id,
