@@ -38,7 +38,7 @@ export default function StaffGuidePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const role = String(getStoredUser()?.role || '').toLowerCase();
+  const [role, setRole] = useState('');
   const canManage = ['owner', 'admin', 'manager', 'lead', 'supervisor'].includes(role);
   const canPublish = ['owner', 'admin'].includes(role);
 
@@ -67,6 +67,7 @@ export default function StaffGuidePage() {
   useEffect(() => {
     let cancelled = false;
     const user = getStoredUser();
+    setRole(String(user?.role || '').toLowerCase());
     const initialDepartments = Array.isArray(user?.departments) ? user.departments : [];
     setDepartments(initialDepartments);
     if (['owner', 'admin', 'manager'].includes(String(user?.role || '').toLowerCase())) {

@@ -4,7 +4,7 @@ A document's working copy may be a draft while its previously published
 revision remains visible to staff. Never authorize staff using draft fields.
 """
 from fastapi import HTTPException
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, literal, or_, select
 from sqlalchemy.orm import Session
 
 from . import models
@@ -53,11 +53,13 @@ def visible_guide_query(db: Session, user: models.User):
         .filter(document.retired_at.is_(None)))
     if str(user.role or "").lower() in MANAGEMENT:
         return query
-    ids = department_ids_for(db, user)
-    if not ids:
-        return query.filter(revision.audience == "all")
-    permitted = (db.query(GuideRevisionDepartment.revision_id)
-        .filter(GuideRevisionDepartment.department_id.in_(ids)).subquery())
+    # Membership remains a SQL subquery so notification pagination and counts
+    # do not issue per-user/per-notification lookups.
+    ids = select(models.UserDepartment.department_id).where(models.UserDepartment.user_id == user.id)
+    if user.department_id is not None:
+        ids = ids.union(select(literal(int(user.department_id))))
+    permitted = select(GuideRevisionDepartment.revision_id).where(
+        GuideRevisionDepartment.department_id.in_(ids))
     return query.filter(or_(
         revision.audience == "all",
         and_(revision.audience == "departments", revision.id.in_(permitted)),

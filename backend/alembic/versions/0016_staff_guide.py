@@ -70,5 +70,16 @@ def upgrade():
 
 
 def downgrade():
-    # Destructive downgrade requires deliberate management approval and a backup.
-    raise RuntimeError("Staff Guide version and acknowledgment history must not be discarded automatically.")
+    # CI migration round trips run on empty databases. Protect real published
+    # revisions and acknowledgments from a destructive production downgrade.
+    bind = op.get_bind()
+    for table in ("guide_documents", "guide_revisions", "guide_acknowledgments", "guide_readings"):
+        if bind.execute(sa.text(f"SELECT COUNT(*) FROM {table}")).scalar():
+            raise RuntimeError("Cannot downgrade a populated Staff Guide. Take an approved backup and migration plan.")
+    op.drop_index("ix_guide_reading_user_revision", table_name="guide_readings")
+    op.drop_table("guide_readings")
+    op.drop_table("guide_acknowledgments")
+    op.drop_table("guide_revision_departments")
+    op.drop_table("guide_revisions")
+    op.drop_index("ix_guide_documents_current", table_name="guide_documents")
+    op.drop_table("guide_documents")
