@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { TRAINING_LESSONS } from '../lib/interactive-training';
 
 type Member = { id: number; name: string; is_primary: boolean };
 const departments: Member[] = [{ id: 8, name: 'Bar', is_primary: true }];
@@ -13,10 +14,13 @@ const starting = { id: 71, title: 'Mango syrup is low', department_id: 8, status
 async function serveBar(page: Page, user: typeof base) {
   const notes = [starting];
   const submissions: any[] = [];
-  await page.addInitScript(session => {
+  await page.addInitScript(({ session, passed }) => {
     localStorage.setItem('cc_user', JSON.stringify(session));
     localStorage.setItem('cc_department_id', String(session.primary_department_id));
-  }, user);
+    // Exercise the workspace after completion of this fictional user's lessons.
+    localStorage.setItem('ho-ops-structured-course-v2:' + session.id,
+      JSON.stringify({ lessonId: 'orientation', stage: 'finished', question: 0, passed }));
+  }, { session: user, passed: TRAINING_LESSONS.map(lesson => lesson.id) });
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url()); const method = route.request().method();
     let result: any = [];
