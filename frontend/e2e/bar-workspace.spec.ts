@@ -52,13 +52,16 @@ test('Bar staff can create a problem report with plain words and no management c
   await expect(page.getByTestId('bar-workspace')).toBeVisible();
   await expect(page.getByText('No opening checklist has been added')).toBeVisible();
   await page.getByTestId('bar-open-report').click();
+  await expect(page.getByRole('button', { name: 'Save Bar report' })).toBeDisabled();
   await page.getByPlaceholder('Example: Mocktail blender stopped working').fill('Blender is broken');
+  await page.getByLabel('Type of report').selectOption('Equipment');
+  await page.getByLabel('Your shift (optional)').selectOption('PM');
   await page.getByPlaceholder('Where is the problem? What have you done? Who needs to check it next?')
     .fill('Stopped using the blender. Bar lead should have it checked.');
   await page.getByTestId('bar-save-report').click();
   await expect(page.getByText('Bar report saved. The team can now see it.')).toBeVisible();
   expect(submissions).toHaveLength(1);
-  expect(submissions[0]).toMatchObject({ kind: 'Low stock', title: 'Blender is broken' });
+  expect(submissions[0]).toMatchObject({ kind: 'Equipment', shift: 'PM', title: 'Blender is broken' });
   expect(submissions[0]).not.toHaveProperty('department_id');
   expect(submissions[0]).not.toHaveProperty('assigned_to_id');
   await expect(page.getByText('Blender is broken')).toBeVisible();
