@@ -44,14 +44,16 @@ export default function StaffGuidePage() {
   const canPublish = ['owner', 'admin'].includes(role);
 
   const refresh = useCallback(async (q = '') => {
+    const currentRole = String(getStoredUser()?.role || '').toLowerCase();
+    const manageAllowed = ['owner', 'admin', 'manager', 'lead', 'supervisor'].includes(currentRole);
     const [all, mine, manage] = await Promise.all([
       api.staffGuideList(q), api.staffGuideMine(),
-      canManage ? api.staffGuideManage() : Promise.resolve([]),
+      manageAllowed ? api.staffGuideManage() : Promise.resolve([]),
     ]);
     setGuides(all);
     setReading(mine);
     setManaged(manage);
-  }, [canManage]);
+  }, []);
 
   const openGuide = useCallback(async (id: number) => {
     setError('');
@@ -300,7 +302,7 @@ export default function StaffGuidePage() {
         <button type="button" key={item.revision_id} className={styles.card} onClick={() => void openGuide(Number(item.document_id))}>
           <strong>{item.title}</strong>
           <span>{item.acknowledged ? 'Completed' : 'Please read and confirm'}</span>
-          <small>{item.acknowledged ? 'Confirmed' : 'Due ' + dateLabel(item.due_at)}</small>
+          <small>{item.acknowledged ? 'Confirmed' : item.due_at ? 'Due ' + dateLabel(item.due_at) : 'Read this guide'}</small>
         </button>)}</div> : <p>Nothing to confirm right now.</p>}
     </section> : null}
 
