@@ -22,7 +22,7 @@ def wait_ready(url: str, timeout: int = 100) -> dict:
         try:
             with urllib.request.urlopen(url, timeout=3) as response:
                 result = json.loads(response.read())
-                if response.status == 220 and result.get("ready") is True:
+                if response.status == 200 and result.get("ready") is True:
                     return result
                 last_error = result
         except (OSError, ValueError, urllib.error.HTTPError) as error:
