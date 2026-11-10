@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
 
 from .clock import UTCDateTime as DateTime, utc_now
 from .database import Base
@@ -187,6 +187,7 @@ class MarketingCampaign(Base, FoundationTimestampMixin):
     start_at = Column(DateTime, nullable=True)
     end_at = Column(DateTime, nullable=True)
     budget_note = Column(Text, nullable=True)
+    marketing_areas = Column(JSON, nullable=True)
 
 
 class ContentConcept(Base, FoundationTimestampMixin):
@@ -196,6 +197,7 @@ class ContentConcept(Base, FoundationTimestampMixin):
     content_pillar = Column(String(80), default="General", nullable=False)
     title = Column(String(180), nullable=False)
     brief = Column(Text, nullable=True)
+    marketing_areas = Column(JSON, nullable=True)
     status = Column(String(40), default="Idea", nullable=False)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
