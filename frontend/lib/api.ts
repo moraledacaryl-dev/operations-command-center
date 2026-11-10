@@ -133,6 +133,13 @@ export const api = {
   staffGuideAcknowledge: (id: number) => request<Entity>('/staff-guide/' + id + '/acknowledge', { method: 'POST' }),
   staffGuideReaders: (id: number) => request<Entity[]>('/staff-guide/' + id + '/readers'),
   staffGuideRetire: (id: number) => request<Entity>('/staff-guide/' + id + '/retire', { method: 'POST' }),
+  staffGuideUpload: (id: number, file: File) => {
+    const body = new FormData();
+    body.append('file', file);
+    return request<Entity>('/staff-guide/' + id + '/attachments', { method: 'POST', body });
+  },
+  staffGuideRemoveFile: (id: number, fileId: number) => request<void>('/staff-guide/' + id + '/attachments/' + fileId, { method: 'DELETE' }),
+  staffGuideDownloadFile: (fileId: number, filename: string) => download('/staff-guide/attachments/' + fileId + '/download', filename),
   projectWorkspace: (id: number) => request<Entity>(`/project-workspaces/${id}`),
   projectDiscussion: (id: number, data: Entity) => request<Entity>(`/project-workspaces/${id}/discussion`, { method: 'POST', body: JSON.stringify(data) }),
   projectVote: (id: number, commentId: number, voted: boolean) => request<Entity>(`/project-workspaces/${id}/discussion/${commentId}/vote`, { method: 'POST', body: JSON.stringify({ voted }) }),

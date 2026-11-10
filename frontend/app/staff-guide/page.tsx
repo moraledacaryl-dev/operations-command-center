@@ -164,6 +164,14 @@ export default function StaffGuidePage() {
         <h2>{current.title}</h2>
         {current.summary ? <p className={styles.summary}>{current.summary}</p> : null}
         <div className={styles.body}>{current.body}</div>
+        {current.attachments?.length ? <div className={styles.files}>
+          <strong>Attachments</strong>
+          {current.attachments.map((file: Entity) => <button key={file.id} type="button"
+            className="btn secondary" onClick={() => void run(
+              () => api.staffGuideDownloadFile(Number(file.id), String(file.filename)),
+              '',
+            )}>Download {file.filename}</button>)}
+        </div> : null}
         {current.requires_ack ? <div className={styles.ack}>
           {current.acknowledged ? <strong>You&apos;ve confirmed this version.</strong> :
             <><p>After reading, confirm that you understand this guide.</p>
@@ -178,6 +186,22 @@ export default function StaffGuidePage() {
         <p className={styles.meta}>This text is not shown to regular staff until published.</p>
         <strong>{currentDraft.title}</strong>
         <div className={styles.body}>{currentDraft.body}</div>
+        <div className={styles.files}>
+          <strong>Files for the next published version</strong>
+          {selected.draft_attachments?.map((file: Entity) => <div key={file.id} className={styles.fileRow}>
+            <span>{file.filename}</span>
+            <button type="button" className="btn secondary" disabled={busy}
+              onClick={() => void run(() => api.staffGuideRemoveFile(Number(selected.id), Number(file.id)), 'File removed from the draft.', Number(selected.id))}>Remove</button>
+          </div>)}
+          <label>Attach a PDF, photo or document (up to 10 MB)
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.docx,.txt,.csv"
+              disabled={busy} onChange={event => {
+                const file = event.target.files?.[0];
+                if (file) void run(() => api.staffGuideUpload(Number(selected.id), file), 'File attached to draft.', Number(selected.id));
+                event.target.value = '';
+              }} />
+          </label>
+        </div>
         <div className={styles.actions}>
           <button type="button" className="btn secondary" disabled={busy} onClick={editSelected}>Edit draft</button>
           {selected.status === 'Draft' ?
