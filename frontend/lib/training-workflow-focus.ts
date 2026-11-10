@@ -11,6 +11,11 @@ export type WorkflowFocus = {
  * Only the real backend verifier, never the spotlight, advances a stage.
  */
 export function workflowFocus(session: TrainingWorkflowSession, onModule: boolean): WorkflowFocus {
+  if (session.kind === 'bar-report' && onModule) return {
+    title: 'Save a practice Bar report',
+    text: 'Select Report a problem. Put the practice number in the title, explain the low mocktail syrup, and save. Then choose Check saved work.',
+    targets: [ { selector: '[data-testid="bar-open-report"]' }, { selector: '[data-testid="bar-report-form"]' }, { selector: '[data-testid="training-check-work"]' } ],
+  };
   if (!onModule) return {
     title: 'Open the practice page',
     text: 'Click the outlined Open button. The guided lesson stays with you when the page changes.',
@@ -112,6 +117,7 @@ function savedTrainingCard(session: TrainingWorkflowSession): boolean {
  */
 export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule: boolean): WorkflowFocus {
   const basic = workflowFocus(session, onModule);
+  if (session.kind === 'bar-report') return basic;
   if (!onModule || session.step !== 0) return basic;
   const type = ({ 'guest-ac': 'guest', 'shared-no-owner': 'task', 'shift-unresolved': 'shift',
     'mt-light-fault': 'fix', 'manager-evidence': 'request', 'fd-broken-shower': 'guest' } as const)[session.kind];
