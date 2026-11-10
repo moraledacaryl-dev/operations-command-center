@@ -120,7 +120,50 @@ function savedTrainingCard(session: TrainingWorkflowSession): boolean {
  */
 export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule: boolean): WorkflowFocus {
   const basic = workflowFocus(session, onModule);
-  if (session.kind === 'bar-report') return basic;
+  if (session.kind === 'bar-report') {
+    if (!onModule || session.step !== 0) return basic;
+    const form = document.querySelector('[data-testid="bar-report-form"]');
+    if (!form) {
+      if (Array.from(document.querySelectorAll('[data-testid="bar-reports"] button'))
+        .some(card => card.textContent?.includes(session.reference))) {
+        return {
+          title: 'Check your saved Bar report',
+          text: 'The report with your practice number appears in Bar. Select Check saved work to confirm it was saved.',
+          targets: [{ selector: '[data-testid="training-check-work"]' }],
+        };
+      }
+      return {
+        title: 'Open the Bar report form',
+        text: 'Select Report a problem to begin the fictional low-stock handover.',
+        targets: [{ selector: '[data-testid="bar-open-report"]' }],
+      };
+    }
+    const title = form.querySelector<HTMLInputElement>('input[placeholder="Example: Mocktail blender stopped working"]');
+    if (!title?.value.includes(session.reference)) return {
+      title: 'Write what happened',
+      text: 'Include your practice number ' + session.reference + ' and a clear title such as "Mocktail syrup low".',
+      targets: [{ selector: '[data-testid="bar-report-form"] input[placeholder="Example: Mocktail blender stopped working"]' }],
+    };
+    const kind = form.querySelector<HTMLSelectElement>('select');
+    if (kind?.value !== 'Low stock') return {
+      title: 'Choose the report type',
+      text: 'This exercise is about nearly empty mocktail syrup. Select Low stock, not Equipment or Other.',
+      targets: [{ selector: '[data-testid="bar-report-form"] select' }],
+    };
+    const details = form.querySelector<HTMLTextAreaElement>('textarea');
+    const words = (details?.value || '').toLowerCase();
+    if (!/syrup|mocktail/.test(words) || !/count|check/.test(words) ||
+        !/next shift|next bartender/.test(words)) return {
+      title: 'Explain what the next bartender should do',
+      text: 'Mention the low mocktail syrup, counting or checking the stock, and the next shift. Write your own sentence.',
+      targets: [{ selector: '[data-testid="bar-report-form"] textarea' }],
+    };
+    return {
+      title: 'Save the Bar report',
+      text: 'Select Save Bar report. Then use Check saved work; the system will verify the saved fictional record.',
+      targets: [{ selector: '[data-testid="bar-save-report"]' }],
+    };
+  }
   if (!onModule || session.step !== 0) return basic;
   const type = ({ 'guest-ac': 'guest', 'shared-no-owner': 'task', 'shift-unresolved': 'shift',
     'mt-light-fault': 'fix', 'manager-evidence': 'request', 'fd-broken-shower': 'guest' } as const)[session.kind];
