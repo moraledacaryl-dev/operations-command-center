@@ -64,6 +64,8 @@ test('new Marketing employee can tag and find a Pool-only and combined Café/Bar
     for (const area of areas) await page.getByRole('checkbox', { name: area }).first().check();
     await page.getByRole('checkbox', { name: 'Facebook' }).check();
     await page.getByRole('button', { name: 'Create 1 post' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
     await expect(page.getByRole('button', { name: 'New campaign' })).toBeEnabled();
   }
 
