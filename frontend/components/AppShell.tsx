@@ -16,6 +16,7 @@ type AdminNavItem = NavItem & { capability?: Capability; ownerOnly?: boolean };
 const homeItems: NavItem[] = [
   { href: '/', label: 'Today', icon: 'home' },
   { href: '/my-work', label: 'My Work', shortLabel: 'My Work', icon: 'check' },
+  { href: '/staff-guide', label: 'Staff Guide', icon: 'book' },
 ];
 
 const workItems: NavItem[] = [
@@ -107,7 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isLogin = path === '/login';
   const trainingMode = process.env.NEXT_PUBLIC_TRAINING_MODE === 'true';
   const homeNavigationItems: NavItem[] = trainingMode ? [{ href: '/training', label: 'Hands-on Training', icon: 'check' }, ...homeItems] : homeItems;
-  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/housekeeping', '/bar', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/admin', ...(trainingMode ? ['/training'] : [])].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
+  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/housekeeping', '/bar', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/staff-guide', '/admin', ...(trainingMode ? ['/training'] : [])].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
 
   useEffect(() => {
     const stored = getStoredUser();

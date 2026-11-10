@@ -1,6 +1,7 @@
 import type { SVGProps } from 'react';
 
 const paths = {
+  book: 'M4 4h7a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4z M20 4h-3a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h3z',
   home: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
   check: 'M9 12l2 2 4-4 M21 12a9 9 0 1 1-9-9',
   tasks: 'M9 5h11 M9 12h11 M9 19h11 M3 5l1 1 2-2 M3 12l1 1 2-2 M3 19l1 1 2-2',
