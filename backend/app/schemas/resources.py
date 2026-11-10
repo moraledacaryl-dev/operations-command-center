@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
 
 from ..domain_values import (
     ContentFormat,
+    MarketingArea,
     Platform,
     PostStatus,
     Priority,
@@ -129,6 +130,7 @@ RESOURCE_CREATE_SCHEMAS = {
         "linked_guest_note_id": _optional_int(),
         "linked_fix_id": _optional_int(),
         "linked_post_id": _optional_int(),
+        "marketing_areas": (list[MarketingArea] | None, Field(default=None, min_length=1, max_length=5)),
         "due_date": _optional_datetime(),
         "status": (Literal["To Do"], "To Do"),
         "priority": (Priority, Priority.NORMAL),
@@ -174,6 +176,7 @@ RESOURCE_CREATE_SCHEMAS = {
         "linked_task_id": _optional_int(),
     }),
     "posts": _schema("PostCreatePayload", {
+        "marketing_areas": (list[MarketingArea] | None, Field(default=None, min_length=1, max_length=5)),
         "title": _required_text(180),
         "department_id": _optional_int(),
         "platform": (Platform | None, None),
