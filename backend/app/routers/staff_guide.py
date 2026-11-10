@@ -10,6 +10,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from .. import models
+from .. import foundation_models as foundation
 from ..authorization_policy import department_ids_for
 from ..clock import utc_now
 from ..database import get_db
@@ -73,6 +74,16 @@ def _find(db: Session, document_id: int, lock: bool = False) -> GuideDocument:
     if document is None:
         raise HTTPException(404, "Guide not found.")
     return document
+
+
+def _close_review_notifications(db: Session, doc_id: int) -> None:
+    # Keep reviewer notices for audit, but remove obsolete approval requests
+    # from every reviewer's active inbox once the draft has changed or passed.
+    db.query(foundation.Notification).filter(
+        foundation.Notification.source_type == "staff-guide-review",
+        foundation.Notification.source_id == str(doc_id),
+        foundation.Notification.dismissed_at.is_(None),
+    ).update({foundation.Notification.dismissed_at: utc_now()}, synchronize_session=False)
 
 
 def _can_edit(db: Session, user: models.User, doc: GuideDocument) -> bool:
@@ -237,6 +248,7 @@ def edit_guide(document_id: int, payload: EditPayload, user: models.User = Depen
         setattr(doc, key, value.strip() if isinstance(value, str) else value)
     doc.status = "Draft"
     doc.approved_by_id = None
+    _close_review_notifications(db, doc.id)
     db.commit()
     return _details(db, doc, user, True)
 
@@ -276,6 +288,7 @@ def approve_guide(document_id: int, user: models.User = Depends(require_user), d
     check_draft_scope(db, user, doc.audience, list(doc.department_ids or []))
     doc.status = "Approved"
     doc.approved_by_id = user.id
+    _close_review_notifications(db, doc.id)
     db.commit()
     return {"status": doc.status}
 
@@ -386,6 +399,7 @@ def retire_guide(document_id: int, user: models.User = Depends(require_user), db
     if doc.retired_at is None:
         doc.retired_at = utc_now()
         doc.status = "Retired"
+        _close_review_notifications(db, doc.id)
         db.commit()
     return {"status": doc.status}
 
