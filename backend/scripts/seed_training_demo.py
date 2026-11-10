@@ -105,7 +105,16 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
         used = [table for table in tables if table not in {"alembic_version", "sqlite_sequence"}
                 and conn.execute(text('SELECT EXISTS(SELECT 1 FROM "'+table+'" LIMIT 1)')).scalar()]
         if used:
-            raise SystemExit("REFUSED: database already contains records: " + ", ".join(used))
+            # Revision 0015 creates the one empty Bar department during schema upgrade.
+            # Admit ONLY that one untouched migration-owned row. Every other record
+            # still blocks seeding an existing, production or user-owned database.
+            only_migration_bar = used == ["departments"] and conn.execute(
+                text("SELECT count(*) FROM departments WHERE name = 'Bar'")
+            ).scalar() == 1 and conn.execute(
+                text("SELECT count(*) FROM departments")
+            ).scalar() == 1
+            if not only_migration_bar:
+                raise SystemExit("REFUSED: database already contains records: " + ", ".join(used))
 
     now = datetime.now(timezone.utc)
     counts: Counter[str] = Counter()
@@ -117,7 +126,10 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
             db.add(row); db.flush(); counts[label] += 1
             return row
 
-        departments = {name: add(models.Department(name=name, short_name=name[:4].upper()), "departments") for name in DEPARTMENTS}
+        departments = {}
+        for name in DEPARTMENTS:
+            existing = db.query(models.Department).filter_by(name=name).one_or_none()
+            departments[name] = existing or add(models.Department(name=name, short_name=name[:4].upper()), "departments")
         users = {}
         for name, role, slug, primary in PEOPLE:
             password = secrets.token_urlsafe(18) + "Aa1!"
