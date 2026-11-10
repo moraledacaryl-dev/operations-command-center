@@ -157,11 +157,11 @@ export default function StaffGuidePage() {
     <p className={styles.intro}>Find the correct steps for your work. Only approved guides are shown to staff.</p>
     {error ? <div className={styles.error} role="alert">{error}</div> : null}
     {notice ? <div className={styles.notice} role="status">{notice}</div> : null}
-    <div className={styles.tabs} role="tablist" aria-label="Staff Guide sections">
-      <button type="button" className={tab === 'guides' ? styles.active : ''} onClick={() => { setTab('guides'); setSelected(null); }}>Guides &amp; What&apos;s New</button>
-      <button type="button" className={tab === 'reading' ? styles.active : ''} onClick={() => { setTab('reading'); setSelected(null); }}>My Reading{pendingCount ? ' (' + pendingCount + ')' : ''}</button>
-      {canManage ? <button type="button" className={tab === 'manage' ? styles.active : ''} onClick={() => { setTab('manage'); setSelected(null); }}>Manage Guides</button> : null}
-    </div>
+    <nav className={styles.tabs} aria-label="Staff Guide sections">
+      <button type="button" aria-pressed={tab === 'guides'} className={tab === 'guides' ? styles.active : ''} onClick={() => { setTab('guides'); setSelected(null); }}>Guides &amp; What&apos;s New</button>
+      <button type="button" aria-pressed={tab === 'reading'} className={tab === 'reading' ? styles.active : ''} onClick={() => { setTab('reading'); setSelected(null); }}>My Reading{pendingCount ? ' (' + pendingCount + ')' : ''}</button>
+      {canManage ? <button type="button" aria-pressed={tab === 'manage'} className={tab === 'manage' ? styles.active : ''} onClick={() => { setTab('manage'); setSelected(null); }}>Manage Guides</button> : null}
+    </nav>
 
     {selected && !editorOpen ? <section className={styles.detail}>
       <button type="button" className="btn secondary" onClick={() => setSelected(null)}>Back to list</button>
@@ -236,7 +236,7 @@ export default function StaffGuidePage() {
           <h3>Published versions</h3>
           {history.map(version => <details key={version.id}>
             <summary>Version {version.version} · {dateLabel(version.published_at)}</summary>
-            <p>Approved by account #{version.approved_by_id} · Published by account #{version.published_by_id}</p>
+            <p>Approved by {version.approved_by_name} · Published by {version.published_by_name}</p>
             <strong>{version.title}</strong>
             <div className={styles.body}>{version.body}</div>
           </details>)}

@@ -310,11 +310,13 @@ def guide_history(document_id: int, user: models.User = Depends(require_user), d
     if not _can_edit(db, user, doc):
         raise HTTPException(404, "Guide not found.")
     revisions = db.query(GuideRevision).filter_by(document_id=doc.id).order_by(GuideRevision.version.desc()).all()
+    actor_ids = {item for revision in revisions for item in (revision.published_by_id, revision.approved_by_id)}
+    names = dict(db.query(models.User.id, models.User.name).filter(models.User.id.in_(actor_ids)).all())
     return [{
         "id": revision.id, "version": revision.version, "title": revision.title,
         "published_at": revision.published_at,
-        "published_by_id": revision.published_by_id,
-        "approved_by_id": revision.approved_by_id,
+        "published_by_name": names.get(revision.published_by_id, "Former employee"),
+        "approved_by_name": names.get(revision.approved_by_id, "Former employee"),
         "summary": revision.summary, "body": revision.body,
         "doc_type": revision.doc_type, "category": revision.category,
     } for revision in revisions]
