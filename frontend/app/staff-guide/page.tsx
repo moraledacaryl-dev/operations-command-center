@@ -152,7 +152,7 @@ export default function StaffGuidePage() {
     {error ? <div className={styles.error} role="alert">{error}</div> : null}
     {notice ? <div className={styles.notice} role="status">{notice}</div> : null}
     <div className={styles.tabs} role="tablist" aria-label="Staff Guide sections">
-      <button type="button" className={tab === 'guides' ? styles.active : ''} onClick={() => { setTab('guides'); setSelected(null); }}>Guides &amp; What's New</button>
+      <button type="button" className={tab === 'guides' ? styles.active : ''} onClick={() => { setTab('guides'); setSelected(null); }}>Guides &amp; What&apos;s New</button>
       <button type="button" className={tab === 'reading' ? styles.active : ''} onClick={() => { setTab('reading'); setSelected(null); }}>My Reading{pendingCount ? ' (' + pendingCount + ')' : ''}</button>
       {canManage ? <button type="button" className={tab === 'manage' ? styles.active : ''} onClick={() => { setTab('manage'); setSelected(null); }}>Manage Guides</button> : null}
     </div>
@@ -165,7 +165,7 @@ export default function StaffGuidePage() {
         {current.summary ? <p className={styles.summary}>{current.summary}</p> : null}
         <div className={styles.body}>{current.body}</div>
         {current.requires_ack ? <div className={styles.ack}>
-          {current.acknowledged ? <strong>You've confirmed this version.</strong> :
+          {current.acknowledged ? <strong>You&apos;ve confirmed this version.</strong> :
             <><p>After reading, confirm that you understand this guide.</p>
             <button type="button" className="btn" disabled={busy} onClick={() => void run(
               () => api.staffGuideAcknowledge(Number(selected.id)),
