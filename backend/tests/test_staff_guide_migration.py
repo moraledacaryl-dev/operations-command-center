@@ -20,9 +20,6 @@ def test_populated_legacy_documents_stay_unchanged(tmp_path):
     path = tmp_path / "staff_guide_upgrade.sqlite"
     migrate("0015_bar_marketing_areas", path)
     with sqlite3.connect(path) as db:
-        db.execute("""INSERT INTO departments(id, name, short_name, created_at, updated_at)
-                      VALUES (400, 'Bar', 'BAR', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                      ON CONFLICT(id) DO NOTHING""")
         dept_id = db.execute("SELECT id FROM departments WHERE name='Bar'").fetchone()[0]
         db.execute("""INSERT INTO department_docs(id,title,department_id,doc_type,body,status,
                       hidden_from_active,created_at,updated_at)
