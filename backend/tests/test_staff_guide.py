@@ -115,6 +115,7 @@ def test_acknowledgment_is_explicit_revision_specific_and_idempotent(context):
     updated = get_guide(doc_id, bartender, db)["published"]
     assert updated["version"] == 2 and updated["acknowledged"] is False
     assert first_revision.body == original
+    assert first_revision.approved_by_id == owner.id
     assert db.query(GuideAcknowledgment).filter_by(user_id=bartender.id).count() == 1
     assert db.query(GuideReading).filter_by(user_id=bartender.id).count() == 2
 

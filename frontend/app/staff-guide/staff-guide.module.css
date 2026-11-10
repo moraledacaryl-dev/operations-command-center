@@ -46,3 +46,7 @@
 .readerReport { margin-top: 18px; overflow-x: auto; }
 .readerReport table { width: 100%; border-collapse: collapse; }
 .readerReport th, .readerReport td { padding: 12px; border-bottom: 1px solid #cbd5d4; text-align: left; }
+
+.history { margin-top: 18px; }
+.history details { border: 1px solid #cbd5d4; padding: 12px; border-radius: 8px; margin: 10px 0; }
+.history summary { cursor: pointer; font-weight: 600; }

@@ -132,6 +132,7 @@ export const api = {
   staffGuidePublish: (id: number) => request<Entity>('/staff-guide/' + id + '/publish', { method: 'POST', body: JSON.stringify({ due_days: 7 }) }),
   staffGuideAcknowledge: (id: number) => request<Entity>('/staff-guide/' + id + '/acknowledge', { method: 'POST' }),
   staffGuideReaders: (id: number) => request<Entity[]>('/staff-guide/' + id + '/readers'),
+  staffGuideHistory: (id: number) => request<Entity[]>('/staff-guide/' + id + '/history'),
   staffGuideRetire: (id: number) => request<Entity>('/staff-guide/' + id + '/retire', { method: 'POST' }),
   staffGuideUpload: (id: number, file: File) => {
     const body = new FormData();

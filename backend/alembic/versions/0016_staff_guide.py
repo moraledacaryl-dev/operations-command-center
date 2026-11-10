@@ -48,6 +48,7 @@ def upgrade():
         sa.Column("effective_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("published_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("published_by_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=False),
+        sa.Column("approved_by_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=False),
         sa.UniqueConstraint("document_id", "version", name="uq_guide_document_version"))
     op.create_table("guide_revision_departments",
         sa.Column("revision_id", sa.Integer(), sa.ForeignKey("guide_revisions.id"), primary_key=True),

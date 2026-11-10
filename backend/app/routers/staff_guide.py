@@ -273,7 +273,8 @@ def publish_guide(document_id: int, payload: PublishPayload, user: models.User =
         document_id=doc.id, version=doc.version + 1, title=doc.title,
         doc_type=doc.doc_type, category=doc.category, summary=doc.summary,
         body=doc.body, audience=doc.audience, requires_ack=doc.requires_ack,
-        effective_at=doc.effective_at, published_at=utc_now(), published_by_id=user.id)
+        effective_at=doc.effective_at, published_at=utc_now(), published_by_id=user.id,
+        approved_by_id=doc.approved_by_id)
     db.add(revision)
     db.flush()
     for department_id in depts:
@@ -301,6 +302,22 @@ def publish_guide(document_id: int, payload: PublishPayload, user: models.User =
             db.add(GuideReading(user_id=person.id, revision_id=revision.id, due_at=due))
     db.commit()
     return {"id": doc.id, "version": revision.version, "status": doc.status}
+
+
+@router.get("/{document_id}/history")
+def guide_history(document_id: int, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    doc = _find(db, document_id)
+    if not _can_edit(db, user, doc):
+        raise HTTPException(404, "Guide not found.")
+    revisions = db.query(GuideRevision).filter_by(document_id=doc.id).order_by(GuideRevision.version.desc()).all()
+    return [{
+        "id": revision.id, "version": revision.version, "title": revision.title,
+        "published_at": revision.published_at,
+        "published_by_id": revision.published_by_id,
+        "approved_by_id": revision.approved_by_id,
+        "summary": revision.summary, "body": revision.body,
+        "doc_type": revision.doc_type, "category": revision.category,
+    } for revision in revisions]
 
 
 @router.post("/{document_id}/acknowledge")

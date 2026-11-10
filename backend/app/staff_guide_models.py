@@ -47,6 +47,7 @@ class GuideRevision(Base):
     effective_at = Column(DateTime, nullable=True)
     published_at = Column(DateTime, default=utc_now, nullable=False)
     published_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    approved_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     __table_args__ = (UniqueConstraint("document_id", "version", name="uq_guide_document_version"),)
 
 

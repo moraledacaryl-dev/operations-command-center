@@ -29,6 +29,7 @@ export default function StaffGuidePage() {
   const [reading, setReading] = useState<Entity[]>([]);
   const [managed, setManaged] = useState<Entity[]>([]);
   const [readers, setReaders] = useState<Entity[] | null>(null);
+  const [history, setHistory] = useState<Entity[] | null>(null);
   const [departments, setDepartments] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [search, setSearch] = useState('');
@@ -61,6 +62,7 @@ export default function StaffGuidePage() {
       const result = await api.staffGuideGet(id);
       setSelected(result);
       setReaders(null);
+      setHistory(null);
       setEditingId(null);
       setEditorOpen(false);
     } catch (err) {
@@ -226,6 +228,20 @@ export default function StaffGuidePage() {
           )}>Retire guide</button> : null}
         </div>
       </section> : null}
+      {currentDraft && current ? <>
+        <button type="button" className="btn secondary" disabled={busy} onClick={() => {
+          void run(async () => { setHistory(await api.staffGuideHistory(Number(selected.id))); }, '');
+        }}>View published versions</button>
+        {history ? <section className={styles.history} aria-label="Published versions">
+          <h3>Published versions</h3>
+          {history.map(version => <details key={version.id}>
+            <summary>Version {version.version} · {dateLabel(version.published_at)}</summary>
+            <p>Approved by account #{version.approved_by_id} · Published by account #{version.published_by_id}</p>
+            <strong>{version.title}</strong>
+            <div className={styles.body}>{version.body}</div>
+          </details>)}
+        </section> : null}
+      </> : null}
       {canPublish && current?.requires_ack ? <>
         <button type="button" className="btn secondary" disabled={busy} onClick={() => {
           void run(async () => { setReaders(await api.staffGuideReaders(Number(selected.id))); }, '');
