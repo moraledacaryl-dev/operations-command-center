@@ -143,7 +143,7 @@ def exercise_staff_read_only_investigations(base: str, accounts: dict) -> None:
 def exercise_all_training_roles(base: str, roster: dict) -> None:
     """Real packaged HTTP authorization smoke for every fictional trainee role."""
     rows = roster["accounts"]
-    assert len(rows) == 20 and len({row["email"] for row in rows}) == 20
+    assert len(rows) == 22 and len({row["email"] for row in rows}) == 22
     manager = next(row for row in rows if row["email"] == "manager@training.invalid")
     manager_user, _ = login_with_cookie(base, manager["email"], manager["password"])
     departments = {item["name"]: int(item["id"]) for item in manager_user["departments"]}
@@ -177,7 +177,7 @@ def exercise_all_training_roles(base: str, roster: dict) -> None:
                 assert error.code == 403, (assigned["email"], "unexpected cross-department status", error.code)
             else:
                 raise AssertionError(f"Cross-department task read succeeded for {assigned['email']}")
-    print("PASS: all 20 fictional roles authenticate; own task/notice scope and denied foreign department reads")
+    print("PASS: all 22 fictional roles authenticate; own task/notice scope and denied foreign department reads")
 
 
 def exercise_real_local_workflows(base: str, roster: dict) -> None:
@@ -365,7 +365,7 @@ def main() -> None:
                     count = conn.execute(
                         "SELECT COUNT(*) FROM notifications WHERE kind='training_practice_read'"
                     ).fetchone()[0]
-                    assert count == 40, f"Each of the 20 fictional roles needs two visible notices: {count}"
+                    assert count == 44, f"Each of the 22 fictional roles needs two visible notices: {count}"
                     if i == 0:
                         # Simulate an existing installed training DB with a
                         # missing sample. Initialization must repair it without
@@ -375,7 +375,7 @@ def main() -> None:
                         )
                         conn.commit()
             roster = json.loads((state / "private" / "accounts" / "PRIVATE_training_accounts.json").read_text())
-            assert len(roster["accounts"]) == 20
+            assert len(roster["accounts"]) == 22
             guide = state / "private" / "accounts" / "PRIVATE_TRAINER_ACCOUNTS.txt"
             assert guide.is_file(), "Trainer's human-readable accounts guide was not generated"
             assert guide.stat().st_mode & 0o077 == 0, "Trainer guide must be private (0600)"
@@ -404,7 +404,7 @@ def main() -> None:
                         result = login("http://127.0.0.1:3401", email, account["password"])
                         assert result["role"] == role, (email, result.get("role"))
                     exercise_real_local_workflows("http://127.0.0.1:3401", roster)
-                    print("PASS: native Mac app bundle, synthetic SQLite + 20 demo accounts, real manager/staff logins")
+                    print("PASS: native Mac app bundle, synthetic SQLite + 22 demo accounts, real manager/staff logins")
                 finally:
                     for p in (ui, api):
                         if p.poll() is None:

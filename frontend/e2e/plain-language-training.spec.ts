@@ -21,7 +21,7 @@ test('first situation explains exactly what the guest reported and what staff fa
 });
 
 test('each practice lesson offers immediate simple definitions without changing its graded answers', () => {
-  expect(PRACTICE_SCENARIOS).toHaveLength(117);
+  expect(PRACTICE_SCENARIOS).toHaveLength(122);
   for (const item of PRACTICE_SCENARIOS) {
     const words = plainWordsForScenario(item);
     expect(words.length, item.id).toBeGreaterThanOrEqual(2);

@@ -27,6 +27,7 @@ PEOPLE = [
     ("Demo Bea Navarro", "lead", "housekeeping-lead", "Housekeeping"),
     ("Demo Carlo Flores", "lead", "cafe-lead", "Café"),
     ("Demo Dana Cruz", "supervisor", "kitchen-lead", "Kitchen"),
+    ("Demo Tala Reyes", "lead", "bar-lead", "Bar"),
     ("Demo Emil Ramos", "lead", "maintenance-lead", "Maintenance"),
     ("Demo Faye Lopez", "lead", "marketing-lead", "Marketing"),
     ("Demo Gio Torres", "supervisor", "security-lead", "Security"),
@@ -37,21 +38,22 @@ PEOPLE = [
     ("Demo Mika Ong", "staff", "barista-am", "Café"),
     ("Demo Nico Yu", "staff", "barista-pm", "Café"),
     ("Demo Pia Chua", "staff", "cook", "Kitchen"),
+    ("Demo Berto Lim", "staff", "bartender", "Bar"),
     ("Demo Quinn Lee", "staff", "technician", "Maintenance"),
     ("Demo Rosa Perez", "staff", "marketing-assistant", "Marketing"),
     ("Demo Sam Villanueva", "staff", "guard", "Security"),
 ]
-DEPARTMENTS = ["Management", "Front Desk", "Housekeeping", "Café", "Kitchen", "Maintenance", "Marketing", "Admin", "Security"]
+DEPARTMENTS = ["Management", "Front Desk", "Housekeeping", "Café", "Kitchen", "Bar", "Maintenance", "Marketing", "Admin", "Security"]
 PRIMARY_WORKER = {
     "Management": "manager", "Front Desk": "reception-am",
     "Housekeeping": "housekeeper-am", "Café": "barista-am",
-    "Kitchen": "cook", "Maintenance": "technician",
+    "Kitchen": "cook", "Bar": "bartender", "Maintenance": "technician",
     "Marketing": "marketing-assistant", "Admin": "administrator",
     "Security": "guard",
 }
 LEADS = {
     "Front Desk": "frontdesk-lead", "Housekeeping": "housekeeping-lead",
-    "Café": "cafe-lead", "Kitchen": "kitchen-lead",
+    "Café": "cafe-lead", "Kitchen": "kitchen-lead", "Bar": "bar-lead",
     "Maintenance": "maintenance-lead", "Marketing": "marketing-lead",
     "Security": "security-lead", "Management": "manager", "Admin": "administrator",
 }
@@ -103,7 +105,16 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
         used = [table for table in tables if table not in {"alembic_version", "sqlite_sequence"}
                 and conn.execute(text('SELECT EXISTS(SELECT 1 FROM "'+table+'" LIMIT 1)')).scalar()]
         if used:
-            raise SystemExit("REFUSED: database already contains records: " + ", ".join(used))
+            # Revision 0015 creates the one empty Bar department during schema upgrade.
+            # Admit ONLY that one untouched migration-owned row. Every other record
+            # still blocks seeding an existing, production or user-owned database.
+            only_migration_bar = used == ["departments"] and conn.execute(
+                text("SELECT count(*) FROM departments WHERE name = 'Bar'")
+            ).scalar() == 1 and conn.execute(
+                text("SELECT count(*) FROM departments")
+            ).scalar() == 1
+            if not only_migration_bar:
+                raise SystemExit("REFUSED: database already contains records: " + ", ".join(used))
 
     now = datetime.now(timezone.utc)
     counts: Counter[str] = Counter()
@@ -115,7 +126,10 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
             db.add(row); db.flush(); counts[label] += 1
             return row
 
-        departments = {name: add(models.Department(name=name, short_name=name[:4].upper()), "departments") for name in DEPARTMENTS}
+        departments = {}
+        for name in DEPARTMENTS:
+            existing = db.query(models.Department).filter_by(name=name).one_or_none()
+            departments[name] = existing or add(models.Department(name=name, short_name=name[:4].upper()), "departments")
         users = {}
         for name, role, slug, primary in PEOPLE:
             password = secrets.token_urlsafe(18) + "Aa1!"
@@ -127,13 +141,14 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
             if slug == "administrator": memberships = ["Admin", "Management"]
             if slug == "frontdesk-lead": memberships.append("Housekeeping")
             if slug == "marketing-lead": memberships.append("Café")
+            if slug == "bartender": memberships.extend(["Kitchen", "Housekeeping"])
             for dept in memberships:
                 add(models.UserDepartment(user_id=u.id, department_id=departments[dept].id,
                     is_primary=dept == primary), "memberships")
             credentials.append({"name": name, "role": role, "email": u.email, "password": password, "department": primary})
 
         areas = [f"Room {n}" for n in (101,102,103,104,105,201,202,203,204,205,301,302)] + [
-            "Lobby", "Front Desk", "Café", "Kitchen", "Pool", "Function Hall",
+            "Lobby", "Front Desk", "Café", "Kitchen", "Bar", "Pool", "Function Hall",
             "Garden", "Storage", "Parking", "Laundry", "Staff Area"]
         rooms = {name: add(models.RoomArea(name=name, kind="room" if name.startswith("Room") else "area",
             status="active", note="Fictional training area — not real property inventory."), "rooms_areas") for name in areas}
@@ -154,6 +169,7 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
             "Housekeeping": ["Inspect Room 203","Count linen inventory","Confirm room readiness","Record missing amenities"],
             "Café": ["Prepare counter checklist","Check available menu","Resolve service delay","Close café station"],
             "Kitchen": ["Check cold-storage temperatures","Complete prep list","Review food-handling incident","Close kitchen"],
+            "Bar": ["Count mocktail mixers","Check Bar tools","Review cocktail complaint","Handover syrup shortage"],
             "Maintenance": ["Inspect pool pump","Investigate Room 205 AC","Prepare repair evidence","Review defects"],
             "Marketing": ["Draft promotional post","Review campaign caption","Submit artwork","Confirm scheduled content"],
             "Security": ["Inspect pool gate","Complete perimeter check","Review reported incident","Log visitor handover"],
@@ -264,6 +280,15 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 assigned_to_id=users[PRIMARY_WORKER[dept]].id,
                 payload_json=json.dumps({"training_only":True})),"inbox_items")
 
+        # Fictional Bar cases for staff and lead exercises. No real checklists or business policy.
+        add(models.ShiftNote(title=PREFIX+"Bar mocktail syrup running low",
+            shift="PM", category="Low stock", department_id=departments["Bar"].id,
+            submitted_by_id=users["bartender"].id, urgency="Normal", status="New",
+            note="TRAINING ONLY: mango syrup almost finished; count remaining stock before the next shift."), "shift_notes")
+        add(models.ShiftNote(title=PREFIX+"Bar blender stopped working",
+            shift="PM", category="Equipment", department_id=departments["Bar"].id,
+            submitted_by_id=users["bartender"].id, urgency="High", status="Follow",
+            note="TRAINING ONLY: do not use the blender; Bar lead to arrange an equipment check."), "shift_notes")
         for i in range(12):
             add(models.Approval(title=PREFIX+f"Review exercise {i+1}",
                 requested_by_id=users["frontdesk-lead"].id,

@@ -83,6 +83,14 @@ class Platform(StrEnum):
     INTERNAL = "Internal"
 
 
+class MarketingArea(StrEnum):
+    ROOMS = "Rooms"
+    POOL = "Pool"
+    CAFE = "Café"
+    KITCHEN = "Kitchen"
+    BAR = "Bar"
+
+
 class ContentFormat(StrEnum):
     REEL = "Reel"
     STORY = "Story"
@@ -113,6 +121,7 @@ ALLOWED_STATUSES = {
 __all__ = [
     "ALLOWED_STATUSES",
     "ContentFormat",
+    "MarketingArea",
     "FixStatus",
     "GuestStatus",
     "Platform",

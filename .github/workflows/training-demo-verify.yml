@@ -52,8 +52,8 @@ jobs:
           from sqlalchemy.orm import Session
           db = create_engine('sqlite:////tmp/operations_training_demo_ci.sqlite')
           with Session(db) as session:
-              assert session.query(models.User).count() == 20
-              assert session.query(models.Department).count() == 9
+              assert session.query(models.User).count() == 22
+              assert session.query(models.Department).count() == 10
               assert session.query(models.Task).count() >= 50
               assert session.query(models.GuestNote).count() >= 10
               assert session.query(models.Fix).count() >= 10

@@ -11,6 +11,7 @@ import { Pill } from '@/components/Pill';
 import { Drawer } from '@/components/Drawer';
 import { Tabs } from '@/components/Tabs';
 import { MarketingWorkspace } from '@/components/MarketingWorkspace';
+import { AreaNames, MarketingAreas, MARKETING_AREAS } from '@/components/MarketingAreas';
 import { useActiveDepartment, useCreateIntent, useLatestRequest } from '@/lib/operation-hooks';
 import { hasCapability } from '@/lib/capabilities';
 import { getStoredUser, setCurrentDepartmentId } from '@/lib/session';
@@ -65,6 +66,9 @@ export default function MarketingPage() {
   const [versions, setVersions] = useState<Entity[]>([]);
   const [filter, setFilter] = useState('Active');
   const [platformFilter, setPlatformFilter] = useState('All');
+  const [areaFilter, setAreaFilter] = useState('All');
+  const [newPostAreas, setNewPostAreas] = useState<string[]>([]);
+  const [postAreas, setPostAreas] = useState<string[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [data, setData] = useState<Entity>(blank);
   const [comment, setComment] = useState('');
@@ -151,6 +155,7 @@ export default function MarketingPage() {
     try {
       const fresh = await api.get('posts', item.id);
       setSelected(fresh);
+      setPostAreas(fresh.marketing_areas || []);
       setTransitionNote('');
       setVersions(await api.versions(item.id));
     } catch (err: any) {
@@ -165,8 +170,8 @@ export default function MarketingPage() {
     }
     setBusy(true);
     try {
-      await api.create('posts', departmentId && !data.department_id ? { ...data, department_id: departmentId } : data);
-      setData(blank);
+      await api.create('posts', { ...data, marketing_areas: newPostAreas.length ? newPostAreas : null, department_id: departmentId });
+      setData(blank); setNewPostAreas([]);
       setShowAdd(false);
       await load();
     } catch (err: any) {
@@ -174,6 +179,15 @@ export default function MarketingPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function savePostAreas() {
+    if (!selected || !canManage || busy) return;
+    setBusy(true); setError('');
+    try { await api.update('posts', selected.id, { marketing_areas: postAreas.length ? postAreas : null, expected_updated_at: selected.updated_at });
+      await open(selected); await load();
+    } catch (err: any) { setError(err.message || 'Could not save areas.'); }
+    finally { setBusy(false); }
   }
 
   async function transition(action: string) {
@@ -231,12 +245,13 @@ export default function MarketingPage() {
   const visible = useMemo(() => items.filter(item => {
     const statusMatch = filter === 'All' || (filter === 'Active' ? item.status !== 'Posted' : item.status === filter);
     const platformMatch = platformFilter === 'All' || item.platform === platformFilter;
-    return statusMatch && platformMatch;
+    const areaMatch = areaFilter === 'All' || (areaFilter === 'Not set' ? !item.marketing_areas?.length : (item.marketing_areas || []).includes(areaFilter));
+    return statusMatch && platformMatch && areaMatch;
   }).sort((a, b) => {
     const aDate = new Date(String(a.post_date || '2999-12-31')).getTime();
     const bDate = new Date(String(b.post_date || '2999-12-31')).getTime();
     return aDate - bDate;
-  }), [items, filter, platformFilter]);
+  }), [items, filter, platformFilter, areaFilter]);
 
   const groups = useMemo(() => visible.reduce<Record<string, Entity[]>>((result, item) => {
     const key = monthKey(item.post_date);
@@ -269,6 +284,7 @@ export default function MarketingPage() {
           <label className="label">Publish date<input type="date" className="input" value={data.post_date} onChange={event => setData({ ...data, post_date: event.target.value })} /></label>
           <label className="label">Campaign<input className="input" value={data.campaign} onChange={event => setData({ ...data, campaign: event.target.value })} /></label>
         </div>
+        <MarketingAreas value={newPostAreas} onChange={setNewPostAreas} />
         <label className="label">Caption or brief<textarea className="textarea" value={data.caption} onChange={event => setData({ ...data, caption: event.target.value })} /></label>
         <div className="toolbar"><button className="btn" disabled={busy || !String(data.title || '').trim()} onClick={create}>{busy ? 'Saving…' : 'Create item'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
       </div>
@@ -276,6 +292,7 @@ export default function MarketingPage() {
     <div className="toolbar" style={{ alignItems: 'center' }}>
       <Tabs values={['Active', 'All', ...statuses]} active={filter} onChange={setFilter} label="Marketing status" />
       <select className="select" aria-label="Filter by platform" value={platformFilter} onChange={event => setPlatformFilter(event.target.value)}><option>All</option>{platforms.map(value => <option key={value}>{value}</option>)}</select>
+      <select className="select" aria-label="Filter individual posts by area" value={areaFilter} onChange={event => setAreaFilter(event.target.value)}><option value="All">All areas</option>{MARKETING_AREAS.map(area => <option key={area}>{area}</option>)}<option value="Not set">Areas not set</option></select>
     </div>
     <div className="ops-content-months">
       {Object.entries(groups).map(([month, monthItems]) => <section className="ops-content-month" key={month}>
@@ -283,7 +300,7 @@ export default function MarketingPage() {
         <div className="ops-project-grid" style={{ marginTop: 18 }}>
           {monthItems.map(item => <button type="button" className="ops-content-card" key={item.id} onClick={() => open(item)} style={{ textAlign: 'left' }}>
             <span className={`ops-content-cover ops-format-${String(item.content_type || 'idea').toLowerCase()}`}><Icon name={item.content_type === 'Reel' ? 'marketing' : item.content_type === 'Carousel' ? 'projects' : 'palette'} /><span>{item.content_type || 'Idea'}</span><span className="ops-cover-lines" aria-hidden="true" /></span>
-            <strong>{item.title}</strong>
+            <strong>{item.title}</strong><AreaNames areas={item.marketing_areas} />
             <span className="card-line"><Pill value={item.platform || 'Platform'} /><Pill value={item.status || 'Idea'} /><Pill value={item.content_type || 'Content'} /></span>
             <span className="muted">{formatDate(item.post_date)}{item.campaign ? ` · ${item.campaign}` : ''}</span>
             {item.caption ? <span className="muted">{String(item.caption).slice(0, 110)}</span> : null}
@@ -299,7 +316,7 @@ export default function MarketingPage() {
 
           <h2>{selected.title}</h2>
           <div className="card-line"><Pill value={selected.status || 'Idea'} /><Pill value={selected.platform || 'Platform'} /><Pill value={formatDate(selected.post_date)} /></div>
-          <p className="muted">{selected.caption || 'No caption or creative brief yet.'}</p>
+          <p className="muted">{selected.caption || 'No caption or creative brief yet.'}</p><AreaNames areas={selected.marketing_areas} />{canManage ? <><MarketingAreas value={postAreas} onChange={setPostAreas} /><button className="btn secondary" disabled={busy} onClick={() => void savePostAreas()}>Save areas</button></> : null}
           {allowedActions.length ? <label className="label">Action note<textarea className="textarea" value={transitionNote} onChange={event => setTransitionNote(event.target.value)} placeholder="Required for revisions, returns, and reopen actions" /></label> : null}
           <div className="toolbar">
             {allowedActions.map(action => {

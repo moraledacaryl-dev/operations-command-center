@@ -68,7 +68,7 @@ def seed_if_empty(db: Session):
         return
 
     departments = [
-        "Management", "Front Desk", "Housekeeping", "Café", "Kitchen", "Maintenance", "Marketing", "Admin", "Security"
+        "Management", "Front Desk", "Housekeeping", "Café", "Kitchen", "Bar", "Maintenance", "Marketing", "Admin", "Security"
     ]
     dept_map = {}
     for name in departments:
@@ -92,7 +92,7 @@ def seed_if_empty(db: Session):
     # Person-based login, department-scoped workspaces. One person may belong to several departments.
     for dept_name in departments:
         member(caryl, dept_name, primary=(dept_name == "Management"))
-    for dept_name in ["Management", "Front Desk", "Housekeeping", "Café", "Kitchen", "Maintenance", "Marketing", "Admin", "Security"]:
+    for dept_name in ["Management", "Front Desk", "Housekeeping", "Café", "Kitchen", "Bar", "Maintenance", "Marketing", "Admin", "Security"]:
         member(manager, dept_name, primary=(dept_name == "Management"))
     member(marketing, "Marketing", primary=True)
     member(marketing, "Café")

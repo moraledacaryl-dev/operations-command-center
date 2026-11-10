@@ -62,7 +62,7 @@ jobs:
         run: |
           python3 -m pip install -r backend/requirements.txt pyinstaller==6.16.0 tzdata==2025.3
           python3 -m pip check
-          python3 -c 'import sys;sys.path.insert(0,"backend");from scripts.seed_training_demo import PEOPLE;assert len(PEOPLE)==20'
+          python3 -c 'import sys;sys.path.insert(0,"backend");from scripts.seed_training_demo import PEOPLE;assert len(PEOPLE)==22'
           python3 -m PyInstaller --noconfirm --clean --onedir --name training-api --paths backend \
             --collect-submodules app --collect-all alembic --collect-all sqlalchemy --collect-all tzdata \
             --collect-all pydantic --collect-all fastapi --collect-all uvicorn \

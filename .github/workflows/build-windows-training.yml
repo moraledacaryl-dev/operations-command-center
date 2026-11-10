@@ -75,7 +75,7 @@ jobs:
         run: |
           python -m pip install -r backend/requirements.txt pyinstaller==6.16.0 tzdata==2025.3
           python -m pip check
-          python -c "import os,sys;sys.path.insert(0,'backend');from scripts.seed_training_demo import PEOPLE;assert len(PEOPLE)==20;print('PASS: twenty fictional role accounts')"
+          python -c "import os,sys;sys.path.insert(0,'backend');from scripts.seed_training_demo import PEOPLE;assert len(PEOPLE)==22;print('PASS: 22 fictional role accounts')"
 
       - name: Freeze Python runtime into Windows executable
         shell: pwsh
@@ -217,7 +217,7 @@ jobs:
             $login = Invoke-WebRequest -Uri http://127.0.0.1:3401/login -UseBasicParsing
             if ($login.Content -notmatch 'TRAINING ONLY') { throw "Missing training-only warning" }
             $accounts = Get-Content (Join-Path $state 'private/accounts/PRIVATE_training_accounts.json') -Raw | ConvertFrom-Json
-            if ($accounts.accounts.Count -ne 20) { throw "Fictional roster incorrect" }
+            if ($accounts.accounts.Count -ne 22) { throw "Fictional roster incorrect" }
             $guidePath = Join-Path $state 'private/accounts/PRIVATE_TRAINER_ACCOUNTS.txt'
             if (!(Test-Path $guidePath)) { throw "Readable trainer account guide missing" }
             $guide = Get-Content $guidePath -Raw

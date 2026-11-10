@@ -15,7 +15,8 @@ from ..authorization_policy import Action, department_ids_for
 from ..capabilities import has_capability
 from ..clock import utc_now
 from ..database import get_db
-from ..domain_values import ContentFormat, Platform
+from ..domain_values import ContentFormat, MarketingArea, Platform
+from ..marketing_areas import validate_marketing_areas
 from ..pagination import cursor_page, decode_cursor, encode_cursor
 from ..services.marketing_workflow import allowed_deliverable_actions, authorize_campaign, campaign_or_404, transition_deliverable
 from ..utils import log_activity, model_to_dict
@@ -34,6 +35,12 @@ class CampaignCreate(BaseModel):
     start_at: datetime | None = None
     end_at: datetime | None = None
     budget_note: str | None = None
+    marketing_areas: list[MarketingArea] | None = Field(default=None, min_length=1, max_length=5)
+
+
+class MarketingAreasUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    marketing_areas: list[MarketingArea] | None = Field(default=None, min_length=1, max_length=5)
 
 
 class PlatformDeliverableCreate(BaseModel):
@@ -58,6 +65,7 @@ class ConceptCreate(BaseModel):
     format: ContentFormat
     scheduled_at: datetime | None = None
     shared_caption: str | None = None
+    marketing_areas: list[MarketingArea] | None = Field(default=None, min_length=1, max_length=5)
     deliverables: list[PlatformDeliverableCreate] | None = Field(default=None, max_length=6)
 
 
@@ -101,15 +109,45 @@ def campaigns(
 @router.post("/campaigns")
 def create_campaign(payload: CampaignCreate, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     authorize_campaign(db, user, foundation.MarketingCampaign(department_id=payload.department_id), Action.CREATE)
+    validate_marketing_areas(payload.marketing_areas)
     if payload.end_at and payload.start_at and payload.end_at < payload.start_at:
         raise HTTPException(status_code=422, detail="Campaign end must be after its start.")
-    campaign = foundation.MarketingCampaign(**payload.model_dump())
+    values = payload.model_dump()
+    values["marketing_areas"] = [area.value for area in payload.marketing_areas] if payload.marketing_areas is not None else None
+    campaign = foundation.MarketingCampaign(**values)
     db.add(campaign)
     db.flush()
     log_activity(db, "marketing-campaigns", campaign.id, "created", "Campaign created", actor_id=user.id)
     db.commit()
     db.refresh(campaign)
     return _campaign_payload(campaign)
+
+
+@router.patch("/campaigns/{campaign_id}/areas")
+def update_campaign_areas(campaign_id: int, payload: MarketingAreasUpdate, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    campaign = campaign_or_404(db, campaign_id)
+    authorize_campaign(db, user, campaign, Action.EDIT)
+    validate_marketing_areas(payload.marketing_areas)
+    campaign.marketing_areas = [item.value for item in payload.marketing_areas] if payload.marketing_areas is not None else None
+    log_activity(db, "marketing-campaigns", campaign.id, "areas", "Areas covered updated", actor_id=user.id)
+    db.commit()
+    db.refresh(campaign)
+    return _campaign_payload(campaign)
+
+
+@router.patch("/concepts/{concept_id}/areas")
+def update_concept_areas(concept_id: int, payload: MarketingAreasUpdate, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    concept = db.get(foundation.ContentConcept, concept_id)
+    if concept is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    campaign = campaign_or_404(db, concept.campaign_id)
+    authorize_campaign(db, user, campaign, Action.EDIT)
+    validate_marketing_areas(payload.marketing_areas)
+    concept.marketing_areas = [item.value for item in payload.marketing_areas] if payload.marketing_areas is not None else None
+    log_activity(db, "content-concepts", concept.id, "areas", "Areas covered updated", actor_id=user.id)
+    db.commit()
+    db.refresh(concept)
+    return model_to_dict(concept)
 
 
 @router.get("/concepts")
@@ -147,6 +185,7 @@ def concepts(
 def create_concept(payload: ConceptCreate, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     campaign = campaign_or_404(db, payload.campaign_id)
     authorize_campaign(db, user, campaign, Action.CREATE)
+    validate_marketing_areas(payload.marketing_areas)
     platforms = list(dict.fromkeys(platform.value for platform in payload.platforms))
     if len(platforms) != len(payload.platforms):
         raise HTTPException(status_code=422, detail="Choose each platform only once.")
@@ -155,6 +194,7 @@ def create_concept(payload: ConceptCreate, user: models.User = Depends(require_u
         title=payload.title.strip(),
         content_pillar=payload.content_pillar.strip(),
         brief=payload.brief,
+        marketing_areas=[item.value for item in payload.marketing_areas] if payload.marketing_areas is not None else None,
         owner_id=payload.owner_id or user.id,
         status="Idea",
     )
@@ -251,6 +291,8 @@ def marketing_calendar(
         "campaign_id": campaign.id,
         "campaign_name": campaign.name,
         "department_id": campaign.department_id,
+        "marketing_areas": concept.marketing_areas,
+        "campaign_marketing_areas": campaign.marketing_areas,
     } for deliverable, concept, campaign in page_rows]
     if not paginated:
         return items

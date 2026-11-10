@@ -107,7 +107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isLogin = path === '/login';
   const trainingMode = process.env.NEXT_PUBLIC_TRAINING_MODE === 'true';
   const homeNavigationItems: NavItem[] = trainingMode ? [{ href: '/training', label: 'Hands-on Training', icon: 'check' }, ...homeItems] : homeItems;
-  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/housekeeping', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/admin', ...(trainingMode ? ['/training'] : [])].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
+  const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/housekeeping', '/bar', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/admin', ...(trainingMode ? ['/training'] : [])].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -180,10 +180,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { href: '/posts', label: 'Marketing', icon: 'marketing' },
     { href: '/posts/editor', label: 'Edit image', shortLabel: 'Studio', icon: 'edit' },
   ] : [];
-  const propertyItems = operationsItems.filter(item =>
+  const canOpenBar = hasCapability(user, 'view_all_operations') || deptOptions.some((d: Entity) => d.name === 'Bar');
+  const propertyItems = [...(canOpenBar ? [{ href: '/bar', label: 'Bar', icon: 'shift' as const }] : []), ...operationsItems.filter(item =>
     item.href !== '/fixes' && (item.href !== '/housekeeping' ||
       ['owner', 'admin', 'manager'].includes(role) || deptOptions.some((d: Entity) =>
-        ['Front Desk', 'Housekeeping'].includes(String(d.name)) )));
+        ['Front Desk', 'Housekeeping'].includes(String(d.name)) )))];
   const peopleItems: NavItem[] = [{ href: '/departments', label: 'Departments', icon: 'guests' }];
   const closeMobile = () => setMobileOpen(false);
 

@@ -4,7 +4,7 @@
  * records; a click, a filled form, or a mock completion flag cannot pass.
  * Completion is learning evidence, NOT a credential or staff certification.
  */
-export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner' | 'shift-unresolved' | 'mt-light-fault' | 'manager-evidence' | 'fd-broken-shower';
+export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner' | 'shift-unresolved' | 'mt-light-fault' | 'manager-evidence' | 'fd-broken-shower' | 'bar-report';
 export type TrainingWorkflowSession = {
   kind: TrainingWorkflowKind;
   ownerId: string;
@@ -13,6 +13,7 @@ export type TrainingWorkflowSession = {
   step: number;
   recordId?: number;
   relatedRecordId?: number;
+  departmentId?: number;
 };
 export type TrainingWorkflowEvidence = {
   reference: string;
@@ -28,6 +29,7 @@ export const WORKFLOW_PREFIX = 'ho-ops-verified-workflow-v1:';
 export const WORKFLOW_RESULTS_PREFIX = 'ho-ops-workflow-results-v1:';
 
 export const WORKFLOW_DEFINITIONS = {
+  'bar-report': { name: 'Save a Bar handover', path: '/bar', resource: 'shift-notes', stages: ['Report a Bar stock problem'] },
   'guest-ac': {
     name: 'Record a guest problem and follow up',
     path: '/guests',
@@ -70,7 +72,7 @@ export const WORKFLOW_DEFINITIONS = {
 export const isTrainingWorkflowKind = (value: unknown): value is TrainingWorkflowKind =>
   value === 'guest-ac' || value === 'shared-no-owner' ||
     value === 'shift-unresolved' || value === 'mt-light-fault' ||
-    value === 'manager-evidence' || value === 'fd-broken-shower';
+    value === 'manager-evidence' || value === 'fd-broken-shower' || value === 'bar-report';
 
 export function workflowOwnerId(user: { id?: string | number; email?: string }): string {
   return String(user.id || user.email || '');
@@ -91,7 +93,7 @@ export function makeTrainingReference(kind: TrainingWorkflowKind): string {
     : (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
   const prefix = {
     'guest-ac': 'TRN-GUEST-', 'shared-no-owner': 'TRN-TASK-',
-    'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-', 'manager-evidence': 'TRN-REQ-', 'fd-broken-shower': 'TRN-LINK-',
+    'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-', 'manager-evidence': 'TRN-REQ-', 'fd-broken-shower': 'TRN-LINK-', 'bar-report': 'TRN-BAR-',
   }[kind];
   return prefix + suffix;
 }
@@ -104,12 +106,15 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
     const value = decoded as Record<string, unknown>;
     if (!isTrainingWorkflowKind(value.kind) || value.ownerId !== ownerId ||
       typeof value.reference !== 'string' ||
-      !/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(value.reference) ||
+      !/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR)-[A-Z0-9]{8,20}$/.test(value.reference) ||
       typeof value.step !== 'number' || !Number.isInteger(value.step) || value.step < 0 ||
       value.step > WORKFLOW_DEFINITIONS[value.kind].stages.length ||
       typeof value.createdAt !== 'string') return null;
     const recordId = positiveId(value.recordId);
     const relatedRecordId = positiveId(value.relatedRecordId);
+    const departmentId = positiveId(value.departmentId);
+    // A Bar practical must be bound to an actual department from the trainee's session.
+    if (value.kind === 'bar-report' && !departmentId) return null;
     return {
       kind: value.kind,
       ownerId,
@@ -118,6 +123,7 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
       step: value.step,
       ...(recordId ? { recordId } : {}),
       ...(relatedRecordId ? { relatedRecordId } : {}),
+      ...(departmentId ? { departmentId } : {}),
     };
   } catch {
     return null;
@@ -151,6 +157,12 @@ export function verifyWorkflowStep(
   if (session.step === 0) {
     const valid = matched.find(item => {
       if (!positiveId(item.id)) return false;
+      if (session.kind === 'bar-report') {
+        const note = readable(item.note);
+        return Boolean(session.departmentId && Number(item.department_id) === session.departmentId) &&
+          readable(item.category) === 'low stock' && /syrup|mocktail/.test(note) &&
+          /count|check/.test(note) && /next shift|next bartender/.test(note);
+      }
       if (session.kind === 'fd-broken-shower') {
         const note = readable(item.note);
         return readable(item.urgency) === 'high' &&
@@ -194,7 +206,9 @@ export function verifyWorkflowStep(
     });
     if (valid) return { passed: true, error: '', recordId: positiveId(valid.id), stepName: definition.stages[0] };
     return { passed: false, error: matched.length
-      ? session.kind === 'guest-ac'
+      ? session.kind === 'bar-report'
+        ? 'Your saved Bar report needs the practice number in its title, Low stock as the type, and a note about mocktail syrup, counting or checking the stock, and the next shift. Make a corrected report with the same practice number and check again.'
+        : session.kind === 'guest-ac'
         ? 'A matching case exists, but its saved record must have High urgency, Room or Complaint type, and a note describing the AC fault, Maintenance action, and guest follow-up. Correct the case according to authorized controls, or create a corrected fictional one with the same reference.'
         : session.kind === 'fd-broken-shower'
           ? 'The saved guest report must have High urgency, Room or Complaint type, and a note about the faulty shower, maintenance inspection, and Front Desk guest callback.'
@@ -205,7 +219,9 @@ export function verifyWorkflowStep(
             : session.kind === 'manager-evidence'
               ? 'Choose Equipment and Urgent. Explain what is needed, the cost or budget, and whether you have a quote. Do not claim a quote is attached if it is missing.'
               : 'Your maintenance report must use High urgency, name a fictional technician, and describe the failed corridor lighting in Problem / scope.'
-      : 'No saved record with your unique training reference was found yet. Open the correct module, use the actual New button, fill in the details, and save before checking again.' };
+      : session.kind === 'bar-report'
+        ? 'No Bar report with your practice number was found. On the Bar page select Report a problem, write the practice number in the title, select Low stock, explain what the next shift should do, then Save Bar report. Choose Check saved work again.'
+        : 'No saved record with your unique training reference was found yet. Open the correct module, use the actual New button, fill in the details, and save before checking again.' };
   }
   if (!session.recordId || !detail || positiveId(detail.id) !== session.recordId ||
     !readable(detail.title).includes(session.reference.toLowerCase())) {
@@ -291,6 +307,12 @@ export function verifyWorkflowStep(
 }
 
 export function workflowInstructions(session: TrainingWorkflowSession): string[] {
+  if (session.kind === 'bar-report') return [
+    'Open Bar and select Report a problem.',
+    'Choose Low stock. Put your unique practice number in What happened?',
+    'In What should the next shift know?, say the mocktail syrup is low, who will count or check the remaining stock and what the next bartender needs to do.',
+    'Select Save Bar report. Then select Check saved work to confirm the record exists in the practice database.',
+  ];
   if (session.kind === 'fd-broken-shower') {
     if (session.step === 0) return [
       'Open Guest Matters. Select New guest matter and place the unique training reference in Matter title.',
