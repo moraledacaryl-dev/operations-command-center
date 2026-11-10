@@ -42,3 +42,7 @@
 .files label { display: flex; flex-direction: column; gap: 8px; }
 .fileRow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .files input[type="file"] { max-width: 100%; padding: 10px; border: 1px solid #aab7b5; border-radius: 8px; }
+
+.readerReport { margin-top: 18px; overflow-x: auto; }
+.readerReport table { width: 100%; border-collapse: collapse; }
+.readerReport th, .readerReport td { padding: 12px; border-bottom: 1px solid #cbd5d4; text-align: left; }

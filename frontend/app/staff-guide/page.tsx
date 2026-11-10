@@ -28,6 +28,7 @@ export default function StaffGuidePage() {
   const [guides, setGuides] = useState<Entity[]>([]);
   const [reading, setReading] = useState<Entity[]>([]);
   const [managed, setManaged] = useState<Entity[]>([]);
+  const [readers, setReaders] = useState<Entity[] | null>(null);
   const [departments, setDepartments] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [search, setSearch] = useState('');
@@ -57,6 +58,7 @@ export default function StaffGuidePage() {
     try {
       const result = await api.staffGuideGet(id);
       setSelected(result);
+      setReaders(null);
       setEditingId(null);
       setEditorOpen(false);
     } catch (err) {
@@ -222,12 +224,18 @@ export default function StaffGuidePage() {
           )}>Retire guide</button> : null}
         </div>
       </section> : null}
-      {canPublish && current?.requires_ack ? <button type="button" className="btn secondary" disabled={busy} onClick={() => {
-        void run(async () => {
-          const readers = await api.staffGuideReaders(Number(selected.id));
-          setNotice(readers.length + ' assigned readers; ' + readers.filter(row => row.acknowledged_at).length + ' confirmed.');
-        }, '');
-      }}>Check reading progress</button> : null}
+      {canPublish && current?.requires_ack ? <>
+        <button type="button" className="btn secondary" disabled={busy} onClick={() => {
+          void run(async () => { setReaders(await api.staffGuideReaders(Number(selected.id))); }, '');
+        }}>Show reading progress</button>
+        {readers ? <section className={styles.readerReport} aria-label="Reading progress">
+          <h3>Reading progress · {readers.filter(row => row.acknowledged_at).length} of {readers.length} confirmed</h3>
+          <table><thead><tr><th>Staff member</th><th>Reading</th></tr></thead><tbody>
+            {readers.map(row => <tr key={row.user_id}><td>{row.name}</td>
+              <td>{row.acknowledged_at ? 'Confirmed ' + dateLabel(row.acknowledged_at) : 'Not yet confirmed'}</td></tr>)}
+          </tbody></table>
+        </section> : null}
+      </> : null}
     </section> : null}
 
     {!selected && editorOpen && tab === 'manage' ? <section className={styles.editor}>
