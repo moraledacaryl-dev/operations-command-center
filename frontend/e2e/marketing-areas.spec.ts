@@ -66,6 +66,8 @@ test('new Marketing employee can tag and find a Pool-only and combined Café/Bar
     await expect(page.getByRole('heading', { name: 'New post for several platforms' })).toBeVisible();
     await page.getByLabel('Post title').fill(name + ' post');
     for (const area of areas) await page.getByRole('checkbox', { name: area }).first().check();
+    // The production form starts with Facebook and Instagram selected.
+    await page.getByRole('checkbox', { name: 'Instagram' }).uncheck();
     await page.getByRole('checkbox', { name: 'Facebook' }).check();
     await page.getByRole('button', { name: 'Create 1 post' }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
