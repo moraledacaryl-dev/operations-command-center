@@ -256,11 +256,16 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     // and short quiz; authorized staff must also verify saved fictional work.
     if (course?.stage === 'tour' && course.lessonId === lessonId) {
       const kind = courseGuide?.handsOn;
-      if (kind && capabilities.manage_department && (kind !== 'mt-light-fault' || capabilities.make_decisions)) {
+      // Bar staff may complete their own report. Other record-editing exercises
+      // remain restricted to the existing authorized management roles.
+      const barDepartment = (user.departments || []).find((d: { name?: string }) => d.name === 'Bar');
+      if (kind && (capabilities.manage_department || (kind === 'bar-report' && barDepartment))
+          && (kind !== 'mt-light-fault' || capabilities.make_decisions)) {
         const reference = makeTrainingReference(kind);
         const session: TrainingWorkflowSession = {
           kind: kind as TrainingWorkflowKind, ownerId: workflowOwnerId(user),
           reference, step: 0, createdAt: new Date().toISOString(),
+          ...(kind === 'bar-report' && barDepartment ? { departmentId: Number(barDepartment.id) } : {}),
         };
         try {
           localStorage.setItem(workflowSessionKey(user), JSON.stringify(session));
