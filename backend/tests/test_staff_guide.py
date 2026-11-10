@@ -225,3 +225,13 @@ def test_new_department_member_sees_policy_and_gets_single_assignment(context):
     send_due_reminders(db)
     assert db.query(fm.Notification).filter_by(
         user_id=newcomer.id, source_type="staff-guide").count() == 1
+
+
+def test_submitting_draft_notifies_only_active_publishers(context):
+    db, bar, _, _, owner, lead, bartender, _, _, _, _ = context
+    doc_id = make_guide(db, lead, [bar.id])
+    submit_guide(doc_id, lead, db)
+    review = db.query(fm.Notification).filter_by(source_type="staff-guide-review").all()
+    assert {n.user_id for n in review} == {owner.id}
+    assert _visible_notifications(db, owner).filter_by(source_type="staff-guide-review").count() == 1
+    assert _visible_notifications(db, bartender).filter_by(source_type="staff-guide-review").count() == 0

@@ -51,6 +51,14 @@ def _visible_notifications(db: Session, user: models.User):
         notification.source_type == "staff-guide",
         guide_ids.filter(cast(GuideDocument.id, String) == notification.source_id).exists(),
     ))
+    # Draft-review notices are visible only to currently authorized publishers.
+    # A revoked owner/admin role cannot read old privileged notification text.
+    if str(user.role or "").lower() in {"owner", "admin"}:
+        review_ids = db.query(GuideDocument.id).filter(GuideDocument.retired_at.is_(None))
+        visible.append(and_(
+            notification.source_type == "staff-guide-review",
+            review_ids.filter(cast(GuideDocument.id, String) == notification.source_id).exists(),
+        ))
     return db.query(notification).filter(notification.user_id == user.id, or_(*visible))
 
 

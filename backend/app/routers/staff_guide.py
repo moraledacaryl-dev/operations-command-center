@@ -242,6 +242,16 @@ def submit_guide(document_id: int, user: models.User = Depends(require_user), db
         raise HTTPException(422, "Add the instructions before submitting.")
     doc.status = "In Review"
     doc.approved_by_id = None
+    # Only publisher accounts receive draft titles. Staff never see drafts.
+    reviewers = (db.query(models.User).filter(
+        models.User.is_active.is_(True),
+        models.User.role.in_(("owner", "admin"))).all())
+    for reviewer in reviewers:
+        notify_user(db, reviewer.id, "staff-guide-review",
+                    "Guide needs approval: " + doc.title,
+                    "Review this draft before it is published.",
+                    source_type="staff-guide-review", source_id=doc.id,
+                    action_url="/staff-guide?doc=" + str(doc.id))
     db.commit()
     return {"status": doc.status}
 
