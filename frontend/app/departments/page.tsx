@@ -187,7 +187,7 @@ export default function DepartmentsPage() {
     <nav className={styles.departmentPicker} aria-label="Choose department">{departments.map((department: Entity) => <button key={department.id} aria-pressed={deptId === department.id} onClick={() => switchDept(department.id)}><span>{({ Management: 'MG', Maintenance: 'MT', Marketing: 'MK' } as Record<string, string>)[department.name] || text(department.name).slice(0, 2).toUpperCase()}</span>{department.name}</button>)}</nav>
     <section className={styles.hero}>
       <div className={styles.departmentIdentity}><span className={styles.departmentEmblem}><Icon name="guests" /></span><div><h2>{loading ? 'Opening workspace…' : activeDept?.name || 'Choose a department'}</h2><p>{loading ? 'Loading…' : error ? 'This workspace could not be loaded.' : `${people.length} people`}</p></div></div>
-      <div className={styles.quickActions}><Link className="btn" href="/tasks?create=1"><Icon name="plus" />New task</Link><Link className="btn secondary" href="/shift?create=1"><Icon name="shift" />Handover</Link></div>
+      <div className={styles.quickActions}>{activeDept?.name === "Bar" ? <Link className="btn" href="/bar"><Icon name="plus" />Report Bar problem</Link> : <Link className="btn" href="/tasks?create=1"><Icon name="plus" />New task</Link>}<Link className="btn secondary" href={activeDept?.name === "Bar" ? "/bar#bar-checks" : "/shift?create=1"}><Icon name="shift" />{activeDept?.name === "Bar" ? "Opening / closing" : "Handover"}</Link></div>
     </section>
     {error ? <div className="today-error" role="alert">{error}</div> : null}
     <WorkspaceStats items={[
