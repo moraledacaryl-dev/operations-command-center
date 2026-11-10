@@ -96,7 +96,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
     setBusy(true);
     setMessage('');
     try {
-      const departmentId = getCurrentDepartmentId(user);
+      const departmentId = session.kind === 'bar-report' ? session.departmentId : getCurrentDepartmentId(user);
       const records = session.step === 0
         ? await api.listAll(definition.resource, {
             active: definition.resource === 'requests' ? false : true,
@@ -172,6 +172,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       kind: session.kind, ownerId: identity,
       reference: makeTrainingReference(session.kind),
       createdAt: new Date().toISOString(), step: 0,
+      ...(session.departmentId ? { departmentId: session.departmentId } : {}),
     };
     try {
       localStorage.setItem(storageKey, JSON.stringify(next));
