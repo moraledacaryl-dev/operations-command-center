@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
@@ -22,6 +22,7 @@ from ..staff_guide_service import (
 )
 from ..utils import model_to_dict
 from .api import require_user
+from .uploads_hardened import _store_upload, _download_response, require_download_user
 
 router = APIRouter(prefix="/api/staff-guide", tags=["staff-guide"])
 DocumentType = Literal["SOP", "Policy", "Quick Guide", "Emergency"]
@@ -76,6 +77,15 @@ def _can_edit(db: Session, user: models.User, doc: GuideDocument) -> bool:
     return can_author(user, doc.audience, list(doc.department_ids or []), db)
 
 
+def _guide_attachments(db: Session, parent_type: str, parent_id: int) -> list[dict]:
+    rows = (db.query(models.Attachment)
+        .filter_by(parent_type=parent_type, parent_id=parent_id)
+        .order_by(models.Attachment.id).all())
+    return [{"id": row.id, "filename": row.filename, "mime_type": row.mime_type,
+             "download_url": "/api/staff-guide/attachments/" + str(row.id) + "/download"}
+            for row in rows]
+
+
 def _revision_data(revision: GuideRevision, departments: list[int], ack: bool | None = None) -> dict:
     data = model_to_dict(revision)
     data["department_ids"] = departments
@@ -92,6 +102,7 @@ def _details(db: Session, doc: GuideDocument, user: models.User, manager: bool =
                 .filter(GuideRevisionDepartment.revision_id == rev.id).all()]
         ack = db.query(GuideAcknowledgment.id).filter_by(user_id=user.id, revision_id=rev.id).first() is not None
         result["published"] = _revision_data(rev, dept, ack)
+        result["published"]["attachments"] = _guide_attachments(db, "staff-guide-revision", rev.id)
     if manager:
         result["draft"] = {
             "title": doc.title, "doc_type": doc.doc_type,
@@ -101,6 +112,7 @@ def _details(db: Session, doc: GuideDocument, user: models.User, manager: bool =
             "review_at": doc.review_at,
         }
         result["approved_by_id"] = doc.approved_by_id
+        result["draft_attachments"] = _guide_attachments(db, "staff-guide-draft", doc.id)
     return result
 
 
@@ -253,6 +265,15 @@ def publish_guide(document_id: int, payload: PublishPayload, user: models.User =
     db.flush()
     for department_id in depts:
         db.add(GuideRevisionDepartment(revision_id=revision.id, department_id=department_id))
+    # Snapshot the current draft attachments into the immutable revision.
+    # Sharing storage is safe: draft removal must never delete published files.
+    draft_files = db.query(models.Attachment).filter_by(
+        parent_type="staff-guide-draft", parent_id=doc.id).all()
+    for item in draft_files:
+        db.add(models.Attachment(
+            parent_type="staff-guide-revision", parent_id=revision.id,
+            filename=item.filename, file_url=item.file_url,
+            mime_type=item.mime_type, uploaded_by_id=item.uploaded_by_id))
     doc.current_revision_id = revision.id
     doc.version = revision.version
     doc.status = "Published"
@@ -315,3 +336,82 @@ def retire_guide(document_id: int, user: models.User = Depends(require_user), db
         doc.status = "Retired"
         db.commit()
     return {"status": doc.status}
+
+
+@router.post("/{document_id}/attachments", status_code=201)
+def upload_guide_file(
+    document_id: int,
+    file: UploadFile = File(...),
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    doc = _find(db, document_id, lock=True)
+    if doc.retired_at is not None or not _can_edit(db, user, doc):
+        raise HTTPException(403, "You cannot add files to this guide.")
+    original, saved_url, mime, stored_path = _store_upload(file, "guide_" + str(doc.id))
+    try:
+        attachment = models.Attachment(
+            parent_type="staff-guide-draft", parent_id=doc.id,
+            filename=original, file_url=saved_url, mime_type=mime, uploaded_by_id=user.id)
+        db.add(attachment)
+        doc.status = "Draft"
+        doc.approved_by_id = None
+        db.commit()
+        db.refresh(attachment)
+    except Exception:
+        db.rollback()
+        stored_path.unlink(missing_ok=True)
+        raise
+    return {"id": attachment.id, "filename": attachment.filename,
+            "download_url": "/api/staff-guide/attachments/" + str(attachment.id) + "/download"}
+
+
+@router.delete("/{document_id}/attachments/{attachment_id}", status_code=204)
+def remove_draft_file(
+    document_id: int, attachment_id: int,
+    user: models.User = Depends(require_user), db: Session = Depends(get_db),
+):
+    doc = _find(db, document_id, lock=True)
+    if doc.retired_at is not None or not _can_edit(db, user, doc):
+        raise HTTPException(403, "You cannot change this guide.")
+    attachment = db.query(models.Attachment).filter_by(
+        id=attachment_id, parent_type="staff-guide-draft", parent_id=doc.id).one_or_none()
+    if attachment is None:
+        raise HTTPException(404, "File not found.")
+    # Keep stored bytes: a previous published revision might still reference them.
+    db.delete(attachment)
+    doc.status = "Draft"
+    doc.approved_by_id = None
+    db.commit()
+
+
+@router.get("/attachments/{attachment_id}/download")
+def download_guide_file(
+    attachment_id: int,
+    user: models.User = Depends(require_download_user),
+    db: Session = Depends(get_db),
+):
+    attachment = db.get(models.Attachment, attachment_id)
+    if attachment is None:
+        raise HTTPException(404, "File not found.")
+    if attachment.parent_type == "staff-guide-revision":
+        revision = db.get(GuideRevision, attachment.parent_id)
+        if revision is None:
+            raise HTTPException(404, "File not found.")
+        document = db.get(GuideDocument, revision.document_id)
+        if document is None:
+            raise HTTPException(404, "File not found.")
+        if not (
+            (document.current_revision_id == revision.id and can_view_revision(db, user, document.id))
+            or _can_edit(db, user, document)
+        ):
+            raise HTTPException(404, "File not found.")
+    elif attachment.parent_type == "staff-guide-draft":
+        document = db.get(GuideDocument, attachment.parent_id)
+        if document is None or not _can_edit(db, user, document):
+            raise HTTPException(404, "File not found.")
+    else:
+        raise HTTPException(404, "File not found.")
+    response = _download_response(attachment.file_url, attachment.filename, attachment.mime_type)
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
