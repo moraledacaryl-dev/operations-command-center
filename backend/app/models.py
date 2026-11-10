@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Boolean, Column, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, Boolean, Column, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .clock import UTCDateTime as DateTime, utc_now
 from .database import Base
@@ -140,6 +140,7 @@ class Task(Base, TimestampMixin, ArchiveMixin):
     linked_guest_note_id = Column(Integer, ForeignKey("guest_notes.id"), nullable=True)
     linked_fix_id = Column(Integer, ForeignKey("fixes.id"), nullable=True)
     linked_post_id = Column(Integer, ForeignKey("posts.id"), nullable=True)
+    marketing_areas = Column(JSON, nullable=True)
     due_date = Column(DateTime, nullable=True)
     status = Column(String(40), default="To Do", nullable=False)
     priority = Column(String(20), default="Normal", nullable=False)
@@ -211,6 +212,7 @@ class Post(Base, TimestampMixin, ArchiveMixin):
     assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     campaign = Column(String(120), nullable=True)
+    marketing_areas = Column(JSON, nullable=True)
     status = Column(String(40), default="Idea", nullable=False)
     caption = Column(Text, nullable=True)
     final_url = Column(Text, nullable=True)
