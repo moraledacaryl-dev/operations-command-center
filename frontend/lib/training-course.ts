@@ -169,6 +169,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   bar: {
+    handsOn: 'bar-report',
     explanation: 'Bar handles cocktails, alcoholic drinks and mocktails. Kitchen prepares food. Café handles café drinks and café service. Open Bar to read reports, check handovers, and report a problem. Report a problem is available to Bar staff; a lead handles assignment and status changes. The report does not change POS stock or orders.',
     example: 'The mocktail blender stops working. In this fictional exercise, open Bar, choose Report a problem, select Equipment, explain where the blender is and tell the next shift not to use it until checked.',
     repeatVariant: { example: 'A fictional bottle of syrup is nearly empty at shift change. Record the low stock in Bar so the next bartender can check it.', questions: [
