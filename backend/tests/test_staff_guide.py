@@ -117,8 +117,9 @@ def test_department_updates_do_not_notify_unrelated_managers(context):
     assert owner.id in recipient_ids and bartender.id in recipient_ids
     assert other_manager.id not in recipient_ids
     # Management may consult other departments' approved material without
-    # receiving every unrelated frontline publication alert.
+    # receiving every unrelated frontline publication alert or reading duty.
     assert get_guide(doc_id, other_manager, db)["published"]["title"] == "New Bar-only procedure"
+    assert my_reading(other_manager, db) == []
 
 
 def test_acknowledgment_is_explicit_revision_specific_and_idempotent(context):
