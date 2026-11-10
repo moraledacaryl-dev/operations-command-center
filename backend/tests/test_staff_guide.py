@@ -7,7 +7,11 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from datetime import timedelta
 from app import models
+from app.clock import utc_now
+from app.services.guide_reminders import send_due_reminders
+from app.routers.staff_guide import download_guide_file
 from app import foundation_models as fm
 from app.staff_guide_models import GuideAcknowledgment, GuideReading, GuideRevision
 from app.routers.notifications import _visible_notifications
@@ -169,3 +173,34 @@ def test_cannot_acknowledge_without_access_or_ack_requirement(context):
     publish(db, owner, doc_id)
     reject(409, lambda: acknowledge_guide(doc_id, bartender, db))
     reject(404, lambda: acknowledge_guide(doc_id, house, db))
+
+
+def test_overdue_reminders_are_scoped_and_idempotent(context):
+    db, bar, _, house, owner, _, bartender, _, multi, _, _ = context
+    doc_id = make_guide(db, owner, [bar.id])
+    publish(db, owner, doc_id)
+    due = utc_now() - timedelta(days=1)
+    for row in db.query(GuideReading).all():
+        row.due_at = due
+    # This employee was reassigned away from Bar after publishing.
+    bartender.department_id = house.id
+    db.commit()
+    first = send_due_reminders(db)
+    assert first == 3  # owner, Bar lead and cross-trained worker
+    second = send_due_reminders(db)
+    assert second == 0
+    notices = db.query(fm.Notification).filter_by(kind="staff-guide-reminder").all()
+    assert len({n.user_id for n in notices}) == len(notices)
+
+
+def test_unauthorized_guide_file_download_does_not_leak_attachment(context):
+    db, bar, _, _, owner, _, _, _, _, house, _ = context
+    doc_id = make_guide(db, owner, [bar.id])
+    publish(db, owner, doc_id)
+    rev_id = get_guide(doc_id, owner, db)["published"]["id"]
+    attachment = models.Attachment(
+        parent_type="staff-guide-revision", parent_id=rev_id,
+        filename="confidential.pdf", file_url="storage:missing-file.pdf")
+    db.add(attachment)
+    db.commit()
+    reject(404, lambda: download_guide_file(attachment.id, house, db))

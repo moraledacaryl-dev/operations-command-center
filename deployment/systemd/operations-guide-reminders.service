@@ -11,7 +11,7 @@ WorkingDirectory=/opt/operations-command-center/current/backend
 EnvironmentFile=/etc/hiddenoasis/operations.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 UMask=0077
-ExecStart=/opt/operations-command-center/current/backend/.venv/bin/python scripts/guide_reminders.py
+ExecStart=/opt/operations-command-center/current/backend/.venv/bin/python -m scripts.guide_reminders
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
