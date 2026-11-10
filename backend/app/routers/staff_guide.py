@@ -6,6 +6,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from .. import models
@@ -124,15 +125,23 @@ def list_guides(
     db: Session = Depends(get_db),
 ):
     query = visible_guide_query(db, user)
-    docs = query.order_by(GuideDocument.id.desc()).limit(500).all()
+    if doc_type:
+        query = query.filter(GuideRevision.doc_type == doc_type)
+    term = q.strip()
+    if term:
+        pattern = "%" + term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        query = query.filter(or_(
+            GuideRevision.title.ilike(pattern, escape="\\"),
+            GuideRevision.summary.ilike(pattern, escape="\\"),
+            GuideRevision.category.ilike(pattern, escape="\\"),
+            GuideRevision.body.ilike(pattern, escape="\\"),
+        ))
+    # What is New must use publication time; an updated old document can be
+    # more recent than a newly created one.
+    docs = query.order_by(GuideRevision.published_at.desc(), GuideDocument.id.desc()).limit(250).all()
     results = []
-    term = q.strip().lower()
     for doc in docs:
         revision = db.get(GuideRevision, doc.current_revision_id)
-        if doc_type and revision.doc_type != doc_type:
-            continue
-        if term and term not in " ".join([revision.title, revision.summary, revision.category, revision.body]).lower():
-            continue
         results.append({
             "id": doc.id, "title": revision.title, "summary": revision.summary,
             "doc_type": revision.doc_type, "category": revision.category,
