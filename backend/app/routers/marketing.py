@@ -112,7 +112,9 @@ def create_campaign(payload: CampaignCreate, user: models.User = Depends(require
     validate_marketing_areas(payload.marketing_areas)
     if payload.end_at and payload.start_at and payload.end_at < payload.start_at:
         raise HTTPException(status_code=422, detail="Campaign end must be after its start.")
-    campaign = foundation.MarketingCampaign(**payload.model_dump(mode="json"))
+    values = payload.model_dump()
+    values["marketing_areas"] = [area.value for area in payload.marketing_areas] if payload.marketing_areas is not None else None
+    campaign = foundation.MarketingCampaign(**values)
     db.add(campaign)
     db.flush()
     log_activity(db, "marketing-campaigns", campaign.id, "created", "Campaign created", actor_id=user.id)
