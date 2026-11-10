@@ -7,6 +7,7 @@ import { ConceptCreativeAssets } from './ConceptCreativeAssets';
 import { Drawer } from './Drawer';
 import { Pill } from './Pill';
 import { Tabs } from './Tabs';
+import { AreaNames, MarketingAreas, MARKETING_AREAS } from './MarketingAreas';
 
 const platforms = ['Facebook', 'Instagram', 'TikTok', 'Google Business', 'Website', 'Internal'];
 const formats = ['Reel', 'Story', 'Static', 'Carousel', 'Ad', 'Blog'];
@@ -48,6 +49,12 @@ export function MarketingWorkspace({ departmentId, canManage, createIntentKey = 
   const [calendar, setCalendar] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [showCampaign, setShowCampaign] = useState(false);
+  const [campaignAreas, setCampaignAreas] = useState<string[]>([]);
+  const [conceptAreas, setConceptAreas] = useState<string[]>([]);
+  const [areaFilter, setAreaFilter] = useState('All');
+  const [editCampaignId, setEditCampaignId] = useState('');
+  const [editCampaignAreas, setEditCampaignAreas] = useState<string[]>([]);
+  const [editConceptAreas, setEditConceptAreas] = useState<string[]>([]);
   const [showConcept, setShowConcept] = useState(false);
   const [campaign, setCampaign] = useState({ name: '', objective: '', start_at: '', end_at: '' });
   const [concept, setConcept] = useState({ campaign_id: '', title: '', content_pillar: 'General', brief: '', format: 'Reel', scheduled_at: '', shared_caption: '' });
@@ -69,7 +76,9 @@ export function MarketingWorkspace({ departmentId, canManage, createIntentKey = 
   useEffect(() => { void load(); }, [load]);
   const dates = useMemo(() => range(anchor, view), [anchor, view]);
   const calendarDays = useMemo(() => { const days: Date[] = []; const start = new Date(dates.from); const end = new Date(dates.to); while (start < end) { days.push(new Date(start)); start.setDate(start.getDate() + 1); if (days.length >= 42) break; } return days; }, [dates]);
-  const scheduled = calendar.filter(item => item.scheduled_at); const unscheduled = calendar.filter(item => !item.scheduled_at);
+  const shownCalendar = calendar.filter(item => areaFilter === 'All' || (areaFilter === 'Not set' ? !item.marketing_areas?.length : (item.marketing_areas || []).includes(areaFilter)));
+  const scheduled = shownCalendar.filter(item => item.scheduled_at); const unscheduled = shownCalendar.filter(item => !item.scheduled_at);
+  useEffect(() => { setEditConceptAreas(selected?.marketing_areas || []); }, [selected?.id, selected?.marketing_areas]);
 
   function move(direction: number) { const next = new Date(anchor); if (view === 'Month') next.setMonth(next.getMonth() + direction); else next.setDate(next.getDate() + direction * (view === 'Week' ? 7 : 30)); setAnchor(next); }
   function openConceptForm(scheduledAt?: string) {
@@ -86,8 +95,8 @@ export function MarketingWorkspace({ departmentId, canManage, createIntentKey = 
   async function createCampaign() {
     if (!campaign.name.trim() || busy) return; setBusy(true);
     try {
-      const created = await api.createMarketingCampaign({ ...campaign, department_id: departmentId, start_at: campaign.start_at ? new Date(`${campaign.start_at}T00:00:00+08:00`).toISOString() : null, end_at: campaign.end_at ? new Date(`${campaign.end_at}T23:59:59+08:00`).toISOString() : null });
-      setCampaign({ name: '', objective: '', start_at: '', end_at: '' }); setConcept(value => ({ ...value, campaign_id: String(created.id) })); setShowCampaign(false); setShowConcept(true); await load();
+      const created = await api.createMarketingCampaign({ ...campaign, marketing_areas: campaignAreas, department_id: departmentId, start_at: campaign.start_at ? new Date(`${campaign.start_at}T00:00:00+08:00`).toISOString() : null, end_at: campaign.end_at ? new Date(`${campaign.end_at}T23:59:59+08:00`).toISOString() : null });
+      setCampaignAreas([]); setCampaign({ name: '', objective: '', start_at: '', end_at: '' }); setConcept(value => ({ ...value, campaign_id: String(created.id) })); setShowCampaign(false); setShowConcept(true); await load();
     } catch (err: any) { setError(err.message || 'Campaign could not be created.'); } finally { setBusy(false); }
   }
 
@@ -96,11 +105,27 @@ export function MarketingWorkspace({ departmentId, canManage, createIntentKey = 
     try {
       const sharedScheduledAt = concept.scheduled_at ? new Date(`${concept.scheduled_at}T09:00:00+08:00`).toISOString() : null;
       const deliverables = selectedPlatforms.map(platform => { const override = platformOverrides[platform]; return { platform, format: override?.format || concept.format, scheduled_at: override?.scheduled_at ? new Date(`${override.scheduled_at}T09:00:00+08:00`).toISOString() : sharedScheduledAt, caption: override?.caption || concept.shared_caption || null }; });
-      const created = await api.createMarketingConcept({ ...concept, campaign_id: Number(concept.campaign_id), platforms: selectedPlatforms, deliverables, scheduled_at: sharedScheduledAt });
+      const created = await api.createMarketingConcept({ ...concept, marketing_areas: conceptAreas, campaign_id: Number(concept.campaign_id), platforms: selectedPlatforms, deliverables, scheduled_at: sharedScheduledAt });
       if (creativeFile) await marketingAssetsApi.upload(Number(created.concept.id), creativeFile, creativeFile.name, 'Uploaded for this post');
-      setConcept({ campaign_id: concept.campaign_id, title: '', content_pillar: 'General', brief: '', format: 'Reel', scheduled_at: '', shared_caption: '' }); setCreativeFile(null); setPlatformOverrides({}); setShowConcept(false); await load();
+      setConceptAreas([]); setConcept({ campaign_id: concept.campaign_id, title: '', content_pillar: 'General', brief: '', format: 'Reel', scheduled_at: '', shared_caption: '' }); setCreativeFile(null); setPlatformOverrides({}); setShowConcept(false); await load();
       const refreshed = (await api.marketingConcepts()).find(row => Number(row.id) === Number(created.concept.id)); if (refreshed) setSelected(refreshed);
     } catch (err: any) { setError(err.message || 'Post could not be created.'); } finally { setBusy(false); }
+  }
+
+  async function saveCampaignAreas() {
+    if (!editCampaignId || busy) return;
+    setBusy(true); setError('');
+    try { await api.updateMarketingCampaignAreas(Number(editCampaignId), editCampaignAreas.length ? editCampaignAreas : null); await load(); }
+    catch (err: any) { setError(err.message || 'Could not save campaign areas.'); }
+    finally { setBusy(false); }
+  }
+  async function saveConceptAreas() {
+    if (!selected || busy) return;
+    setBusy(true); setError('');
+    try { await api.updateMarketingConceptAreas(selected.id, editConceptAreas.length ? editConceptAreas : null); await load();
+      const refreshed = (await api.marketingConcepts()).find(item => item.id === selected.id); if (refreshed) setSelected(refreshed);
+    } catch (err: any) { setError(err.message || 'Could not save post areas.'); }
+    finally { setBusy(false); }
   }
 
   async function transition(deliverable: Entity, action: string) { setBusy(true); try { await api.marketingDeliverableAction(deliverable.id, action, { note: note.trim() || null, final_url: finalUrl.trim() || null }); setNote(''); setFinalUrl(''); await load(); const refreshed = (await api.marketingConcepts()).find(row => row.id === selected?.id); if (refreshed) setSelected(refreshed); } catch (err: any) { setError(err.message || 'Could not update this post.'); } finally { setBusy(false); } }
