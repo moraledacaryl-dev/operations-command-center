@@ -12,6 +12,7 @@ from typing import Any
 from starlette.responses import JSONResponse
 
 from . import models
+from .training_environment import is_isolated_training
 from .database import SessionLocal
 from .session_security import COOKIE_NAME, current_session_version, revoke_user_sessions, token_session_is_current
 
@@ -130,7 +131,7 @@ class SessionLifecycleMiddleware:
                     user = db.get(models.User, int(payload.get("sub", 0)))
                     changed_at = int(user.password_set_at.timestamp()) if user and user.password_set_at else 0
                     current = bool(user and user.is_active and issued_at >= changed_at and token_session_is_current(db, payload))
-                    password_change_required = bool(user and user.must_change_password)
+                    password_change_required = bool(user and user.must_change_password and not is_isolated_training(db))
                 if not current:
                     response = JSONResponse(status_code=401, content={"detail": "Session is no longer valid. Please sign in again."}, headers={"Cache-Control": "no-store"})
                     response.raw_headers.append((b"set-cookie", _clear_cookie()))

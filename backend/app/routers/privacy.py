@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..training_environment import is_isolated_training
+
 import time
 from typing import Annotated, Optional
 
@@ -137,7 +139,7 @@ def create_user(
         is_active=bool(payload.is_active),
         password_hash=hash_password(payload.password),
         password_set_at=utc_now(),
-        must_change_password=True,
+        must_change_password=not is_isolated_training(db),
     )
     db.add(new_user)
     db.flush()

@@ -14,8 +14,8 @@ const home: IndependentAction = { path: '/', selector:'a[aria-label="My Work"]',
 const back: IndependentAction = { path:'/my-work', selector:'a.ops-brand[href="/"]', title:'Return to the main dashboard',
   instruction:'Use the Hidden Oasis logo to return to the dashboard.' };
 export const INDEPENDENT_CHECKS: Record<string, readonly [IndependentAction,IndependentAction]> = {
-  orientation: [home, {path:'/my-work',selector:'a.ops-notifications',title:'Find your notifications',
-    instruction:'Now use the notifications bell. You need to find it without the training arrow.'}],
+  orientation: [home, {path:'/my-work',selector:'a[href="/notifications"]',title:'Find your notifications',
+    instruction:'Open Notifications using the bell or the menu, without the training arrow.'}],
   'staff-handover': [tab('/shift','Shift note filters','Urgent','Find urgent handovers'),
     tab('/shift','Shift note filters','Unresolved','Find unfinished handovers')],
   'staff-rooms': [tab('/rooms','Space type','Guest rooms','Find the guest rooms'),

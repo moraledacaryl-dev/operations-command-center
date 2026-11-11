@@ -78,12 +78,13 @@ jobs:
             backend/app/services/fix_workflow.py \
             backend/app/services/request_workflow.py \
             backend/app/authorization_policy.py
-          # Maintenance Verify/Reopen UI is intentionally corrected in this PR:
-          # main exposes these controls to Leads even though backend returns 403.
-          # Other module pages and all backend workflow contracts must match.
+          # If Maintenance differs, require the known Verify/Reopen permission fix.
+          # An unchanged Maintenance page already matches main.
           git diff --unified=0 origin/main -- frontend/app/fixes/page.tsx > /tmp/training-fixes-ui.patch
-          grep -q 'canVerifyWork' /tmp/training-fixes-ui.patch
-          echo "PASS: shared Operations source matches main, except explicit permission UI fix."
+          if [[ -s /tmp/training-fixes-ui.patch ]]; then
+            grep -q 'canVerifyWork' /tmp/training-fixes-ui.patch
+          fi
+          echo "PASS: shared Operations source matches main, with only an allowed Maintenance permission fix."
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

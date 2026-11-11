@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from . import models
+from .training_environment import is_isolated_training
 from .capabilities import capability_payload, has_capability
 
 
@@ -102,7 +103,7 @@ def admin_user(db: Session, user: models.User) -> AdminUserResponse:
         is_active=bool(user.is_active),
         last_login_at=user.last_login_at,
         password_set_at=user.password_set_at,
-        must_change_password=bool(user.must_change_password),
+        must_change_password=bool(user.must_change_password) and not is_isolated_training(db),
     )
 
 

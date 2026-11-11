@@ -22,6 +22,7 @@ from ..auth import (
 )
 from ..clock import utc_now
 from ..backup_status import backup_status
+from ..training_environment import is_isolated_training
 from ..capabilities import has_capability
 from ..authorization_policy import Action, authorize_action
 from ..database import get_db
@@ -713,7 +714,7 @@ def admin_reset_password(user_id: int, payload: AdminResetPasswordPayload, user:
         raise HTTPException(status_code=403, detail="Only an owner or administrator can reset passwords.")
     validate_password_or_400(payload.new_password)
     target = fetch_or_404(db, models.User, user_id)
-    target.must_change_password = True
+    target.must_change_password = not is_isolated_training(db)
     target.password_hash = hash_password(payload.new_password)
     target.password_set_at = utc_now()
     log_activity(db, "users", target.id, "password_reset", "Password reset by admin", actor_id=user.id)

@@ -166,3 +166,20 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
   await expect(page.getByTestId('training-workflow-message')).toContainText('Finish this practice before starting again. Your earlier results will be kept.');
   await expect(page.getByTestId('course-completed')).toHaveCount(0);
 });
+
+test('a learner can pause a question, open the guide, and resume without earning a pass', async ({ page }) => {
+  await mockLogin(page);
+  await page.goto('/');
+  await page.getByTestId('course-start-quiz').click();
+  await expect(page.getByTestId('course-quiz-question')).toContainText('Question 1');
+  await page.getByRole('button', { name: 'Pause lesson' }).click();
+  await expect(page.getByTestId('required-training-course')).toHaveCount(0);
+  await page.getByRole('link', { name: 'Staff Guide', exact: true }).click();
+  await expect(page).toHaveURL(/\/staff-guide/);
+  await page.reload();
+  await expect(page.getByTestId('required-training-course')).toHaveCount(0);
+  await page.getByTestId('interactive-training-open').click();
+  await expect(page.getByTestId('course-quiz-question')).toContainText('Question 1');
+  const progress = await page.evaluate(id => JSON.parse(localStorage.getItem('ho-ops-structured-course-v2:' + id) || '{}'), staff.id);
+  expect(progress.passed).toEqual([]);
+});
