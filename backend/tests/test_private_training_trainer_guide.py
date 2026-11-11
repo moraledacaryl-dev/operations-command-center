@@ -82,3 +82,20 @@ def test_trainer_guide_refuses_redirected_private_files(tmp_path):
     with pytest.raises(SystemExit, match="symlink"):
         ensure_private_trainer_guide(private)
     assert outside.read_text(encoding="utf-8") == "unchanged"
+
+
+def test_trainer_guide_preserves_known_legacy_roster(tmp_path):
+    private = tmp_path / "accounts"
+    private.mkdir()
+    data = roster()
+    data["accounts"] = [row for row in data["accounts"] if row["email"] not in {"bar-lead@training.invalid", "bartender@training.invalid"}]
+    source = private / "PRIVATE_training_accounts.json"
+    source.write_text(json.dumps(data), encoding="utf-8")
+    before = source.read_bytes()
+    guide = ensure_private_trainer_guide(private)
+    assert source.read_bytes() == before
+    assert all(row["email"] in guide.read_text(encoding="utf-8") for row in data["accounts"])
+    data["accounts"].pop()
+    source.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(SystemExit, match="REFUSED"):
+        ensure_private_trainer_guide(private)
