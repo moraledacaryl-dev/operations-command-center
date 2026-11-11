@@ -57,3 +57,9 @@
 .importLabel { font-size: .86rem; font-weight: 700; color: #244f4b; display: flex; flex-direction: column; gap: 8px; }
 .importLabel input { width: 100%; max-width: 100%; font: inherit; padding: 9px; border: 1px solid #90aca5; border-radius: 7px; background: white; }
 @media(max-width:650px){.importBox { grid-template-columns: 1fr; padding: 14px; }}
+
+.handbookHelp { display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center;
+  padding:14px 16px;margin:14px 0;border:1px solid #c3d9cb;border-radius:10px;background:#f2f8f3; }
+.handbookHelp strong { color:#26594b; }
+.handbookHelp p { margin:4px 0 0;line-height:1.5;font-size:13px;color:#485e53; }
+@media(max-width:650px){.handbookHelp{align-items:stretch}.handbookHelp button{width:100%}}
