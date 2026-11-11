@@ -81,3 +81,22 @@ def test_failed_migration_leaves_recoverable_backup(old_training):
         assert con.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
         assert con.execute('SELECT note FROM saved_practice').fetchone()[0]=='keep this'
     assert roster.read_bytes()==original
+
+
+def test_existing_0016_schema_validates_and_upgrades_before_loading_new_user_fields(old_training, monkeypatch):
+    state, db, roster = old_training
+    original_roster = roster.read_bytes()
+    monkeypatch.setattr('app.database.DATABASE_URL', 'sqlite:///' + db.as_posix())
+    with sqlite3.connect(db) as con:
+        con.execute('ALTER TABLE users DROP COLUMN must_change_password')
+        con.execute("UPDATE alembic_version SET version_num='0016_staff_guide'")
+        original_users = con.execute('SELECT email, password_hash FROM users ORDER BY email').fetchall()
+    # Validation is intentionally safe before the new field exists.
+    assert ensure_notification_practice_data(db, state, validate_only=True) == 0
+    assert upgrade_existing_training_database(state, db, ROOT)
+    assert ensure_notification_practice_data(db, state) > 0
+    with sqlite3.connect(db) as con:
+        assert con.execute('SELECT version_num FROM alembic_version').fetchone()[0] == '0017_password_change_required'
+        assert con.execute('SELECT email, password_hash FROM users ORDER BY email').fetchall() == original_users
+        assert con.execute('SELECT note FROM saved_practice').fetchone()[0] == 'keep this'
+    assert roster.read_bytes() == original_roster
