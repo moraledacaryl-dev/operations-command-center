@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Top } from '@/components/Top';
 import { HandbookReader } from '@/components/HandbookReader';
+import { StaffHandbookTraining } from '@/components/StaffHandbookTraining';
 import { api, Entity } from '@/lib/api';
 import { getStoredUser } from '@/lib/session';
 import styles from './staff-guide.module.css';
@@ -34,6 +35,7 @@ export default function StaffGuidePage() {
   const [departments, setDepartments] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [search, setSearch] = useState('');
+  const [practiceOpen, setPracticeOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>({ ...blank });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -74,6 +76,7 @@ export default function StaffGuidePage() {
   useEffect(() => {
     let cancelled = false;
     const user = getStoredUser();
+    if (new URLSearchParams(window.location.search).get('practice') === 'handbook') setPracticeOpen(true);
     setRole(String(user?.role || '').toLowerCase());
     const initialDepartments = Array.isArray(user?.departments) ? user.departments : [];
     setDepartments(initialDepartments);
@@ -168,6 +171,17 @@ export default function StaffGuidePage() {
     <Top title="Staff Guide" right={canManage ?
       <button type="button" className="btn" onClick={startNew}>+ New guide</button> : undefined} />
     <p className={styles.intro}>Find the correct steps for your work. Only approved guides are shown to staff.</p>
+    <div className={styles.handbookHelp}>
+      <div><strong>New to the Staff Handbook?</strong>
+        <p>Learn how to find a policy, use the contents menu, search, and confirm reading.</p>
+      </div>
+      <button type="button" className="btn secondary" data-testid="start-handbook-training"
+        onClick={() => setPracticeOpen(value => !value)}>
+        {practiceOpen ? 'Close handbook practice' : 'Practise using the handbook'}
+      </button>
+    </div>
+    {practiceOpen ? <StaffHandbookTraining identity={getStoredUser()?.id || 'training'}
+      onClose={() => setPracticeOpen(false)} /> : null}
     {error ? <div className={styles.error} role="alert">{error}</div> : null}
     {notice ? <div className={styles.notice} role="status">{notice}</div> : null}
     <nav className={styles.tabs} aria-label="Staff Guide sections">

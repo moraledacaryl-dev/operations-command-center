@@ -65,7 +65,13 @@ function preview(section: HandbookSection, term: string) {
   return (start ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
 }
 
-export function HandbookReader({ body, draft = false, instance = 'main' }: { body: string; draft?: boolean; instance?: string }) {
+export function HandbookReader({
+  body, draft = false, instance = 'main', onSearch, onNavigate,
+}: {
+  body: string; draft?: boolean; instance?: string;
+  onSearch?: (value: string) => void;
+  onNavigate?: (id: string, via: 'search' | 'contents') => void;
+}) {
   const handbook = useMemo(() => parse(body), [body]);
   const [query, setQuery] = useState('');
   const [tocOpen, setTocOpen] = useState(false);
@@ -101,12 +107,13 @@ export function HandbookReader({ body, draft = false, instance = 'main' }: { bod
     return () => observer.disconnect();
   }, [handbook, instance]);
 
-  function jump(id: string) {
+  function jump(id: string, via: 'search' | 'contents') {
     document.getElementById(instance + '-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const url = window.location.pathname + window.location.search + '#' + encodeURIComponent(instance + '-' + id);
     window.history.replaceState(window.history.state, '', url);
     setActive(id);
     setTocOpen(false);
+    onNavigate?.(id, via);
   }
 
   if (!handbook) {
@@ -127,12 +134,15 @@ export function HandbookReader({ body, draft = false, instance = 'main' }: { bod
         <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><circle cx="11" cy="11" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="m16.5 16.5 5 5" fill="none" stroke="currentColor" strokeWidth="1.8"/></svg>
         <input id={"handbook-search-" + instance} type="search" autoComplete="off"
           placeholder="Try: lateness, sick leave, guest complaint..."
-          value={query} onChange={event => setQuery(event.target.value)}/>
+          value={query} onChange={event => {
+            setQuery(event.target.value);
+            onSearch?.(event.target.value);
+          }}/>
       </div>
       {search.length >= 2 ? <div className={styles.results} aria-live="polite">
         <strong>{hits.length} {hits.length === 1 ? 'topic' : 'topics'} found</strong>
         {hits.length ? <div className={styles.resultList}>{hits.map(hit =>
-          <button type="button" key={hit.section.id} onClick={() => jump(hit.section.id)}>
+          <button type="button" key={hit.section.id} onClick={() => jump(hit.section.id, 'search')}>
             <span>{hit.section.number} {hit.section.title}</span>
             <small>{highlighted(hit.preview, query)}</small>
           </button>)}</div> :
@@ -150,14 +160,14 @@ export function HandbookReader({ body, draft = false, instance = 'main' }: { bod
         <nav aria-label="Handbook table of contents">
           {handbook.chapters.map(chapter => <div key={chapter.id} className={styles.chapterNav}>
             <button type="button" className={active === chapter.id ? styles.selected : ''}
-              onClick={() => jump(chapter.id)}>
+              onClick={() => jump(chapter.id, 'contents')}>
               {chapter.number === 'ack' ? 'Acknowledgment' : chapter.number + '. ' + chapter.title}
             </button>
             <div className={styles.subNav}>
               {chapter.sections.map(section => <button type="button" key={section.id}
                 aria-current={active === section.id ? 'location' : undefined}
                 className={active === section.id ? styles.selected : ''}
-                onClick={() => jump(section.id)}>
+                onClick={() => jump(section.id, 'contents')}>
                 {section.number ? section.number + ' ' : ''}{section.title}
               </button>)}
             </div>

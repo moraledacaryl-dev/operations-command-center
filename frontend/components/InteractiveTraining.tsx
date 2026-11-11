@@ -660,6 +660,14 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
               onClick={() => repeatCourseLesson(item.id)}>↻ Repeat lesson</button>}
           </div>)}
         </div>
+        <div className="ops-guide-course-summary" data-testid="handbook-training-shortcut">
+          <strong>Staff Handbook — guided practice</strong>
+          <p>Try the real handbook controls with an example document: find a rule, use Contents, and practise confirmation.</p>
+          <button type="button" className="ops-guide-repeat-course" onClick={() => {
+            setMenuOpen(false);
+            router.push('/staff-guide?practice=handbook');
+          }}>Practise using the handbook</button>
+        </div>
         <p className="ops-guide-footer-note"><button type="button" className="ops-guide-more" onClick={() => { setMenuOpen(false); router.push('/training'); }}>More practice: work situations</button></p>
         <p className="ops-guide-footer-note">Finish each lesson and its practice before moving on. A training report is not approval to work on live records.</p>
       </section>
