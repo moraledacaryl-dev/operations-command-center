@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Inspect public health and Staff Guide response
         env:
-          EXPECTED_RELEASE_SHA: a19d187b8f8de55f3e9808a580f6990ac14f15d7
+          EXPECTED_RELEASE_SHA: 97cb70cf81a13fcf99c09e1ce62676d3e2ae0a4f
           PROD_ORIGIN: https://operations.hiddenoasis.app
         run: |
           python - <<'PY'
