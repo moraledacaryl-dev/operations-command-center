@@ -69,7 +69,7 @@ test('staff learn, answer questions and practise searching, contents and confirm
   await expect(page.getByTestId('handbook-training-instruction')).toContainText('Step 3 of 3');
   await page.getByTestId('handbook-training-confirm').click();
   await expect(page.getByTestId('handbook-training-done')).toBeVisible();
-  await expect(page.getByTestId('handbook-training-done')).toContainText('not the real handbook acknowledgment');
+  await expect(page.getByTestId('handbook-training-done')).toContainText('does not count as your confirmation');
   expect(writes).toEqual([]);
   const saved = await page.evaluate(() => localStorage.getItem('ho-ops-handbook-training-v1:9311'));
   expect(saved).toBe('completed');
@@ -92,7 +92,7 @@ test('the mobile contents drawer is usable during handbook practice', async ({ p
 test('staff training works before the real handbook is published', async ({ page }) => {
   await setup(page);
   await page.goto('/staff-guide');
-  await expect(page.getByText('No published guides match your search yet.')).toBeVisible();
+  await expect(page.getByText('No guides have been published yet. Ask your supervisor if you need a guide.')).toBeVisible();
   await page.getByTestId('start-handbook-training').click();
   await expect(page.getByRole('heading', { name: 'How to use the staff handbook' })).toBeVisible();
   await expect(page.getByTestId('handbook-training')).toContainText('short practice copy');
