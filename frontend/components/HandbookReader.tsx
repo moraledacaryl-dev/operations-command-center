@@ -65,7 +65,7 @@ function preview(section: HandbookSection, term: string) {
   return (start ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
 }
 
-export function HandbookReader({ body, draft = false }: { body: string; draft?: boolean }) {
+export function HandbookReader({ body, draft = false, instance = 'main' }: { body: string; draft?: boolean; instance?: string }) {
   const handbook = useMemo(() => parse(body), [body]);
   const [query, setQuery] = useState('');
   const [tocOpen, setTocOpen] = useState(false);
@@ -90,19 +90,19 @@ export function HandbookReader({ body, draft = false }: { body: string; draft?: 
       if (topmost) setActive(topmost.target.id);
     }, { rootMargin: '-90px 0px -68% 0px', threshold: 0 });
     for (const chapter of handbook.chapters) {
-      const chapterNode = document.getElementById(chapter.id);
+      const chapterNode = document.getElementById(instance + '-' + chapter.id);
       if (chapterNode) observer.observe(chapterNode);
       for (const section of chapter.sections) {
-        const node = document.getElementById(section.id);
+        const node = document.getElementById(instance + '-' + section.id);
         if (node) observer.observe(node);
       }
     }
     return () => observer.disconnect();
-  }, [handbook]);
+  }, [handbook, instance]);
 
   function jump(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    const url = window.location.pathname + window.location.search + '#' + encodeURIComponent(id);
+    document.getElementById(instance + '-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const url = window.location.pathname + window.location.search + '#' + encodeURIComponent(instance + '-' + id);
     window.history.replaceState(window.history.state, '', url);
     setActive(id);
     setTocOpen(false);
@@ -121,10 +121,10 @@ export function HandbookReader({ body, draft = false }: { body: string; draft?: 
       {draft ? <div className={styles.draft}>Management preview — not yet published to employees</div> : null}
     </header>
     <div className={styles.search}>
-      <label htmlFor="handbook-search">Search inside this handbook</label>
+      <label htmlFor={"handbook-search-" + instance}>Search inside this handbook</label>
       <div className={styles.inputWrap}>
         <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><circle cx="11" cy="11" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="m16.5 16.5 5 5" fill="none" stroke="currentColor" strokeWidth="1.8"/></svg>
-        <input id="handbook-search" type="search" autoComplete="off"
+        <input id={"handbook-search-" + instance} type="search" autoComplete="off"
           placeholder="Try: lateness, sick leave, guest complaint..."
           value={query} onChange={event => setQuery(event.target.value)}/>
       </div>
@@ -139,12 +139,12 @@ export function HandbookReader({ body, draft = false }: { body: string; draft?: 
       </div> : null}
     </div>
     <button type="button" className={styles.tocToggle}
-      aria-expanded={tocOpen} aria-controls="handbook-table-of-contents"
+      aria-expanded={tocOpen} aria-controls={"handbook-table-of-contents-" + instance}
       onClick={() => setTocOpen(!tocOpen)}>
       Contents · Jump to a section <span>{tocOpen ? '−' : '+'}</span>
     </button>
     <div className={styles.layout}>
-      <aside id="handbook-table-of-contents" className={styles.sidebar + (tocOpen ? ' ' + styles.showSidebar : '')}>
+      <aside id={"handbook-table-of-contents-" + instance} className={styles.sidebar + (tocOpen ? ' ' + styles.showSidebar : '')}>
         <div className={styles.sidebarHead}>CONTENTS <span>{count} topics</span></div>
         <nav aria-label="Handbook table of contents">
           {handbook.chapters.map(chapter => <div key={chapter.id} className={styles.chapterNav}>
@@ -164,10 +164,10 @@ export function HandbookReader({ body, draft = false }: { body: string; draft?: 
         </nav>
       </aside>
       <article className={styles.article} aria-label="Complete staff handbook">
-        {handbook.chapters.map(chapter => <section key={chapter.id} id={chapter.id} className={styles.chapter}>
+        {handbook.chapters.map(chapter => <section key={chapter.id} id={instance + "-" + chapter.id} className={styles.chapter}>
           <p className={styles.chapterLabel}>{chapter.number === 'ack' ? 'EMPLOYEE CONFIRMATION' : 'CHAPTER ' + chapter.number}</p>
           <h4>{chapter.title}</h4>
-          {chapter.sections.map(section => <section key={section.id} id={section.id}
+          {chapter.sections.map(section => <section key={section.id} id={instance + "-" + section.id}
             className={styles.section}>
             {section.number.split('.').length > 2 ?
               <h6>{section.number ? section.number + ' ' : ''}{section.title}</h6> :
