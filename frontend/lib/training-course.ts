@@ -29,15 +29,15 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'This is the real Operations layout with pretend guest and employee information. My Work shows tasks assigned to you. Notifications tells you when something needs your attention. The Hidden Oasis logo returns you to the main page.',
     example: 'You arrive for your shift. You need to see your assigned tasks, check any important new messages, then return to the dashboard.',
     repeatVariant: { example:'The next shift starts and you need to find one assigned task, read a new alert, and return home without changing anything.', questions:[
-      q('Which control normally takes you back to the dashboard?', ['A request approval button','The Hidden Oasis logo','The room filter'],1,'The Hidden Oasis logo returns to the main dashboard.'),
-      q('How do you find an alert about your assignments?', ['Use Notifications and read the related task','Mark every alert done','Ask another employee for their password'],0,'Read the notification and related work with your own login.'),
+      q('Which control normally takes you back to the dashboard?', ['The My Work link','The Hidden Oasis logo','The department menu'],1,'The Hidden Oasis logo returns to the main dashboard.'),
+      q('How do you find an alert about your assignments?', ['Use Notifications and read the related task','Check only the dashboard totals','Look at the previous shift note instead'],0,'Read the notification and related work with your own login.'),
     ] },
     remember: 'You will click the real My Work link, Notifications link and logo yourself. Clicking Next cannot replace these actions.',
     incorrectExample: 'An employee sees a red notification number, assumes the task is already done, and ignores it.',
     whyIncorrect: 'A notification is a message, not confirmation that a task was finished. Open the related task to see what still needs doing.',
     questions: [
       q('Where do you go first to see tasks assigned to you?', ['My Work','Rooms','Marketing'], 0, 'My Work shows assignments for your own account.'),
-      q('You read a notification about unfinished work. What should you do?', ['Assume it is completed','Read the related task and check what still needs doing','Change another employee’s password'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
+      q('You read a notification about unfinished work. What should you do?', ['Wait for another notification before opening it','Read the related task and check what still needs doing','Look only at the notification and close it'], 1, 'A notification tells you something changed. Read the underlying work before deciding what is needed.'),
     ],
   },
   'staff-handover': {
@@ -50,7 +50,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
       choices:['Mark the repair complete','Tell the next receptionist who will follow up and update the guest','Delete the report'],
       correct:1, response:'The next employee must know the problem is still open and who will follow up with the guest.'}],
     questions: [
-      q('What should a useful shift note tell the next employee?', ['Only that the guest was upset','The problem, who should act and what to check next','Only the shift end time'], 1, 'The next employee needs enough information to continue the work.'),
+      q('What should a useful shift note tell the next employee?', ['The guest’s concern without a follow-up','The problem, who should act and what to check next','The next shift’s start time and room number'], 1, 'The next employee needs enough information to continue the work.'),
       q('You read a handover about a repair that is not checked yet. What should you do?', ['Assume it is repaired','Delete the note','Check the situation or tell the person responsible'], 2, 'An unresolved problem needs follow-up, not an assumed completion.'),
     ],
   },
@@ -59,8 +59,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'A guest calls from Room 205. Search for Room 205 and check whether somebody has already reported the issue.',
     remember: 'Confirm the room number. Never use one guest’s room information for another guest.',
     questions: [
-      q('Before reporting another problem for Room 205, what should you check?', ['Whether the issue is already recorded','Whether it is payday','Whether the café menu changed'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
-      q('Why should you confirm the room number?', ['To send the right team to the correct place','To make the record longer','To avoid telling the next shift anything'], 0, 'The correct room number prevents wasted trips and mistaken guest updates.'),
+      q('Before reporting another problem for Room 205, what should you check?', ['Whether the issue is already recorded','Whether the room is listed as occupied','Whether a different room has an open issue'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
+      q('Why should you confirm the room number?', ['To send the right team to the correct place','To choose the order in which rooms appear','To decide who works the next shift'], 0, 'The correct room number prevents wasted trips and mistaken guest updates.'),
     ],
   },
   'staff-my-work': {
@@ -68,7 +68,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'An item due today is waiting for materials. Open it, understand what is missing, and tell the lead so they can help.',
     repeatVariant: { example:'You open My Work and see a job blocked because a part has not arrived. Report the blocker rather than falsely closing the task.', questions:[
       q('A task is Waiting for another team. What should you do?', ['Check the blocker and keep the responsible person informed','Delete it','Mark it done'],0,'Waiting is not the same as finished work.'),
-      q('Where should you look for tasks assigned to your login?', ['My Work','A coworker’s payroll','Marketing drafts'],0,'My Work shows your assigned workload.'),
+      q('Where should you look for tasks assigned to your login?', ['My Work','The department task list','The shift handover'],0,'My Work shows your assigned workload.'),
     ] },
     remember: 'A task waiting for approval or another team is not automatically finished.',
     questions: [
@@ -86,7 +86,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     remember: 'Your practice only counts after the app confirms your saved task really changed through the required stages.',
     handsOn: 'shared-no-owner',
     questions: [
-      q('A task is unassigned and needs attention today. What matters most?', ['Assigning someone who will handle it','Changing its color','Closing it without work'], 0, 'Work can be forgotten when nobody is responsible.'),
+      q('A task is unassigned and needs attention today. What matters most?', ['Assigning someone who will handle it','Leaving it open without an owner','Adding a deadline without telling anyone'], 0, 'Work can be forgotten when nobody is responsible.'),
       q('Before creating a task, what should you do?', ['Create duplicates to be safe','Search for an existing task','Mark somebody else’s task as done'], 1, 'Searching first reduces duplicate and conflicting work.'),
     ],
   },
@@ -94,7 +94,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     explanation: 'A guest matter is a record of a guest’s problem. A good record states what happened, which room or service is affected, who should investigate and when Reception will call the guest back.',
     example: 'Room 205 reports an AC that is blowing warm air. Record the complaint, arrange an inspection and keep the guest informed.',
     repeatVariant: { example:'A fictional guest in Room 203 says their bathroom sink is leaking. Nobody has inspected the room. Record what is known and arrange an update without promising a repair time.', questions:[
-      q('The guest asks if the sink is already repaired. What should Reception say?', ['It is repaired without inspection','We will confirm with Maintenance and update you','We do not care'],1,'Do not promise a finished repair before checking.'),
+      q('The guest asks if the sink is already repaired. What should Reception say?', ['It was reported, so it should be fixed soon','We will confirm with Maintenance and update you','The request is closed because Maintenance was notified'],1,'Do not promise a finished repair before checking.'),
       q('What is useful in the guest matter?', ['Room 203, leaking sink, responsible team and follow-up','Only the guest mood','A fake completion note'],0,'The right details help the next employee act.'),
     ] },
     remember: 'Do not claim the guest problem is solved before it has actually been checked.',
@@ -174,7 +174,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'The mocktail blender stops working. In this fictional exercise, open Bar, choose Report a problem, select Equipment, explain where the blender is and tell the next shift not to use it until checked.',
     repeatVariant: { example: 'A fictional bottle of syrup is nearly empty at shift change. Record the low stock in Bar so the next bartender can check it.', questions: [
       q('Which department should get a mocktail stock report?', ['Bar','Kitchen','Housekeeping'], 0, 'Mocktails are handled by Bar.'),
-      q('Does saving a Bar report change POS stock?', ['Yes, automatically','No, it is a handover/report only','Only on weekends'], 1, 'Operations reports do not adjust POS inventory.'),
+      q('Does saving a Bar report change POS stock?', ['Yes, it updates the stock count','No, it is a handover/report only','It changes stock after the next shift reads it'], 1, 'Operations reports do not adjust POS inventory.'),
     ] },
     remember: 'Use made-up records only in the separate training app. Tell your lead immediately if a real fault is dangerous. Opening and closing steps come from the approved workplace routine, not from this lesson.',
     questions: [
@@ -187,8 +187,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     example: 'For a fictional Pool-only offer, select Pool and find it with the Pool filter. For a Café and Bar drinks event, select both Café and Bar and check that it appears under either filter. If a poster has a spelling mistake, request a correction before approval.',
     remember: 'Do not publish a real poster while using the fictional training app.',
     questions: [
-      q('A poster has a spelling mistake before approval. What should happen?', ['Request a correction','Publish it anyway','Delete all designs'], 0, 'The problem should be corrected before authorized publication.'),
-      q('Does a post being in Review mean it is already published?', ['Yes','No, it is awaiting a decision','Only if the file is large'], 1, 'Review and Posted are distinct stages.'),
+      q('A poster has a spelling mistake before approval. What should happen?', ['Request a correction','Send it for publication with a note','Leave it in review without telling the designer'], 0, 'The problem should be corrected before authorized publication.'),
+      q('Does a post being in Review mean it is already published?', ['Yes, review publishes the post','No, it is awaiting a decision','Only when the draft has an image'], 1, 'Review and Posted are distinct stages.'),
     ],
   },
   'management-review': {
@@ -197,7 +197,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     remember: 'Only the person allowed to approve a request can make that decision.',
     questions: [
       q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Approve without looking','Ignore the missing details'], 0, 'Authorized reviewers need adequate evidence.'),
-      q('A request is approved. Does this prove the item was delivered?', ['No, delivery or implementation must be checked separately','Yes, always','Only if the reviewer was busy'], 0, 'The approval decision is not proof that the work was carried out.'),
+      q('A request is approved. Does this prove the item was delivered?', ['No, delivery or implementation must be checked separately','Yes, because approval starts delivery','Only when the request included a quotation'], 0, 'The approval decision is not proof that the work was carried out.'),
     ],
   },
   accounts: {

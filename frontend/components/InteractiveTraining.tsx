@@ -87,6 +87,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   }), [user]);
   const lessons = useMemo(() => availableTrainingLessons(capabilities, user.departments || []), [capabilities, user.departments]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [active, setActive] = useState<Active | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [targetFound, setTargetFound] = useState(false);
@@ -179,6 +180,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     let saved: string | null = null;
     try { saved = localStorage.getItem(courseKey); } catch { /* in-memory fallback */ }
     setCourse(readCourseProgress(saved, latestLessons.current));
+    try { setPaused(localStorage.getItem(courseKey + ':paused') === 'true'); } catch { setPaused(false); }
   }, [courseKey]);
 
   useEffect(() => {
@@ -215,7 +217,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   // This is an unguided check using real, safe Operations controls. No
   // spotlight, Next button, or simulated click can pass it.
   useEffect(() => {
-    if (!course || course.stage !== 'independent' || !independentAction) return;
+    if (!course || paused || course.stage !== 'independent' || !independentAction) return;
     if (path !== independentAction.path) {
       router.push(independentAction.path);
       return;
@@ -237,7 +239,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     };
     document.addEventListener(independentAction.type || 'click', onInteraction, true);
     return () => document.removeEventListener(independentAction.type || 'click', onInteraction, true);
-  }, [course, independentAction, path, router]);
+  }, [course, independentAction, path, router, paused]);
 
   const lesson = active ? TRAINING_LESSONS.find(entry => entry.id === active.id) : undefined;
   const step: TrainingStep | undefined = lesson && active ? lesson.steps[active.index] : undefined;
@@ -509,6 +511,11 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     return () => { window.removeEventListener('keydown', trapTab); previous?.focus(); };
   }, [menuOpen]);
 
+  function setLessonPaused(value: boolean) {
+    setPaused(value);
+    try { localStorage.setItem(courseKey + ':paused', String(value)); } catch { /* In-memory pause still works. */ }
+  }
+
   const spotlight = position && path === step?.path ? {
     top: Math.max(0, position.top - 6),
     left: Math.max(0, position.left - 6),
@@ -519,17 +526,19 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   return <>
     <button type="button" className="ops-guide-launch" data-testid="interactive-training-open"
       aria-label="Open interactive training" onClick={() => {
+        if (paused) { setLessonPaused(false); return; }
         if (course && ['learn', 'quiz'].includes(course.stage)) return;
         exit(); setMenuOpen(true);
       }}>
-      <span aria-hidden="true">?</span> Training
+      <span aria-hidden="true">?</span> {paused ? 'Resume lesson' : 'Training'}
     </button>
 
-    {course && courseLesson && courseGuide && ['learn','quiz','done'].includes(course.stage) && <div
+    {!paused && course && courseLesson && courseGuide && ['learn','quiz','done'].includes(course.stage) && <div
       className="ops-course-backdrop" data-testid="required-training-course">
       <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
         <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>
           <strong>Lesson {lessonNumber} of {lessons.length}</strong></div>
+        <button type="button" className="ops-course-quiet" onClick={() => setLessonPaused(true)}>Pause lesson</button>
         {capabilities.manage_department && <details className="ops-course-help">
           <summary>Supervisor: view staff training results</summary>
           <TrainerReports manager={user} />
@@ -597,14 +606,15 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </>}
       </section>
     </div>}
-    {course?.stage === 'tour' && !active && <div className="ops-course-backdrop">
+    {!paused && course?.stage === 'tour' && !active && <div className="ops-course-backdrop">
       <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
+        <button type="button" className="ops-course-quiet" onClick={() => setLessonPaused(true)}>Pause lesson</button>
         <h2>Continue your actual-page practice</h2>
         <p>You still have steps to finish. Open the practice screen and follow the arrows.</p>
         <button type="button" className="ops-course-primary" onClick={() => setActive({ id: course.lessonId, index: 0 })}>Resume practical lesson →</button>
       </section>
     </div>}
-    {course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
+    {!paused && course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
       data-testid="course-independent-challenge" role="status">
       <strong>Your turn · {1 + (course.independentStep || 0)} of 2 — No arrows</strong>
       <span>{independentAction.title}: {independentAction.instruction}</span>

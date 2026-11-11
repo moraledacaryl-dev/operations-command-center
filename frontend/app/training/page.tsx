@@ -152,6 +152,7 @@ export default function PracticeTrainingPage() {
     return !query || [s.title, s.situation, s.reference, s.skill || ''].some(v => v.toLowerCase().includes(query));
   }), [scenarios, departmentFilter, levelFilter, search]);
   const availableDepartments = useMemo(() => Array.from(new Set(scenarios.map(s => s.department))), [scenarios]);
+  const myDepartments = useMemo(() => (user?.departments || []).map((d: Entity) => String(d.name || '')).filter((name: string, index: number, all: string[]) => name && all.indexOf(name) === index && availableDepartments.some(department => department === name)), [user, availableDepartments]);
   const totalErrors = scenarios.reduce((count, s) => count + (progress[s.id]?.mistakes || 0), 0);
   const selected = scenarios.find(s => s.id === activeId) || scenarios[0];
   const selectedId = selected?.id || '';
@@ -358,6 +359,16 @@ export default function PracticeTrainingPage() {
         <button type="button" className="practice-secondary" data-testid="repeat-current-lesson" onClick={repeatGuide}>↻ Start this lesson again</button>
       </div>
     </section>
+    {myDepartments.length > 0 && <section className="practice-start-here" aria-labelledby="my-job-practice-title">
+      <div><strong id="my-job-practice-title">Practice for your work</strong><p>Choose your team to find situations you may meet on a shift.</p></div>
+      <div className="practice-start-buttons">{myDepartments.map((department: string) => <button type="button" key={department} className="practice-secondary"
+        onClick={() => {
+          setDepartmentFilter(department); setSearch(''); setLevelFilter('All');
+          const first = scenarios.find(s => s.department === department);
+          if (first) switchScenario(first.id);
+          document.getElementById('practice-situation-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}>Practice {department}</button>)}</div>
+    </section>}
     <section className="practice-start-here" data-testid="handbook-training-entry">
       <h2>Learn the Staff Handbook</h2>
       <p>Practice finding a policy, using Contents, searching for a topic, and understanding the reading confirmation. The exercise uses sample text and does not change real staff records.</p>
@@ -367,7 +378,7 @@ export default function PracticeTrainingPage() {
     </section>
 
     <div className="practice-layout">
-      <aside className="practice-catalog" aria-label="Choose a training scenario">
+      <aside className="practice-catalog" id="practice-situation-list" aria-label="Choose a training scenario">
         <div className="practice-side-title"><h2>Choose a situation</h2><span>{user.name || 'Trainee'}</span></div>
         <div className="practice-filters">
           <label htmlFor="practice-search">Search situations

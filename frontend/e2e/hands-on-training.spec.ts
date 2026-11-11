@@ -214,3 +214,19 @@ test('critical kitchen drill rejects explicit instructions not to stop or notify
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toBeVisible();
 });
+
+test('staff can find practice for each assigned team', async ({ page }) => {
+  const member = { id: 7150, name: 'Practice team member', role: 'staff', is_active: true,
+    departments: [{ id: 41, name: 'Café' }, { id: 42, name: 'Kitchen' }], primary_department_id: 41, capabilities: {} };
+  await page.addInitScript(user => {
+    localStorage.setItem('cc_user', JSON.stringify(user));
+    localStorage.setItem('ho-ops-structured-course-v2:' + user.id, JSON.stringify({ lessonId:'orientation',stage:'finished',question:0,passed:['orientation','staff-handover','staff-rooms','staff-my-work'] }));
+    localStorage.setItem('ho-ops-scenario-practice-v1:' + user.id + ':guide-intro-v2', 'seen');
+  }, member);
+  await page.route('**/api/**', route => route.fulfill({ status:200, json:{items:[],unread_count:0} }));
+  await page.goto('/training');
+  await expect(page.getByRole('button', { name: 'Practice Café' })).toBeVisible();
+  await page.getByRole('button', { name: 'Practice Kitchen' }).click();
+  await expect(page.locator('#practice-department-filter')).toHaveValue('Kitchen');
+  await expect(page.getByLabel('Active training exercise')).toContainText('Kitchen');
+});

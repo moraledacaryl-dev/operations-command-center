@@ -57,6 +57,8 @@ test('ordinary staff mark an actual fictional notification read and verify saved
   await page.getByRole('link', { name: 'Notifications in a separate tab' }).click();
   const tab = await pendingPopup;
   await expect(tab.getByText(title)).toBeVisible();
+  await expect(tab.getByText('Practice notice')).toBeVisible();
+  await expect(tab.getByText('training_practice_read')).toHaveCount(0);
   await tab.getByRole('button', { name: 'Mark read' }).click();
   await expect(tab.getByText('You’re up to date')).toBeVisible();
   await tab.close();
