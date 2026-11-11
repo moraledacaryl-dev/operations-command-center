@@ -438,7 +438,7 @@ def ensure_private_trainer_guide(private_dir: Path) -> Path:
     return guide
 
 
-def ensure_notification_practice_data(db_path: Path, state: Path) -> int:
+def ensure_notification_practice_data(db_path: Path, state: Path, *, validate_only: bool = False) -> int:
     """Idempotently add only missing fictional notice drills to an existing training install.
 
     This runs after the desktop launchers' strict local state/database checks.
@@ -463,11 +463,14 @@ def ensure_notification_practice_data(db_path: Path, state: Path) -> int:
     if not marker.is_file() or not roster_path.is_file() or marker.is_symlink() or roster_path.is_symlink():
         raise SystemExit("REFUSED: already-initialized fictional desktop training required")
     roster = json.loads(roster_path.read_text(encoding="utf-8"))
-    expected_emails = {slug + "@training.invalid" for _, _, slug, _ in PEOPLE}
-    if roster.get("synthetic") is not True or {
-        row.get("email") for row in roster.get("accounts", [])
-    } != expected_emails:
+    current_emails = {slug + "@training.invalid" for _, _, slug, _ in PEOPLE}
+    # Earlier desktop releases had the same roster, before Bar was added.
+    # Keep those credentials and progress; never silently regenerate accounts.
+    legacy_emails = current_emails - {"bar-lead@training.invalid", "bartender@training.invalid"}
+    roster_emails = {row.get("email") for row in roster.get("accounts", [])}
+    if roster.get("synthetic") is not True or roster_emails not in (current_emails, legacy_emails):
         raise SystemExit("REFUSED: private fictional accounts manifest did not match")
+    expected_emails = roster_emails
     inserted = 0
     with SessionLocal() as db:
         # Require a fully synthetic, isolated population rather than relying
@@ -479,6 +482,8 @@ def ensure_notification_practice_data(db_path: Path, state: Path) -> int:
         ):
             raise SystemExit("REFUSED: unexpected user identities in training notification database")
         users = {row.email: row for row in db.query(models.User).all()}
+        if validate_only:
+            return 0
         for email, user in users.items():
             for ordinal in (1, 2):
                 title = f"{PREFIX}Daily notice practice {ordinal}/2"
