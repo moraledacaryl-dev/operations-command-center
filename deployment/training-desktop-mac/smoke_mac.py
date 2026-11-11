@@ -373,7 +373,16 @@ def main() -> None:
                         conn.execute(
                             "DELETE FROM notifications WHERE id=(SELECT MIN(id) FROM notifications WHERE kind='training_practice_read')"
                         )
+                        # Reproduce the installed 0016 schema, which does not yet
+                        # have the password-change column. Restart must validate
+                        # the old identities before migrating without resetting data.
+                        before_upgrade = conn.execute("SELECT email, password_hash FROM users ORDER BY email").fetchall()
+                        conn.execute("ALTER TABLE users DROP COLUMN must_change_password")
+                        conn.execute("UPDATE alembic_version SET version_num='0016_staff_guide'")
                         conn.commit()
+                    else:
+                        assert conn.execute("SELECT version_num FROM alembic_version").fetchone()[0] == '0017_password_change_required'
+                        assert conn.execute("SELECT email, password_hash FROM users ORDER BY email").fetchall() == before_upgrade
             roster = json.loads((state / "private" / "accounts" / "PRIVATE_training_accounts.json").read_text())
             assert len(roster["accounts"]) == 22
             guide = state / "private" / "accounts" / "PRIVATE_TRAINER_ACCOUNTS.txt"
