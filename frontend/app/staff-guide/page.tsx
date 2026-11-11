@@ -170,7 +170,7 @@ export default function StaffGuidePage() {
   return <div className={styles.wrap}>
     <Top title="Staff Guide" right={canManage ?
       <button type="button" className="btn" onClick={startNew}>+ New guide</button> : undefined} />
-    <p className={styles.intro}>Find the correct steps for your work. Only approved guides are shown to staff.</p>
+    <p className={styles.intro}>Find the correct steps for your work. Staff can see guides after they are published.</p>
     <div className={styles.handbookHelp}>
       <div><strong>New to the Staff Handbook?</strong>
         <p>Learn how to find a policy, use the contents menu, search, and confirm reading.</p>
@@ -344,7 +344,7 @@ export default function StaffGuidePage() {
           <span>{guide.summary || 'Open to read the steps.'}</span>
           <small>{guide.doc_type} · {guide.category} · Updated {dateLabel(guide.published_at)}</small>
         </button>)}
-      </div> : <p>No published guides match your search yet.</p>}
+      </div> : <p>{search.trim() ? 'No published guides match your search.' : 'No guides have been published yet. Ask your supervisor if you need a guide.'}</p>}
     </section> : null}
 
     {!selected && !editorOpen && tab === 'reading' ? <section>
@@ -377,7 +377,7 @@ export default function StaffGuidePage() {
       <h2>Working copies and published guides</h2>
       {managed.length ? <div className={styles.cards}>
         {managed.map(item => <button type="button" key={item.id} className={styles.card} onClick={() => void openGuide(Number(item.id))}>
-          <strong>{item.title}</strong><span>{item.status} · Version {item.version}</span>
+          <strong>{item.title}</strong><span>{item.status} · {Number(item.version) > 0 ? `Published version ${item.version}` : 'Not published yet'}</span>
           <small>{item.doc_type}</small>
         </button>)}
       </div> : <p>No guides have been prepared. Select New guide to begin.</p>}
