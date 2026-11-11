@@ -121,6 +121,11 @@ async function allCursorPages(path: string, params: Record<string, any> = {}): P
 }
 
 export const api = {
+  staffGuideImportHandbook: (file: File) => {
+    const body = new FormData();
+    body.append('file', file);
+    return request<Entity>('/staff-guide/import-handbook', { method: 'POST', body });
+  },
   staffGuideList: (q = '') => request<Entity[]>('/staff-guide?q=' + encodeURIComponent(q)),
   staffGuideMine: () => request<Entity[]>('/staff-guide/mine'),
   staffGuideManage: () => request<Entity[]>('/staff-guide/manage'),

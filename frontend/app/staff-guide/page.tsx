@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Top } from '@/components/Top';
+import { HandbookReader } from '@/components/HandbookReader';
 import { api, Entity } from '@/lib/api';
 import { getStoredUser } from '@/lib/session';
 import styles from './staff-guide.module.css';
@@ -148,6 +149,18 @@ export default function StaffGuidePage() {
     }, 'Draft saved.');
   }
 
+  async function importHandbook(file: File) {
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Choose a PDF smaller than 10 MB.');
+      return;
+    }
+    await run(async () => {
+      const result = await api.staffGuideImportHandbook(file);
+      await openGuide(Number(result.id));
+      setTab('manage');
+    }, 'Handbook prepared as a private draft. Review against the original PDF before publishing.');
+  }
+
   const pendingCount = reading.filter(item => !item.acknowledged).length;
   const current = selected?.published;
   const currentDraft = selected?.draft;
@@ -167,9 +180,12 @@ export default function StaffGuidePage() {
       <button type="button" className="btn secondary" onClick={() => setSelected(null)}>Back to list</button>
       {current ? <>
         <p className={styles.meta}>{current.doc_type} · {current.category} · Version {current.version} · Published {dateLabel(current.published_at)}</p>
-        <h2>{current.title}</h2>
-        {current.summary ? <p className={styles.summary}>{current.summary}</p> : null}
-        <div className={styles.body}>{current.body}</div>
+        {current.doc_type !== 'Handbook' ? <>
+          <h2>{current.title}</h2>
+          {current.summary ? <p className={styles.summary}>{current.summary}</p> : null}
+        </> : null}
+        {current.doc_type === 'Handbook' ? <HandbookReader body={current.body} instance="published" /> :
+          <div className={styles.body}>{current.body}</div>}
         {current.attachments?.length ? <div className={styles.files}>
           <strong>Attachments</strong>
           {current.attachments.map((file: Entity) => <button key={file.id} type="button"
@@ -190,8 +206,9 @@ export default function StaffGuidePage() {
       {currentDraft ? <section className={styles.preview}>
         <h3>Working copy · {selected.status}</h3>
         <p className={styles.meta}>This text is not shown to regular staff until published.</p>
-        <strong>{currentDraft.title}</strong>
-        <div className={styles.body}>{currentDraft.body}</div>
+        {currentDraft.doc_type !== 'Handbook' ? <strong>{currentDraft.title}</strong> : null}
+        {currentDraft.doc_type === 'Handbook' ? <HandbookReader body={currentDraft.body} instance="draft" draft /> :
+          <div className={styles.body}>{currentDraft.body}</div>}
         <div className={styles.files}>
           <strong>Files for the next published version</strong>
           {selected.draft_attachments?.map((file: Entity) => <div key={file.id} className={styles.fileRow}>
@@ -209,7 +226,9 @@ export default function StaffGuidePage() {
           </label>
         </div>
         <div className={styles.actions}>
-          <button type="button" className="btn secondary" disabled={busy} onClick={editSelected}>Edit draft</button>
+          {currentDraft.doc_type === 'Handbook' ?
+            <p className={styles.meta}>To revise this handbook, upload a corrected PDF from Manage Guides. The earlier published version stays unchanged until the replacement is approved.</p> :
+            <button type="button" className="btn secondary" disabled={busy} onClick={editSelected}>Edit draft</button>}
           {selected.status === 'Draft' ?
             <button type="button" className="btn" disabled={busy} onClick={() => void run(
               () => api.staffGuideSubmit(Number(selected.id)), 'Sent for review.', Number(selected.id),
@@ -238,7 +257,9 @@ export default function StaffGuidePage() {
             <summary>Version {version.version} · {dateLabel(version.published_at)}</summary>
             <p>Approved by {version.approved_by_name} · Published by {version.published_by_name}</p>
             <strong>{version.title}</strong>
-            <div className={styles.body}>{version.body}</div>
+            {selected?.draft?.doc_type === 'Handbook' ?
+              <HandbookReader body={version.body} instance={'history-' + version.id} /> :
+              <div className={styles.body}>{version.body}</div>}
           </details>)}
         </section> : null}
       </> : null}
@@ -320,6 +341,22 @@ export default function StaffGuidePage() {
           <span>{item.acknowledged ? 'Completed' : 'Please read and confirm'}</span>
           <small>{item.acknowledged ? 'Confirmed' : item.due_at ? 'Due ' + dateLabel(item.due_at) : 'Read this guide'}</small>
         </button>)}</div> : <p>Nothing to confirm right now.</p>}
+    </section> : null}
+
+    {!selected && !editorOpen && tab === 'manage' && canPublish ? <section className={styles.importBox} aria-label="Import staff handbook">
+      <div>
+        <h2>Import the staff handbook</h2>
+        <p>Choose the original PDF. The system converts chapters, instructions and lists into a searchable handbook with a clickable table of contents.</p>
+        <p><strong>Private draft only:</strong> No employee notification is sent until management approves and publishes the handbook.</p>
+      </div>
+      <label htmlFor="handbook-import-pdf" className={styles.importLabel}>Choose handbook PDF (up to 10 MB)
+        <input id="handbook-import-pdf" type="file" accept=".pdf,application/pdf" disabled={busy}
+          onChange={event => {
+            const uploaded = event.target.files?.[0];
+            if (uploaded) void importHandbook(uploaded);
+            event.target.value = '';
+          }} />
+      </label>
     </section> : null}
 
     {!selected && !editorOpen && tab === 'manage' ? <section>

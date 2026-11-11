@@ -1,0 +1,49 @@
+.reader { --hb-teal: #154c4f; --hb-gold: #a08044; width: 100%; }
+.heading { padding: 22px 20px; background: linear-gradient(120deg,#17484a,#235e5d); color: #fff; border-radius: 12px; margin: 16px 0; }
+.heading h3 { color: #fff; font-size: clamp(1.25rem,2.4vw,1.9rem); margin: 8px 0; line-height: 1.25; }
+.heading p { margin: 0; color: #d7e5de; }
+.eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .13em; color: #e4c58a; }
+.draft { display: inline-block; margin-top: 14px; border: 1px solid #e2c88b; border-radius: 7px; padding: 7px 10px; font-weight: 600; font-size: 12px; }
+.search { position: relative; margin: 18px 0 20px; }
+.search > label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 7px; }
+.inputWrap { display: flex; align-items: center; gap: 8px; border: 1px solid #baccc9; padding: 0 12px; border-radius: 10px; background: #fff; color: #375b5c; }
+.inputWrap input { border: 0; width: 100%; height: 45px; font: inherit; color: #182e2e; background: transparent; outline-offset: 2px; }
+.results { border: 1px solid #c5d3d0; border-radius: 10px; padding: 12px; margin-top: 8px; background: #fff; color: #243b3c; }
+.results > strong { display: block; font-size: 13px; margin-bottom: 8px; }
+.resultList { max-height: 230px; overflow: auto; display: grid; gap: 5px; }
+.resultList button { display: grid; gap: 4px; border: 0; text-align: left; padding: 10px 12px; background: #f2f7f4; border-radius: 8px; color: #163e40; cursor: pointer; }
+.resultList button:hover,.resultList button:focus-visible { outline: 2px solid #287b71; }
+.resultList small { color: #496267; line-height: 1.5; }
+.match { background: #ffdfa0; color: #443012; padding: 1px 0; border-radius: 2px; }
+.tocToggle { display: none; }
+.layout { display: grid; grid-template-columns: minmax(200px, .84fr) minmax(0, 2.6fr); gap: 25px; align-items: start; }
+.sidebar { position: sticky; top: 72px; overflow: auto; max-height: calc(100vh - 90px); border: 1px solid #d6e1db; border-radius: 11px; background: #fafbf8; padding: 12px; }
+.sidebarHead { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .09em; font-weight: 800; color: var(--hb-teal); padding: 7px 8px 13px; }
+.sidebarHead span { color: #718680; letter-spacing: 0; font-weight: 500; }
+.chapterNav { border-top: 1px solid #e6ede9; padding: 7px 0; }
+.chapterNav > button { font-weight: 700; color: #204e4d; }
+.sidebar button { width: 100%; text-align: left; padding: 7px 8px; background: transparent; border: none; border-radius: 6px; font: inherit; font-size: 12px; line-height: 1.45; cursor: pointer; }
+.sidebar button:hover,.sidebar button:focus-visible,.sidebar button.selected { background: #e2f0e9; color: #115b55; }
+.subNav { padding-left: 8px; }
+.subNav button { color: #526661; }
+.article { min-width: 0; max-width: 76ch; color: var(--foreground, #243838); font-size: 15px; line-height: 1.8; }
+.chapter { scroll-margin-top: 92px; padding-bottom: 18px; margin-bottom: 34px; border-bottom: 1px solid #e7e4d9; }
+.chapterLabel { font-size: 11px; color: var(--hb-gold); font-weight: 800; letter-spacing: .12em; margin: 0 0 7px; }
+.chapter h4 { font-size: clamp(1.35rem, 2vw, 1.75rem); line-height: 1.25; margin: 0 0 24px; color: var(--hb-teal); }
+.section { scroll-margin-top: 92px; margin-bottom: 23px; }
+.section h5 { font-size: 1.08rem; color: var(--hb-teal); margin: 0 0 9px; line-height: 1.4; }
+.section h6 { font-size: .98rem; color: #304f4d; margin: 0 0 7px; line-height: 1.5; }
+.section p { margin: 7px 0 12px; white-space: normal; overflow-wrap: anywhere; }
+.section ul { padding-left: 1.55rem; margin: 7px 0 12px; }
+.section li { padding-left: 3px; margin: 4px 0; overflow-wrap: anywhere; }
+.section li::marker { color: #b29354; }
+.end { margin-top: 42px; padding: 18px; border-radius: 9px; background: #f3f5ef; color: #56706c; text-align: center; }
+@media(max-width: 800px) {
+  .heading { padding: 17px 15px; }
+  .layout { display: block; }
+  .tocToggle { display: flex; width: 100%; align-items: center; justify-content: space-between; background: #e6f1ea; color: #1b5753; border: 1px solid #c0d8cc; border-radius: 9px; padding: 11px 13px; font: inherit; font-weight: 700; text-align: left; margin: 10px 0 17px; cursor: pointer; }
+  .sidebar { display: none; position: static; max-height: 40vh; margin: -7px 0 17px; }
+  .sidebar.showSidebar { display: block; }
+  .article { font-size: 15px; max-width: 100%; }
+  .chapter { margin-bottom: 28px; }
+}

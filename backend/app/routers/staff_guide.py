@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import json
+from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
@@ -13,6 +15,7 @@ from .. import models
 from .. import foundation_models as foundation
 from ..authorization_policy import department_ids_for
 from ..clock import utc_now
+from ..handbook_parser import parse_handbook_pdf, MAX_BYTES
 from ..database import get_db
 from ..services.notifications import notify_user
 from ..staff_guide_models import (
@@ -220,6 +223,87 @@ def create_guide(payload: DraftPayload, user: models.User = Depends(require_user
     db.commit()
     db.refresh(doc)
     return _details(db, doc, user, True)
+
+
+@router.post("/import-handbook", status_code=201)
+def import_handbook_pdf(
+    file: UploadFile = File(...),
+    user: models.User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Privately stage a handbook PDF as a controlled draft for owner approval.
+
+    No real company policy is seeded into the public repository or published
+    automatically. Uploads and converted text stay behind guide authorization.
+    """
+    if not is_publisher(user):
+        raise HTTPException(403, "Only authorized management can import the staff handbook.")
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(422, "Choose the original handbook PDF.")
+    raw = file.file.read(MAX_BYTES + 1)
+    try:
+        handbook = parse_handbook_pdf(raw)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    finally:
+        file.file.seek(0)
+
+    title = "Hidden Oasis Resort & Restaurant Staff Handbook (2026)"
+    source_hash = handbook["source_sha256"]
+    data = json.dumps(handbook, ensure_ascii=False, separators=(",", ":"))
+    # This is a deliberate owner-only import, not a general uncontrolled
+    # /api/docs entry and not a published guide.
+    doc = (db.query(GuideDocument)
+           .filter(GuideDocument.doc_type == "Handbook",
+                   GuideDocument.title == title)
+           .with_for_update().one_or_none())
+    if doc and doc.retired_at is not None:
+        raise HTTPException(409, "The existing handbook is retired. Review it before replacing.")
+    if doc:
+        try:
+            existing = json.loads(doc.body)
+        except (ValueError, TypeError):
+            existing = {}
+        if existing.get("source_sha256") == source_hash:
+            return {"id": doc.id, "title": title, "status": doc.status,
+                    "already_imported": True,
+                    "chapters": len(handbook["chapters"])}
+        doc.body = data
+        doc.summary = "2026 Staff Handbook — converted from the approved source PDF; review before publishing."
+        doc.status = "Draft"
+        doc.approved_by_id = None
+        doc.requires_ack = True
+        doc.audience = "all"
+        doc.department_ids = []
+        _close_review_notifications(db, doc.id)
+        # Historical immutable revision attachments are left untouched.
+        db.query(models.Attachment).filter_by(
+            parent_type="staff-guide-draft", parent_id=doc.id).delete()
+    else:
+        doc = GuideDocument(
+            title=title, doc_type="Handbook", category="Staff Handbook",
+            summary="2026 Staff Handbook — converted from the source PDF; review before publishing.",
+            body=data, audience="all", department_ids=[], requires_ack=True,
+            status="Draft", created_by_id=user.id)
+        db.add(doc)
+    db.flush()
+    # Retain the original PDF as a private, access-controlled draft attachment
+    # so reviewers can compare conversion against the authoritative source.
+    original, url, mime, stored_path = _store_upload(file, "handbook_" + str(doc.id))
+    try:
+        db.add(models.Attachment(
+            parent_type="staff-guide-draft", parent_id=doc.id,
+            filename=original, file_url=url, mime_type=mime, uploaded_by_id=user.id,
+        ))
+        db.commit()
+    except Exception:
+        db.rollback()
+        stored_path.unlink(missing_ok=True)
+        raise
+    return {"id": doc.id, "title": title, "status": doc.status,
+            "already_imported": False,
+            "chapters": len(handbook["chapters"]),
+            "subsections": sum(len(ch["sections"]) for ch in handbook["chapters"])}
 
 
 @router.get("/{document_id}")
