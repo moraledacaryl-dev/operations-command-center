@@ -358,6 +358,14 @@ export default function PracticeTrainingPage() {
         <button type="button" className="practice-secondary" data-testid="repeat-current-lesson" onClick={repeatGuide}>↻ Start this lesson again</button>
       </div>
     </section>
+    <section className="practice-start-here" data-testid="handbook-training-entry">
+      <h2>Learn the Staff Handbook</h2>
+      <p>Practice finding a policy, using Contents, searching for a topic, and understanding the reading confirmation. The exercise uses sample text and does not change real staff records.</p>
+      <Link href="/staff-guide?practice=handbook" className="practice-primary">
+        Start handbook practice →
+      </Link>
+    </section>
+
     <div className="practice-layout">
       <aside className="practice-catalog" aria-label="Choose a training scenario">
         <div className="practice-side-title"><h2>Choose a situation</h2><span>{user.name || 'Trainee'}</span></div>
