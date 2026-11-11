@@ -46,7 +46,7 @@ def validate() -> tuple[Path, Path]:
     return path, state
 
 
-def refresh_fictional_notices(path: Path, state: Path) -> None:
+def refresh_fictional_notices(path: Path, state: Path, *, validate_only: bool = False) -> None:
     # Do not reset already-created desktop training accounts or history.
     script = resources() / "scripts" / "seed_training_demo.py"
     spec = importlib.util.spec_from_file_location("training_windows_notice_upgrade", str(script))
@@ -55,7 +55,9 @@ def refresh_fictional_notices(path: Path, state: Path) -> None:
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
-    count = module.ensure_notification_practice_data(path, state)
+    count = module.ensure_notification_practice_data(path, state, validate_only=validate_only)
+    if validate_only:
+        return
     module.ensure_private_trainer_guide(state / "private" / "accounts")
     print(f"PASS: fictional per-user notification drills ready ({count} newly added)")
 
@@ -79,6 +81,8 @@ def init() -> None:
         first_launch.tidy_completed_launch(state)
         if not path.is_file() or not roster.is_file():
             abort("Incomplete initialized training database; do not clear manually")
+        refresh_fictional_notices(path, state, validate_only=True)
+        first_launch.upgrade_existing_training_database(state, path, resources())
         refresh_fictional_notices(path, state)
         print("PASS: existing fictional training data preserved")
         return
