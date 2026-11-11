@@ -376,9 +376,10 @@ def ensure_private_trainer_guide(private_dir: Path) -> Path:
         raise SystemExit("REFUSED: private fictional roster is missing")
     obj = json.loads(roster.read_text(encoding="utf-8"))
     accounts = obj.get("accounts") if isinstance(obj, dict) and obj.get("synthetic") is True else None
-    if not isinstance(accounts, list) or len(accounts) < len(PEOPLE):
+    if not isinstance(accounts, list):
         raise SystemExit("REFUSED: incomplete private fictional trainer roster")
     names = {slug + "@training.invalid" for _, _, slug, _ in PEOPLE}
+    legacy = names - {"bar-lead@training.invalid", "bartender@training.invalid"}
     rows = []
     for item in accounts:
         if not isinstance(item, dict) or any(
@@ -387,7 +388,8 @@ def ensure_private_trainer_guide(private_dir: Path) -> Path:
         ) or not item["email"].endswith("@training.invalid"):
             raise SystemExit("REFUSED: invalid fictional account entry")
         rows.append(item)
-    if not names.issubset({item["email"] for item in rows}):
+    roster_names = {item["email"] for item in rows}
+    if len(roster_names) != len(rows) or roster_names not in (names, legacy):
         raise SystemExit("REFUSED: required fictional staff accounts are missing")
 
     grouped = sorted(rows, key=lambda item: (
