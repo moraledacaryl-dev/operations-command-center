@@ -50,7 +50,7 @@ test('staff learn, answer questions and practise searching, contents and confirm
   await page.getByRole('button', { name: 'Next: Answer three questions' }).click();
   await page.getByRole('radio', { name: /In the payroll deductions screen/ }).check();
   await page.getByRole('button', { name: 'Check my answer' }).click();
-  await expect(page.getByRole('alert')).toContainText('Not yet');
+  await expect(page.getByTestId('handbook-training').getByRole('alert')).toContainText('Not yet');
   await page.getByRole('radio', { name: /In Staff Guide, under Available guides or My Reading/ }).check();
   await page.getByRole('button', { name: 'Check my answer' }).click();
   await page.getByRole('radio', { name: /Search for “lateness”/ }).check();
