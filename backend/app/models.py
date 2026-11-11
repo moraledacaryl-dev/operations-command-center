@@ -43,6 +43,7 @@ class User(Base, TimestampMixin):
     email = Column(String(160), unique=True, nullable=True)
     password_hash = Column(String(255), nullable=True)
     password_set_at = Column(DateTime, nullable=True)
+    must_change_password = Column(Boolean, nullable=False, default=False, server_default="false")
     last_login_at = Column(DateTime, nullable=True)
     role = Column(String(40), default="manager", nullable=False)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)

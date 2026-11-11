@@ -72,6 +72,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: 'same-origin',
   });
   if (!res.ok) {
+    if (res.status === 428 && typeof window !== 'undefined' && window.location.pathname !== '/change-password') {
+      const body = await res.clone().json().catch(() => null);
+      if (body?.code === 'password_change_required') window.location.href = '/change-password';
+    }
     if (res.status === 401 && typeof window !== 'undefined' && !path.startsWith('/auth/login')) {
       window.localStorage.removeItem('cc_user');
       window.localStorage.removeItem('cc_department_id');

@@ -31,7 +31,7 @@ export default function LoginPage() {
       setStoredUser(user);
       // In the desktop training build, begin on the *actual* fictional Operations dashboard.
       // The in-context training coach introduces controls on their real pages.
-      router.replace(process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? '/' : landingPathForUser(user));
+      router.replace(user.must_change_password ? '/change-password' : process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? '/' : landingPathForUser(user));
     } catch (err: unknown) {
       setError(loginErrorMessage(err));
     } finally {
@@ -57,7 +57,7 @@ export default function LoginPage() {
         {error ? <p id="login-error" className="auth-error" role="alert">{error}</p> : null}
         <button className="btn auth-submit" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
       </form>
-      <small className="muted">Protected workspace · Contact an administrator if your access has changed.</small>
+      <small className="muted">Forgot your password? Ask the owner or an administrator to reset it.</small>
     </section>
   </main>;
 }

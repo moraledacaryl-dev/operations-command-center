@@ -137,6 +137,7 @@ def create_user(
         is_active=bool(payload.is_active),
         password_hash=hash_password(payload.password),
         password_set_at=utc_now(),
+        must_change_password=True,
     )
     db.add(new_user)
     db.flush()

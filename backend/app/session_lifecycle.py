@@ -130,9 +130,14 @@ class SessionLifecycleMiddleware:
                     user = db.get(models.User, int(payload.get("sub", 0)))
                     changed_at = int(user.password_set_at.timestamp()) if user and user.password_set_at else 0
                     current = bool(user and user.is_active and issued_at >= changed_at and token_session_is_current(db, payload))
+                    password_change_required = bool(user and user.must_change_password)
                 if not current:
                     response = JSONResponse(status_code=401, content={"detail": "Session is no longer valid. Please sign in again."}, headers={"Cache-Control": "no-store"})
                     response.raw_headers.append((b"set-cookie", _clear_cookie()))
+                    await response(scope, receive, send)
+                    return
+                if password_change_required and path not in {"/api/auth/me", "/api/auth/change-password"}:
+                    response = JSONResponse(status_code=428, content={"detail": "Change your temporary password before continuing.", "code": "password_change_required"}, headers={"Cache-Control": "no-store"})
                     await response(scope, receive, send)
                     return
                 if from_cookie and token:

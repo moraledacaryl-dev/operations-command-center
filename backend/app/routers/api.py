@@ -665,6 +665,9 @@ def change_password(payload: PasswordChangePayload, user: models.User = Depends(
     if not verify_password(payload.current_password, user.password_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect.")
     validate_password_or_400(payload.new_password)
+    if verify_password(payload.new_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Choose a different password.")
+    user.must_change_password = False
     user.password_hash = hash_password(payload.new_password)
     user.password_set_at = utc_now()
     db.commit()
@@ -706,9 +709,11 @@ def admin_create_user(payload: AdminUserCreatePayload, user: models.User = Depen
 
 @router.post("/admin/users/{user_id}/reset-password")
 def admin_reset_password(user_id: int, payload: AdminResetPasswordPayload, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
-    require_admin_user(user)
+    if not has_capability(user.role, "manage_accounts"):
+        raise HTTPException(status_code=403, detail="Only an owner or administrator can reset passwords.")
     validate_password_or_400(payload.new_password)
     target = fetch_or_404(db, models.User, user_id)
+    target.must_change_password = True
     target.password_hash = hash_password(payload.new_password)
     target.password_set_at = utc_now()
     log_activity(db, "users", target.id, "password_reset", "Password reset by admin", actor_id=user.id)
