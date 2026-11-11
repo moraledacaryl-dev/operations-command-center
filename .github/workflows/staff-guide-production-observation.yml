@@ -1,0 +1,79 @@
+name: Read-only Staff Guide production observation
+
+on:
+  push:
+    branches:
+      - audit/staff-guide-production-observation-20261111
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    name: Read-only public production checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect public health and Staff Guide response
+        env:
+          EXPECTED_RELEASE_SHA: fea8429139c577ecbbe527c54fd8f4c548cad978
+          PROD_ORIGIN: https://operations.hiddenoasis.app
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+
+          origin = os.environ["PROD_ORIGIN"].rstrip("/")
+          expected = os.environ["EXPECTED_RELEASE_SHA"]
+          results = []
+          def fetch(path):
+              req = Request(origin + path, method="GET", headers={"User-Agent": "HiddenOasis-Release-Observer/1.0"})
+              try:
+                  with urlopen(req, timeout=12) as response:
+                      raw = response.read(16000)
+                      status = response.status
+                      content_type = response.headers.get("Content-Type", "")
+                  return status, json.loads(raw) if "json" in content_type else None, None
+              except HTTPError as ex:
+                  return ex.code, None, None
+              except (URLError, TimeoutError, OSError, ValueError) as ex:
+                  return None, None, type(ex).__name__
+
+          for path in ("/api/livez", "/api/readyz", "/staff-guide", "/api/staff-guide"):
+              status, payload, error = fetch(path)
+              data = {"path": path, "http_status": status, "error": error}
+              if isinstance(payload, dict) and path in {"/api/livez", "/api/readyz"}:
+                  data["release_sha"] = payload.get("release_sha")
+                  if path.endswith("readyz"):
+                      data["ready"] = payload.get("ready")
+                      data["migration_head"] = payload.get("migration_head")
+              results.append(data)
+
+          health = results[0]
+          ready = results[1]
+          release_matched = (health.get("release_sha") == expected
+                             and ready.get("release_sha") == expected
+                             and health.get("http_status") == 200
+                             and ready.get("http_status") == 200
+                             and ready.get("ready") is True)
+          private_boundary = results[3].get("http_status") in (401, 403)
+          print("EXPECTED RELEASE:", expected)
+          for result in results:
+              print("OBSERVED:", json.dumps(result, ensure_ascii=False))
+          print("RELEASE SHA MATCH:", release_matched)
+          print("ANONYMOUS GUIDE API DENIED:", private_boundary)
+          summary = Path(os.environ.get("GITHUB_STEP_SUMMARY", "/tmp/guide-observation.md"))
+          with summary.open("a") as out:
+              out.write("## Staff Guide production observation (read-only)\n\n")
+              out.write(f"Expected release: \`{expected}\`\n\n")
+              out.write("| Endpoint | HTTP | Release SHA | Details |\n|---|---|---|---|\n")
+              for result in results:
+                  details = "ready=" + str(result.get("ready")) if "ready" in result else (result.get("error") or "")
+                  out.write(f"| \`{result['path']}\` | {result['http_status']} | \`{result.get('release_sha') or '-'}\` | {details} |\n")
+              out.write(f"\n**Expected release running:** {'YES' if release_matched else 'NOT CONFIRMED'}\n\n")
+              out.write(f"**Anonymous guide API access denied:** {'YES' if private_boundary else 'NOT CONFIRMED'}\n")
+              out.write("\nThis check does not deploy software, authenticate, create documents, or test staff acknowledgments.\n")
+          PY
