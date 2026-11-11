@@ -95,5 +95,5 @@ test('staff training works before the real handbook is published', async ({ page
   await expect(page.getByText('No published guides match your search yet.')).toBeVisible();
   await page.getByTestId('start-handbook-training').click();
   await expect(page.getByRole('heading', { name: 'How to use the staff handbook' })).toBeVisible();
-  await expect(page.getByTestId('handbook-training')).toContainText('Practice Handbook');
+  await expect(page.getByTestId('handbook-training')).toContainText('short practice copy');
 });
