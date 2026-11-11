@@ -138,27 +138,27 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
       { label: "kitchen lead escalation or ingredient check", alternatives: ["lead", "verify", "notify", "check ingredients"] },
     ],
     example: 'DEMO-KITCHEN-052: hold service of the potentially affected plate, alert the kitchen lead and Front Desk/Café, verify ingredients and remake safely under protocol.',
-    why: 'Do not serve an unverified allergen risk. Immediate escalation prevents an avoidable guest safety incident.',
+    why: 'Do not serve food that may contain the guest’s allergen. Tell the kitchen lead immediately.',
   },
   {
     id: 'security-access', level: 4, department: 'Security',
     title: 'Unverified visitor at the property gate',
     situation: 'A fictional visitor requests entry to a restricted maintenance area without a verified appointment.',
-    goal: 'Maintain site access control and create a traceable escalation.',
-    context: ['Reference: DEMO-GATE-009', 'No verified authorization appears in the visitor log', 'Visitor requests immediate access'],
+    goal: 'Check whether the visitor has permission to enter, and tell the Security lead.',
+    context: ['Reference: DEMO-GATE-009', 'The visitor log does not show that permission was given', 'Visitor requests immediate access'],
     priority: 'High', route: 'Security', decision: 'Escalate immediately', reference: 'DEMO-GATE-009',
     noteChecks: [
       { label: "restricting access pending authorization", alternatives: ["do not admit", "deny", "restrict", "authorization", "verify access"] },
       { label: "the security handoff or log", alternatives: ["lead", "log", "document", "notify"] },
     ],
     example: 'DEMO-GATE-009: do not admit visitor to restricted area until authorization is verified. Notify Security lead and document time and outcome.',
-    why: 'Permission must be verified before access. Never rely on claimed authority alone.',
+    why: 'Check permission before letting the visitor in. Ask the Security lead if you are unsure.',
   },
   {
     id: 'maintenance-leak', level: 4, department: 'Maintenance',
     title: 'Water leak near an electrical outlet',
     situation: 'A fictional maintenance report places water close to an electrical outlet in Room 209.',
-    goal: 'Recognize the combined water and electrical hazard, prevent exposure and escalate.',
+    goal: 'Keep people away from the water and outlet, and tell a qualified person immediately.',
     context: ['Reference: DEMO-ROOM-209', 'Water is present near an outlet', 'Electrical safety has not been assessed'],
     priority: 'Critical', route: 'Maintenance', decision: 'Escalate immediately', reference: 'DEMO-ROOM-209',
     noteChecks: [
@@ -200,7 +200,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     id: 'manager-evidence', level: 4, department: 'Management', managerOnly: true,
     title: 'Approval request without supporting evidence',
     situation: 'A fictional repair purchase DEMO-REQ-088 requires approval, but it lacks a quotation and clear justification.',
-    goal: 'Make a defensible decision based on evidence and document what is missing.',
+    goal: 'Check the request and say what information is missing before making a decision.',
     context: ['Reference: DEMO-REQ-088', 'No quotation is attached', 'Amount and necessity are not confirmed'],
     priority: 'High', route: 'Management', decision: 'Return for changes', reference: 'DEMO-REQ-088',
     noteChecks: [
@@ -208,13 +208,13 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
       { label: "the missing amount or justification", alternatives: ["amount", "cost", "justification", "necessary", "requester"] },
     ],
     example: 'DEMO-REQ-088: return the request for a quotation, itemized amount, urgency justification and responsible requester before approval.',
-    why: 'Approval should be evidence-based. Missing information is a reason to request changes, not to bypass controls.',
+    why: 'The reviewer needs the missing price and reason before deciding whether to approve.',
   },
   {
     id: 'manager-guest-recovery', level: 5, department: 'Management', managerOnly: true,
     title: 'Repeated unresolved guest complaint',
     situation: 'The same fictional guest has reported the DEMO-GUEST-012 service failure twice after a promised resolution.',
-    goal: 'Own the escalation and verify actual resolution before closing.',
+    goal: 'Ask a lead to handle the complaint and check with the guest before closing it.',
     context: ['Reference: DEMO-GUEST-012', 'Guest previously received an unfulfilled promise', 'Root cause is not yet verified'],
     priority: 'Critical', route: 'Management', decision: 'Escalate immediately', reference: 'DEMO-GUEST-012',
     noteChecks: [
@@ -222,7 +222,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
       { label: "guest confirmation or follow-up", alternatives: ["guest", "follow up", "document", "confirm", "closure"] },
     ],
     example: 'DEMO-GUEST-012: review prior attempts, assign a named lead, confirm the remedy with the guest and track documented verification before closure.',
-    why: 'Repeated service failure needs management ownership, a recovery action, and an evidence-backed follow-up.',
+    why: 'A lead needs to take responsibility, help the guest and check that the problem is resolved.',
   },
   {
     id: 'bar-low-stock', level: 2, department: 'Bar', title: 'Mocktail syrup almost finished',
@@ -344,7 +344,7 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
     errors.department = 'Choose the team best placed to own the next action.';
   }
   if (answers.decision !== scenario.decision) {
-    errors.decision = 'Choose an action supported by the situation and available evidence.';
+    errors.decision = 'Choose an action that fits what you know about the situation.';
   }
   const note = answers.note.toLowerCase().replace(/\s+/g, ' ').trim();
   const uniqueWords = new Set(note.match(/[a-z]{2,}/g) || []);
@@ -358,7 +358,7 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
     );
     if (missing.length) {
       errors.note = 'Your note does not clearly explain ' + missing.map(check => check.label).join(' and ') +
-        '. Add a specific, actionable explanation using your own words.';
+        '. Add what the next person should do, in your own words.';
     }
   }
   if ((scenario.level || 1) >= 3) {
@@ -368,13 +368,13 @@ export function assessPractice(scenario: PracticeScenario, answers: PracticeAnsw
     const responsibleRole = /\b(?:on[- ]duty|lead|supervisor|manager|technician|guard|cook|chef|barista|receptionist|housekeeper|security|maintenance|front desk|housekeeping|café|cafe|kitchen|marketing|management|admin|assigned|designated|team|department|shift)\b/i;
     if (owner.length < 4 || /^(anyone|someone|unknown|nobody|n\/a|tbd|none)$/i.test(owner) ||
         !responsibleRole.test(owner)) {
-      errors.owner = 'Specify an accountable fictional role or position (for example, the on-duty Front Desk lead), not a placeholder or a real employee identity.';
+      errors.owner = 'Name a fictional role responsible for the next step, such as the Front Desk lead on duty. Do not use a real employee’s name.';
     }
     const verifiableNextStep = /\b(?:check|verif|confirm|inspect|call|contact|notify|update|report|review|reassess|document|revisit|reconcil|test|record|follow|monitor|audit|log|count|correct|replace|remake|provide|secure|handover|return|submit|inform|reopen|assign|escalate|acknowledg|respond|schedule|measure|trace|isolate|arrange|conduct|discard|quarantine)\w*\b/i;
     if (nextCheck.length < 20 ||
         new Set(nextCheck.toLowerCase().match(/[a-z]{2,}/g) || []).size < 4 ||
         !verifiableNextStep.test(nextCheck)) {
-      errors.followUp = 'Specify an actionable next check, update, inspection or verification—not just a vague promise to handle it later.';
+      errors.followUp = 'Say what needs checking or who needs an update, rather than only saying it will be handled later.';
     }
   }
   return { passed: Object.keys(errors).length === 0, errors, score: 6 - Object.keys(errors).length };

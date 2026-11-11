@@ -525,7 +525,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   return <>
     <button type="button" className="ops-guide-launch" data-testid="interactive-training-open"
-      aria-label="Open interactive training" onClick={() => {
+      aria-label={paused ? 'Resume lesson' : 'Open interactive training'} onClick={() => {
         if (paused) { setLessonPaused(false); return; }
         if (course && ['learn', 'quiz'].includes(course.stage)) return;
         exit(); setMenuOpen(true);
