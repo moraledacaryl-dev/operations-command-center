@@ -160,3 +160,50 @@ def tidy_completed_launch(state: Path) -> None:
     if _journal(data).exists():
         _assert_journal(data)
         _journal(data).unlink()
+
+
+def upgrade_existing_training_database(state: Path, database: Path, backend_root: Path) -> bool:
+    """Back up an initialized private training DB before applying new migrations."""
+    import sqlite3
+    from alembic import command
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    state, database = state.resolve(), database.resolve()
+    if os.environ.get('ENVIRONMENT') != 'local' or os.environ.get('ALLOW_DEMO_SEED') != 'false':
+        _refuse('existing database upgrade requires isolated local training')
+    if database.parent != (state / 'data').resolve() or not database.name.startswith('operations_training_demo_') or database.suffix != '.sqlite':
+        _refuse('unexpected existing training database')
+    if not (state / 'data' / '.initialized').is_file() or not (state / 'private' / 'accounts' / 'PRIVATE_training_accounts.json').is_file():
+        _refuse('initialized database and account manifest are required')
+    if os.environ.get('DATABASE_URL') != 'sqlite:///' + database.as_posix():
+        _refuse('database URL does not match the private training database')
+    cfg = Config(str(backend_root / 'alembic.ini'))
+    cfg.set_main_option('script_location', str(backend_root / 'alembic'))
+    head = ScriptDirectory.from_config(cfg).get_current_head()
+    source = sqlite3.connect('file:' + database.as_posix() + '?mode=ro', uri=True)
+    try:
+        versions = source.execute('SELECT version_num FROM alembic_version').fetchall()
+        if len(versions) != 1:
+            _refuse('training schema version is missing or ambiguous')
+        if versions[0][0] == head:
+            return False
+        backup_dir = state / 'private' / 'backups'
+        if backup_dir.is_symlink():
+            _refuse('backup directory is a symbolic link')
+        backup_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        backup = backup_dir / ('before-upgrade-' + secrets.token_hex(8) + '.sqlite')
+        fd = os.open(backup, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.close(fd)
+        target = sqlite3.connect(backup)
+        try:
+            source.backup(target)
+            if target.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+                _refuse('training backup integrity check failed')
+        finally:
+            target.close()
+    finally:
+        source.close()
+    # Never delete the backup: it is the recovery copy if migration fails.
+    command.upgrade(cfg, 'head')
+    return True
