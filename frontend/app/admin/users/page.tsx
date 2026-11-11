@@ -170,15 +170,15 @@ export default function UsersPage() {
           <label className="label">Username or email<input className="input" type="text" autoComplete="off" value={createForm.email} onChange={event => setCreateForm({ ...createForm, email: event.target.value })} /></label>
           <label className="label">Role<select className="select" value={createForm.role} onChange={event => setCreateForm({ ...createForm, role: event.target.value })}>{['owner', 'admin', 'manager', 'lead', 'supervisor', 'staff'].map(role => <option key={role}>{role}</option>)}</select></label>
           <label className="label">Primary department<select className="select" value={createForm.department_id} onChange={event => setCreateForm({ ...createForm, department_id: event.target.value })}><option value="">Optional</option>{meta.departments?.map((department: Entity) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
-          <label className="label">Temporary password<input className="input" type="password" value={createForm.password} onChange={event => setCreateForm({ ...createForm, password: event.target.value })} /></label>
+          <p className="muted">The employee must change this password when they first sign in.</p><label className="label">Temporary password<input className="input" type="password" value={createForm.password} onChange={event => setCreateForm({ ...createForm, password: event.target.value })} /></label>
           <label className="label inline"><input type="checkbox" checked={!!createForm.is_active} onChange={event => setCreateForm({ ...createForm, is_active: event.target.checked })} /> Active account</label>
         </div>
         <div className="toolbar"><button className="btn" disabled={busy || !createForm.name || !createForm.email || !createForm.password} onClick={createUser}>{busy ? 'Creating…' : 'Create account'}</button></div>
       </section> : null}
 
       {mode === 'reset' ? <section className="panel">
-        <h2>Reset {selected?.name || 'user'} password</h2><p className="muted">This signs the employee out. Give the new password only to them.</p>
-        <label className="label">New password<input className="input" type="password" value={resetForm.new_password} onChange={event => setResetForm({ ...resetForm, new_password: event.target.value })} /></label>
+        <h2>Reset {selected?.name || 'user'} password</h2><p className="muted">This signs the employee out. Give the temporary password only to them. They must change it when they sign in.</p>
+        <label className="label">Temporary password<input className="input" type="password" value={resetForm.new_password} onChange={event => setResetForm({ ...resetForm, new_password: event.target.value })} /></label>
         <div className="toolbar"><button className="btn" disabled={busy || !resetForm.new_password} onClick={resetPassword}>{busy ? 'Resetting…' : 'Confirm password reset'}</button></div>
       </section> : null}
 

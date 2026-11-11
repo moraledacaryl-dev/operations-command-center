@@ -105,7 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [signingOut, setSigningOut] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => { try { setCompact(localStorage.getItem('ops-sidebar-compact') === 'true'); } catch { /* Storage is optional. */ } }, []);
-  const isLogin = path === '/login';
+  const isLogin = path === '/login' || path === '/change-password';
   const trainingMode = process.env.NEXT_PUBLIC_TRAINING_MODE === 'true';
   const homeNavigationItems: NavItem[] = trainingMode ? [{ href: '/training', label: 'Hands-on Training', icon: 'check' }, ...homeItems] : homeItems;
   const isKnownRoute = ['/', '/account', '/tasks', '/departments', '/projects', '/review', '/requests', '/shift', '/guests', '/fixes', '/rooms', '/housekeeping', '/bar', '/posts', '/history', '/notifications', '/approvals', '/approve', '/my-work', '/staff-guide', '/admin', ...(trainingMode ? ['/training'] : [])].some(route => route === '/' ? path === '/' : path === route || path.startsWith(`${route}/`));
@@ -113,13 +113,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = getStoredUser();
     if (path === '/training' && trainingMode && !stored) router.replace('/login?next=/training');
+    if (stored?.must_change_password && path !== '/change-password' && path !== '/login') router.replace('/change-password');
     setUser(stored);
     setDeptId(getCurrentDepartmentId(stored));
     setMobileOpen(false);
   }, [path, router, trainingMode]);
 
   useEffect(() => {
-    if (!user) { setUnreadCount(0); return; }
+    if (!user || user.must_change_password) { setUnreadCount(0); return; }
     let cancelled = false;
     const refresh = () => { if (document.visibilityState !== 'visible') return; return api.notifications({ unread_only: true, limit: 1 }).then(page => { if (!cancelled) setUnreadCount(Number(page.unread_count || 0)); }).catch(() => undefined); };
     void refresh();
@@ -209,6 +210,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (isLogin) return <>{children}</>;
+  if (user?.must_change_password) return null;
   if (!isKnownRoute) return <>{children}</>;
   if (!user) return <SignInRequired />;
 

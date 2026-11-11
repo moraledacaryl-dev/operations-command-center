@@ -31,6 +31,7 @@ class AdminUserResponse(OperationalUserResponse):
     is_active: bool
     last_login_at: datetime | None = None
     password_set_at: datetime | None = None
+    must_change_password: bool = False
 
 
 class CurrentUserResponse(AdminUserResponse):
@@ -101,6 +102,7 @@ def admin_user(db: Session, user: models.User) -> AdminUserResponse:
         is_active=bool(user.is_active),
         last_login_at=user.last_login_at,
         password_set_at=user.password_set_at,
+        must_change_password=bool(user.must_change_password),
     )
 
 

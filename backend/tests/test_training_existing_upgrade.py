@@ -54,7 +54,7 @@ def test_upgrade_takes_private_backup_and_keeps_records(old_training):
         with sqlite3.connect(backups[0]) as con:
             assert con.execute('SELECT note FROM saved_practice').fetchone()[0]=='keep this'
             assert con.execute('SELECT version_num FROM alembic_version').fetchone()[0]=='0014_room_stays'
-        with sqlite3.connect(db) as con: con.execute("UPDATE alembic_version SET version_num='0016_staff_guide'")
+        with sqlite3.connect(db) as con: con.execute("UPDATE alembic_version SET version_num='0017_password_change_required'")
     with patch('alembic.command.upgrade', side_effect=fake_upgrade):
         assert upgrade_existing_training_database(state, db, ROOT)
         assert not upgrade_existing_training_database(state, db, ROOT)
