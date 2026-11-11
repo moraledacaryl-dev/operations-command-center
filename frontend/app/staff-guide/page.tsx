@@ -150,8 +150,8 @@ export default function StaffGuidePage() {
   }
 
   async function importHandbook(file: File) {
-    if (file.size > 18 * 1024 * 1024) {
-      setError('Choose a PDF smaller than 18 MB.');
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Choose a PDF smaller than 10 MB.');
       return;
     }
     await run(async () => {
@@ -347,7 +347,7 @@ export default function StaffGuidePage() {
         <p>Choose the original PDF. The system converts chapters, instructions and lists into a searchable handbook with a clickable table of contents.</p>
         <p><strong>Private draft only:</strong> No employee notification is sent until management approves and publishes the handbook.</p>
       </div>
-      <label htmlFor="handbook-import-pdf" className={styles.importLabel}>Choose handbook PDF (up to 18 MB)
+      <label htmlFor="handbook-import-pdf" className={styles.importLabel}>Choose handbook PDF (up to 10 MB)
         <input id="handbook-import-pdf" type="file" accept=".pdf,application/pdf" disabled={busy}
           onChange={event => {
             const uploaded = event.target.files?.[0];

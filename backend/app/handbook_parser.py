@@ -11,7 +11,7 @@ import re
 import fitz
 
 SCHEMA = "hidden-oasis-handbook/v1"
-MAX_BYTES = 18 * 1024 * 1024
+MAX_BYTES = 10 * 1024 * 1024
 MAX_PAGES = 160
 MAX_CHARS = 250_000
 
@@ -81,7 +81,7 @@ def parse_handbook_pdf(raw: bytes) -> dict:
     document structure instead of silently accepting corrupted extraction.
     """
     if not raw or len(raw) > MAX_BYTES:
-        raise ValueError("Choose a PDF smaller than 18 MB.")
+        raise ValueError("Choose a PDF smaller than 10 MB.")
     if not raw.startswith(b"%PDF-"):
         raise ValueError("This file is not a PDF.")
     try:

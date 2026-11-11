@@ -117,7 +117,7 @@ export function HandbookReader({ body, draft = false, instance = 'main' }: { bod
     <header className={styles.heading}>
       <div className={styles.eyebrow}>HIDDEN OASIS · STAFF HANDBOOK</div>
       <h3>{handbook.title}</h3>
-      <p>{handbook.edition} edition · {handbook.chapters.length - 1} main chapters · {count} indexed topics</p>
+      <p>{handbook.edition} edition · {handbook.chapters.filter(ch => ch.number !== 'ack').length} main chapters · {count} indexed topics</p>
       {draft ? <div className={styles.draft}>Management preview — not yet published to employees</div> : null}
     </header>
     <div className={styles.search}>

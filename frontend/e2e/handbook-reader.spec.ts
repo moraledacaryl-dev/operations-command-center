@@ -83,7 +83,7 @@ test('phone handbook scrolls continuously and searches content', async ({ page }
 test('only owner sees private PDF import action', async ({ page }) => {
   await setup(page);
   await page.goto('/staff-guide');
-  await expect(page.getByLabel('Choose handbook PDF (up to 18 MB)')).toHaveCount(0);
+  await expect(page.getByLabel('Choose handbook PDF (up to 10 MB)')).toHaveCount(0);
 });
 
 test('owner may prepare a PDF draft from management screen', async ({ page }) => {
@@ -91,7 +91,7 @@ test('owner may prepare a PDF draft from management screen', async ({ page }) =>
   await page.goto('/staff-guide');
   await page.getByRole('button', { name: 'Manage Guides' }).click();
   await expect(page.getByText('Import the staff handbook')).toBeVisible();
-  await page.getByLabel('Choose handbook PDF (up to 18 MB)').setInputFiles({
+  await page.getByLabel('Choose handbook PDF (up to 10 MB)').setInputFiles({
     name: 'staff-handbook.pdf', mimeType: 'application/pdf',
     buffer: Buffer.from('%PDF-1.7\nsynthetic UI fixture'),
   });
