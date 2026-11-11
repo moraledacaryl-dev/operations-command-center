@@ -11,7 +11,7 @@ const QUESTIONS: readonly Question[] = [
     question: 'Where do you find the official employee handbook?',
     options: ['In Staff Guide, under Available guides or My Reading', 'In the payroll deductions screen', 'In a coworker’s account'],
     answer: 0,
-    explanation: 'Staff Guide has the approved handbook. My Reading shows policies you must confirm.',
+    explanation: 'Staff Guide shows the handbook after it is published. My Reading shows policies you must confirm.',
   },
   {
     question: 'You need to find the rule about being late. What do you do?',
@@ -133,7 +133,7 @@ export function StaffHandbookTraining({ identity = 'guest', onClose }: { identit
       <h3>Where do I open the real handbook?</h3>
       <ol>
         <li>Sign in to Hidden Oasis Operations with your own account.</li>
-        <li>Open <strong>Staff Guide</strong>. Choose <strong>Available guides</strong> to browse approved documents, or <strong>My Reading</strong> to see those you need to confirm.</li>
+        <li>Open <strong>Staff Guide</strong>. Under <strong>Guides &amp; What’s New</strong>, look for <strong>Available guides</strong>. Choose <strong>My Reading</strong> to see guides you need to confirm.</li>
         <li>Select the published <strong>Staff Handbook</strong>. If it is missing, ask your supervisor; it may not have been published yet.</li>
         <li>Use <strong>Contents</strong> to jump to a chapter, or <strong>Search inside this handbook</strong> to find a word. Choose a result to jump to that section.</li>
         <li>Read the full policy. If something is unclear, ask your supervisor. When you are done, select <strong>I have read and understood</strong> below the official handbook if confirmation is required.</li>
@@ -180,7 +180,7 @@ export function StaffHandbookTraining({ identity = 'guest', onClose }: { identit
     {stage === 'done' ? <div className={styles.complete} data-testid="handbook-training-done" role="status">
       <h3>Handbook practice complete</h3>
       <p>You practised opening a topic using Search, jumping with Contents, and identifying the confirmation step.</p>
-      <p><strong>Next in the real app:</strong> Close this training, open the published handbook under Staff Guide, read its actual policies, and confirm the published version when asked. Your practice result is not the real handbook acknowledgment.</p>
+      <p><strong>Next in the real app:</strong> Close this training and open the published handbook in Staff Guide. Read it and confirm it when asked. If you cannot find it, ask your supervisor. This practice does not count as your confirmation.</p>
       <div className={styles.actions}>
         <button type="button" className={styles.secondary} onClick={reset}>Repeat handbook lesson</button>
         {onClose ? <button type="button" className={styles.primary} onClick={onClose}>Back to Staff Guide</button> : null}
