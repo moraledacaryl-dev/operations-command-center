@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api, Entity } from '@/lib/api';
 import { Top } from '@/components/Top';
 import { SectionHeading } from '@/components/WorkCard';
@@ -27,11 +28,14 @@ export default function MyWorkPage() {
   const [payload, setPayload] = useState<Entity | null>(null);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [error, setError] = useState('');
+  const [readingCount, setReadingCount] = useState(0);
 
   useEffect(() => {
     api.list('my-work')
       .then(result => setPayload(result as unknown as Entity))
       .catch((err: Error) => setError(err.message || 'My work could not be loaded.'));
+    api.staffGuideMine().then(items => setReadingCount(items.filter(item => !item.acknowledged).length))
+      .catch(() => undefined);
   }, []);
 
   const groups = payload?.groups || {};
@@ -40,6 +44,11 @@ export default function MyWorkPage() {
     <Top title="My work" />
     {error ? <div className="pill urgent" role="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
     {!payload && !error ? <div className="empty">Loading your work…</div> : null}
+
+    {readingCount > 0 ? <section className="ops-agenda-section" aria-label="Required reading">
+      <SectionHeading title="Policies to read" icon="book" count={readingCount} />
+      <Link className="btn" href="/staff-guide">Open Staff Guide · {readingCount} to confirm</Link>
+    </section> : null}
 
     <WorkspaceStats items={[
       { label: 'Past due', value: payload ? (groups.overdue || []).length : null, icon: 'clock', attention: true },

@@ -121,6 +121,26 @@ async function allCursorPages(path: string, params: Record<string, any> = {}): P
 }
 
 export const api = {
+  staffGuideList: (q = '') => request<Entity[]>('/staff-guide?q=' + encodeURIComponent(q)),
+  staffGuideMine: () => request<Entity[]>('/staff-guide/mine'),
+  staffGuideManage: () => request<Entity[]>('/staff-guide/manage'),
+  staffGuideGet: (id: number) => request<Entity>('/staff-guide/' + id),
+  staffGuideCreate: (payload: Entity) => request<Entity>('/staff-guide', { method: 'POST', body: JSON.stringify(payload) }),
+  staffGuideEdit: (id: number, payload: Entity) => request<Entity>('/staff-guide/' + id, { method: 'PATCH', body: JSON.stringify(payload) }),
+  staffGuideSubmit: (id: number) => request<Entity>('/staff-guide/' + id + '/submit', { method: 'POST' }),
+  staffGuideApprove: (id: number) => request<Entity>('/staff-guide/' + id + '/approve', { method: 'POST' }),
+  staffGuidePublish: (id: number) => request<Entity>('/staff-guide/' + id + '/publish', { method: 'POST', body: JSON.stringify({ due_days: 7 }) }),
+  staffGuideAcknowledge: (id: number) => request<Entity>('/staff-guide/' + id + '/acknowledge', { method: 'POST' }),
+  staffGuideReaders: (id: number) => request<Entity[]>('/staff-guide/' + id + '/readers'),
+  staffGuideHistory: (id: number) => request<Entity[]>('/staff-guide/' + id + '/history'),
+  staffGuideRetire: (id: number) => request<Entity>('/staff-guide/' + id + '/retire', { method: 'POST' }),
+  staffGuideUpload: (id: number, file: File) => {
+    const body = new FormData();
+    body.append('file', file);
+    return request<Entity>('/staff-guide/' + id + '/attachments', { method: 'POST', body });
+  },
+  staffGuideRemoveFile: (id: number, fileId: number) => request<void>('/staff-guide/' + id + '/attachments/' + fileId, { method: 'DELETE' }),
+  staffGuideDownloadFile: (fileId: number, filename: string) => download('/staff-guide/attachments/' + fileId + '/download', filename),
   projectWorkspace: (id: number) => request<Entity>(`/project-workspaces/${id}`),
   projectDiscussion: (id: number, data: Entity) => request<Entity>(`/project-workspaces/${id}/discussion`, { method: 'POST', body: JSON.stringify(data) }),
   projectVote: (id: number, commentId: number, voted: boolean) => request<Entity>(`/project-workspaces/${id}/discussion/${commentId}/vote`, { method: 'POST', body: JSON.stringify({ voted }) }),

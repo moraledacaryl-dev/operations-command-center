@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from .. import foundation_models as foundation
 from .. import models
+from ..staff_guide_models import GuideDocument
+from ..staff_guide_service import visible_guide_query
 from ..clock import utc_now
 from ..authorization_policy import MODEL_RESOURCE_NAMES, scope_query
 from ..database import get_db
@@ -40,6 +42,22 @@ def _visible_notifications(db: Session, user: models.User):
         visible.append(and_(
             notification.source_type == resource,
             source.filter(cast(model.id, String) == notification.source_id).exists(),
+        ))
+    # Staff Guide uses a versioned multi-department audience, not a single
+    # department_id. Recheck the current published revision before exposing a
+    # stored notification title, including after department membership changes.
+    guide_ids = visible_guide_query(db, user).with_entities(GuideDocument.id)
+    visible.append(and_(
+        notification.source_type == "staff-guide",
+        guide_ids.filter(cast(GuideDocument.id, String) == notification.source_id).exists(),
+    ))
+    # Draft-review notices are visible only to currently authorized publishers.
+    # A revoked owner/admin role cannot read old privileged notification text.
+    if str(user.role or "").lower() in {"owner", "admin"}:
+        review_ids = db.query(GuideDocument.id).filter(GuideDocument.retired_at.is_(None))
+        visible.append(and_(
+            notification.source_type == "staff-guide-review",
+            review_ids.filter(cast(GuideDocument.id, String) == notification.source_id).exists(),
         ))
     return db.query(notification).filter(notification.user_id == user.id, or_(*visible))
 

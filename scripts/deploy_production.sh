@@ -210,10 +210,14 @@ chmod -R a-w "$RELEASE"
 
 install -m 0644 "$RELEASE/deployment/systemd/operations-backend.service" /etc/systemd/system/operations-backend.service
 install -m 0644 "$RELEASE/deployment/systemd/operations-frontend.service" /etc/systemd/system/operations-frontend.service
+install -m 0644 "$RELEASE/deployment/systemd/operations-guide-reminders.service" /etc/systemd/system/operations-guide-reminders.service
+install -m 0644 "$RELEASE/deployment/systemd/operations-guide-reminders.timer" /etc/systemd/system/operations-guide-reminders.timer
 ln -sfn "$RELEASE" "$CURRENT"
 ACTIVATED=true
 systemctl daemon-reload
 systemctl enable "$BACKEND_SERVICE" "$FRONTEND_SERVICE"
+systemctl enable --now operations-guide-reminders.timer
+systemctl is-active --quiet operations-guide-reminders.timer
 systemctl restart "$BACKEND_SERVICE" "$FRONTEND_SERVICE"
 systemctl is-active --quiet "$BACKEND_SERVICE"
 systemctl is-active --quiet "$FRONTEND_SERVICE"

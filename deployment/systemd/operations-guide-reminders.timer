@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily check for overdue Hidden Oasis Staff Guide reading
+
+[Timer]
+OnCalendar=*-*-* 09:00:00 Asia/Manila
+RandomizedDelaySec=5min
+Persistent=true
+Unit=operations-guide-reminders.service
+
+[Install]
+WantedBy=timers.target
