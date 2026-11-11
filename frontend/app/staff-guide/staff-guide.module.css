@@ -50,3 +50,10 @@
 .history { margin-top: 18px; }
 .history details { border: 1px solid #cbd5d4; padding: 12px; border-radius: 8px; margin: 10px 0; }
 .history summary { cursor: pointer; font-weight: 600; }
+
+.importBox { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: center; border: 1px solid #bad0c8; background: #f3f8f4; border-radius: 12px; padding: 18px; margin: 12px 0 22px; }
+.importBox h2 { font-size: 1.1rem; margin: 0 0 9px; color: #215550; }
+.importBox p { margin: 7px 0; font-size: .9rem; line-height: 1.55; }
+.importLabel { font-size: .86rem; font-weight: 700; color: #244f4b; display: flex; flex-direction: column; gap: 8px; }
+.importLabel input { width: 100%; max-width: 100%; font: inherit; padding: 9px; border: 1px solid #90aca5; border-radius: 7px; background: white; }
+@media(max-width:650px){.importBox { grid-template-columns: 1fr; padding: 14px; }}
