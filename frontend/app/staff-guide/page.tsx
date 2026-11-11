@@ -180,8 +180,10 @@ export default function StaffGuidePage() {
       <button type="button" className="btn secondary" onClick={() => setSelected(null)}>Back to list</button>
       {current ? <>
         <p className={styles.meta}>{current.doc_type} · {current.category} · Version {current.version} · Published {dateLabel(current.published_at)}</p>
-        <h2>{current.title}</h2>
-        {current.summary ? <p className={styles.summary}>{current.summary}</p> : null}
+        {current.doc_type !== 'Handbook' ? <>
+          <h2>{current.title}</h2>
+          {current.summary ? <p className={styles.summary}>{current.summary}</p> : null}
+        </> : null}
         {current.doc_type === 'Handbook' ? <HandbookReader body={current.body} instance="published" /> :
           <div className={styles.body}>{current.body}</div>}
         {current.attachments?.length ? <div className={styles.files}>
@@ -204,7 +206,7 @@ export default function StaffGuidePage() {
       {currentDraft ? <section className={styles.preview}>
         <h3>Working copy · {selected.status}</h3>
         <p className={styles.meta}>This text is not shown to regular staff until published.</p>
-        <strong>{currentDraft.title}</strong>
+        {currentDraft.doc_type !== 'Handbook' ? <strong>{currentDraft.title}</strong> : null}
         {currentDraft.doc_type === 'Handbook' ? <HandbookReader body={currentDraft.body} instance="draft" draft /> :
           <div className={styles.body}>{currentDraft.body}</div>}
         <div className={styles.files}>

@@ -72,6 +72,7 @@ export function HandbookReader({ body, draft = false, instance = 'main' }: { bod
   const [active, setActive] = useState('');
 
   const search = query.trim().toLocaleLowerCase();
+  const highlightQuery = search.length >= 2 ? query : '';
   const hits = useMemo<Hit[]>(() => {
     if (!handbook || search.length < 2) return [];
     return handbook.chapters.flatMap(chapter => chapter.sections
@@ -173,9 +174,9 @@ export function HandbookReader({ body, draft = false, instance = 'main' }: { bod
               <h6>{section.number ? section.number + ' ' : ''}{section.title}</h6> :
               <h5>{section.number ? section.number + ' ' : ''}{section.title}</h5>}
             {section.blocks.map((block, idx) => block.type === 'paragraph' ?
-              <p key={idx}>{highlighted(block.text, query)}</p> :
+              <p key={idx}>{highlighted(block.text, highlightQuery)}</p> :
               <ul key={idx}>{block.items.map((item, itemIndex) =>
-                <li key={itemIndex}>{highlighted(item.text, query)}</li>)}</ul>)}
+                <li key={itemIndex}>{highlighted(item.text, highlightQuery)}</li>)}</ul>)}
           </section>)}
         </section>)}
         <div className={styles.end}>
