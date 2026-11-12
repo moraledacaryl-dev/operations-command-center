@@ -41,6 +41,8 @@ test('staff see only their own food and drink team link', async ({ page }) => {
   await nav.getByRole('link', { name: 'Kitchen', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Kitchen', exact: true })).toBeVisible();
   await expect(page.getByText('Kitchen task')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'View tasks' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'New task' })).toHaveCount(0);
 });
 
 test('staff with Café, Kitchen and Bar access can switch without mixing team work', async ({ page }) => {
@@ -64,6 +66,9 @@ test('managers with property-wide access can find all three areas', async ({ pag
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
   for (const name of ['Café', 'Kitchen', 'Bar']) await expect(nav.getByRole('link', { name, exact: true })).toBeVisible();
+  await nav.getByRole('link', { name: 'Kitchen', exact: true }).click();
+  await expect(page.getByText('Kitchen task')).toBeVisible();
+  await expect(page.locator('.ops-workspace-picker select')).toHaveValue('10');
 });
 
 
