@@ -6,7 +6,10 @@ import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { availableTrainingLessons, TRAINING_LESSONS } from '@/lib/interactive-training';
 import type { TrainingStep } from '@/lib/interactive-training';
-import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
+import { COURSE_STORAGE_PREFIX, courseGuideFor, readCourseProgress } from '@/lib/training-course';
+import { ROOM_PRACTICE_FINISHED } from '@/lib/training-room-mission';
+import { SHIFT_PRACTICE_FINISHED } from '@/lib/training-shift-mission';
+import { ROOM_ARRIVAL_FINISHED } from '@/components/RoomArrivalPractice';
 import { PRACTICE_PLANS } from '@/lib/training-practice-plans';
 import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
@@ -106,13 +109,31 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [tipPosition, setTipPosition] = useState<Position | null>(null);
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');
+  const isFrontDeskStaff = String(user.role).toLowerCase() === 'staff' &&
+    Array.isArray(user.departments) && user.departments.some((dept: Entity) =>
+      String(dept.name || '').toLowerCase() === 'front desk');
   const storageKey = COMPLETION_PREFIX + identity;
   const courseKey = COURSE_STORAGE_PREFIX + identity;
   const latestLessons = useRef(lessons);
   latestLessons.current = lessons;
   const courseLesson = course && lessons.find(item => item.id === course.lessonId);
-  const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
-  const practicePlan = courseLesson ? PRACTICE_PLANS[courseLesson.id] : undefined;
+  const primaryDepartment = user.departments?.find((dept: Entity) => Number(dept.id) === Number(user.primary_department_id)) || user.departments?.[0];
+  const courseGuide = courseLesson ? courseGuideFor(courseLesson.id, String(primaryDepartment?.name || ''), isFrontDeskStaff) : undefined;
+  const basePlan = courseLesson ? PRACTICE_PLANS[courseLesson.id] : undefined;
+  const practicePlan = basePlan && courseLesson?.id === 'room-arrivals' && isFrontDeskStaff
+    ? { ...basePlan, goal: 'Record a practice arrival and departure, then try another room yourself.',
+        show: 'Use Record check-in when a fictional guest arrives. Record checkout when the guest leaves the same room.',
+        self: 'Complete check-in and checkout in two rooms. The first has an arrow; the second starts without one.',
+        checks: 'Both saved stays and the recording login are checked in the isolated training database.' }
+    : basePlan && courseLesson?.id === 'staff-rooms' && !isFrontDeskStaff
+    ? { ...basePlan, goal: 'Find guest rooms and shared areas without changing guest records.',
+        self: 'Switch between Guest rooms and Shared areas without arrows.',
+        checks: 'The app checks filter clicks. Your supervisor can confirm you read the right room records.' }
+    : basePlan && courseLesson?.id === 'staff-handover' && String(user.role).toLowerCase() === 'staff'
+    ? { ...basePlan, goal: 'Read two actual fictional handovers, then identify the saved status.',
+        self: 'Find a second handover without arrows and confirm its saved status.',
+        checks: 'Your answer is checked against the record in the isolated training database.' }
+    : basePlan;
   const repeatVariant = courseGuide?.repeatVariant && (course?.metrics?.[course?.lessonId || '']?.repeats || 0) % 2 === 1
     ? courseGuide.repeatVariant : undefined;
   const currentExample = repeatVariant?.example || courseGuide?.example;
@@ -167,6 +188,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   }
   const independentActions = course ? INDEPENDENT_CHECKS[course.lessonId] : null;
   const independentAction = course && independentActions?.[course.independentStep || 0];
+  const roomArrivalPractice = isFrontDeskStaff && course?.lessonId === 'room-arrivals';
 
   useEffect(() => {
     try {
@@ -187,8 +209,46 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   useEffect(() => {
     if (!course) return;
-    try { localStorage.setItem(courseKey, JSON.stringify(course)); } catch { /* no certificate */ }
+    try { localStorage.setItem(courseKey, JSON.stringify(course));
+      window.dispatchEvent(new Event('ho-training-course-changed')); } catch { /* no certificate */ }
   }, [courseKey, course]);
+
+  // On role-specific drills, only the dedicated coach signals verified
+  // completion after reading actual fictional records. Navigation is not proof.
+  useEffect(() => {
+    const complete = (lessonId: string, stage: 'room-practice' | 'shift-practice', hints = 0) =>
+      setCourse(current => current?.lessonId === lessonId && current.stage === stage ? {
+        ...current, stage: 'done',
+        passed: Array.from(new Set([...current.passed, lessonId])),
+        metrics: { ...(current.metrics || {}), [lessonId]: {
+          ...(current.metrics?.[lessonId] || {}), completedAt: new Date().toISOString(),
+          hintsViewed: (current.metrics?.[lessonId]?.hintsViewed || 0) + hints,
+        } },
+      } : current);
+    const onRoom = () => complete('staff-rooms', 'room-practice');
+    const onShift = () => complete('staff-handover', 'shift-practice');
+    const onArrival = (event: Event) => {
+      if (!isFrontDeskStaff) return;
+      const hints = Number((event as CustomEvent).detail?.hints);
+      setCourse(current => current?.lessonId === 'room-arrivals' && current.stage === 'independent' ? {
+        ...current, stage: 'done',
+        passed: Array.from(new Set([...current.passed, 'room-arrivals'])),
+        metrics: { ...(current.metrics || {}), 'room-arrivals': {
+          ...(current.metrics?.['room-arrivals'] || {}), completedAt: new Date().toISOString(),
+          hintsViewed: (current.metrics?.['room-arrivals']?.hintsViewed || 0) +
+            (Number.isInteger(hints) && hints > 0 ? hints : 0),
+        } },
+      } : current);
+    };
+    window.addEventListener(ROOM_PRACTICE_FINISHED, onRoom);
+    window.addEventListener(SHIFT_PRACTICE_FINISHED, onShift);
+    window.addEventListener(ROOM_ARRIVAL_FINISHED, onArrival);
+    return () => {
+      window.removeEventListener(ROOM_PRACTICE_FINISHED, onRoom);
+      window.removeEventListener(SHIFT_PRACTICE_FINISHED, onShift);
+      window.removeEventListener(ROOM_ARRIVAL_FINISHED, onArrival);
+    };
+  }, [isFrontDeskStaff]);
 
   // A resumed tour displays an explicit Resume button; closing the coach
   // must never restart a tour unexpectedly or mark the practical complete.
@@ -219,7 +279,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   // This is an unguided check using real, safe Operations controls. No
   // spotlight, Next button, or simulated click can pass it.
   useEffect(() => {
-    if (!course || paused || course.stage !== 'independent' || !independentAction) return;
+    if (!course || paused || roomArrivalPractice || course.stage !== 'independent' || !independentAction) return;
     if (path !== independentAction.path) {
       router.push(independentAction.path);
       return;
@@ -241,7 +301,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     };
     document.addEventListener(independentAction.type || 'click', onInteraction, true);
     return () => document.removeEventListener(independentAction.type || 'click', onInteraction, true);
-  }, [course, independentAction, path, router, paused]);
+  }, [course, independentAction, path, router, paused, roomArrivalPractice]);
 
   const lesson = active ? TRAINING_LESSONS.find(entry => entry.id === active.id) : undefined;
   const step: TrainingStep | undefined = lesson && active ? lesson.steps[active.index] : undefined;
@@ -330,6 +390,18 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setSelectedAnswer(null);
     setQuizFeedback('');
     setMenuOpen(false);
+    if (courseLesson.id === 'staff-handover' && String(user.role).toLowerCase() === 'staff') {
+      setActive(null);
+      setCourse({ ...course, stage: 'shift-practice', question: 0 });
+      router.push('/shift');
+      return;
+    }
+    if (courseLesson.id === 'staff-rooms' && isFrontDeskStaff) {
+      setActive(null);
+      setCourse({ ...course, stage: 'room-practice', question: 0 });
+      router.push('/rooms');
+      return;
+    }
     setActive({ id: courseLesson.id, index: 0 });
     setCourse({ ...course, stage: 'tour', question: 0, tourStep: 0 });
     router.push(courseLesson.steps[0]?.path || '/');
@@ -634,7 +706,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         }}>Resume step {(course.tourStep || 0) + 1} →</button>
       </section>
     </div>}
-    {!paused && course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
+    {!paused && course?.stage === 'independent' && !roomArrivalPractice && independentAction && <div className="ops-course-independent-status"
       data-testid="course-independent-challenge" role="status">
       <strong>Your turn · {1 + (course.independentStep || 0)} of 2 — No arrows</strong>
       {practicePlan && <p className="ops-practice-self-goal">{practicePlan.self}</p>}
