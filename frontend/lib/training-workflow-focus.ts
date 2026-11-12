@@ -71,7 +71,10 @@ function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPr
   const root = '[data-testid="create-' + type + '-form"]';
   const first = root + ' .form-grid > label:nth-child(1) input';
   const reference = 'Write a clear title that includes ' + session.reference + '.';
-  const title = { selector: first, label: 'Write a title', help: reference, minimum: session.reference.length + 8 };
+  const title = { selector: first, label: 'Write a title',
+    help: type === 'shift'
+      ? 'Write what is still pending AND add your practice number. Example: "Guest callback needed ' + session.reference + '". Copying only the number is not a complete title.'
+      : reference, minimum: session.reference.length + 8 };
   const field = (number: number, element: 'select' | 'input') =>
     root + ' .form-grid > label:nth-child(' + number + ') ' + element;
   const choice = (number: number, expected: string, label: string, guidance?: string): FieldPrompt =>
@@ -86,8 +89,8 @@ function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPr
       help: 'Choose a fictional teammate from Assigned to. Do not leave this as Unassigned.', expected: '!empty' },
   ];
   if (type === 'shift') return [
-    title, choice(3, 'Guest', 'Choose Guest category'), choice(4, 'Urgent', 'Decide how urgent the handover is', 'The guest is waiting for an update. Decide how soon the next shift needs to act.'),
-    note('Write the shift note'),
+    title, choice(3, 'Guest', 'Choose Guest category'), choice(4, 'Urgent', 'Decide how urgent the handover is', 'The guest is waiting for an update. Choose Urgent for this practice case.'),
+    { ...note('Write the shift note'), help: 'Write the guest concern, a responsible owner, and the next action. Example: "The guest is waiting for a repair update. The on-duty Front Desk lead is the responsible owner and will call the guest before the next shift."' },
   ];
   if (type === 'request') return [
     title, choice(2, 'Equipment', 'Choose Equipment type'), choice(3, 'Urgent', 'Decide the request urgency', 'Think about how soon the equipment is needed. The reviewer still needs to check the cost and quote.'),
