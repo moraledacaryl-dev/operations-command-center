@@ -59,7 +59,19 @@ test('portable reports reject malformed data and never restore saved-record less
 test('two independent actual page clicks are required before course can complete', async ({page})=>{
   await init(page,trainee,{lessonId:'orientation',stage:'independent',question:0,independentStep:0,passed:[]});
   await page.goto('/');
-  await expect(page.getByTestId('course-independent-challenge')).toContainText('No arrows');
+  const independent = page.getByTestId('course-independent-challenge');
+  await expect(independent).toContainText('No arrows');
+  await expect(independent).toContainText('Find My Work and your notifications without an arrow.');
+  await expect(independent.getByText('Need help finding it?')).toBeVisible();
+  await independent.getByText('Need help finding it?').click();
+  await expect(independent).toContainText('Follow the arrow to the menu');
+  // The instructions must be ABOVE the real Operations workspace, not at the bottom.
+  expect(await independent.evaluate(node => Boolean(
+    node.compareDocumentPosition(document.querySelector('#workspace-main')) &
+      Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  const instructionBox = await independent.boundingBox();
+  const workspaceBox = await page.locator('#workspace-main').boundingBox();
+  expect(instructionBox && workspaceBox && instructionBox.y < workspaceBox.y).toBeTruthy();
   await expect(page.getByTestId('course-completed')).toHaveCount(0);
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
   await expect(page).toHaveURL(/\/my-work$/);
