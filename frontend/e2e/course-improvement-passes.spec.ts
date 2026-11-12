@@ -8,7 +8,7 @@ const trainee = {
   role: 'staff', is_active: true, departments: [{ id: 41, name: 'Front Desk', is_primary: true }],
   primary_department_id: 41, capabilities: {},
 };
-const completed = ['orientation','staff-handover','staff-rooms','staff-my-work'];
+const completed = ['orientation','staff-handover','staff-rooms','room-arrivals','staff-my-work'];
 function reportFor(id = '8401') {
   return buildTrainingReport({
     lessonId: 'team-tasks', stage: 'learn', question: 0,
