@@ -81,6 +81,27 @@ test('two independent actual page clicks are required before course can complete
   await expect(page.getByTestId('course-completed')).toContainText('Lesson 1 completed');
 });
 
+test('importing an older completed staff report offers newly added role training without blocking', async ({page})=>{
+  await init(page,trainee,{lessonId:'orientation',stage:'learn',question:0,passed:[]});
+  await page.goto('/');
+  const completedOld = ['orientation','staff-handover','staff-rooms','staff-my-work'];
+  const report = buildTrainingReport({
+    lessonId:'staff-my-work',stage:'finished',question:0,passed:completedOld,
+  },{id:trainee.id,name:trainee.name,role:trainee.role},{},'2026-11-02T01:00:00Z');
+  const help = page.locator('details.ops-course-help').filter({hasText:'Need help with this lesson?'});
+  await help.locator('summary').click();
+  await help.locator('input[type=file]').setInputFiles({
+    name:'previous-training.json',mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify(report)),
+  });
+  await expect(page.getByTestId('required-training-course')).toHaveCount(0);
+  await expect(page.getByTestId('training-update-available')).toContainText('Arrivals, departures and room cleaning');
+  const restored = await page.evaluate(id=>JSON.parse(
+    localStorage.getItem('ho-ops-structured-course-v2:'+id)||'null'),trainee.id);
+  expect(restored.passed).toEqual(completedOld);
+  expect(restored.stage).toBe('finished');
+});
+
 test('manager can restore read-only lesson history but must recheck saved records', async ({page})=>{
   const manager = {...trainee,role:'manager',capabilities:{manage_department:true,make_decisions:true,view_all_operations:true}};
   await init(page,manager,{lessonId:'orientation',stage:'learn',question:0,passed:[]});
