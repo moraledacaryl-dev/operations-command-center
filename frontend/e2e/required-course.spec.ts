@@ -122,8 +122,8 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await page.reload();
   await expect(page.getByTestId('course-lesson-title')).toHaveCount(0);
   await expect(page.getByRole('dialog', { name: 'Resume required training' })).toBeVisible();
-  await page.getByRole('button', { name: /Resume practical lesson/ }).click();
-  await expect(coach).toContainText('Your start page');
+  await page.getByRole('button', { name: 'Resume step 3' }).click();
+  await expect(coach).toContainText('Read your tasks');
 });
 
 test('reading shift handover advances after selecting the highlighted Urgent tab', async ({ page }) => {
