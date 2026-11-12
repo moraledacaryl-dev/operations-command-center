@@ -128,7 +128,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     id: 'bar', title: 'Bar reports and handovers', summary: 'Report Bar problems and check what the next shift needs.',
     barOnly: true,
     steps: [
-      { path: '/bar', selector: '#bar-checks', title: 'Opening and closing', body: 'Read the actual approved checks if your lead has added them. This example does not make a new rule.' },
+      { path: '/bar', selector: '#bar-tasks', title: 'See Bar tasks', body: 'Check what needs doing and open Tasks for the full list.' },
       { path: '/bar', selector: '[data-testid="bar-open-report"]', title: 'Open a report', body: 'Select Report a problem. Use Bar for alcoholic drinks and mocktails. Food goes to Kitchen; café drinks and café service go to Café.', advanceOnClick: true, requiresAction: true },
       { path: '/bar', selector: '[data-testid="bar-report-form"]', title: 'Describe what happened', body: 'Choose a type, describe the problem and say what the next person should do. Example: the mocktail blender stopped while preparing an order. Tell your lead if urgent.' },
       { path: '/bar', selector: '[data-testid="bar-report-form"] button.secondary', title: 'Close without saving', body: 'Select Cancel here. In your separate practice, use made-up details and save the report yourself.', advanceOnClick: true, requiresAction: true },
