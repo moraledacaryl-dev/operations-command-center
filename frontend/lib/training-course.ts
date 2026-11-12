@@ -312,11 +312,25 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     // Local storage is a resume convenience, not proof of competency. A forged or
     // interrupted "finished" marker must not bypass unfinished role-available lessons.
     if (stage === 'finished') {
-      const nextUnfinished = lessons.find(lesson => !passed.includes(lesson.id));
-      if (nextUnfinished) return {
-        lessonId: nextUnfinished.id, stage: 'learn', question: 0, independentStep: 0,
-        passed, metrics,
-      };
+      const missing = lessons.filter(lesson => !passed.includes(lesson.id));
+      if (missing.length) {
+        // A previously completed curriculum can acquire new role lessons
+        // during installation. Keep prior credit and offer those lessons
+        // explicitly rather than unexpectedly covering the entire app.
+        // Any other missing legacy lesson still requires the normal course.
+        const catchup = new Set<string>(TRAINING_CATCHUP_LESSONS);
+        const priorCurriculumPassed = lessons.some(lesson =>
+          lesson.id !== 'orientation' && !catchup.has(lesson.id) && passed.includes(lesson.id));
+        if (passed.includes('orientation') && priorCurriculumPassed &&
+            missing.every(lesson => catchup.has(lesson.id))) {
+          return { lessonId: missing[0].id, stage: 'finished', question: 0,
+            independentStep: 0, tourStep: 0, passed, metrics };
+        }
+        return {
+          lessonId: missing[0].id, stage: 'learn', question: 0, independentStep: 0,
+          passed, metrics,
+        };
+      }
     }
     // Keep the next unfinished lesson in sequence. Completed lessons may still be
     // opened for legitimate review; an incomplete later lesson is never unlocked.
@@ -333,4 +347,8 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
       question, independentStep, tourStep, ...(reference ? { reference } : {}), passed, metrics };
   } catch { return fallback; }
 }
+/** Lessons added after the previous completed curriculum. They are offered as
+ * catch-up training, never silently awarded or used to lock returning workers
+ * out of already completed routines during a desktop app upgrade. */
+export const TRAINING_CATCHUP_LESSONS = ['room-arrivals', 'maintenance-status'] as const;
 export const COURSE_STORAGE_PREFIX = 'ho-ops-structured-course-v2:';
