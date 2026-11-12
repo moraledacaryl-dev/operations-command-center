@@ -47,7 +47,7 @@ test('portable reports reject malformed data and never restore saved-record less
   const report=reportFor();
   expect(parseTrainingReport(report)?.trainee.id).toBe('8401');
   expect(report.metrics.orientation.incorrectAnswers).toBe(2);
-  expect(portableLearningCredit(report,['orientation','staff-handover','staff-rooms','staff-my-work','team-tasks']))
+  expect(portableLearningCredit(report,['orientation','staff-handover','staff-rooms','room-arrivals','staff-my-work','team-tasks']))
     .toEqual(completed);
   const barReport = {...report, completedLessons: [...report.completedLessons, 'bar'], verifiedPractice: [{kind:'bar-report',reference:'TRN-BAR-ABCDEFGH',completedAt:'2026-11-02T01:00:00Z',stages:2}]};
   expect(parseTrainingReport(barReport)?.verifiedPractice).toHaveLength(1);
