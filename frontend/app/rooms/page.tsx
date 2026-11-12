@@ -35,7 +35,7 @@ export default function RoomsPage() {
     setLoading(true);
     setError('');
     try {
-      const page = await api.page('rooms', { active: false, limit: 30, cursor: cursor || '' });
+      const page = await api.page('rooms', { active: true, limit: 30, cursor: cursor || '' });
       setRooms(existing => cursor ? [...existing, ...page.items] : page.items);
       setNextCursor(page.next_cursor || null);
       await loadMedia(page.items);

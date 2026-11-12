@@ -341,7 +341,7 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
   }
   if (session.kind === 'guest-ac') {
     return session.step === 0
-      ? ['Open Guest Matters and click New guest matter.', 'Include the exact training reference in the Matter title.', 'Choose Room or Complaint. Set the priority based on how the problem affects the guest. Use Room 205 if it appears in the practice room list.', 'In the context note, describe the AC blowing warm air, the Maintenance inspection request, and when Front Desk will update the guest.', 'Click Save matter. Only then click Check saved work.']
+      ? ['Open Guest Matters and click New guest matter.', 'Include the exact training reference in the Matter title.', 'Choose Room or Complaint. Set the priority based on how the problem affects the guest. Use Solace if it appears in the practice room list.', 'In the context note, describe the AC blowing warm air, the Maintenance inspection request, and when Front Desk will update the guest.', 'Click Save matter. Only then click Check saved work.']
       : ['Find the saved matter with your reference in the Active list.', 'Open it, choose Needs follow-up, and confirm the updated record.', 'Click Check saved work to verify the saved status. Do not resolve an uninspected AC fault.'];
   }
   if (session.kind === 'manager-evidence') {

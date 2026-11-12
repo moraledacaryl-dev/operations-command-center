@@ -315,6 +315,8 @@ def serialize_user(db: Session, user: models.User):
     return data
 
 def active_filter(query, model, active: bool):
+    if active and model is models.RoomArea:
+        query = query.filter(model.status != "inactive")
     if active and hasattr(model, "hidden_from_active"):
         query = query.filter(model.hidden_from_active == False)
     return query

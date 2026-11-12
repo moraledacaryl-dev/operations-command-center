@@ -147,10 +147,11 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                     is_primary=dept == primary), "memberships")
             credentials.append({"name": name, "role": role, "email": u.email, "password": password, "department": primary})
 
-        areas = [f"Room {n}" for n in (101,102,103,104,105,201,202,203,204,205,301,302)] + [
+        guest_rooms = ["Solace", "Cafe Suite", "Perch 1", "Perch 2", "Crown", "Grandeur", "Skyroom", "Twinspire"]
+        areas = guest_rooms + [
             "Lobby", "Front Desk", "Café", "Kitchen", "Bar", "Pool", "Function Hall",
             "Garden", "Storage", "Parking", "Laundry", "Staff Area"]
-        rooms = {name: add(models.RoomArea(name=name, kind="room" if name.startswith("Room") else "area",
+        rooms = {name: add(models.RoomArea(name=name, kind="room" if name in guest_rooms else "area",
             status="active", note="Fictional training area — not real property inventory."), "rooms_areas") for name in areas}
 
         projects = {}
@@ -166,11 +167,11 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
 
         descriptions = {
             "Front Desk": ["Review arrivals","Confirm check-out notes","Update pending guest requests","Escalate complaint"],
-            "Housekeeping": ["Inspect Room 203","Count linen inventory","Confirm room readiness","Record missing amenities"],
+            "Housekeeping": ["Inspect Twinspire","Count linen inventory","Confirm room readiness","Record missing amenities"],
             "Café": ["Prepare counter checklist","Check available menu","Resolve service delay","Close café station"],
             "Kitchen": ["Check cold-storage temperatures","Complete prep list","Review food-handling incident","Close kitchen"],
             "Bar": ["Count mocktail mixers","Check Bar tools","Review cocktail complaint","Handover syrup shortage"],
-            "Maintenance": ["Inspect pool pump","Investigate Room 205 AC","Prepare repair evidence","Review defects"],
+            "Maintenance": ["Inspect pool pump","Investigate Solace AC","Prepare repair evidence","Review defects"],
             "Marketing": ["Draft promotional post","Review campaign caption","Submit artwork","Confirm scheduled content"],
             "Security": ["Inspect pool gate","Complete perimeter check","Review reported incident","Log visitor handover"],
             "Management": ["Review approvals","Allocate priorities","Review handover","Check department reports"],
@@ -196,21 +197,21 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 completed_at=now-timedelta(days=3), archived_at=now-timedelta(days=2)), "tasks")
 
         guest_titles = [
-            ("Late checkout request", "Room 203", "Checkout", "Open"),
-            ("Room 205 AC not cooling", "Room 205", "Room", "Follow"),
+            ("Late checkout request", "Twinspire", "Checkout", "Open"),
+            ("Solace AC not cooling", "Solace", "Room", "Follow"),
             ("Pool access complaint", "Pool", "Complaint", "Open"),
             ("Breakfast service delay", "Café", "Food", "Follow"),
             ("Lost room key", "Lobby", "Other", "Open"),
-            ("Noise concern", "Room 201", "Complaint", "Done"),
+            ("Noise concern", "Grandeur", "Complaint", "Done"),
             ("Function hall layout issue", "Function Hall", "Other", "Open"),
-            ("More towels requested", "Room 101", "Request", "Follow"),
-            ("Water pressure concern", "Room 302", "Room", "Open"),
-            ("Room cleaning follow-up", "Room 204", "Room", "Open"),
+            ("More towels requested", "Solace", "Request", "Follow"),
+            ("Water pressure concern", "Perch 2", "Room", "Open"),
+            ("Room cleaning follow-up", "Crown", "Room", "Open"),
             ("Pool towel shortage", "Pool", "Request", "Follow"),
             ("Parking access question", "Parking", "Complaint", "Done"),
             ("Check-in documentation", "Front Desk", "Request", "Open"),
             ("Allergy question", "Kitchen", "Food", "Open"),
-            ("Late room checkout dispute", "Room 202", "Checkout", "Open"),
+            ("Late room checkout dispute", "Skyroom", "Checkout", "Open"),
         ]
         guests = []
         for i,(title,area,kind,status) in enumerate(guest_titles):
@@ -222,8 +223,8 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                 follow_up_date=now+timedelta(hours=3+i),
                 note="TRAINING ONLY — fictional guest concern."), "guest_notes")
             guests.append(g)
-        fix_areas = ["Room 205","Pool","Room 302","Café","Kitchen","Function Hall",
-            "Room 201","Garden","Lobby","Laundry","Parking","Storage"]
+        fix_areas = ["Solace","Pool","Perch 2","Café","Kitchen","Function Hall",
+            "Grandeur","Garden","Lobby","Laundry","Parking","Storage"]
         fixes=[]
         for i,area in enumerate(fix_areas):
             status=["Working","Open","Done","Working","Open","Done","Verified"][i%7]
@@ -487,6 +488,16 @@ def ensure_notification_practice_data(db_path: Path, state: Path, *, validate_on
         # Do not select the current full User model until the schema is upgraded.
         if validate_only:
             return 0
+        # Only retire original seeded examples in a verified fictional database.
+        # Keep their IDs and all linked practice records for history.
+        seeded_names = {f"Room {n}" for n in (101, 102, 103, 104, 105, 201, 202, 203, 204, 205, 301, 302)}
+        seeded_note = "Fictional training area — not real property inventory."
+        for room in db.query(models.RoomArea).filter(models.RoomArea.name.in_(seeded_names), models.RoomArea.kind == "room", models.RoomArea.note == seeded_note).all():
+            room.status = "inactive"
+        existing = {name.casefold() for (name,) in db.query(models.RoomArea.name).all()}
+        for name in ("Solace", "Cafe Suite", "Perch 1", "Perch 2", "Crown", "Grandeur", "Skyroom", "Twinspire"):
+            if name.casefold() not in existing:
+                db.add(models.RoomArea(name=name, kind="room", status="active", note="Fictional training room."))
         users = {row.email: row for row in db.query(models.User).all()}
         for email, user in users.items():
             for ordinal in (1, 2):

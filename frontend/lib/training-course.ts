@@ -56,10 +56,10 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   },
   'staff-rooms': {
     explanation: 'The Rooms screen helps you find a guest room or shared area. Check the correct room number and any existing issues before reporting a new problem.',
-    example: 'A guest calls from Room 205. Search for Room 205 and check whether somebody has already reported the issue.',
+    example: 'A guest calls from Solace. Search for Solace and check whether somebody has already reported the issue.',
     remember: 'Confirm the room number. Never use one guest’s room information for another guest.',
     questions: [
-      q('Before reporting another problem for Room 205, what should you check?', ['Whether the issue is already recorded','Whether the room is listed as occupied','Whether a different room has an open issue'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
+      q('Before reporting another problem for Solace, what should you check?', ['Whether the issue is already recorded','Whether the room is listed as occupied','Whether a different room has an open issue'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
       q('Why should you confirm the room number?', ['To send the right team to the correct place','To choose the order in which rooms appear','To decide who works the next shift'], 0, 'The correct room number prevents wasted trips and mistaken guest updates.'),
     ],
   },
@@ -92,10 +92,10 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   },
   'guest-matters': {
     explanation: 'A guest matter is a record of a guest’s problem. A good record states what happened, which room or service is affected, who should investigate and when Reception will call the guest back.',
-    example: 'Room 205 reports an AC that is blowing warm air. Record the complaint, arrange an inspection and keep the guest informed.',
-    repeatVariant: { example:'A fictional guest in Room 203 says their bathroom sink is leaking. Nobody has inspected the room. Record what is known and arrange an update without promising a repair time.', questions:[
+    example: 'Solace reports an AC that is blowing warm air. Record the complaint, arrange an inspection and keep the guest informed.',
+    repeatVariant: { example:'A fictional guest in Twinspire says their bathroom sink is leaking. Nobody has inspected the room. Record what is known and arrange an update without promising a repair time.', questions:[
       q('The guest asks if the sink is already repaired. What should Reception say?', ['It was reported, so it should be fixed soon','We will confirm with Maintenance and update you','The request is closed because Maintenance was notified'],1,'Do not promise a finished repair before checking.'),
-      q('What is useful in the guest matter?', ['Room 203, leaking sink, responsible team and follow-up','Only the guest mood','A fake completion note'],0,'The right details help the next employee act.'),
+      q('What is useful in the guest matter?', ['Twinspire, leaking sink, responsible team and follow-up','Only the guest mood','A fake completion note'],0,'The right details help the next employee act.'),
     ] },
     remember: 'Do not claim the guest problem is solved before it has actually been checked.',
     incorrectExample: 'Reception tells the guest the air conditioner is repaired even though no technician has inspected it.',
@@ -155,7 +155,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     whyIncorrect: 'The next employee cannot act on such a vague note. Write the real problem and what should happen next.',
     handsOn: 'shift-unresolved',
     questions: [
-      q('Which shift note would help the next receptionist most?', ['Room 204 toilet is broken; Maintenance will inspect; Front Desk will call the guest','Problem noted','Somebody will deal with something'], 0, 'A clear note identifies the issue, next action and responsibility.'),
+      q('Which shift note would help the next receptionist most?', ['Crown toilet is broken; Maintenance will inspect; Front Desk will call the guest','Problem noted','Somebody will deal with something'], 0, 'A clear note identifies the issue, next action and responsibility.'),
       q('The guest problem is still not resolved when your shift ends. What should happen?', ['Pass it to the next shift with an owner','Mark it completed anyway','Delete the issue'], 0, 'Unfinished work must be passed on rather than hidden.'),
     ],
   },

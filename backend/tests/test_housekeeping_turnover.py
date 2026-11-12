@@ -280,3 +280,16 @@ def test_stale_correction_cannot_undo_a_different_action(state):
     current = db.get(models.RoomStay, stay['id'])
     assert current.checked_out_at is None and current.voided_at is None
     assert db.query(models.RoomStayCorrection).count() == 1
+
+
+def test_inactive_rooms_are_hidden_from_active_lists_but_retained(state):
+    from app.routers.api import active_filter
+    db, people, room = state
+    inactive = models.RoomArea(name='Former room', kind='room', status='inactive')
+    maintenance = models.RoomArea(name='Room being repaired', kind='room', status='maintenance')
+    db.add_all([inactive, maintenance]); db.commit()
+    names = {r.name for r in active_filter(db.query(models.RoomArea), models.RoomArea, True).all()}
+    assert names == {'Solace', 'Room being repaired'}
+    assert db.get(models.RoomArea, inactive.id).name == 'Former room'
+    board = list_turnovers(service_date='2026-11-04', user=people['cleaner'], db=db)
+    assert {r['room_name'] for r in board['rooms']} == names
