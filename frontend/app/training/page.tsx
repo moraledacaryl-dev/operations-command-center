@@ -266,13 +266,15 @@ export default function PracticeTrainingPage() {
     const next = { ...progress, [selected.id]: {
       attempts: (previous?.attempts || 0) + attempts + 1,
       completedAt: new Date().toISOString(),
+      response: { ...answers },
       // A repeat must not erase earlier corrections or hints from exported evidence.
       hints: (previous?.hints || 0) + hintsUsed,
       mistakes: (previous?.mistakes || 0) + mistakesMade,
       firstTry: (previous?.firstTry ?? true) && mistakesMade === 0 && hintsUsed === 0,
     } };
     setProgress(next);
-    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* practice remains in memory */ }
+    try { localStorage.setItem(key, JSON.stringify(next)); } catch { setStorageAvailable(false); }
+    moved.current = true;
     setPhase('complete');
   }
   function startWorkflow(kind: TrainingWorkflowKind) {
@@ -310,13 +312,16 @@ export default function PracticeTrainingPage() {
       'record_type', 'case_id', 'department', 'level', 'completed_at',
       'attempts', 'hints', 'mistakes', 'unassisted', 'record_id',
       'related_record_id', 'verified_stages',
+      'answer_priority', 'answer_department', 'answer_decision', 'answer_note',
     ]];
     for (const scenario of scenarios) {
       const saved = progress[scenario.id];
       if (!saved) continue;
       rows.push(['scenario', scenario.id, scenario.department, scenario.level || 1,
         saved.completedAt, saved.attempts, saved.hints || 0, saved.mistakes || 0,
-        Boolean(saved.firstTry), '', '', '']);
+        Boolean(saved.firstTry), '', '', '',
+        saved.response?.priority || '', saved.response?.department || '',
+        saved.response?.decision || '', saved.response?.note || '']);
     }
     if (notificationEvidence) {
       rows.push(['staff-notification-read', 'notification-mark-read', 'Personal', 1,
@@ -343,7 +348,8 @@ export default function PracticeTrainingPage() {
         '', '', '', '', evidence.recordId, evidence.relatedRecordId || '',
         Array.isArray(evidence.steps) ? evidence.steps.join(' / ') : '']);
     }
-    const csv = rows.map(row => row.map(cell).join(',')).join('\n');
+    const width = rows[0].length;
+    const csv = rows.map(row => [...row, ...Array(Math.max(0, width - row.length)).fill('')].map(cell).join(',')).join('\n');
     const objectUrl = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = objectUrl;
@@ -620,6 +626,7 @@ export default function PracticeTrainingPage() {
           <p><strong>Tries:</strong> {attempts} · <strong>Changes made:</strong> {mistakesMade} · <strong>Hints used:</strong> {hintsUsed}</p>
           <p><strong>Why this urgency fits:</strong> {reasoningDebrief(selected.priority)}</p>
           <p><strong>Why this response works:</strong> {selected.why}</p>
+          <p><strong>Your response:</strong> {progress[selected.id]?.response?.note || answers.note}</p>
           <div className="practice-example"><strong>Example of a useful handover:</strong><p>{selected.example}</p></div>
           <p className="practice-disclaimer">This practice does not give permission to use or approve real resort records. A supervisor must still check your skills on the actual system.</p>
           <div className="practice-actions">
