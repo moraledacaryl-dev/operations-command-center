@@ -20,7 +20,18 @@ export const INDEPENDENT_CHECKS: Record<string, readonly [IndependentAction,Inde
     tab('/shift','Shift note filters','Unresolved','Find unfinished handovers')],
   'staff-rooms': [tab('/rooms','Space type','Guest rooms','Find the guest rooms'),
     tab('/rooms','Space type','Shared areas','Find shared areas')],
+  'room-arrivals': [
+    { path:'/housekeeping',selector:'input[aria-label="Find room"]',type:'input',
+      title:'Find a room',instruction:'Type Solace or another practice room name in Find room.' },
+    { path:'/housekeeping',selector:'.hk-tools button',containsText:'Refresh',
+      title:'Read the latest updates',instruction:'Use Refresh to reload the room list. Do not assume a scheduled checkout means the guest left.' },
+  ],
   'staff-my-work': [back, home],
+  'maintenance-status': [
+    { path:'/fixes',selector:'[aria-label="Maintenance work orders"] .maintenance-board-card',
+      title:'Open a repair',instruction:'Open a fictional repair and read its current status. Choose Active first if Urgent has no results.' },
+    tab('/fixes','Maintenance filters','Active','Return to active repairs'),
+  ],
   'team-tasks': [tab('/tasks','Task view','List','Switch tasks to List'),
     tab('/tasks','Task view','Board','Switch back to Board')],
   'guest-matters': [tab('/guests','Guest matter filters','Urgent','Find urgent guest issues'),
