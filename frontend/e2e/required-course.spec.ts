@@ -31,6 +31,24 @@ test('every role-available lesson has two clear teaching checks and example befo
   }
 });
 
+test('a saved tour step is bounded and a Bar workflow reference survives reload', () => {
+  const lessons = availableTrainingLessons({manage_department:true, make_decisions:true, manage_accounts:false},
+    [{id:41,name:'Bar',is_primary:true}]);
+  const shift = readCourseProgress(JSON.stringify({
+    lessonId:'staff-handover', stage:'tour', question:0, tourStep:999, passed:['orientation'],
+  }), lessons);
+  expect(shift.tourStep).toBe(2);
+  expect(readCourseProgress(JSON.stringify({
+    lessonId:'staff-handover', stage:'tour', question:0, tourStep:-5, passed:['orientation'],
+  }), lessons).tourStep).toBe(0);
+  const withBar = readCourseProgress(JSON.stringify({
+    lessonId:'bar', stage:'work', question:0, reference:'TRN-BAR-ABCDEFGH',
+    passed:lessons.filter(l=>l.id!=='bar').map(l=>l.id),
+  }), lessons);
+  expect(withBar.reference).toBe('TRN-BAR-ABCDEFGH');
+  expect(withBar.stage).toBe('work');
+});
+
 test('lesson progress parser rejects invalid lesson ids and incomplete practice state', () => {
   const lessons = availableTrainingLessons({ manage_department: false, make_decisions: false, manage_accounts: false });
   expect(readCourseProgress(null, lessons)).toMatchObject({ stage: 'learn', lessonId: 'orientation' });
@@ -106,6 +124,39 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(page.getByRole('dialog', { name: 'Resume required training' })).toBeVisible();
   await page.getByRole('button', { name: /Resume practical lesson/ }).click();
   await expect(coach).toContainText('Your start page');
+});
+
+test('reading shift handover advances after selecting the highlighted Urgent tab', async ({ page }) => {
+  await mockLogin(page);
+  await page.addInitScript(user => {
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
+      lessonId: 'staff-handover', stage: 'quiz', question: 1, passed: ['orientation'],
+    }));
+  }, staff);
+  await page.goto('/');
+  const panel = page.getByTestId('required-training-course');
+  await panel.getByLabel('Check the situation or tell the person responsible').check();
+  await page.getByTestId('course-check-answer').click();
+  await expect(page).toHaveURL(/\/shift$/);
+  const coach = page.locator('.ops-guide-tip');
+  await expect(coach).toContainText('Find urgent handovers');
+  await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
+  await page.getByRole('tab', { name: 'Urgent' }).click();
+  await expect(coach).toContainText('Read the note');
+});
+
+test('a paused guided handover resumes the stored step without pretending it is complete', async ({ page }) => {
+  await mockLogin(page);
+  await page.addInitScript(user => {
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
+      lessonId: 'staff-handover', stage: 'tour', question: 0, tourStep: 1, passed: ['orientation'],
+    }));
+  }, staff);
+  await page.goto('/shift');
+  await expect(page.getByRole('dialog', { name: 'Resume required training' })).toContainText('Your place in the lesson is saved');
+  await page.getByRole('button', { name: 'Resume step 2' }).click();
+  await expect(page.locator('.ops-guide-tip')).toContainText('Read the note');
+  await expect(page.getByTestId('course-completed')).toHaveCount(0);
 });
 
 test('finished curriculum unlocks its completed tour without giving unearned staff write permissions', async ({ page }) => {
