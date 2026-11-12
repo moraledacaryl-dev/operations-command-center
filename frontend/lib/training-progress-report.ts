@@ -91,7 +91,13 @@ export function parseTrainingReport(input: unknown): TrainingProgressReport | nu
  * isolated training database and a new verified hands-on run.
  */
 export function portableLearningCredit(report: TrainingProgressReport, available: readonly string[]): string[] {
-  const recordEditing = new Set(['team-tasks','guest-matters','maintenance','requests','shift-writing','bar']);
+  // These lessons now require reading or changing actual saved fictional records
+  // on the current training installation. A portable JSON report is not the
+  // authenticated record evidence, even when it includes a completed marker.
+  const recordEditing = new Set([
+    'staff-handover','staff-rooms','room-arrivals',
+    'team-tasks','guest-matters','maintenance','requests','shift-writing','bar',
+  ]);
   const known = new Set(available);
   return report.completedLessons.filter(id => known.has(id) && !recordEditing.has(id));
 }
