@@ -286,4 +286,18 @@
   .room-mission-primary { width: 100%; }
 }
 
-
+/* An upgraded installation can add lessons without blocking a returning
+   employee's ordinary workspace; never imply the new practice was passed. */
+.ops-course-catchup { display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; margin: 10px 14px; padding: 12px 14px;
+  border: 1px solid #b5d4c2; background: #f4fbf6; border-radius: 12px; }
+.ops-course-catchup strong { color: #174b36; font-weight: 800; }
+.ops-course-catchup p { margin: 4px 0 0; font-size: 13px; color: #335444; line-height: 1.5; }
+.ops-course-catchup button { min-height: 42px; border: 1px solid #17694c;
+  border-radius: 9px; background: #17694c; color: #fff; font-weight: 750;
+  cursor: pointer; padding: 9px 12px; }
+.ops-course-catchup button:focus-visible { outline: 3px solid #e0a238; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .ops-course-catchup { margin: 8px 10px; padding: 12px; }
+  .ops-course-catchup button { width: 100%; }
+}
