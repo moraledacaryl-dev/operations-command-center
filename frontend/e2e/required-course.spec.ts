@@ -61,11 +61,11 @@ test('lesson progress parser rejects invalid lesson ids and incomplete practice 
   expect(readCourseProgress(JSON.stringify({ lessonId: 'orientation', stage: 'done', passed: [] }), lessons).stage).toBe('learn');
 });
 
-async function mockLogin(page: import('@playwright/test').Page) {
+async function mockLogin(page: import('@playwright/test').Page, loginUser = staff) {
   await page.addInitScript(user => {
     localStorage.setItem('cc_user', JSON.stringify(user));
     localStorage.setItem('cc_department_id', '41');
-  }, staff);
+  }, loginUser);
   await page.route('**/api/**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ items: [], groups: {}, counts: {}, unread_count: 0 }),
@@ -126,13 +126,16 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(coach).toContainText('Read your tasks');
 });
 
-test('reading shift handover advances after selecting the highlighted Urgent tab', async ({ page }) => {
-  await mockLogin(page);
+test('supervisor handover tour advances after selecting the highlighted Urgent tab', async ({ page }) => {
+  // Staff now complete the richer real-record handover mission. Supervisors
+  // keep the generic highlighted tour; test that path without downgrading staff.
+  const supervisor = { ...staff, id: 92812, role: 'supervisor', capabilities: {manage_department:true} };
+  await mockLogin(page, supervisor);
   await page.addInitScript(user => {
     localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
       lessonId: 'staff-handover', stage: 'quiz', question: 1, passed: ['orientation'],
     }));
-  }, staff);
+  }, supervisor);
   await page.goto('/');
   const panel = page.getByTestId('required-training-course');
   await panel.getByLabel('Check the situation or tell the person responsible').check();
