@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/session';
 import { TrainingRecordLookup } from '@/components/TrainingRecordLookup';
@@ -26,6 +26,8 @@ import {
 } from '@/lib/practice-scenarios';
 import type { PracticeAnswers, PracticeAssessment, PracticeField } from '@/lib/practice-scenarios';
 import { parseScenarioProgress, parseWorkflowResults } from '@/lib/training-progress';
+import { DRAFT_PREFIX, parseScenarioDrafts } from '@/lib/training-scenario-drafts';
+import type { ScenarioDrafts } from '@/lib/training-scenario-drafts';
 import type { ScenarioProgress } from '@/lib/training-progress';
 
 type Phase = 'assess' | 'document' | 'complete';
@@ -82,6 +84,10 @@ export default function PracticeTrainingPage() {
   const [hintsUsed, setHintsUsed] = useState(0);
   const [mistakesMade, setMistakesMade] = useState(0);
   const [reasoning, setReasoning] = useState<Reasoning>({ consequence: '', timing: '' });
+  const [drafts, setDrafts] = useState<ScenarioDrafts>({});
+  const [storageAvailable, setStorageAvailable] = useState(true);
+  const exerciseHeading = useRef<HTMLHeadingElement | null>(null);
+  const moved = useRef(false);
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true') return;
@@ -93,11 +99,24 @@ export default function PracticeTrainingPage() {
     setUser(stored);
     const key = STORAGE_PREFIX + String(stored.id || stored.email);
     try {
+      const available = practiceScenariosFor(stored);
       const lastCase = localStorage.getItem(key + ':last');
-      if (lastCase) setActiveId(lastCase);
+      const id = available.find(s => s.id === lastCase)?.id || available[0]?.id || '';
+      setActiveId(id);
       const saved = JSON.parse(localStorage.getItem(key) || '{}');
-      setProgress(parseScenarioProgress(saved, practiceScenariosFor(stored).map(s => s.id)));
-    } catch { setProgress({}); }
+      const completed = parseScenarioProgress(saved, available.map(s => s.id));
+      setProgress(completed);
+      const restored = parseScenarioDrafts(
+        JSON.parse(localStorage.getItem(DRAFT_PREFIX + String(stored.id || stored.email)) || '{}'), available);
+      setDrafts(restored);
+      const draft = restored[id];
+      if (draft) {
+        setAnswers(draft.answers);
+        setPhase(draft.phase === 'complete' && !completed[id] ? 'document' : draft.phase);
+        setAttempts(draft.attempts); setHintsUsed(draft.hintsUsed);
+        setMistakesMade(draft.mistakesMade); setReasoning(draft.reasoning);
+      }
+    } catch { setStorageAvailable(false); setProgress({}); }
     try {
       if (!localStorage.getItem(key + ':guide-intro-v2')) setGuideMode('welcome');
     } catch { setGuideMode('welcome'); }
@@ -172,20 +191,39 @@ export default function PracticeTrainingPage() {
       ? selected.id : null;
   const verifiedCount = Object.values(verifiedWorkflows).filter(result => result?.completedAt).length;
 
-  function switchScenario(id: string) {
+  // Keep answers for each fictional situation. A draft never proves competency.
+  useEffect(() => {
+    if (!ready || !user || !selectedId) return;
+    const next = { ...drafts, [selectedId]: { answers, phase, attempts, hintsUsed, mistakesMade, reasoning } };
+    try {
+      localStorage.setItem(DRAFT_PREFIX + String(user.id || user.email), JSON.stringify(next));
+      localStorage.setItem(STORAGE_PREFIX + String(user.id || user.email) + ':last', selectedId);
+    } catch { setStorageAvailable(false); }
+  }, [answers, attempts, drafts, hintsUsed, mistakesMade, phase, ready, reasoning, selectedId, user]);
+
+  useEffect(() => { if (moved.current) exerciseHeading.current?.focus(); }, [selectedId, phase]);
+
+  function switchScenario(id: string, restart = false) {
     if (!scenarios.some(s => s.id === id)) return;
+    if (id === selectedId && !restart) return;
+    const nextDrafts = { ...drafts, [selectedId]: { answers, phase, attempts, hintsUsed, mistakesMade, reasoning } };
+    const draft = restart ? undefined : nextDrafts[id];
+    if (restart) delete nextDrafts[id];
+    setDrafts(nextDrafts);
     setActiveId(id);
-    setPhase('assess');
-    setAnswers({ ...emptyAnswers });
+    setPhase(draft?.phase || 'assess');
+    setAnswers(draft?.answers || { ...emptyAnswers });
     setResult(null);
-    setAttempts(0);
+    setAttempts(draft?.attempts || 0);
     setShowTip(false);
-    setHintsUsed(0);
-    setMistakesMade(0);
-    setReasoning({ consequence: '', timing: '' });
+    setHintsUsed(draft?.hintsUsed || 0);
+    setMistakesMade(draft?.mistakesMade || 0);
+    setReasoning(draft?.reasoning || { consequence: '', timing: '' });
+    moved.current = true;
     setGuideMode(current => current === 'guided' || current === 'brief' ? 'brief' : current);
     if (user) {
-      try { localStorage.setItem(STORAGE_PREFIX + String(user.id || user.email) + ':last', id); } catch { /* offline memory only */ }
+      try { localStorage.setItem(STORAGE_PREFIX + String(user.id || user.email) + ':last', id); }
+      catch { setStorageAvailable(false); }
     }
   }
   function markGuideSeen() {
@@ -195,7 +233,7 @@ export default function PracticeTrainingPage() {
   }
   function closeGuide() { markGuideSeen(); setGuideMode('off'); }
   function startGuide() { markGuideSeen(); setGuideMode('brief'); }
-  function repeatGuide() { if (selected) { switchScenario(selected.id); markGuideSeen(); setGuideMode('brief'); } }
+  function repeatGuide() { if (selected) { switchScenario(selected.id, true); markGuideSeen(); setGuideMode('brief'); } }
   function update<K extends PracticeField>(field: K, value: PracticeAnswers[K]) {
     setAnswers(current => ({ ...current, [field]: value }));
     setResult(null);
@@ -440,7 +478,8 @@ export default function PracticeTrainingPage() {
           <div><strong>2. Try it with help</strong><p>Read the clues below. Use Need a hint? when you are unsure.</p></div>
           <div><strong>3. Your turn</strong><p>Choose what to do, then write a note in your own words. The app explains what you need to correct.</p></div>
         </div>
-        <h2>{selected.title}</h2>
+        {ready && !storageAvailable && <p role="alert" className="practice-notice">Practice drafts could not be saved on this device. Keep the page open or ask your trainer for help.</p>}
+        <h2 ref={exerciseHeading} tabIndex={-1}>{selected.title}</h2>
         <p className="practice-situation">{selected.situation}</p>
         <p className="practice-skill"><strong>What you will practise:</strong> {selected.skill || 'Choosing the right next action'}</p>
         <div className="practice-case" data-testid="scenario-case-brief">
@@ -585,7 +624,7 @@ export default function PracticeTrainingPage() {
           <p className="practice-disclaimer">This practice does not give permission to use or approve real resort records. A supervisor must still check your skills on the actual system.</p>
           <div className="practice-actions">
             <button type="button" className="practice-primary" data-testid="scenario-next" onClick={nextScenario}>Next situation →</button>
-            <button type="button" className="practice-secondary" data-testid="scenario-repeat" onClick={() => switchScenario(selected.id)}>Repeat this situation</button>
+            <button type="button" className="practice-secondary" data-testid="scenario-repeat" onClick={() => switchScenario(selected.id, true)}>Repeat this situation</button>
           </div>
         </section>}
         <footer className="practice-footer">
