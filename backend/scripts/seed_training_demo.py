@@ -483,9 +483,11 @@ def ensure_notification_practice_data(db_path: Path, state: Path, *, validate_on
             for email in all_emails
         ):
             raise SystemExit("REFUSED: unexpected user identities in training notification database")
-        users = {row.email: row for row in db.query(models.User).all()}
+        # Validation runs before migrations on existing desktop databases.
+        # Do not select the current full User model until the schema is upgraded.
         if validate_only:
             return 0
+        users = {row.email: row for row in db.query(models.User).all()}
         for email, user in users.items():
             for ordinal in (1, 2):
                 title = f"{PREFIX}Daily notice practice {ordinal}/2"
