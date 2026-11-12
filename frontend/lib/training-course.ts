@@ -211,7 +211,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   },
 };
 
-export type CourseStage = 'learn' | 'quiz' | 'tour' | 'work' | 'independent' | 'done' | 'finished';
+export type CourseStage = 'learn' | 'quiz' | 'tour' | 'room-practice' | 'shift-practice' | 'work' | 'independent' | 'done' | 'finished';
 export type CourseProgress = {
   lessonId: string;
   stage: CourseStage;
@@ -223,6 +223,35 @@ export type CourseProgress = {
   passed: string[];
   metrics?: Record<string, { incorrectAnswers?: number; repeats?: number; completedAt?: string; hintsViewed?: number }>;
 };
+
+/** Adapt shared lessons to the work the employee actually does. */
+export function courseGuideFor(id: string, department: string, isFrontDesk: boolean): CourseGuide | undefined {
+  const base = COURSE_GUIDES[id];
+  if (!base) return undefined;
+  if (id === 'staff-rooms' && !isFrontDesk) return {
+    ...base,
+    explanation: 'Rooms lists guest rooms and shared areas. Find the right place and read the information available to your team. Some reports may be visible only to the team handling them.',
+    example: 'You need to find Solace. Open its room details and see what your team can read. If you cannot see a report, ask the responsible team rather than assuming there is no problem.',
+    questions: [q('You cannot see a report in a room. What should you do?', ['Ask the responsible team to check','Assume no problem exists','Use another employee’s account'], 0, 'A report may be available only to the team handling it.'), base.questions[1]],
+  };
+  if (id !== 'staff-handover') return base;
+  const examples: Record<string, [string,string]> = {
+    'housekeeping': ['A room still needs an inspection before the next arrival.', 'Housekeeping lead'],
+    'café': ['A breakfast order is delayed and the guest is waiting for an update.', 'Café lead'],
+    'kitchen': ['An allergy order is waiting for an ingredient check.', 'Kitchen lead'],
+    'maintenance': ['A repair still needs an inspection before the area can be used.', 'Maintenance lead'],
+    'marketing': ['A draft post has the wrong event date and needs a review.', 'Marketing lead'],
+    'security': ['A pool gate has not yet been checked and guests must be kept away.', 'Security lead'],
+  };
+  const item = examples[department.toLowerCase()];
+  if (!item) return base;
+  const [situation, lead] = item;
+  return { ...base, example: situation + ' The ' + lead + ' needs to know what is still waiting and what to check next.',
+    incorrectExample: 'An employee tells the next shift the work is finished without checking.',
+    branches: [{question: 'What if the check cannot be finished before your shift ends?', choices: ['Leave without an update', 'Tell the next shift what is waiting, who will check it and when', 'Say the work is finished'], correct: 1, response: 'The next shift needs the unfinished problem, the person responsible and the next check.'}],
+    questions: [base.questions[0], q('The handover says a check is still pending. What should you do?', ['Assume it is done','Wait without telling anyone','Check the situation or tell the person responsible'],2,'Unfinished work needs a follow-up.')],
+  };
+}
 
 /** Read data as untrusted browser state: it is a convenience resume marker,
  * not an official competency credential or proof of saved work.
@@ -237,7 +266,7 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     const v = data as Record<string, unknown>;
     const allowed = new Set(lessons.map(lesson => lesson.id));
     const lessonId = typeof v.lessonId === 'string' && allowed.has(v.lessonId) ? v.lessonId : first;
-    const stage = ['learn','quiz','tour','work','independent','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
+    const stage = ['learn','quiz','tour','room-practice','shift-practice','work','independent','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
     const question = typeof v.question === 'number' && Number.isInteger(v.question) && v.question >= 0 && v.question <= 1 ? v.question : 0;
     const independentStep = v.independentStep === 1 ? 1 : 0;
     const rawTourStep = Number(v.tourStep);
