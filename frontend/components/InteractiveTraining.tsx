@@ -650,7 +650,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       <button type="button" onClick={restartCurrentLessonSafely}>Start this lesson again</button>
     </div>}
     {course?.stage === 'work' && <div className="ops-course-work-status" data-testid="course-await-work" role="status">
-      <strong>Lesson {lessonNumber}: Save your practice work</strong>
+      <strong>Lesson {lessonNumber}: Actual-page practice — save your work</strong>
       {practicePlan && <p className="ops-practice-self-goal">{practicePlan.goal}</p>}
       <span>Follow the arrows, make the fictional record on the actual practice screen, and select Check saved work. A form that is not saved cannot pass.</span>
       {practicePlan && <details className="ops-practice-show-help" data-testid="saved-work-practice-help">
