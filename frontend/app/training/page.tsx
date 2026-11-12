@@ -433,6 +433,13 @@ export default function PracticeTrainingPage() {
           </details>
           <label className="practice-mode"><input type="checkbox" checked={guided} onChange={event => { setGuided(event.target.checked); setShowTip(false); }} /> Show helpful hints</label>
         </div>
+        <div className="practice-three-stage" data-testid="scenario-three-stage" aria-label="How practice works">
+          <details><summary>1. Show me an example</summary>
+            <p>Different fictional example: A guest in Perch 1 asks for extra towels. Check whether Housekeeping was already told. Tell the right team, leave a clear next-shift note and confirm delivery before marking the request done.</p>
+          </details>
+          <div><strong>2. Try it with help</strong><p>Read the clues below. Use Need a hint? when you are unsure.</p></div>
+          <div><strong>3. Your turn</strong><p>Choose what to do, then write a note in your own words. The app explains what you need to correct.</p></div>
+        </div>
         <h2>{selected.title}</h2>
         <p className="practice-situation">{selected.situation}</p>
         <p className="practice-skill"><strong>What you will practise:</strong> {selected.skill || 'Choosing the right next action'}</p>
@@ -477,7 +484,7 @@ export default function PracticeTrainingPage() {
         </div>
 
         {phase === 'assess' && <form className="practice-form" onSubmit={triage} data-testid="scenario-triage">
-          <p className="practice-instruction">Think about <strong>what could happen</strong> and <strong>how soon someone needs to help</strong>.</p>
+          <p className="practice-instruction"><strong>Your turn — Step 1:</strong> Think about <strong>what could happen</strong> and <strong>how soon someone needs to help</strong>. Choose urgency and the team.</p>
           <section className="practice-judgment" data-testid="judgment-lens" aria-label="Two-question urgency guide">
             <h3>Check what matters most</h3>
             <p>Answer these two questions to help you choose the right urgency. These questions are not graded.</p>
@@ -530,7 +537,7 @@ export default function PracticeTrainingPage() {
         {phase === 'document' && <form className="practice-form" onSubmit={submit} data-testid="scenario-document">
           <p className="practice-instruction">You chose the right urgency and team. Here is why:</p>
           <p className="practice-judgment-explanation" data-testid="priority-debrief">{reasoningDebrief(selected.priority)}</p>
-          <p className="practice-instruction">Choose the next action. Then write a note the next employee can follow.</p>
+          <p className="practice-instruction"><strong>Your turn — Step 2:</strong> Choose the next action. Then write a note the next employee can follow.</p>
           <label>Choose the next action
             <select value={answers.decision} required onChange={e => update('decision', e.target.value as PracticeAnswers['decision'])} data-testid="scenario-decision">
               <option value="">Select action…</option>{DECISIONS.map(option => <option key={option} value={option}>{option}</option>)}
