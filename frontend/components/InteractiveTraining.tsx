@@ -634,7 +634,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   return <>
     {course?.stage === 'finished' && catchupLessons.length > 0 && !paused &&
-      <div className="ops-course-catchup" role="status" data-testid="training-update-available">
+      <div className="ops-course-catchup" role="note" data-testid="training-update-available">
         <div><strong>New lessons for your role</strong>
           <p>{catchupLessons.map(item => item.title).join(' · ')}. Your older lessons are still saved.</p></div>
         <button type="button" onClick={() => {
