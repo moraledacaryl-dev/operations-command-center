@@ -24,16 +24,16 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     goal: 'Read what the previous shift left unfinished.',
     show: 'Open Shift handover, choose Urgent, read the Night handover from your department, and check its status.',
     help: 'Find the highlighted handover. Read its saved status before answering.',
-    self: 'Use Urgent and Unresolved without arrows. Open a handover and read its saved status.'
-    checks: 'The app checks your filter clicks. A trainer should confirm that you understood the note and its follow-up.'
+    self: 'Use Urgent and Unresolved without arrows. Open a handover and read its saved status.',
+    checks: 'The app checks your filter clicks. A trainer should confirm that you understood the note and its follow-up.',
     safety: 'Reading a handover does not complete or approve the work.',
   },
   'staff-rooms': {
     goal: 'Find a guest room and check whether a problem is already reported.',
-    show: 'Open Rooms, choose Guest rooms, search Solace, and check whether an AC concern is already listed.'
+    show: 'Open Rooms, choose Guest rooms, search Solace, and check whether an AC concern is already listed.',
     help: 'Click the highlighted Rooms controls yourself and choose the report’s saved status.',
-    self: 'Switch between Guest rooms and Shared areas without arrows. Look for the Solace AC concern.'
-    checks: 'The app checks the two filter actions. A trainer should observe how you find a real room concern.'
+    self: 'Switch between Guest rooms and Shared areas without arrows. Look for the Solace AC concern.',
+    checks: 'The app checks the two filter actions. A trainer should observe how you find a real room concern.',
     safety: 'Do not create a duplicate report or assume a problem is fixed.',
   },
   'staff-my-work': {
@@ -64,7 +64,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     goal: 'Give a job to the right person and follow it until review.',
     show: 'Find the team task list, search for existing work, and open the New task form.',
     help: 'Enter a fictional job with the reference shown in the guide. Save it yourself.',
-    self: 'Complete the verified saved-task workflow if your account is authorized; otherwise practise the Task view filters independently.'
+    self: 'Complete the verified saved-task workflow if your account is authorized; otherwise practise the Task view filters independently.',
     checks: 'The app checks your saved task and its status.',
     safety: 'Only leads and authorized managers may create or update these tasks.',
   },
@@ -72,7 +72,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     goal: 'Record a guest concern and arrange a follow-up.',
     show: 'Find open guest matters first. A guest in Solace says the AC is not cooling.',
     help: 'Use the highlighted guest form and a made-up guest name. Assign the correct team.',
-    self: 'Complete the verified saved guest-matter exercise if authorized; otherwise practise the filters independently.'
+    self: 'Complete the verified saved guest-matter exercise if authorized; otherwise practise the filters independently.',
     checks: 'The app checks the saved fictional record and its required steps.',
     safety: 'Do not report a repair as finished until someone has checked it.',
   },
@@ -80,7 +80,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     goal: 'Report a repair and check whether it is finished.',
     show: 'Open Maintenance and look for an existing Solace AC problem before entering another one.',
     help: 'Use Report issue to enter a fictional defect. Follow the guide to save work.',
-    self: 'Complete the saved repair stages only if authorized; otherwise practise the Maintenance filters independently.'
+    self: 'Complete the saved repair stages only if authorized; otherwise practise the Maintenance filters independently.',
     checks: 'The app checks the saved repair. Only authorized managers can verify completed work.',
     safety: 'Done and Verified mean different things. Never bypass a safety check.',
   },
@@ -88,7 +88,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     goal: 'Submit a clear request for review.',
     show: 'Open Requests and read the statuses for Draft and Review.',
     help: 'Write exactly what the department needs, why, and who should review it.',
-    self: 'Complete the verified request workflow if authorized; otherwise practise its status filters independently.'
+    self: 'Complete the verified request workflow if authorized; otherwise practise its status filters independently.',
     checks: 'The app checks your saved request and whether it was sent for review.',
     safety: 'Wait for approval before arranging a purchase.',
   },
@@ -96,7 +96,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     goal: 'Leave a useful note for the next shift.',
     show: 'Find unresolved handovers and read what information is missing.',
     help: 'Write a fictional note with the problem, responsible person, and next check.',
-    self: 'If authorized, save the practice handover and carry it forward; otherwise practise the shift filters independently.'
+    self: 'If authorized, save the practice handover and carry it forward; otherwise practise the shift filters independently.',
     checks: 'The app checks your saved note and its status.',
     safety: 'A note does not prove the job was completed.',
   },
@@ -112,7 +112,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     goal: 'Write a clear Bar report that the next bartender can follow.',
     show: 'Open Bar, choose Report a problem, and describe a fictional low-stock issue.',
     help: 'Use the highlighted controls. Explain which syrup is low, who should check it, and what the next shift should do.',
-    self: 'Practise opening the Bar report form and writing a fictional issue without arrows. Do not submit during the short independent check.'
+    self: 'Practise opening the Bar report form and writing a fictional issue without arrows. Do not submit during the short independent check.',
     checks: 'A saved practice Bar report is checked against the isolated training database before it can count as completed.',
     safety: 'The report does not adjust POS stock or authorize purchases.',
   },
