@@ -40,7 +40,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
   {
     id: 'staff-handover', title: 'Reading a shift handover', summary: "Read what the previous shift left for you.",
     steps: [
-      { path: '/shift', selector: '[aria-label="Shift note filters"] button', title: "Find unfinished notes", advanceOnClick: true, requiresAction: true, body: "Choose Unresolved or Urgent to find notes that need attention." },
+      { path: '/shift', selector: '[aria-label="Shift note filters"] button:nth-child(2)', title: "Find urgent handovers", advanceOnClick: true, requiresAction: true, body: "Select the Urgent filter to see handovers that need immediate attention. The lesson advances after you click Urgent." },
       { path: '/shift', selector: '.ops-handover-card, .ops-module', title: "Read the note", body: "Check the problem, who is handling it and what needs to happen next. Reading a note does not finish the work." },
       { path: '/shift', selector: '.ops-module', title: "Ask for help", body: "Tell your lead if you cannot finish the work or change its status. Use your own login." },
     ],
