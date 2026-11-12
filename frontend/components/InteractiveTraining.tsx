@@ -15,6 +15,7 @@ import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
 import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
 import { TrainerReports } from '@/components/TrainerReports';
+import { useTrainingDialogFocus } from '@/lib/training-dialog-focus';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
 
@@ -106,6 +107,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const observedNode = useRef<HTMLElement | null>(null);
   const tipRef = useRef<HTMLElement | null>(null);
   const libraryRef = useRef<HTMLElement | null>(null);
+  const courseDialogRef = useRef<HTMLElement>(null);
   const [tipPosition, setTipPosition] = useState<Position | null>(null);
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');
@@ -139,6 +141,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const currentExample = repeatVariant?.example || courseGuide?.example;
   const currentQuestions = repeatVariant?.questions || courseGuide?.questions;
   const quizItem = currentQuestions?.[course?.question || 0];
+  const courseModalOpen = Boolean(!paused && course && (
+    ['learn','quiz','done'].includes(course.stage) || (course.stage === 'tour' && !active)));
+  useTrainingDialogFocus(courseDialogRef, courseModalOpen, `${course?.lessonId}:${course?.stage}:${course?.question}`);
   const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
 
   async function restoreTrainingProgress(file: File | undefined) {
@@ -618,7 +623,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
     {!paused && course && courseLesson && courseGuide && ['learn','quiz','done'].includes(course.stage) && <div
       className="ops-course-backdrop" data-testid="required-training-course">
-      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
+      <section ref={courseDialogRef} tabIndex={-1} className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
         <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>
           <strong>Lesson {lessonNumber} of {lessons.length}</strong></div>
         <button type="button" className="ops-course-quiet" onClick={() => setLessonPaused(true)}>Pause lesson</button>
@@ -695,7 +700,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       </section>
     </div>}
     {!paused && course?.stage === 'tour' && !active && <div className="ops-course-backdrop">
-      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
+      <section ref={courseDialogRef} tabIndex={-1} className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
         <button type="button" className="ops-course-quiet" onClick={() => setLessonPaused(true)}>Pause lesson</button>
         <h2>Continue your actual-page practice</h2>
         <p>You still have steps to finish. Open the practice screen and follow the arrows. Your place in the lesson is saved.</p>
