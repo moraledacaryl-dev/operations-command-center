@@ -59,7 +59,17 @@ test('portable reports reject malformed data and never restore saved-record less
 test('two independent actual page clicks are required before course can complete', async ({page})=>{
   await init(page,trainee,{lessonId:'orientation',stage:'independent',question:0,independentStep:0,passed:[]});
   await page.goto('/');
-  await expect(page.getByTestId('course-independent-challenge')).toContainText('No arrows');
+  const independentPrompt = page.getByTestId('course-independent-challenge');
+  await expect(independentPrompt).toContainText('No arrows');
+  // An unguided practice prompt still needs to be visible BEFORE the work
+  // screen rather than appearing at the bottom of a long page.
+  await expect(independentPrompt).toBeVisible();
+  expect(await independentPrompt.evaluate(node =>
+    Boolean(node.compareDocumentPosition(document.getElementById('workspace-main')) &
+      Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  const promptBox = await independentPrompt.boundingBox();
+  const mainBox = await page.locator('#workspace-main').boundingBox();
+  expect(promptBox && mainBox && promptBox.top < mainBox.top).toBeTruthy();
   await expect(page.getByTestId('course-completed')).toHaveCount(0);
   await page.locator('.ops-sidebar a[aria-label="My Work"]').click();
   await expect(page).toHaveURL(/\/my-work$/);
