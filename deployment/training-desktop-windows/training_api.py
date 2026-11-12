@@ -58,8 +58,11 @@ def refresh_fictional_notices(path: Path, state: Path, *, validate_only: bool = 
     count = module.ensure_notification_practice_data(path, state, validate_only=validate_only)
     if validate_only:
         return
+    # Preserve older accounts and saved work; only append missing fictional drills
+    # after the private DB backup and schema upgrade have completed.
+    missions_added = module.ensure_training_mission_data(path, state)
     module.ensure_private_trainer_guide(state / "private" / "accounts")
-    print(f"PASS: fictional per-user notification drills ready ({count} newly added)")
+    print(f"PASS: fictional notices ({count} new) and verified practice missions ({missions_added} new/updated)")
 
 
 def _first_launch():
