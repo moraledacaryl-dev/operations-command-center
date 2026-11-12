@@ -70,6 +70,7 @@ export default function HousekeepingPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('All');
   const [plans, setPlans] = useState('All');
+  const [missingGuestStatus, setMissingGuestStatus] = useState(false);
   const [correcting, setCorrecting] = useState<number | null>(null);
   const [correctionReason, setCorrectionReason] = useState('');
   const [rework, setRework] = useState<Record<number,string>>({});
@@ -119,8 +120,10 @@ export default function HousekeepingPage() {
     const plan = roomPlans(room, day);
     const matchesPlan = plans === 'All' || (plans === 'Arrivals' && plan.arrival)
       || (plans === 'Departures' && plan.departure) || (plans === 'Both' && plan.arrival && plan.departure);
-    return matched && matchesPlan && (status === 'All' || room.status === status);
-  }), [board, search, status, plans, day]);
+    const needsStatus = !room.guest_stay && (plan.arrival || plan.departure);
+    return matched && matchesPlan && (!missingGuestStatus || day !== propertyDay() || needsStatus) && (status === 'All' || room.status === status);
+  }), [board, search, status, plans, day, missingGuestStatus]);
+  const missingStatusCount = (board?.rooms || []).filter(room => { const plan = roomPlans(room, day); return !room.guest_stay && (plan.arrival || plan.departure); }).length;
   const counts = useMemo(() => {
     const rooms = board?.rooms || [];
     return {
@@ -145,6 +148,7 @@ export default function HousekeepingPage() {
       </select></label>
       <button type="button" className="btn secondary" disabled={loading} onClick={() => void load()}>Refresh</button>
     </div>
+    {board && day === propertyDay() && missingStatusCount > 0 && <p><button type="button" className="btn secondary" aria-pressed={missingGuestStatus} onClick={() => setMissingGuestStatus(value => !value)}>{missingGuestStatus ? "Show all rooms" : `Show ${missingStatusCount} planned room${missingStatusCount === 1 ? "" : "s"} with no guest status`}</button> Ask Front Desk to check the status. No status does not mean the room is empty.</p>}
     {error ? <p role="alert" className="hk-error">{error}</p> : null}
     {board && <div className="hk-counts" aria-label="Cleaning progress">
       <div><strong>{counts.waiting}</strong><span>To clean</span></div>

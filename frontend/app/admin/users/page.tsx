@@ -151,6 +151,7 @@ export default function UsersPage() {
         <div className="card-line">{!user.is_active ? <Pill value="Inactive" /> : null}{user.departments?.map((department: Entity) => <span className="muted" key={department.id}>{department.name}{department.is_primary ? " · primary" : ""}</span>)}</div>
         <span className="muted">{user.email}</span>
         <div className="card-line" style={{ marginTop: 8 }}><span className="muted">Last login: {localDate(user.last_login_at)}</span></div>
+        {user.is_active && !user.last_login_at ? <p>Has not signed in yet</p> : user.is_active && user.must_change_password ? <p>Password change still needed</p> : null}
         <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
           <button className="btn small secondary" onClick={() => open('access', user)}>Department access</button>
           <button className="btn small secondary" onClick={() => open('edit', user)}>Edit account</button>

@@ -49,6 +49,9 @@ test('portable reports reject malformed data and never restore saved-record less
   expect(report.metrics.orientation.incorrectAnswers).toBe(2);
   expect(portableLearningCredit(report,['orientation','staff-handover','staff-rooms','staff-my-work','team-tasks']))
     .toEqual(completed);
+  const barReport = {...report, completedLessons: [...report.completedLessons, 'bar'], verifiedPractice: [{kind:'bar-report',reference:'TRN-BAR-ABCDEFGH',completedAt:'2026-11-02T01:00:00Z',stages:2}]};
+  expect(parseTrainingReport(barReport)?.verifiedPractice).toHaveLength(1);
+  expect(portableLearningCredit(barReport, ['orientation','bar'])).toEqual(['orientation']);
   expect(parseTrainingReport({...report,schema:'other'})).toBeNull();
   expect(parseTrainingReport({...report,trainee:{id:'x'}})).toBeNull();
 });
@@ -92,13 +95,18 @@ test('supervisor can import a report, see attempts, and record local-only observ
   const dashboard=page.getByTestId('trainer-progress-dashboard');
   await expect(dashboard).toBeVisible();
   await dashboard.locator('.ops-trainer-toggle').click();
+  await dashboard.getByLabel("Staff member's name").fill('Ann Clarin');
   await dashboard.locator('input[type=file]').setInputFiles({
     name:'trainee.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(reportFor())),
   });
-  await expect(dashboard).toContainText('Fictional Practice Staff');
+  await expect(dashboard).toContainText('Ann Clarin');
+  await dashboard.getByLabel("Staff member's name").fill('Joel Ucat');
+  await dashboard.locator('input[type=file]').setInputFiles({ name:'trainee.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(reportFor())) });
+  await expect(dashboard.locator('article')).toHaveCount(2);
+  await expect(dashboard).toContainText('Joel Ucat');
   await expect(dashboard).toContainText('Quiz corrections: 2');
-  await dashboard.locator('textarea').fill('Practised guest communication but needs one more realistic handover scenario.');
-  await dashboard.getByRole('button',{name:'Save review note locally'}).click();
+  await dashboard.locator('article').filter({hasText:'Ann Clarin'}).locator('textarea').fill('Practised guest communication but needs one more realistic handover scenario.');
+  await dashboard.locator('article').filter({hasText:'Ann Clarin'}).getByRole('button',{name:'Save review note locally'}).click();
   await expect(dashboard).toContainText('Your review note was saved on this computer only');
   const saved=await page.evaluate(()=>localStorage.getItem('ho-ops-local-trainer-reports-v1:8501'));
   expect(saved).toContain('Practised guest communication');

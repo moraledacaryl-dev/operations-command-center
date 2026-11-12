@@ -14,6 +14,7 @@ const starting = { id: 71, title: 'Mango syrup is low', department_id: 8, status
 async function serveBar(page: Page, user: typeof base) {
   const notes = [starting];
   const submissions: any[] = [];
+  const routines: any[] = [];
   await page.addInitScript(({ session, passed }) => {
     localStorage.setItem('cc_user', JSON.stringify(session));
     localStorage.setItem('cc_department_id', String(session.primary_department_id));
@@ -28,7 +29,10 @@ async function serveBar(page: Page, user: typeof base) {
     else if (url.pathname === '/api/meta') result = { users: [], departments: user.departments };
     else if (url.pathname === '/api/shift-notes') result = notes;
     else if (url.pathname === '/api/shift-notes/71') result = starting;
-    else if (url.pathname === '/api/tasks' || url.pathname === '/api/routines') result = [];
+    else if (url.pathname === '/api/tasks') result = [];
+    else if (url.pathname === '/api/routines' && method === 'POST') { result = { id: 90, ...route.request().postDataJSON() }; routines.push(result); }
+    else if (url.pathname === '/api/routines') result = routines;
+    else if (url.pathname === '/api/routines/90' && method === 'PATCH') { Object.assign(routines[0], route.request().postDataJSON()); result = routines[0]; }
     else if (url.pathname === '/api/bar/reports' && method === 'POST') {
       const data = route.request().postDataJSON();
       submissions.push(data);
@@ -43,7 +47,7 @@ async function serveBar(page: Page, user: typeof base) {
     else if (url.pathname.endsWith('/page')) result = { items: [], has_more: false, next_cursor: null };
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(result) });
   });
-  return { notes, submissions };
+  return { notes, submissions, routines };
 }
 
 test('Bar staff can create a problem report with plain words and no management controls', async ({ page }) => {
@@ -83,4 +87,23 @@ test('Bar lead can see current handovers and existing task follow-up', async ({ 
   await expect(page.getByTestId('bar-report-details')).toContainText('Please count bottles before the next shift.');
   await expect(page.getByRole('button', { name: 'Mark as read' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'See tasks' })).toBeVisible();
+});
+
+
+test('Bar lead reviews suggested opening steps before saving and can update them', async ({ page }) => {
+  const { routines } = await serveBar(page, lead);
+  await page.goto('/bar');
+  await page.getByRole('button', { name: 'Add opening checks' }).click();
+  await page.getByRole('button', { name: 'Use suggested steps' }).click();
+  await expect(page.getByLabel('Opening steps')).not.toBeEmpty();
+  expect(routines).toHaveLength(0);
+  await page.getByLabel('Opening steps').fill('Wash hands and clean the work area.\nCheck the fridge.');
+  await page.getByRole('button', { name: 'Save checks for Bar' }).click();
+  await expect(page.getByText('Bar checks saved for the team.')).toBeVisible();
+  expect(routines).toHaveLength(1);
+  expect(routines[0]).toMatchObject({ department_id: 8, title: 'Bar opening checks', status: 'Active' });
+  await page.getByRole('button', { name: 'Edit opening checks' }).click();
+  await page.getByLabel('Opening steps').fill('Wash hands and clean the bar.');
+  await page.getByRole('button', { name: 'Save checks for Bar' }).click();
+  await expect.poll(() => routines[0].checklist).toBe('Wash hands and clean the bar.');
 });

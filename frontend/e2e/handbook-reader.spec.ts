@@ -97,3 +97,14 @@ test('owner may prepare a PDF draft from management screen', async ({ page }) =>
   });
   await expect(page.getByText(/Handbook prepared as a private draft/)).toBeVisible();
 });
+
+test('owner sees an approved unpublished handbook and can review it without publishing', async ({ page }) => {
+  await setup(page, owner);
+  let writes = 0;
+  await page.route('**/api/staff-guide/manage', async route => route.fulfill({ status: 200, json: [{ id: 7, title: 'Example Handbook', status: 'Approved', doc_type: 'Handbook', version: 0, audience: 'all' }] }));
+  await page.route('**/api/staff-guide/7/**', async route => { writes++; await route.fulfill({status: 200, json: {}}); });
+  await page.goto('/staff-guide');
+  await expect(page.getByText(/approved but not yet visible/i)).toBeVisible();
+  await page.getByRole('button', { name: 'Review handbook' }).click();
+  expect(writes).toBe(0);
+});
