@@ -217,6 +217,8 @@ export type CourseProgress = {
   stage: CourseStage;
   question: number;
   independentStep?: number;
+  /** Index of the last displayed actual-page tour step; never proof of completion. */
+  tourStep?: number;
   reference?: string;
   passed: string[];
   metrics?: Record<string, { incorrectAnswers?: number; repeats?: number; completedAt?: string; hintsViewed?: number }>;
@@ -238,6 +240,10 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     const stage = ['learn','quiz','tour','work','independent','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
     const question = typeof v.question === 'number' && Number.isInteger(v.question) && v.question >= 0 && v.question <= 1 ? v.question : 0;
     const independentStep = v.independentStep === 1 ? 1 : 0;
+    const rawTourStep = Number(v.tourStep);
+    const maxTourStep = Math.max(0, (lessons.find(item => item.id === lessonId)?.steps.length || 1) - 1);
+    const tourStep = v.tourStep !== undefined && Number.isSafeInteger(rawTourStep)
+      ? Math.min(maxTourStep, Math.max(0, rawTourStep)) : 0;
     const passed = Array.isArray(v.passed) ? v.passed.filter((id): id is string => typeof id === 'string' && allowed.has(id)).slice(0, lessons.length) : [];
     const metrics: NonNullable<CourseProgress['metrics']> = {};
     if (v.metrics && typeof v.metrics === 'object' && !Array.isArray(v.metrics)) {
@@ -271,9 +277,9 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     if (stage === 'done' && !passed.includes(lessonId)) return {
       lessonId, stage: 'learn', question: 0, independentStep: 0, passed, metrics,
     };
-    const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
+    const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
     return { lessonId, stage: stage === 'work' && !reference ? 'learn' : stage,
-      question, independentStep, ...(reference ? { reference } : {}), passed, metrics };
+      question, independentStep, tourStep, ...(reference ? { reference } : {}), passed, metrics };
   } catch { return fallback; }
 }
 export const COURSE_STORAGE_PREFIX = 'ho-ops-structured-course-v2:';

@@ -202,12 +202,29 @@
 .ops-course-branch { margin: 14px 0; border: 1px solid #c3d8cd; border-radius: 11px;
   background: #f5faf6; padding: 13px 15px; }
 .ops-course-branch h3 { margin-top: 0; }
-.ops-course-independent-status { position: sticky; top: 0; z-index: 10030; margin: 10px;
+.ops-course-independent-status { position: sticky; top: 0; z-index: 12; margin: 10px;
   padding: 14px 18px; border: 2px solid #18704d; border-radius: 12px;
   background: #f1fbf3; color: #184b34; display: grid; gap: 6px; }
 .ops-course-independent-status button { width: fit-content; border-radius: 7px;
   border: 1px solid #73a98c; padding: 7px 10px; color: #174731; background: white; cursor: pointer; }
 .ops-course-independent-status > small { font-size: 12px; }
+/* Self-practice is intentionally unhighlighted, but instructions remain prominent,
+   readable and available before the real work screen. */
+.ops-practice-learning-goal { border-left: 4px solid #23855f; border-radius: 9px;
+  padding: 12px 14px; margin: 14px 0; background: #f0f8f2; line-height: 1.5; }
+.ops-practice-learning-goal strong { color: #18543b; }
+.ops-practice-learning-goal p { margin: 7px 0 0; }
+.ops-practice-self-goal { margin: 5px 0; font-weight: 730; font-size: 14px; line-height: 1.5; }
+.ops-practice-show-help { border: 1px solid #b9d9c5; border-radius: 9px;
+  background: #fff; padding: 10px 12px; margin: 5px 0; color: #234b35; }
+.ops-practice-show-help summary { cursor: pointer; font-weight: 800; }
+.ops-practice-show-help p { margin: 9px 0 0; line-height: 1.55; }
+.ops-guide-practice-context { border-left: 3px solid #2c9470;
+  background: #f2faf5; padding: 8px 10px; border-radius: 6px; }
+@media (max-width: 639px) {
+  .ops-course-independent-status { position: relative; margin: 8px 10px 12px; padding: 12px; }
+  .ops-course-progress > span { min-width: 0; }
+}
 
 .ops-guide-report-actions { display: grid; gap: 8px; margin: 11px 0 14px; padding: 12px;
  border: 1px solid #b8dbc5; border-radius: 11px; background: #f4faf6; }

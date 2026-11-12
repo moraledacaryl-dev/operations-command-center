@@ -55,6 +55,10 @@ test('a new staff trainee sees a concrete situation and its vocabulary before ch
   await expect(page.getByRole('button', { name: 'Save my results (CSV)' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Check my choices' })).toBeVisible();
 
+  await expect(page.getByTestId('scenario-three-stage')).toContainText('Show me an example');
+  await expect(page.getByTestId('scenario-three-stage')).toContainText('Try it with help');
+  await expect(page.getByTestId('scenario-three-stage')).toContainText('Your turn');
+  await expect(page.getByTestId('scenario-triage')).toContainText('Your turn — Step 1');
   await expect(page.getByTestId('scenario-case-brief')).toContainText('guest has waited 30 minutes');
   await expect(page.getByTestId('training-simple-words')).toBeVisible();
   await expect(page.getByTestId('training-simple-words')).toContainText('Reception calls or speaks to the guest');

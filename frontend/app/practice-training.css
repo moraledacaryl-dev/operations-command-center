@@ -22,6 +22,14 @@
 .practice-scenario small { color: #4f6457; font-size: 12px; }
 .practice-workspace { min-width: 0; border: 1px solid #d5dfd8; background: #fff; border-radius: 17px; padding: clamp(18px, 3vw, 30px); box-shadow: var(--shadow-xs); }
 .practice-workspace > h2 { font-size: clamp(21px, 2.5vw, 29px); margin: 6px 0 10px; }
+.practice-three-stage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px; margin: 14px 0 21px; }
+.practice-three-stage > * { min-width: 0; padding: 13px; border: 1px solid #c6d9cd;
+  border-radius: 12px; background: #f4faf6; color: #254f39; font-size: 13px; line-height: 1.5; }
+.practice-three-stage strong, .practice-three-stage summary { color: #18563f;
+  font-weight: 820; cursor: pointer; }
+.practice-three-stage p { margin: 7px 0 0; }
+@media (max-width: 740px) { .practice-three-stage { grid-template-columns: 1fr; } }
 .practice-topline { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; color: #4d6054; font-size: 12px; }
 .practice-department { background: #e2f2e9; border-radius: 999px; color: #175f47; font-weight: 800; padding: 4px 9px; }
 .practice-situation { font-size: 16px; line-height: 1.6; color: #22372c; }
