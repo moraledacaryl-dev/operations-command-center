@@ -275,3 +275,7 @@
 .practice-skip { display: inline-block; color: #145d43; font-size: 14px; font-weight: 750; margin: 0 0 10px; text-decoration: underline; }
 .practice-skip:focus-visible, .practice-workspace:focus { outline: 3px solid #8dbfa5; outline-offset: 3px; }
 
+.practice-build-version { font-size: 12px; line-height: 1.5; margin: 7px 0 0;
+  color: #4e5b55; }
+.practice-build-version code { padding: 2px 5px; background: #eff4ef; color: #244d3b;
+  border-radius: 4px; user-select: all; font-family: ui-monospace, SFMono-Regular, monospace; }
