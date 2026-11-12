@@ -349,6 +349,10 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
                     priority="Normal",
                 ), "notifications")
 
+        # Every fresh offline training installation gets the same verified
+        # fictional missions as a safe upgrade of an older installation.
+        counts.update(add_training_mission_records(db, now))
+
         private_file=private_dir/"PRIVATE_training_accounts.json"
         manifest_file=private_dir/"training_manifest.json"
         roster_fd=os.open(private_file,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
@@ -361,6 +365,127 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
         db.commit()
     ensure_private_trainer_guide(private_dir)
     return dict(counts)
+
+
+def add_training_mission_records(db, now=None) -> Counter:
+    """Append role-specific drills only in a previously validated fictional DB.
+
+    Never reassign an existing task, alter training account credentials, erase a
+    comment, or overwrite a user-edited shift note. Also used by fresh seeding.
+    """
+    from app import models, foundation_models as fm
+
+    now = now or datetime.now(timezone.utc)
+    rows = json.loads(Path(__file__).with_name("shift_challenge_cases.json").read_text(encoding="utf-8"))
+    if not isinstance(rows, list) or not rows:
+        raise SystemExit("REFUSED: required fictional shift cases missing")
+
+    departments = {row.name: row for row in db.query(models.Department).all()}
+    users = db.query(models.User).all()
+    if not users or any(not u.email or not u.email.endswith("@training.invalid") for u in users):
+        raise SystemExit("REFUSED: training missions require entirely fictional users")
+    counts: Counter[str] = Counter()
+
+    # Front Desk's second self-check is a real room-memory read, not a fabricated
+    # success just from typing Perch 1 in a search field.
+    frontdesk = departments.get("Front Desk")
+    lead = next((u for u in users if u.email == "frontdesk-lead@training.invalid"), None)
+    perch = db.query(models.RoomArea).filter_by(name="Perch 1", kind="room").one_or_none()
+    if frontdesk and lead and perch:
+        report_title = PREFIX + "Perch 1 towel request"
+        existing = db.query(models.GuestNote).filter_by(title=report_title).one_or_none()
+        if existing and (existing.room_area_id != perch.id or existing.department_id != frontdesk.id):
+            raise SystemExit("REFUSED: a named training report belongs to an unexpected room")
+        if existing is None:
+            db.add(models.GuestNote(
+                title=report_title, guest_name="Demo Guest Perch 1",
+                department_id=frontdesk.id, room_area_id=perch.id,
+                issue_type="Request", urgency="Normal", status="Open",
+                assigned_to_id=lead.id, follow_up_date=now + timedelta(hours=3),
+                note="TRAINING ONLY — a guest asked for towels. Housekeeping has not confirmed delivery.",
+            ))
+            counts["guest_notes"] += 1
+
+    for case in rows:
+        dept_name, reference = case["department"], case["reference"]
+        dept = departments.get(dept_name)
+        if not dept or not reference.startswith("SHIFT-"):
+            continue
+        staff = [u for u in users if u.role == "staff" and u.department_id == dept.id]
+        if not staff:
+            continue
+
+        # Improve only the original generic practice text. Employee changes
+        # or changes to saved status are never replaced during an upgrade.
+        placeholder = "TRAINING ONLY — record responsible person and pending follow-up."
+        for shift, number, expected_status in (("Night", 3, "Follow"), ("PM", 2, "Seen")):
+            title = PREFIX + f"{dept_name} {shift} handover #{number}"
+            note = db.query(models.ShiftNote).filter_by(
+                title=title, department_id=dept.id,
+                note=placeholder, status=expected_status,
+                seen_by_id=None, seen_at=None, hidden_from_active=False,
+            ).one_or_none()
+            if note and not note.linked_task_id and not note.linked_guest_note_id and not note.linked_fix_id:
+                note.note = ("TRAINING ONLY — " + case["situation"] +
+                             " The check is still pending. Tell the next shift who needs to check and when.")
+                counts["updated_untouched_shift_examples"] += 1
+
+        handover_title = PREFIX + reference + " — shift handover"
+        handover = db.query(models.ShiftNote).filter_by(title=handover_title, department_id=dept.id).one_or_none()
+        if handover is None:
+            db.add(models.ShiftNote(
+                title=handover_title, department_id=dept.id,
+                submitted_by_id=staff[0].id, shift="Night", category="Other",
+                status="Follow", urgency="Urgent" if case["priority"] == "Critical" else "Normal",
+                note=case["situation"] + " This is still unfinished. Leave the next shift a useful follow-up.",
+            ))
+            counts["shift_notes"] += 1
+
+        for person in staff:
+            task_title = PREFIX + reference + " — " + case["title"]
+            if not db.query(models.Task.id).filter_by(
+                title=task_title, department_id=dept.id, assigned_to_id=person.id,
+            ).first():
+                db.add(models.Task(
+                    title=task_title, department_id=dept.id, assigned_to_id=person.id,
+                    status="To Do", priority="Urgent" if case["priority"] == "Critical" else "High",
+                    due_date=now + timedelta(hours=1),
+                    note=case["situation"] +
+                         " Read the handover, check your notice, and save a follow-up. Do not mark physical work complete.",
+                ))
+                counts["tasks"] += 1
+
+            notice_title = PREFIX + reference + " — shift notice"
+            if not db.query(fm.Notification.id).filter_by(
+                user_id=person.id, kind="Shift notice", title=notice_title,
+            ).first():
+                db.add(fm.Notification(
+                    user_id=person.id, kind="Shift notice", title=notice_title,
+                    body=case["situation"] + " Your lead needs a follow-up before the next shift.",
+                    source_type=None, source_id=None, action_url=None, priority="High",
+                ))
+                counts["notifications"] += 1
+    db.flush()
+    return counts
+
+
+def ensure_training_mission_data(db_path: Path, state: Path) -> int:
+    """Safely upgrade *only* an initialized local desktop training installation.
+
+    Reuse the established marker, roster and all-synthetic-account validator;
+    the launchers first take a private backup and apply current migrations.
+    """
+    ensure_notification_practice_data(db_path, state, validate_only=True)
+    database_url = os.environ.get("DATABASE_URL", "")
+    if not database_url.startswith("sqlite:///") or Path(database_url[len("sqlite:///"):]).resolve() != Path(db_path).resolve():
+        raise SystemExit("REFUSED: training mission target differs from configured SQLite DB")
+    from app.database import SessionLocal
+    with SessionLocal() as db:
+        counts = add_training_mission_records(db)
+        db.commit()
+    return sum(counts.values())
+
+
 
 def ensure_private_trainer_guide(private_dir: Path) -> Path:
     """Present the already-private fictional JSON credentials in a readable trainer-only format.
