@@ -6,7 +6,7 @@ import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { availableTrainingLessons, TRAINING_LESSONS } from '@/lib/interactive-training';
 import type { TrainingStep } from '@/lib/interactive-training';
-import { COURSE_STORAGE_PREFIX, courseGuideFor, readCourseProgress } from '@/lib/training-course';
+import { COURSE_STORAGE_PREFIX, TRAINING_CATCHUP_LESSONS, courseGuideFor, readCourseProgress } from '@/lib/training-course';
 import { ROOM_PRACTICE_FINISHED } from '@/lib/training-room-mission';
 import { SHIFT_PRACTICE_FINISHED } from '@/lib/training-shift-mission';
 import { ROOM_ARRIVAL_FINISHED } from '@/components/RoomArrivalPractice';
@@ -91,6 +91,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     view_all_operations: hasCapability(user, 'view_all_operations'),
   }), [user]);
   const lessons = useMemo(() => availableTrainingLessons(capabilities, user.departments || []), [capabilities, user.departments]);
+  // Hands-on scenario and shift-challenge pages have their own instruction
+  // panels. Never cover those practice controls with the required-course dialog.
+  const onPracticeHome = path === '/training' || path.startsWith('/training/');
   const [menuOpen, setMenuOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [active, setActive] = useState<Active | null>(null);
@@ -141,10 +144,14 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const currentExample = repeatVariant?.example || courseGuide?.example;
   const currentQuestions = repeatVariant?.questions || courseGuide?.questions;
   const quizItem = currentQuestions?.[course?.question || 0];
-  const courseModalOpen = Boolean(!paused && course && (
+  const courseModalOpen = Boolean(!onPracticeHome && !paused && course && (
     ['learn','quiz','done'].includes(course.stage) || (course.stage === 'tour' && !active)));
   useTrainingDialogFocus(courseDialogRef, courseModalOpen, `${course?.lessonId}:${course?.stage}:${course?.question}`);
   const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
+  const catchupLessons = course?.stage === 'finished'
+    ? lessons.filter(item => !course.passed.includes(item.id) &&
+        (TRAINING_CATCHUP_LESSONS as readonly string[]).includes(item.id))
+    : [];
 
   async function restoreTrainingProgress(file: File | undefined) {
     if (!file || !course) return;
@@ -577,7 +584,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   })() : null;
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen || onPracticeHome) return;
     const library = libraryRef.current;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusable = () => Array.from(library?.querySelectorAll<HTMLElement>(
@@ -597,7 +604,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     };
     window.addEventListener('keydown', trapTab);
     return () => { window.removeEventListener('keydown', trapTab); previous?.focus(); };
-  }, [menuOpen]);
+  }, [menuOpen, onPracticeHome]);
+
+  useEffect(() => {
+    if (onPracticeHome && menuOpen) setMenuOpen(false);
+    if (onPracticeHome && active) setActive(null);
+  }, [onPracticeHome, menuOpen, active]);
 
   function setLessonPaused(value: boolean) {
     setPaused(value);
@@ -611,7 +623,21 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     height: position.height + 12,
   } : null;
 
+  // The separate scenario workspace is usable at any point in learning.
+  // It cannot award required-course credit without the verified mission.
+  if (onPracticeHome) return null;
+
   return <>
+    {course?.stage === 'finished' && catchupLessons.length > 0 && !paused &&
+      <div className="ops-course-catchup" role="status" data-testid="training-update-available">
+        <div><strong>New lessons for your role</strong>
+          <p>{catchupLessons.map(item => item.title).join(' · ')}. Your older lessons are still saved.</p></div>
+        <button type="button" onClick={() => {
+          setActive(null); setSelectedAnswer(null); setQuizFeedback('');
+          setCourse(current => current ? { ...current, lessonId: catchupLessons[0].id,
+            stage:'learn', question:0, independentStep:0, tourStep:0, reference:undefined } : current);
+        }}>Start new lesson</button>
+      </div>}
     <button type="button" className="ops-guide-launch" data-testid="interactive-training-open"
       aria-label={paused ? 'Resume lesson' : 'Open interactive training'} onClick={() => {
         if (paused) { setLessonPaused(false); return; }
