@@ -162,10 +162,15 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         setRestoreMessage('The report is invalid or belongs to a different practice account. No progress changed.'); return;
       }
       const credits = portableLearningCredit(report, lessons.map(item=>item.id));
-      const nextLesson = lessons.find(item=>!credits.includes(item.id));
+      const missing = lessons.filter(item=>!credits.includes(item.id));
+      const catchupIds: readonly string[] = TRAINING_CATCHUP_LESSONS;
+      const wasCompleteBeforeNewLessons = credits.includes('orientation') &&
+        credits.some(id=>id!=='orientation' && !catchupIds.includes(id)) &&
+        missing.length > 0 && missing.every(item=>catchupIds.includes(item.id));
       setCourse(current=>current ? {
-        ...current, lessonId:nextLesson?.id || lessons[0].id,
-        stage:nextLesson?'learn':'finished', question:0, independentStep:0, tourStep:0,
+        ...current, lessonId:missing[0]?.id || lessons[0].id,
+        stage:!missing.length || wasCompleteBeforeNewLessons?'finished':'learn',
+        question:0, independentStep:0, tourStep:0,
         reference:undefined, passed:credits, metrics:report.metrics,
       }:current);
       setRestoreMessage('Lessons restored. Repeat any hands-on practice that needs saved work on this device.');
