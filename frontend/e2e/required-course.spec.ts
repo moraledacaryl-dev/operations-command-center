@@ -108,6 +108,26 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(coach).toContainText('Your start page');
 });
 
+test('reading a shift handover advances when the highlighted Urgent filter is clicked', async ({ page }) => {
+  await mockLogin(page);
+  await page.addInitScript(user => {
+    localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
+      lessonId: 'staff-handover', stage: 'quiz', question: 1, passed: ['orientation'],
+    }));
+  }, staff);
+  await page.goto('/');
+  const panel = page.getByTestId('required-training-course');
+  await expect(panel).toContainText('You read a handover');
+  await panel.getByLabel('Check the situation or tell the person responsible').check();
+  await page.getByTestId('course-check-answer').click();
+  await expect(page).toHaveURL(/\\/shift$/);
+  const coach = page.locator('.ops-guide-tip');
+  await expect(coach).toContainText('Find urgent handovers');
+  await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
+  await page.getByRole('tab', { name: 'Urgent' }).click();
+  await expect(coach).toContainText('Read the note');
+});
+
 test('finished curriculum unlocks its completed tour without giving unearned staff write permissions', async ({ page }) => {
   await mockLogin(page);
   await page.addInitScript(user => {
