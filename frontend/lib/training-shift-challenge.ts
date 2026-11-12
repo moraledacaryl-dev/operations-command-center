@@ -41,6 +41,7 @@ const noteHints: Record<string, [string, string]> = {
   'Maintenance': ['that people must be kept away', 'the qualified inspection'],
   'Marketing': ['the wrong event date', 'the lead’s review of the draft'],
   'Security': ['the blocked exit', 'the action to clear the exit'],
+  'Bar': ['the low syrup or mocktail stock', 'the count or stock check'],
 };
 export function assessShiftNote(c: ShiftCase, a: ShiftAnswers): Record<string,string> {
   const scenario: PracticeScenario = {id:c.reference,department:c.department as PracticeScenario['department'],level:3,
