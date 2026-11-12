@@ -63,6 +63,17 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
       q('Why should you confirm the room number?', ['To send the right team to the correct place','To choose the order in which rooms appear','To decide who works the next shift'], 0, 'The correct room number prevents wasted trips and mistaken guest updates.'),
     ],
   },
+  'room-arrivals': {
+    explanation: 'Room cleaning shows planned arrivals and departures, guest status and cleaning work separately. Front Desk records what actually happened. Housekeeping must wait until the guest has left before beginning a checkout clean.',
+    example: 'A practice guest leaves Solace. Front Desk records checkout, Housekeeping cleans the room and an authorized supervisor checks the work before it can be released.',
+    incorrectExample: 'A cleaner sees a departure planned for today and enters the room without confirming the guest checked out.',
+    whyIncorrect: 'A plan is not proof that the guest has departed. Always check the recorded status and ask Front Desk when unsure.',
+    remember: 'Recorded checkout is not the same as a clean room. Front Desk can correct a mistaken check-in or checkout, with a reason.',
+    questions: [
+      q('A guest is recorded as checked in. Can Housekeeping begin checkout cleaning?', ['No. First confirm with Front Desk','Yes, if someone is available to clean','Yes, if another arrival is expected'], 0, 'The guest could still be in the room. Check with Front Desk.'),
+      q('A room was cleaned earlier but occupied again later. What does it need after the next checkout?', ['A fresh clean for the new departure','No cleaning because it was approved earlier','Only a change to the status label'], 0, 'Earlier cleaning was for a previous stay.'),
+    ],
+  },
   'staff-my-work': {
     explanation: 'My Work shows the jobs assigned to your account. Read the due date, urgency and instructions. If something is blocked, tell the appropriate lead instead of pretending it is complete.',
     example: 'An item due today is waiting for materials. Open it, understand what is missing, and tell the lead so they can help.',
@@ -74,6 +85,17 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     questions: [
       q('A task is due today but you cannot finish it. What should you do?', ['Say nothing until tomorrow','Tell the lead what is blocking it','Mark it done to clear the list'], 1, 'The responsible lead needs a truthful update so the issue can be addressed.'),
       q('What does a task marked Waiting normally mean?', ['It may still need something before work can finish','It is always fully completed','It should be deleted'], 0, 'Waiting means another action or dependency may be pending.'),
+    ],
+  },
+  'maintenance-status': {
+    explanation: 'Open means a repair is waiting. Working means the work started and appears as In progress on the board. Done means someone reported the repair finished, but it still needs checking. The board calls that To verify. Verified means an authorized person checked the repair.',
+    example: 'A corridor light is marked Done. The lead still needs to check the result before it can become Verified.',
+    incorrectExample: 'A technician tells Reception a repair is verified immediately after clicking Done.',
+    whyIncorrect: 'A reported completion is not the same as an independent safety or quality check.',
+    remember: 'Never report a repair as Verified unless the authorized inspection actually happened.',
+    questions: [
+      q('A repair is Done but not Verified. What does that mean?', ['The final check may still be pending','It has been independently approved','Nobody needs to check the work'], 0, 'Done and Verified mean different things.'),
+      q('Who can mark the final check Verified?', ['An authorized person after checking','Anyone who opens the repair','The next guest to use the room'], 0, 'Only an authorized person may verify completed work.'),
     ],
   },
   'team-tasks': {
@@ -211,7 +233,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   },
 };
 
-export type CourseStage = 'learn' | 'quiz' | 'tour' | 'work' | 'independent' | 'done' | 'finished';
+export type CourseStage = 'learn' | 'quiz' | 'tour' | 'room-practice' | 'shift-practice' | 'work' | 'independent' | 'done' | 'finished';
 export type CourseProgress = {
   lessonId: string;
   stage: CourseStage;
@@ -223,6 +245,35 @@ export type CourseProgress = {
   passed: string[];
   metrics?: Record<string, { incorrectAnswers?: number; repeats?: number; completedAt?: string; hintsViewed?: number }>;
 };
+
+/** Adapt shared lessons to the work the employee actually does. */
+export function courseGuideFor(id: string, department: string, isFrontDesk: boolean): CourseGuide | undefined {
+  const base = COURSE_GUIDES[id];
+  if (!base) return undefined;
+  if (id === 'staff-rooms' && !isFrontDesk) return {
+    ...base,
+    explanation: 'Rooms lists guest rooms and shared areas. Find the right place and read the information available to your team. Some reports may be visible only to the team handling them.',
+    example: 'You need to find Solace. Open its room details and see what your team can read. If you cannot see a report, ask the responsible team rather than assuming there is no problem.',
+    questions: [q('You cannot see a report in a room. What should you do?', ['Ask the responsible team to check','Assume no problem exists','Use another employee’s account'], 0, 'A report may be available only to the team handling it.'), base.questions[1]],
+  };
+  if (id !== 'staff-handover') return base;
+  const examples: Record<string, [string,string]> = {
+    'housekeeping': ['A room still needs an inspection before the next arrival.', 'Housekeeping lead'],
+    'café': ['A breakfast order is delayed and the guest is waiting for an update.', 'Café lead'],
+    'kitchen': ['An allergy order is waiting for an ingredient check.', 'Kitchen lead'],
+    'maintenance': ['A repair still needs an inspection before the area can be used.', 'Maintenance lead'],
+    'marketing': ['A draft post has the wrong event date and needs a review.', 'Marketing lead'],
+    'security': ['A pool gate has not yet been checked and guests must be kept away.', 'Security lead'],
+  };
+  const item = examples[department.toLowerCase()];
+  if (!item) return base;
+  const [situation, lead] = item;
+  return { ...base, example: situation + ' The ' + lead + ' needs to know what is still waiting and what to check next.',
+    incorrectExample: 'An employee tells the next shift the work is finished without checking.',
+    branches: [{question: 'What if the check cannot be finished before your shift ends?', choices: ['Leave without an update', 'Tell the next shift what is waiting, who will check it and when', 'Say the work is finished'], correct: 1, response: 'The next shift needs the unfinished problem, the person responsible and the next check.'}],
+    questions: [base.questions[0], q('The handover says a check is still pending. What should you do?', ['Assume it is done','Wait without telling anyone','Check the situation or tell the person responsible'],2,'Unfinished work needs a follow-up.')],
+  };
+}
 
 /** Read data as untrusted browser state: it is a convenience resume marker,
  * not an official competency credential or proof of saved work.
@@ -237,7 +288,7 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     const v = data as Record<string, unknown>;
     const allowed = new Set(lessons.map(lesson => lesson.id));
     const lessonId = typeof v.lessonId === 'string' && allowed.has(v.lessonId) ? v.lessonId : first;
-    const stage = ['learn','quiz','tour','work','independent','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
+    const stage = ['learn','quiz','tour','room-practice','shift-practice','work','independent','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
     const question = typeof v.question === 'number' && Number.isInteger(v.question) && v.question >= 0 && v.question <= 1 ? v.question : 0;
     const independentStep = v.independentStep === 1 ? 1 : 0;
     const rawTourStep = Number(v.tourStep);
@@ -261,11 +312,25 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     // Local storage is a resume convenience, not proof of competency. A forged or
     // interrupted "finished" marker must not bypass unfinished role-available lessons.
     if (stage === 'finished') {
-      const nextUnfinished = lessons.find(lesson => !passed.includes(lesson.id));
-      if (nextUnfinished) return {
-        lessonId: nextUnfinished.id, stage: 'learn', question: 0, independentStep: 0,
-        passed, metrics,
-      };
+      const missing = lessons.filter(lesson => !passed.includes(lesson.id));
+      if (missing.length) {
+        // A previously completed curriculum can acquire new role lessons
+        // during installation. Keep prior credit and offer those lessons
+        // explicitly rather than unexpectedly covering the entire app.
+        // Any other missing legacy lesson still requires the normal course.
+        const catchup = new Set<string>(TRAINING_CATCHUP_LESSONS);
+        const priorCurriculumPassed = lessons.some(lesson =>
+          lesson.id !== 'orientation' && !catchup.has(lesson.id) && passed.includes(lesson.id));
+        if (passed.includes('orientation') && priorCurriculumPassed &&
+            missing.every(lesson => catchup.has(lesson.id))) {
+          return { lessonId: missing[0].id, stage: 'finished', question: 0,
+            independentStep: 0, tourStep: 0, passed, metrics };
+        }
+        return {
+          lessonId: missing[0].id, stage: 'learn', question: 0, independentStep: 0,
+          passed, metrics,
+        };
+      }
     }
     // Keep the next unfinished lesson in sequence. Completed lessons may still be
     // opened for legitimate review; an incomplete later lesson is never unlocked.
@@ -282,4 +347,8 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
       question, independentStep, tourStep, ...(reference ? { reference } : {}), passed, metrics };
   } catch { return fallback; }
 }
+/** Lessons added after the previous completed curriculum. They are offered as
+ * catch-up training, never silently awarded or used to lock returning workers
+ * out of already completed routines during a desktop app upgrade. */
+export const TRAINING_CATCHUP_LESSONS = ['room-arrivals', 'maintenance-status'] as const;
 export const COURSE_STORAGE_PREFIX = 'ho-ops-structured-course-v2:';

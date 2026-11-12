@@ -8,7 +8,7 @@ const trainee = {
   role: 'staff', is_active: true, departments: [{ id: 41, name: 'Front Desk', is_primary: true }],
   primary_department_id: 41, capabilities: {},
 };
-const completed = ['orientation','staff-handover','staff-rooms','staff-my-work'];
+const completed = ['orientation','staff-handover','staff-rooms','room-arrivals','staff-my-work'];
 function reportFor(id = '8401') {
   return buildTrainingReport({
     lessonId: 'team-tasks', stage: 'learn', question: 0,
@@ -47,8 +47,8 @@ test('portable reports reject malformed data and never restore saved-record less
   const report=reportFor();
   expect(parseTrainingReport(report)?.trainee.id).toBe('8401');
   expect(report.metrics.orientation.incorrectAnswers).toBe(2);
-  expect(portableLearningCredit(report,['orientation','staff-handover','staff-rooms','staff-my-work','team-tasks']))
-    .toEqual(completed);
+  expect(portableLearningCredit(report,['orientation','staff-handover','staff-rooms','room-arrivals','staff-my-work','team-tasks']))
+    .toEqual(['orientation','staff-my-work']);
   const barReport = {...report, completedLessons: [...report.completedLessons, 'bar'], verifiedPractice: [{kind:'bar-report',reference:'TRN-BAR-ABCDEFGH',completedAt:'2026-11-02T01:00:00Z',stages:2}]};
   expect(parseTrainingReport(barReport)?.verifiedPractice).toHaveLength(1);
   expect(portableLearningCredit(barReport, ['orientation','bar'])).toEqual(['orientation']);
@@ -81,7 +81,29 @@ test('two independent actual page clicks are required before course can complete
   await expect(page.getByTestId('course-completed')).toContainText('Lesson 1 completed');
 });
 
-test('manager can restore read-only lesson history but must recheck saved records', async ({page})=>{
+test('importing an older report repeats real-record lessons on a new device without inventing credit', async ({page})=>{
+  await init(page,trainee,{lessonId:'orientation',stage:'learn',question:0,passed:[]});
+  await page.goto('/');
+  const completedOld = ['orientation','staff-handover','staff-rooms','staff-my-work'];
+  const report = buildTrainingReport({
+    lessonId:'staff-my-work',stage:'finished',question:0,passed:completedOld,
+  },{id:trainee.id,name:trainee.name,role:trainee.role},{},'2026-11-02T01:00:00Z');
+  const help = page.locator('details.ops-course-help').filter({hasText:'Need help with this lesson?'});
+  await help.locator('summary').click();
+  await help.locator('input[type=file]').setInputFiles({
+    name:'previous-training.json',mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify(report)),
+  });
+  await expect(page.getByTestId('course-lesson-title')).toContainText('Reading a shift handover');
+  await expect(page.getByTestId('training-update-available')).toHaveCount(0);
+  const restored = await page.evaluate(id=>JSON.parse(
+    localStorage.getItem('ho-ops-structured-course-v2:'+id)||'null'),trainee.id);
+  expect(restored.passed).toEqual(['orientation','staff-my-work']);
+  expect(restored.stage).toBe('learn');
+  expect(restored.lessonId).toBe('staff-handover');
+});
+
+test('manager can restore ordinary lessons but must repeat record-backed work', async ({page})=>{
   const manager = {...trainee,role:'manager',capabilities:{manage_department:true,make_decisions:true,view_all_operations:true}};
   await init(page,manager,{lessonId:'orientation',stage:'learn',question:0,passed:[]});
   await page.goto('/');
@@ -93,9 +115,9 @@ test('manager can restore read-only lesson history but must recheck saved record
     name:'progress.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(report)),
   });
   await expect(details).toContainText('Repeat any hands-on practice that needs saved work on this device.');
-  await expect(page.getByTestId('course-lesson-title')).toContainText('Creating and managing a task');
+  await expect(page.getByTestId('course-lesson-title')).toContainText('Reading a shift handover');
   const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('ho-ops-structured-course-v2:8401')||'null'));
-  expect(progress.passed).toEqual(completed);
+  expect(progress.passed).toEqual(['orientation','staff-my-work']);
   expect(progress.stage).toBe('learn');
 });
 

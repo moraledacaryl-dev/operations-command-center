@@ -30,7 +30,7 @@ async function openMockWorkspace(page: import('@playwright/test').Page, role: Tr
     localStorage.setItem('ho-ops-real-screens-intro-v1:' + String(storedUser.id), 'started');
     localStorage.setItem('ho-ops-structured-course-v2:' + String(storedUser.id), JSON.stringify({
       lessonId: 'orientation', stage: 'finished', question: 0,
-      passed: ['orientation', 'staff-handover', 'staff-rooms', 'staff-my-work',
+      passed: ['orientation', 'staff-handover', 'staff-rooms', 'room-arrivals', 'staff-my-work',
         'team-tasks', 'guest-matters', 'maintenance', 'requests', 'shift-writing',
         'projects', 'marketing', 'management-review', 'accounts'],
     }));

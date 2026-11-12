@@ -31,6 +31,7 @@ async function signInToFictionalWorkspace(page: import('@playwright/test').Page,
   }));
   await page.goto('/training');
   await expect(page.getByTestId('scenario-training')).toBeVisible();
+  await expect(page.getByTestId('training-build-version')).toContainText('Training build:');
 }
 
 test('first open goes to role login without a cached fictional account', async ({ page }) => {

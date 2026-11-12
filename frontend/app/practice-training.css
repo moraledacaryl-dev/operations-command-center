@@ -262,3 +262,20 @@
   .practice-steps span { font-size: 12px; padding: 9px; }
   .practice-record-lookup button, .practice-actions .practice-primary { min-height: 48px; }
 }
+
+/* Restored training-only role and shift missions from earlier verified implementation. */
+.shift-challenge-entry,.shift-challenge-return{margin:0 0 24px;padding:18px 22px;border:1px solid #cfddd6;border-radius:16px;background:#f6faf7;display:flex;align-items:center;justify-content:space-between;gap:18px;color:#223d31}
+.shift-challenge-entry h2{margin:0 0 6px;font-size:21px}.shift-challenge-entry p{margin:5px 0}.shift-challenge-return{padding:12px 20px;font-size:14px}.shift-challenge-return a{text-decoration:underline;font-weight:650}
+.shift-challenge{width:100%;max-width:840px;margin:10px auto 60px;color:#253e32;line-height:1.65;overflow-wrap:anywhere}.shift-challenge h1{font-size:30px;line-height:1.2;margin:8px 0 18px}.shift-challenge h2{font-size:21px;line-height:1.35;margin:0 0 10px}.shift-challenge-brief{margin:24px 0;padding:24px;background:#f3f7f2;border-left:4px solid #668b6f;border-radius:8px}.shift-challenge-tasks{padding-left:25px}.shift-challenge-tasks li{padding:8px 0 12px 4px}.shift-challenge-tasks span{display:block;margin-top:4px}.shift-challenge-help{margin:20px 0 32px;border-top:1px solid #d5dfd9;border-bottom:1px solid #d5dfd9;padding:15px 0}.shift-challenge-help summary{cursor:pointer;font-weight:650}.shift-challenge-help a{text-decoration:underline}
+.shift-challenge-form{border-top:1px solid #d5dfd9;padding-top:24px}.shift-challenge-form label{display:flex;flex-direction:column;gap:7px;font-weight:600;margin:0 0 20px}.shift-challenge-form select,.shift-challenge-form textarea{width:100%;max-width:100%;font:inherit;font-weight:400;padding:12px;border:1px solid #9baa9f;border-radius:8px;background:#fff;color:#1b3227}.shift-challenge-form select{min-height:48px}.shift-challenge-form textarea{resize:vertical}.shift-challenge-form .muted{font-size:14px;font-weight:400;color:#526459}.shift-challenge-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}.shift-challenge-error{color:#9b2d24;font-weight:500;font-size:14px}.shift-challenge-feedback{background:#f7f3e7;border-radius:8px;padding:18px;margin:20px 0}.shift-challenge-success{padding:16px;background:#e7f1e8;border-radius:8px}.shift-challenge-note{white-space:pre-wrap}.shift-challenge .toolbar{flex-wrap:wrap;gap:12px}.shift-challenge :is(button,a,select,textarea,summary):focus-visible{outline:3px solid #276b50;outline-offset:3px}
+@media(max-width:600px){.shift-challenge{width:100%;margin-top:10px}.shift-challenge h1{font-size:26px}.shift-challenge-brief{padding:18px}.shift-challenge-fields{grid-template-columns:1fr}.shift-challenge-entry{margin:0 0 18px;padding:18px;display:block}.shift-challenge-entry .btn{margin-top:12px;width:100%}.shift-challenge-return{margin:0 0 18px;padding:12px;align-items:flex-start;flex-direction:column;gap:4px}.shift-challenge .toolbar .btn{width:100%}}
+
+.ops-stage:has(.shift-challenge) > .ops-guide-launch{display:none}
+
+.practice-skip { display: inline-block; color: #145d43; font-size: 14px; font-weight: 750; margin: 0 0 10px; text-decoration: underline; }
+.practice-skip:focus-visible, .practice-workspace:focus { outline: 3px solid #8dbfa5; outline-offset: 3px; }
+
+.practice-build-version { font-size: 12px; line-height: 1.5; margin: 7px 0 0;
+  color: #4e5b55; }
+.practice-build-version code { padding: 2px 5px; background: #eff4ef; color: #244d3b;
+  border-radius: 4px; user-select: all; font-family: ui-monospace, SFMono-Regular, monospace; }

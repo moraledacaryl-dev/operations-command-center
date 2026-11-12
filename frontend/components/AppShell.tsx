@@ -6,6 +6,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon, IconName } from '@/components/Icon';
 import { InteractiveTraining } from '@/components/InteractiveTraining';
 import { TrainingWorkflowCoach } from '@/components/TrainingWorkflowCoach';
+import { FrontDeskRoomPractice } from '@/components/FrontDeskRoomPractice';
+import { RoomArrivalPractice } from '@/components/RoomArrivalPractice';
+import { DepartmentShiftPractice } from '@/components/DepartmentShiftPractice';
+import { IndependentShiftChallenge } from '@/components/IndependentShiftChallenge';
 import { api, Entity } from '@/lib/api';
 import { Capability, hasCapability } from '@/lib/capabilities';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
@@ -279,9 +283,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="ops-topbar"><div className="ops-breadcrumb"><button className="ops-icon-button ops-collapse" type="button" aria-label={compact ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!compact} aria-controls="mobile-sidebar" onClick={toggleCompact}><Icon name="panel" /></button><span>{workspaceName}</span><span aria-hidden="true">/</span><strong>{currentPage}</strong></div><Link className="ops-icon-button ops-notifications" href="/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}><Icon name="bell" />{unreadCount > 0 && <span className="ops-unread-dot" />}</Link></header>
         {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <div className="ops-demo-banner" role="note" aria-label="Practice only"><strong>PRACTICE ONLY</strong> · Use made-up guest details</div> : process.env.NEXT_PUBLIC_DEMO_PREVIEW === 'true' ? <div className="ops-demo-banner"><span>Demo workspace</span> Sample data</div> : null}
         {trainingMode ? <TrainingWorkflowCoach user={user} path={path} /> : null}
-        {/* Training instructions must precede the real work page, rather than sit below long content. */}
+        {trainingMode ? <FrontDeskRoomPractice user={user} path={path} /> : null}
+        {trainingMode ? <RoomArrivalPractice user={user} path={path} /> : null}
+        {trainingMode ? <DepartmentShiftPractice user={user} path={path} /> : null}
+        {/* All training instructions stay above the real work page. */}
         {trainingMode ? <InteractiveTraining user={user} path={path} /> : null}
-        <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>{children}</main>
+        <main id="workspace-main" tabIndex={-1} className="main" key={deptId ?? 'no-department'}>
+          {trainingMode ? <IndependentShiftChallenge user={user} path={path} /> : null}
+          {children}
+        </main>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         {[homeNavigationItems[0], homeNavigationItems[1], workItems[0], decisionItems[0]].map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}

@@ -8,6 +8,7 @@ import { Pill } from '@/components/Pill';
 import { Icon } from '@/components/Icon';
 import { SpaceVisual } from '@/components/SpaceVisual';
 import { WorkspaceStats } from '@/components/WorkspaceStats';
+import { sendRoomPracticeAction } from '@/lib/training-room-mission';
 
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Entity[]>([]);
@@ -64,14 +65,15 @@ export default function RoomsPage() {
       { label: 'Shared areas', value: loading || error ? null : rooms.filter(r => r.kind !== 'room').length, icon: 'leaf' },
     ]} />
     <div className="spaces-toolbar">
-      <div className="spaces-filters" aria-label="Space type">{kinds.map(value => <button type="button" key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>{value === 'All' ? 'All spaces' : value === 'room' ? 'Guest rooms' : value === 'area' ? 'Shared areas' : value}</button>)}</div>
-      <input className="input" aria-label="Search rooms and areas" placeholder="Find a room or space…" value={query} onChange={event => setQuery(event.target.value)} />
+      <div className="spaces-filters" aria-label="Space type">{kinds.map(value => <button type="button" key={value} aria-pressed={kind === value} onClick={() => { setKind(value); sendRoomPracticeAction({ kind: 'filter', value }); }}>{value === 'All' ? 'All spaces' : value === 'room' ? 'Guest rooms' : value === 'area' ? 'Shared areas' : value}</button>)}</div>
+      <input className="input" aria-label="Search rooms and areas" placeholder="Find a room or space…" value={query} onChange={event => { setQuery(event.target.value); sendRoomPracticeAction({ kind: 'search', value: event.target.value }); }} />
     </div>
     <div className="spaces-results"><span>{visible.length} {visible.length === 1 ? 'space' : 'spaces'}{nextCursor ? ' loaded' : ''}</span><span>Details · Guest matters · Maintenance</span></div>
     <div className="spaces-grid">
       {visible.map(room => {
         const roomMedia = media[Number(room.id)];
-        return <Link className="space-card" key={room.id} href={`/rooms/${room.id}`} aria-label={`Open ${room.name}`}>
+        return <Link className="space-card" key={room.id} href={`/rooms/${room.id}`} aria-label={`Open ${room.name}`}
+          onClick={() => sendRoomPracticeAction({ kind: 'open', name: String(room.name), id: Number(room.id) })}>
           <SpaceVisual name={room.name} kind={room.kind} photo={roomMedia?.configured ? roomMedia.content_url : undefined} />
           <div className="space-card-copy"><div className="space-card-type">{room.kind === 'room' ? 'Guest room' : 'Shared space'}{room.status && room.status !== 'active' ? <Pill value={room.status} /> : null}</div>
             <h2>{room.name}</h2><p>{room.note}</p>

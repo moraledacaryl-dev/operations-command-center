@@ -28,6 +28,7 @@ jobs:
     env:
       NEXT_PUBLIC_TRAINING_MODE: "true"
       NEXT_PUBLIC_DEMO_PREVIEW: "true"
+      NEXT_PUBLIC_TRAINING_BUILD_SHA: ${{ github.sha }}
       OPERATIONS_API_ORIGIN: http://127.0.0.1:8401
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
@@ -70,6 +71,7 @@ jobs:
             --add-data "backend/alembic:alembic" \
             --add-data "backend/alembic.ini:." \
             --add-data "backend/scripts/seed_training_demo.py:scripts" \
+            --add-data "backend/scripts/shift_challenge_cases.json:scripts" \
             --add-data "backend/scripts/training_first_launch.py:scripts" \
             deployment/training-desktop-mac/training_api.py
           test -x dist/training-api/training-api

@@ -61,11 +61,11 @@ test('lesson progress parser rejects invalid lesson ids and incomplete practice 
   expect(readCourseProgress(JSON.stringify({ lessonId: 'orientation', stage: 'done', passed: [] }), lessons).stage).toBe('learn');
 });
 
-async function mockLogin(page: import('@playwright/test').Page) {
+async function mockLogin(page: import('@playwright/test').Page, loginUser = staff) {
   await page.addInitScript(user => {
     localStorage.setItem('cc_user', JSON.stringify(user));
     localStorage.setItem('cc_department_id', '41');
-  }, staff);
+  }, loginUser);
   await page.route('**/api/**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ items: [], groups: {}, counts: {}, unread_count: 0 }),
@@ -87,6 +87,38 @@ test('an incomplete stored finished marker resumes at the first incomplete lesso
   await page.goto('/');
   await expect(page.getByTestId('required-training-course')).toBeVisible();
   await expect(page.getByTestId('course-lesson-title')).toContainText(lessons[1].title);
+});
+
+test('completed older syllabus is not erased or blocked by new role lessons', async ({ page }) => {
+  const lessons = availableTrainingLessons({ manage_department:false, make_decisions:false, manage_accounts:false },
+    [{ name:'Front Desk', is_primary:true }]);
+  const oldPassed = lessons.filter(lesson => lesson.id !== 'room-arrivals').map(lesson => lesson.id);
+  const progress = { lessonId:'staff-my-work', stage:'finished', question:0, passed:oldPassed };
+  const restored = readCourseProgress(JSON.stringify(progress), lessons);
+  expect(restored.stage).toBe('finished');
+  expect(restored.passed).not.toContain('room-arrivals');
+  await mockLogin(page);
+  await page.addInitScript(({ id, data }) => {
+    localStorage.setItem('ho-ops-structured-course-v2:' + id, JSON.stringify(data));
+  }, { id:staff.id, data:progress });
+  await page.goto('/');
+  await expect(page.getByTestId('required-training-course')).toHaveCount(0);
+  await expect(page.getByTestId('training-update-available')).toContainText('Arrivals, departures and room cleaning');
+  await page.getByRole('button', { name:'Start new lesson' }).click();
+  await expect(page.getByTestId('course-lesson-title')).toHaveText('Arrivals, departures and room cleaning');
+  await expect(page.getByTestId('course-completed')).toHaveCount(0);
+});
+
+test('fictional scenario training is usable even when required-course lessons are unfinished', async ({ page }) => {
+  await mockLogin(page);
+  await page.goto('/training');
+  await expect(page.getByTestId('scenario-training')).toBeVisible();
+  await expect(page.getByTestId('required-training-course')).toHaveCount(0);
+  await page.getByTestId('scenario-priority').selectOption('High');
+  await expect(page.getByTestId('scenario-priority')).toHaveValue('High');
+  await page.goto('/');
+  await expect(page.getByTestId('required-training-course')).toBeVisible();
+  await expect(page.getByTestId('course-lesson-title')).toHaveText('Getting around Operations');
 });
 
 test('first sign-in forces Lesson 1, quiz with correction, then actual-page practice', async ({ page }) => {
@@ -126,13 +158,16 @@ test('first sign-in forces Lesson 1, quiz with correction, then actual-page prac
   await expect(coach).toContainText('Read your tasks');
 });
 
-test('reading shift handover advances after selecting the highlighted Urgent tab', async ({ page }) => {
-  await mockLogin(page);
+test('supervisor handover tour advances after selecting the highlighted Urgent tab', async ({ page }) => {
+  // Staff now complete the richer real-record handover mission. Supervisors
+  // keep the generic highlighted tour; test that path without downgrading staff.
+  const supervisor = { ...staff, id: 92812, role: 'supervisor', capabilities: {manage_department:true} };
+  await mockLogin(page, supervisor);
   await page.addInitScript(user => {
     localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
       lessonId: 'staff-handover', stage: 'quiz', question: 1, passed: ['orientation'],
     }));
-  }, staff);
+  }, supervisor);
   await page.goto('/');
   const panel = page.getByTestId('required-training-course');
   await panel.getByLabel('Check the situation or tell the person responsible').check();
@@ -164,7 +199,7 @@ test('finished curriculum unlocks its completed tour without giving unearned sta
   await page.addInitScript(user => {
     localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
       lessonId: 'staff-my-work', stage: 'finished', question: 0,
-      passed: ['orientation','staff-handover','staff-rooms','staff-my-work'],
+      passed: ['orientation','staff-handover','staff-rooms','room-arrivals','staff-my-work'],
     }));
   }, staff);
   await page.goto('/');
@@ -184,7 +219,7 @@ test('manager must leave the taught task tour for an API-verified saved-work exe
     localStorage.setItem('cc_department_id', '41');
     localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
       lessonId: 'team-tasks', stage: 'quiz', question: 1,
-      passed: ['orientation', 'staff-handover', 'staff-rooms', 'staff-my-work'],
+      passed: ['orientation', 'staff-handover', 'staff-rooms', 'room-arrivals', 'staff-my-work'],
     }));
   }, manager);
   await page.route('**/api/**', route => route.fulfill({

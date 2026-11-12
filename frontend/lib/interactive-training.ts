@@ -16,6 +16,8 @@ export type TrainingLesson = {
   requirement?: TrainingRequirement;
   marketingOnly?: boolean;
   barOnly?: boolean;
+  roomsTeamOnly?: boolean;
+  maintenanceStaffOnly?: boolean;
   steps: readonly TrainingStep[];
 };
 
@@ -54,12 +56,30 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     ],
   },
   {
+    id: 'room-arrivals', title: 'Arrivals, departures and room cleaning', summary: 'Check what happens when a guest arrives or leaves.',
+    roomsTeamOnly: true,
+    steps: [
+      { path: '/housekeeping', selector: '.hk-tools button', title: 'Refresh room updates', body: 'Select Refresh for the latest room plan and recorded guest status.', advanceOnClick: true, requiresAction: true },
+      { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'Check the recorded guest status', body: 'Planned arrivals and departures are not confirmation. Front Desk must record actual check-in and checkout.' },
+      { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'Room cleaning after checkout', body: 'Check that the guest has left. Housekeeping cleans after checkout, then the authorized inspector checks the result.' },
+      { path: '/housekeeping', selector: '.hk-room-card, .hk-tools', title: 'Correct a mistaken guest status', body: 'If Front Desk recorded the wrong check-in or checkout, use the authorized correction and explain why. Tell the lead if cleaning has already started.' },
+    ],
+  },
+  {
     id: 'staff-my-work', title: 'Understanding assigned tasks', summary: "Check your tasks, priorities and due dates.",
     steps: [
       { path: '/my-work', selector: '.ops-agenda-overdue, .ops-agenda', title: "Check overdue tasks", body: "Read the task and due date. Tell your lead if you need help meeting the deadline." },
       { path: '/my-work', selector: '.ops-agenda-today, .ops-agenda', title: "Plan today's work", body: "Open each task to see what needs doing during your shift." },
       { path: '/my-work', selector: '.ops-agenda-waiting, .ops-agenda', title: "Check waiting tasks", body: "A task in Review or Waiting may still need a supervisor's decision." },
       { path: '/my-work', selector: 'a.ops-brand[href="/"]', title: "Return to Today", body: "Select the Hidden Oasis logo to finish this lesson.", advanceOnClick: true, requiresAction: true },
+    ],
+  },
+  {
+    id: 'maintenance-status', title: 'Reading repair status', summary: 'See what is waiting, being repaired, or awaiting verification.',
+    maintenanceStaffOnly: true,
+    steps: [
+      { path: '/fixes', selector: '[aria-label="Maintenance filters"] button:nth-child(2)', title: 'Find urgent repair work', body: 'Choose Urgent to see repairs needing attention.', advanceOnClick: true, requiresAction: true },
+      { path: '/fixes', selector: '[aria-label="Maintenance work orders"], .ops-module', title: 'Read the saved repair status', body: 'Open means not started. Working appears as In progress. Done appears as To verify. Verified means an authorized person checked the work.' },
     ],
   },
   {
@@ -177,9 +197,16 @@ export function availableTrainingLessons(
   const bar = departments.some(d => String(d.name || '') === 'Bar');
   const marketing = Boolean(capabilities.view_all_operations)
     || departments.some(d => String(d.name || '').toLowerCase().includes('marketing'));
+  const roomsTeam = Boolean(capabilities.view_all_operations)
+    || departments.some(d => ['front desk', 'housekeeping'].includes(String(d.name || '').toLowerCase()));
+  const primary = departments.find(d => (d as {is_primary?:boolean}).is_primary) || departments[0];
+  const maintenanceStaff = !capabilities.manage_department &&
+    String(primary?.name || '').toLowerCase() === 'maintenance';
   return TRAINING_LESSONS.filter(lesson =>
     (!lesson.requirement || capabilities[lesson.requirement] === true)
     && (!lesson.marketingOnly || marketing)
     && (!lesson.barOnly || bar)
+    && (!lesson.roomsTeamOnly || roomsTeam)
+    && (!lesson.maintenanceStaffOnly || maintenanceStaff)
   );
 }

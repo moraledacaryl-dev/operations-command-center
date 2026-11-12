@@ -6,12 +6,16 @@ import { Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { availableTrainingLessons, TRAINING_LESSONS } from '@/lib/interactive-training';
 import type { TrainingStep } from '@/lib/interactive-training';
-import { COURSE_GUIDES, COURSE_STORAGE_PREFIX, readCourseProgress } from '@/lib/training-course';
+import { COURSE_STORAGE_PREFIX, TRAINING_CATCHUP_LESSONS, courseGuideFor, readCourseProgress } from '@/lib/training-course';
+import { ROOM_PRACTICE_FINISHED } from '@/lib/training-room-mission';
+import { SHIFT_PRACTICE_FINISHED } from '@/lib/training-shift-mission';
+import { ROOM_ARRIVAL_FINISHED } from '@/components/RoomArrivalPractice';
 import { PRACTICE_PLANS } from '@/lib/training-practice-plans';
 import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
 import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
 import { TrainerReports } from '@/components/TrainerReports';
+import { useTrainingDialogFocus } from '@/lib/training-dialog-focus';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
 
@@ -87,6 +91,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     view_all_operations: hasCapability(user, 'view_all_operations'),
   }), [user]);
   const lessons = useMemo(() => availableTrainingLessons(capabilities, user.departments || []), [capabilities, user.departments]);
+  // Hands-on scenario and shift-challenge pages have their own instruction
+  // panels. Never cover those practice controls with the required-course dialog.
+  const onPracticeHome = path === '/training' || path.startsWith('/training/');
   const [menuOpen, setMenuOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [active, setActive] = useState<Active | null>(null);
@@ -103,22 +110,48 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const observedNode = useRef<HTMLElement | null>(null);
   const tipRef = useRef<HTMLElement | null>(null);
   const libraryRef = useRef<HTMLElement | null>(null);
+  const courseDialogRef = useRef<HTMLElement>(null);
   const [tipPosition, setTipPosition] = useState<Position | null>(null);
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');
+  const isFrontDeskStaff = String(user.role).toLowerCase() === 'staff' &&
+    Array.isArray(user.departments) && user.departments.some((dept: Entity) =>
+      String(dept.name || '').toLowerCase() === 'front desk');
   const storageKey = COMPLETION_PREFIX + identity;
   const courseKey = COURSE_STORAGE_PREFIX + identity;
   const latestLessons = useRef(lessons);
   latestLessons.current = lessons;
   const courseLesson = course && lessons.find(item => item.id === course.lessonId);
-  const courseGuide = courseLesson ? COURSE_GUIDES[courseLesson.id] : undefined;
-  const practicePlan = courseLesson ? PRACTICE_PLANS[courseLesson.id] : undefined;
+  const primaryDepartment = user.departments?.find((dept: Entity) => Number(dept.id) === Number(user.primary_department_id)) || user.departments?.[0];
+  const courseGuide = courseLesson ? courseGuideFor(courseLesson.id, String(primaryDepartment?.name || ''), isFrontDeskStaff) : undefined;
+  const basePlan = courseLesson ? PRACTICE_PLANS[courseLesson.id] : undefined;
+  const practicePlan = basePlan && courseLesson?.id === 'room-arrivals' && isFrontDeskStaff
+    ? { ...basePlan, goal: 'Record a practice arrival and departure, then try another room yourself.',
+        show: 'Use Record check-in when a fictional guest arrives. Record checkout when the guest leaves the same room.',
+        self: 'Complete check-in and checkout in two rooms. The first has an arrow; the second starts without one.',
+        checks: 'Both saved stays and the recording login are checked in the isolated training database.' }
+    : basePlan && courseLesson?.id === 'staff-rooms' && !isFrontDeskStaff
+    ? { ...basePlan, goal: 'Find guest rooms and shared areas without changing guest records.',
+        self: 'Switch between Guest rooms and Shared areas without arrows.',
+        checks: 'The app checks filter clicks. Your supervisor can confirm you read the right room records.' }
+    : basePlan && courseLesson?.id === 'staff-handover' && String(user.role).toLowerCase() === 'staff'
+    ? { ...basePlan, goal: 'Read two actual fictional handovers, then identify the saved status.',
+        self: 'Find a second handover without arrows and confirm its saved status.',
+        checks: 'Your answer is checked against the record in the isolated training database.' }
+    : basePlan;
   const repeatVariant = courseGuide?.repeatVariant && (course?.metrics?.[course?.lessonId || '']?.repeats || 0) % 2 === 1
     ? courseGuide.repeatVariant : undefined;
   const currentExample = repeatVariant?.example || courseGuide?.example;
   const currentQuestions = repeatVariant?.questions || courseGuide?.questions;
   const quizItem = currentQuestions?.[course?.question || 0];
+  const courseModalOpen = Boolean(!onPracticeHome && !paused && course && (
+    ['learn','quiz','done'].includes(course.stage) || (course.stage === 'tour' && !active)));
+  useTrainingDialogFocus(courseDialogRef, courseModalOpen, `${course?.lessonId}:${course?.stage}:${course?.question}`);
   const lessonNumber = lessons.findIndex(item => item.id === course?.lessonId) + 1;
+  const catchupLessons = course?.stage === 'finished'
+    ? lessons.filter(item => !course.passed.includes(item.id) &&
+        (TRAINING_CATCHUP_LESSONS as readonly string[]).includes(item.id))
+    : [];
 
   async function restoreTrainingProgress(file: File | undefined) {
     if (!file || !course) return;
@@ -129,10 +162,15 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         setRestoreMessage('The report is invalid or belongs to a different practice account. No progress changed.'); return;
       }
       const credits = portableLearningCredit(report, lessons.map(item=>item.id));
-      const nextLesson = lessons.find(item=>!credits.includes(item.id));
+      const missing = lessons.filter(item=>!credits.includes(item.id));
+      const catchupIds: readonly string[] = TRAINING_CATCHUP_LESSONS;
+      const wasCompleteBeforeNewLessons = credits.includes('orientation') &&
+        credits.some(id=>id!=='orientation' && !catchupIds.includes(id)) &&
+        missing.length > 0 && missing.every(item=>catchupIds.includes(item.id));
       setCourse(current=>current ? {
-        ...current, lessonId:nextLesson?.id || lessons[0].id,
-        stage:nextLesson?'learn':'finished', question:0, independentStep:0, tourStep:0,
+        ...current, lessonId:missing[0]?.id || lessons[0].id,
+        stage:!missing.length || wasCompleteBeforeNewLessons?'finished':'learn',
+        question:0, independentStep:0, tourStep:0,
         reference:undefined, passed:credits, metrics:report.metrics,
       }:current);
       setRestoreMessage('Lessons restored. Repeat any hands-on practice that needs saved work on this device.');
@@ -167,6 +205,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   }
   const independentActions = course ? INDEPENDENT_CHECKS[course.lessonId] : null;
   const independentAction = course && independentActions?.[course.independentStep || 0];
+  const roomArrivalPractice = isFrontDeskStaff && course?.lessonId === 'room-arrivals';
 
   useEffect(() => {
     try {
@@ -187,8 +226,46 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
   useEffect(() => {
     if (!course) return;
-    try { localStorage.setItem(courseKey, JSON.stringify(course)); } catch { /* no certificate */ }
+    try { localStorage.setItem(courseKey, JSON.stringify(course));
+      window.dispatchEvent(new Event('ho-training-course-changed')); } catch { /* no certificate */ }
   }, [courseKey, course]);
+
+  // On role-specific drills, only the dedicated coach signals verified
+  // completion after reading actual fictional records. Navigation is not proof.
+  useEffect(() => {
+    const complete = (lessonId: string, stage: 'room-practice' | 'shift-practice', hints = 0) =>
+      setCourse(current => current?.lessonId === lessonId && current.stage === stage ? {
+        ...current, stage: 'done',
+        passed: Array.from(new Set([...current.passed, lessonId])),
+        metrics: { ...(current.metrics || {}), [lessonId]: {
+          ...(current.metrics?.[lessonId] || {}), completedAt: new Date().toISOString(),
+          hintsViewed: (current.metrics?.[lessonId]?.hintsViewed || 0) + hints,
+        } },
+      } : current);
+    const onRoom = () => complete('staff-rooms', 'room-practice');
+    const onShift = () => complete('staff-handover', 'shift-practice');
+    const onArrival = (event: Event) => {
+      if (!isFrontDeskStaff) return;
+      const hints = Number((event as CustomEvent).detail?.hints);
+      setCourse(current => current?.lessonId === 'room-arrivals' && current.stage === 'independent' ? {
+        ...current, stage: 'done',
+        passed: Array.from(new Set([...current.passed, 'room-arrivals'])),
+        metrics: { ...(current.metrics || {}), 'room-arrivals': {
+          ...(current.metrics?.['room-arrivals'] || {}), completedAt: new Date().toISOString(),
+          hintsViewed: (current.metrics?.['room-arrivals']?.hintsViewed || 0) +
+            (Number.isInteger(hints) && hints > 0 ? hints : 0),
+        } },
+      } : current);
+    };
+    window.addEventListener(ROOM_PRACTICE_FINISHED, onRoom);
+    window.addEventListener(SHIFT_PRACTICE_FINISHED, onShift);
+    window.addEventListener(ROOM_ARRIVAL_FINISHED, onArrival);
+    return () => {
+      window.removeEventListener(ROOM_PRACTICE_FINISHED, onRoom);
+      window.removeEventListener(SHIFT_PRACTICE_FINISHED, onShift);
+      window.removeEventListener(ROOM_ARRIVAL_FINISHED, onArrival);
+    };
+  }, [isFrontDeskStaff]);
 
   // A resumed tour displays an explicit Resume button; closing the coach
   // must never restart a tour unexpectedly or mark the practical complete.
@@ -219,7 +296,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   // This is an unguided check using real, safe Operations controls. No
   // spotlight, Next button, or simulated click can pass it.
   useEffect(() => {
-    if (!course || paused || course.stage !== 'independent' || !independentAction) return;
+    if (!course || paused || roomArrivalPractice || course.stage !== 'independent' || !independentAction) return;
     if (path !== independentAction.path) {
       router.push(independentAction.path);
       return;
@@ -241,7 +318,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     };
     document.addEventListener(independentAction.type || 'click', onInteraction, true);
     return () => document.removeEventListener(independentAction.type || 'click', onInteraction, true);
-  }, [course, independentAction, path, router, paused]);
+  }, [course, independentAction, path, router, paused, roomArrivalPractice]);
 
   const lesson = active ? TRAINING_LESSONS.find(entry => entry.id === active.id) : undefined;
   const step: TrainingStep | undefined = lesson && active ? lesson.steps[active.index] : undefined;
@@ -330,6 +407,18 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     setSelectedAnswer(null);
     setQuizFeedback('');
     setMenuOpen(false);
+    if (courseLesson.id === 'staff-handover' && String(user.role).toLowerCase() === 'staff') {
+      setActive(null);
+      setCourse({ ...course, stage: 'shift-practice', question: 0 });
+      router.push('/shift');
+      return;
+    }
+    if (courseLesson.id === 'staff-rooms' && isFrontDeskStaff) {
+      setActive(null);
+      setCourse({ ...course, stage: 'room-practice', question: 0 });
+      router.push('/rooms');
+      return;
+    }
     setActive({ id: courseLesson.id, index: 0 });
     setCourse({ ...course, stage: 'tour', question: 0, tourStep: 0 });
     router.push(courseLesson.steps[0]?.path || '/');
@@ -500,7 +589,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   })() : null;
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen || onPracticeHome) return;
     const library = libraryRef.current;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusable = () => Array.from(library?.querySelectorAll<HTMLElement>(
@@ -520,7 +609,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     };
     window.addEventListener('keydown', trapTab);
     return () => { window.removeEventListener('keydown', trapTab); previous?.focus(); };
-  }, [menuOpen]);
+  }, [menuOpen, onPracticeHome]);
+
+  useEffect(() => {
+    if (onPracticeHome && menuOpen) setMenuOpen(false);
+    if (onPracticeHome && active) setActive(null);
+  }, [onPracticeHome, menuOpen, active]);
 
   function setLessonPaused(value: boolean) {
     setPaused(value);
@@ -534,7 +628,21 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     height: position.height + 12,
   } : null;
 
+  // The separate scenario workspace is usable at any point in learning.
+  // It cannot award required-course credit without the verified mission.
+  if (onPracticeHome) return null;
+
   return <>
+    {course?.stage === 'finished' && catchupLessons.length > 0 && !paused &&
+      <div className="ops-course-catchup" role="note" data-testid="training-update-available">
+        <div><strong>New lessons for your role</strong>
+          <p>{catchupLessons.map(item => item.title).join(' · ')}. Your older lessons are still saved.</p></div>
+        <button type="button" onClick={() => {
+          setActive(null); setSelectedAnswer(null); setQuizFeedback('');
+          setCourse(current => current ? { ...current, lessonId: catchupLessons[0].id,
+            stage:'learn', question:0, independentStep:0, tourStep:0, reference:undefined } : current);
+        }}>Start new lesson</button>
+      </div>}
     <button type="button" className="ops-guide-launch" data-testid="interactive-training-open"
       aria-label={paused ? 'Resume lesson' : 'Open interactive training'} onClick={() => {
         if (paused) { setLessonPaused(false); return; }
@@ -546,7 +654,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
 
     {!paused && course && courseLesson && courseGuide && ['learn','quiz','done'].includes(course.stage) && <div
       className="ops-course-backdrop" data-testid="required-training-course">
-      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
+      <section ref={courseDialogRef} tabIndex={-1} className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Required training lesson">
         <div className="ops-course-heading"><span>HIDDEN OASIS · STAFF TRAINING</span>
           <strong>Lesson {lessonNumber} of {lessons.length}</strong></div>
         <button type="button" className="ops-course-quiet" onClick={() => setLessonPaused(true)}>Pause lesson</button>
@@ -612,7 +720,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </>}
         {course.stage === 'done' && <>
           <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
-          <p>You finished the lesson, answered the questions, and practised using the app{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
+          {course.lessonId === 'room-arrivals' && isFrontDeskStaff
+            ? <p data-testid="course-verified-work">The app checked your saved work. Your fictional check-in and checkout records were recorded under your own practice login in two separate rooms.</p>
+            : <p>You finished the lesson, answered the questions, and practised using the app{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>}
           <p>You can repeat this lesson at any time. Your earlier results will stay saved.</p>
           <button type="button" className="ops-course-quiet" data-testid="export-training-report"
             onClick={exportTrainingProgress}>Save my training report</button>
@@ -623,7 +733,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       </section>
     </div>}
     {!paused && course?.stage === 'tour' && !active && <div className="ops-course-backdrop">
-      <section className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
+      <section ref={courseDialogRef} tabIndex={-1} className="ops-course-panel" role="dialog" aria-modal="true" aria-label="Resume required training">
         <button type="button" className="ops-course-quiet" onClick={() => setLessonPaused(true)}>Pause lesson</button>
         <h2>Continue your actual-page practice</h2>
         <p>You still have steps to finish. Open the practice screen and follow the arrows. Your place in the lesson is saved.</p>
@@ -634,7 +744,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         }}>Resume step {(course.tourStep || 0) + 1} →</button>
       </section>
     </div>}
-    {!paused && course?.stage === 'independent' && independentAction && <div className="ops-course-independent-status"
+    {!paused && course?.stage === 'independent' && !roomArrivalPractice && independentAction && <div className="ops-course-independent-status"
       data-testid="course-independent-challenge" role="status">
       <strong>Your turn · {1 + (course.independentStep || 0)} of 2 — No arrows</strong>
       {practicePlan && <p className="ops-practice-self-goal">{practicePlan.self}</p>}
