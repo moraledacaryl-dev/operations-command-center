@@ -720,7 +720,9 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
         </>}
         {course.stage === 'done' && <>
           <h2 data-testid="course-completed">Lesson {lessonNumber} completed</h2>
-          <p>You finished the lesson, answered the questions, and practised using the app{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>
+          {course.lessonId === 'room-arrivals' && isFrontDeskStaff
+            ? <p data-testid="course-verified-work">The app checked your saved work. Your fictional check-in and checkout records were recorded under your own practice login in two separate rooms.</p>
+            : <p>You finished the lesson, answered the questions, and practised using the app{courseGuide.handsOn && course.reference ? ' with a verified saved record' : ''}.</p>}
           <p>You can repeat this lesson at any time. Your earlier results will stay saved.</p>
           <button type="button" className="ops-course-quiet" data-testid="export-training-report"
             onClick={exportTrainingProgress}>Save my training report</button>
