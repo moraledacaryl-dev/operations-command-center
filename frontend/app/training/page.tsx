@@ -379,6 +379,10 @@ export default function PracticeTrainingPage() {
         <h1>Practice common work situations</h1>
         <p>Read a work situation. Choose what to do, then write a note for the next shift. You will see what you got right and what to check again.</p>
         <p className="practice-safe"><strong>FOR PRACTICE ONLY.</strong> Use made-up guest and staff details. Nothing here changes the resort&apos;s live records.</p>
+        <p data-testid="training-build-version" className="practice-build-version">
+          Training build: <code>{(process.env.NEXT_PUBLIC_TRAINING_BUILD_SHA || 'local-development').slice(0, 12)}</code>.
+          If your installer looks different, compare this number with the GitHub release you installed.
+        </p>
         <p>Need to check a procedure? <Link href="/staff-guide">Open Staff Guide</Link> for published reference instructions. Training practice and policy acknowledgment are separate.</p>
       </div>
       <div className="practice-progress" aria-label={completedCount + ' of ' + scenarios.length + ' scenarios complete'}>
