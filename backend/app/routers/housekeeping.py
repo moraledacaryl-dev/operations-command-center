@@ -261,7 +261,7 @@ def list_turnovers(
 ):
     _require(_can_view(db, user))
     day = _date(service_date or utc_now().astimezone(TZ).date().isoformat())
-    rooms = db.query(models.RoomArea).filter(models.RoomArea.kind == "room").order_by(models.RoomArea.name).all()
+    rooms = db.query(models.RoomArea).filter(models.RoomArea.kind == "room", models.RoomArea.status != "inactive").order_by(models.RoomArea.name).all()
     existing = {v.room_area_id: v for v in db.query(models.RoomTurnover).filter_by(service_date=day).order_by(models.RoomTurnover.cycle).all()}
     records = [_present(existing[r.id], r) if r.id in existing else {
         "id": None, "room_area_id": r.id, "room_name": r.name,

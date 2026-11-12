@@ -45,7 +45,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
     id: 'shift-unresolved', level: 2, department: 'Everyone',
     title: 'Guest still waiting when Reception staff change shifts',
-    situation: 'A guest in Room 204 called Reception 30 minutes ago because the toilet will not flush. Reception wrote down the problem, but nobody was asked to fix it or call the guest back. The next receptionist starts in five minutes.',
+    situation: 'A guest in Crown called Reception 30 minutes ago because the toilet will not flush. Reception wrote down the problem, but nobody was asked to fix it or call the guest back. The next receptionist starts in five minutes.',
     goal: 'Make sure someone helps the guest, tells them what happens next, and passes the unfinished problem to the new receptionist.',
     context: ['Reference: DEMO-HANDOVER-014', 'The guest has waited 30 minutes. Nobody has called back to explain what the staff will do.', 'The next receptionist starts in five minutes, and no staff member has been told to handle the problem.'],
     priority: 'High', route: 'Front Desk', decision: 'Assign and follow up', reference: 'DEMO-HANDOVER-014',
@@ -53,13 +53,13 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
       { label: "who is responsible for handling the problem", alternatives: ["assign", "owner", "ownership", "responsib"] },
       { label: "telling the guest what happens next or informing the next shift", alternatives: ["update", "call back", "callback", "follow up"] },
     ],
-    example: 'DEMO-HANDOVER-014: Room 204 guest says the toilet will not flush. Assign the Front Desk lead as owner to contact Maintenance and call the guest with an update. Tell the next receptionist that the repair is still waiting for inspection.',
+    example: 'DEMO-HANDOVER-014: Crown guest says the toilet will not flush. Assign the Front Desk lead as owner to contact Maintenance and call the guest with an update. Tell the next receptionist that the repair is still waiting for inspection.',
     why: 'The guest is still waiting and a new receptionist starts soon. Someone must contact the right team, tell the guest what is happening, and make sure the next shift knows who is responsible.',
   },
   {
     id: 'guest-ac', level: 3, department: 'Front Desk',
     title: 'Guest says air-conditioning is not cooling',
-    situation: 'A fictional guest in Room 205 calls to report that the air-conditioning is blowing warm air.',
+    situation: 'A fictional guest in Solace calls to report that the air-conditioning is blowing warm air.',
     goal: 'Record a clear guest matter and route a technical issue promptly.',
     context: ['Reference: DEMO-ROOM-205', 'Guest is still in the room', 'A maintenance assessment has not yet happened'],
     priority: 'High', route: 'Maintenance', decision: 'Assign and follow up', reference: 'DEMO-ROOM-205',
@@ -73,7 +73,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
     id: 'arrival-room', level: 2, department: 'Front Desk',
     title: 'Early arrival for an unready room',
-    situation: 'A fictional guest arrives early for Room 203, but Housekeeping has not marked the room ready.',
+    situation: 'A fictional guest arrives early for Twinspire, but Housekeeping has not marked the room ready.',
     goal: 'Avoid promising room readiness without confirmation.',
     context: ['Reference: DEMO-ROOM-203', 'Housekeeping has not confirmed completion', 'The guest requests an exact check-in time'],
     priority: 'Routine', route: 'Housekeeping', decision: 'Assign and follow up', reference: 'DEMO-ROOM-203',
@@ -87,7 +87,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
     id: 'housekeeping-turnover', level: 2, department: 'Housekeeping',
     title: 'Missing room item during turnover',
-    situation: 'During fictional Room 204 turnover, the standard towels are missing and an incoming guest is expected.',
+    situation: 'During fictional Crown turnover, the standard towels are missing and an incoming guest is expected.',
     goal: 'Document the missing item and communicate room readiness accurately.',
     context: ['Reference: DEMO-ROOM-204', 'Towels are still missing', 'The room should not be marked ready yet'],
     priority: 'High', route: 'Housekeeping', decision: 'Assign and follow up', reference: 'DEMO-ROOM-204',
@@ -101,7 +101,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
     id: 'housekeeping-lost-found', level: 3, department: 'Housekeeping',
     title: 'Found property after checkout',
-    situation: 'A housekeeping employee finds a wallet in fictional Room 207 after checkout.',
+    situation: 'A housekeeping employee finds a wallet in fictional Perch 1 after checkout.',
     goal: 'Keep the item safe and record who receives it.',
     context: ['Reference: DEMO-ROOM-207', 'A wallet is found, with no verified owner present', 'Avoid recording sensitive card numbers'],
     priority: 'High', route: 'Security', decision: 'Assign and follow up', reference: 'DEMO-ROOM-207',
@@ -157,7 +157,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
     id: 'maintenance-leak', level: 4, department: 'Maintenance',
     title: 'Water leak near an electrical outlet',
-    situation: 'A fictional maintenance report places water close to an electrical outlet in Room 209.',
+    situation: 'A fictional maintenance report places water close to an electrical outlet in Grandeur.',
     goal: 'Keep people away from the water and outlet, and tell a qualified person immediately.',
     context: ['Reference: DEMO-ROOM-209', 'Water is present near an outlet', 'Electrical safety has not been assessed'],
     priority: 'Critical', route: 'Maintenance', decision: 'Escalate immediately', reference: 'DEMO-ROOM-209',

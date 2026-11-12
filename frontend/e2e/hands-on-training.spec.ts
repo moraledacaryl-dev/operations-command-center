@@ -121,7 +121,7 @@ test('complex incident must include concrete response, accountable owner and ver
   await page.getByTestId('scenario-owner').fill('On-duty Front Desk lead');
   await page.getByTestId('scenario-follow-up').fill('The lead confirms the correct room on the booking record and updates the receiving shift.');
   await page.getByTestId('scenario-note').fill(
-    'DEMO-SHARED-WRONG-ROOM: Verify whether Room 102 or Room 201 is correct by checking the source report, correct the record, and notify the receiving shift.',
+    'DEMO-SHARED-WRONG-ROOM: Verify whether Perch 1 or Grandeur is correct by checking the source report, correct the record, and notify the receiving shift.',
   );
   await page.getByRole('button', { name: 'Check my note' }).click();
   await expect(page.getByTestId('scenario-complete')).toBeVisible();

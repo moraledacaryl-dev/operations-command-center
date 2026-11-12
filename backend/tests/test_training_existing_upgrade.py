@@ -100,3 +100,25 @@ def test_existing_0016_schema_validates_and_upgrades_before_loading_new_user_fie
         assert con.execute('SELECT email, password_hash FROM users ORDER BY email').fetchall() == original_users
         assert con.execute('SELECT note FROM saved_practice').fetchone()[0] == 'keep this'
     assert roster.read_bytes() == original_roster
+
+
+def test_upgrade_retires_only_seeded_numbered_rooms_and_keeps_history(old_training):
+    state, db_path, roster = old_training
+    from app.database import SessionLocal
+    with SessionLocal() as db:
+        old = models.RoomArea(name='Room 201', kind='room', status='active', note='Fictional training area — not real property inventory.')
+        custom = models.RoomArea(name='Room 202', kind='room', status='active', note='Staff-created room')
+        db.add_all([old, custom]); db.flush()
+        db.add(models.GuestNote(title='Keep this practice', room_area_id=old.id, issue_type='Room', urgency='Normal', status='Open'))
+        db.commit()
+        old_id, custom_id = old.id, custom.id
+    ensure_notification_practice_data(db_path, state, validate_only=True)
+    with SessionLocal() as db:
+        assert db.get(models.RoomArea, old_id).status == 'active'
+    ensure_notification_practice_data(db_path, state)
+    ensure_notification_practice_data(db_path, state)
+    with SessionLocal() as db:
+        assert db.get(models.RoomArea, old_id).status == 'inactive'
+        assert db.get(models.RoomArea, custom_id).status == 'active'
+        assert db.query(models.GuestNote).filter_by(title='Keep this practice', room_area_id=old_id).count() == 1
+        assert db.query(models.RoomArea).filter_by(name='Solace', status='active').count() == 1
