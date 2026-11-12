@@ -33,7 +33,7 @@ test('every role-available lesson has two clear teaching checks and example befo
 
 test('a saved tour step is bounded and a Bar workflow reference survives reload', () => {
   const lessons = availableTrainingLessons({manage_department:true, make_decisions:true, manage_accounts:false},
-    [{id:41,name:'Bar',is_primary:true}]);
+    [{name:'Bar'}]);
   const shift = readCourseProgress(JSON.stringify({
     lessonId:'staff-handover', stage:'tour', question:0, tourStep:999, passed:['orientation'],
   }), lessons);
