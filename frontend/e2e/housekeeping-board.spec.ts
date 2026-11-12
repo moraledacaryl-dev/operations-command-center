@@ -271,3 +271,22 @@ test('a future clean explains when checkout can be confirmed', async ({ page }) 
   await expect(card).toContainText('Front Desk can confirm the room is empty on the cleaning date.');
   await expect(card.getByRole('button', { name: 'Confirm guest has left' })).toHaveCount(0);
 });
+
+test('planned rooms without a recorded guest status can be found without assuming vacancy', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-04T04:00:00Z') });
+  await visit(page, 'cleaner', () => {
+    const base = fakeBoard('cleaner', false, 'No cleaning request');
+    return { ...base, rooms: [
+      { ...base.rooms[0], booking_updates: [{ status: 'confirmed', origin: 'booking', check_in: '2026-11-04', check_out: null, reported_at: '2026-11-01' }] },
+      { ...base.rooms[0], room_area_id: 32, room_name: 'Perch', guest_stay: { id: 1, checked_in_at: '2026-11-04T02:00:00Z', checked_out_at: null }, booking_updates: [{ status: 'confirmed', origin: 'booking', check_in: '2026-11-04', check_out: null, reported_at: '2026-11-01' }] },
+    ] };
+  });
+  const button = page.getByRole('button', { name: 'Show 1 planned room with no guest status' });
+  await expect(button).toBeVisible();
+  await expect(page.getByText('Ask Front Desk to check the status. No status does not mean the room is empty.')).toBeVisible();
+  await button.click();
+  await expect(page.getByTestId('cleaning-room-31')).toBeVisible();
+  await expect(page.getByTestId('cleaning-room-32')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Show all rooms' }).click();
+  await expect(page.getByTestId('cleaning-room-32')).toBeVisible();
+});

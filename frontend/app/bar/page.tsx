@@ -21,7 +21,6 @@ export default function BarPage() {
   const [checked, setChecked] = useState(false);
   const [reports, setReports] = useState<Entity[]>([]);
   const [tasks, setTasks] = useState<Entity[]>([]);
-  const [routines, setRoutines] = useState<Entity[]>([]);
   const [selected, setSelected] = useState<Entity | null>(null);
   const [report, setReport] = useState<Report>(empty);
   const [showForm, setShowForm] = useState(false);
@@ -34,12 +33,11 @@ export default function BarPage() {
 
   const load = useCallback(async (id: number) => {
     try {
-      const [notes, teamTasks, teamRoutines] = await Promise.all([
+      const [notes, teamTasks] = await Promise.all([
         api.list('shift-notes', { department_id: id, active: true }),
         api.list('tasks', { department_id: id, active: true }),
-        api.list('routines', { department_id: id, active: true }),
       ]);
-      setReports(notes); setTasks(teamTasks); setRoutines(teamRoutines);
+      setReports(notes); setTasks(teamTasks);
     } catch (err: any) { setError(err.message || 'Could not load Bar work.'); }
   }, []);
 
@@ -84,14 +82,13 @@ export default function BarPage() {
     finally { setBusy(false); }
   }
 
-  const checks = (word: string) => routines.filter(item => String(item.title || '').toLowerCase().includes(word));
   if (!checked) return <div className="ops-module"><Top title="Bar" /><p role="status">Opening Bar workspace…</p></div>;
   if (!departmentId) return <div className="ops-module"><Top title="Bar" /><section className="panel"><h2>Bar access needed</h2><p>This account does not have Bar access. Ask your manager to add Bar to your departments. Your Kitchen and Café access stays separate.</p>{error ? <p role="alert">{error}</p> : null}</section></div>;
 
   return <div className="ops-module" data-testid="bar-workspace">
     <Top title="Bar" right={<button className="btn" data-testid="bar-open-report" onClick={() => setShowForm(value => !value)}>{showForm ? 'Close form' : 'Report a problem'}</button>} />
     <p>Alcoholic drinks and mocktails. Kitchen handles food. Café handles café drinks and service.</p>
-    <p className="muted">Use this page for Bar work only. Reports here do not change POS sales or stock.</p>
+    <p className="muted">Use this page for Bar reports and handovers.</p>
     {error ? <div className="pill urgent" role="alert">{error}</div> : null}
     {success ? <p role="status">{success}</p> : null}
     {showForm ? <section className="panel" data-testid="bar-report-form">
@@ -108,22 +105,12 @@ export default function BarPage() {
         <div className="toolbar"><button className="btn" data-testid="bar-save-report" disabled={busy || !report.kind || report.title.trim().length < 4 || report.details.trim().length < 8} onClick={() => void submit()}>{busy ? 'Saving…' : 'Save Bar report'}</button><button className="btn secondary" disabled={busy} onClick={() => setShowForm(false)}>Cancel</button></div>
       </div>
     </section> : null}
-    <div className="grid cols-2" style={{ marginTop: 16 }}>
-      <section className="panel" id="bar-checks">
-        <h2>Opening checks</h2>
-        {checks('open').length ? checks('open').map(item => <p key={item.id}><strong>{item.title}</strong><span className="muted"> — {item.checklist || 'Ask your lead for the steps.'}</span></p>) : <p>No opening checklist has been added for Bar. Ask your lead to add the approved steps under Routines.</p>}
-        <h2>Closing checks</h2>
-        {checks('clos').length ? checks('clos').map(item => <p key={item.id}><strong>{item.title}</strong><span className="muted"> — {item.checklist || 'Ask your lead for the steps.'}</span></p>) : <p>No closing checklist has been added for Bar. Ask your lead to add the approved steps under Routines.</p>}
-        <p className="muted">Only follow checklists approved by your workplace. This screen does not set a new policy.</p>
-        {canManage ? <Link className="btn secondary" href="/departments" onClick={() => setCurrentDepartmentId(departmentId)}>View Bar routines</Link> : null}
-      </section>
-      <section className="panel">
-        <h2>Bar tasks</h2>
-        {tasks.length ? tasks.slice(0, 8).map(item => <p key={item.id}><strong>{item.title}</strong> · {item.status || 'To Do'}</p>) : <p>No active Bar tasks.</p>}
-        <Link className="btn secondary" href="/tasks" onClick={() => setCurrentDepartmentId(departmentId)}>See tasks</Link>
-      </section>
-    </div>
-    <section className="panel" style={{ marginTop: 16 }}>
+    <section className="panel" id="bar-tasks" style={{ marginTop: 16 }}>
+      <h2>Bar tasks</h2>
+      {tasks.length ? tasks.slice(0, 8).map(item => <p key={item.id}><strong>{item.title}</strong> · {item.status || 'To Do'}</p>) : <p>No active Bar tasks.</p>}
+      <Link className="btn secondary" href="/tasks" onClick={() => setCurrentDepartmentId(departmentId)}>See tasks</Link>
+    </section>
+    <section className="panel" id="bar-handovers" style={{ marginTop: 16 }}>
       <h2>Bar reports and handovers</h2>
       <p>Open a report to read updates. Add a note when you have new information.</p>
       <div className="grid cols-2" data-testid="bar-reports">

@@ -28,7 +28,7 @@ async function serveBar(page: Page, user: typeof base) {
     else if (url.pathname === '/api/meta') result = { users: [], departments: user.departments };
     else if (url.pathname === '/api/shift-notes') result = notes;
     else if (url.pathname === '/api/shift-notes/71') result = starting;
-    else if (url.pathname === '/api/tasks' || url.pathname === '/api/routines') result = [];
+    else if (url.pathname === '/api/tasks') result = [];
     else if (url.pathname === '/api/bar/reports' && method === 'POST') {
       const data = route.request().postDataJSON();
       submissions.push(data);
@@ -50,7 +50,8 @@ test('Bar staff can create a problem report with plain words and no management c
   const { submissions } = await serveBar(page, base);
   await page.goto('/bar');
   await expect(page.getByTestId('bar-workspace')).toBeVisible();
-  await expect(page.getByText('No opening checklist has been added')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bar tasks' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Opening checks' })).toHaveCount(0);
   await page.getByTestId('bar-open-report').click();
   await expect(page.getByRole('button', { name: 'Save Bar report' })).toBeDisabled();
   await page.getByPlaceholder('Example: Mocktail blender stopped working').fill('Blender is broken');

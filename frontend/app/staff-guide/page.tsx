@@ -167,10 +167,15 @@ export default function StaffGuidePage() {
   const pendingCount = reading.filter(item => !item.acknowledged).length;
   const current = selected?.published;
   const currentDraft = selected?.draft;
+  const readyHandbooks = canPublish ? managed.filter(item => item.doc_type === 'Handbook' && item.status === 'Approved' && !Number(item.version)) : [];
   return <div className={styles.wrap}>
     <Top title="Staff Guide" right={canManage ?
       <button type="button" className="btn" onClick={startNew}>+ New guide</button> : undefined} />
     <p className={styles.intro}>Find the correct steps for your work. Staff can see guides after they are published.</p>
+    {readyHandbooks.map(item => <section className={styles.handbookHelp} key={item.id} aria-label="Handbook ready to publish">
+      <div><strong>{item.title} is approved but not yet visible to staff.</strong><p>Open it to check the contents. When you are ready, choose Publish &amp; notify staff.</p></div>
+      <button type="button" className="btn secondary" onClick={() => { setTab('manage'); void openGuide(Number(item.id)); }}>Review handbook</button>
+    </section>)}
     <div className={styles.handbookHelp}>
       <div><strong>New to the Staff Handbook?</strong>
         <p>Learn how to find a policy, use the contents menu, search, and confirm reading.</p>

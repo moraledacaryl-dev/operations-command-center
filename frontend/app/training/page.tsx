@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/session';
 import { TrainingRecordLookup } from '@/components/TrainingRecordLookup';
+import { TrainerReports } from '@/components/TrainerReports';
 import { TrainingSpotlight } from '@/components/TrainingSpotlight';
 import { scenarioCoachStage } from '@/lib/training-scenario-coach';
 import { plainWordsForScenario } from '@/lib/training-plain-language';
@@ -368,6 +369,9 @@ export default function PracticeTrainingPage() {
           if (first) switchScenario(first.id);
           document.getElementById('practice-situation-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }}>Practice {department}</button>)}</div>
+    </section>}
+    {user && hasCapability(user, 'manage_department') && <section className="practice-start-here" aria-label="Staff training reports">
+      <TrainerReports manager={user} />
     </section>}
     <section className="practice-start-here" data-testid="handbook-training-entry">
       <h2>Learn the Staff Handbook</h2>

@@ -34,7 +34,7 @@ export function buildTrainingReport(
     };
   }
   const verifiedPractice = Object.entries(workflows || {}).flatMap(([kind, data]) =>
-    data && typeof data.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(data.reference)
+    data && typeof data.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR)-[A-Z0-9]{8,20}$/.test(data.reference)
       ? [{kind, reference:data.reference, completedAt:data.completedAt, stages:data.steps?.length || 0}]
       : []);
   return {
@@ -76,7 +76,7 @@ export function parseTrainingReport(input: unknown): TrainingProgressReport | nu
     if (!raw||typeof raw!=='object'||Array.isArray(raw)) return [];
     const v=raw as Record<string,unknown>;
     if (typeof v.kind!=='string'||v.kind.length>60||
-      typeof v.reference!=='string'||!/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK)-[A-Z0-9]{8,20}$/.test(v.reference)||
+      typeof v.reference!=='string'||!/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR)-[A-Z0-9]{8,20}$/.test(v.reference)||
       typeof v.completedAt!=='string'||v.completedAt.length>40) return [];
     return [{kind:v.kind,reference:v.reference,completedAt:v.completedAt,stages:Math.min(15,Math.max(0,Number(v.stages)||0))}];
   });
@@ -91,7 +91,7 @@ export function parseTrainingReport(input: unknown): TrainingProgressReport | nu
  * isolated training database and a new verified hands-on run.
  */
 export function portableLearningCredit(report: TrainingProgressReport, available: readonly string[]): string[] {
-  const recordEditing = new Set(['team-tasks','guest-matters','maintenance','requests','shift-writing']);
+  const recordEditing = new Set(['team-tasks','guest-matters','maintenance','requests','shift-writing','bar']);
   const known = new Set(available);
   return report.completedLessons.filter(id => known.has(id) && !recordEditing.has(id));
 }
