@@ -89,6 +89,38 @@ test('an incomplete stored finished marker resumes at the first incomplete lesso
   await expect(page.getByTestId('course-lesson-title')).toContainText(lessons[1].title);
 });
 
+test('completed older syllabus is not erased or blocked by new role lessons', async ({ page }) => {
+  const lessons = availableTrainingLessons({ manage_department:false, make_decisions:false, manage_accounts:false },
+    [{ name:'Front Desk', is_primary:true }]);
+  const oldPassed = lessons.filter(lesson => lesson.id !== 'room-arrivals').map(lesson => lesson.id);
+  const progress = { lessonId:'staff-my-work', stage:'finished', question:0, passed:oldPassed };
+  const restored = readCourseProgress(JSON.stringify(progress), lessons);
+  expect(restored.stage).toBe('finished');
+  expect(restored.passed).not.toContain('room-arrivals');
+  await mockLogin(page);
+  await page.addInitScript(({ id, data }) => {
+    localStorage.setItem('ho-ops-structured-course-v2:' + id, JSON.stringify(data));
+  }, { id:staff.id, data:progress });
+  await page.goto('/');
+  await expect(page.getByTestId('required-training-course')).toHaveCount(0);
+  await expect(page.getByTestId('training-update-available')).toContainText('Arrivals, departures and room cleaning');
+  await page.getByRole('button', { name:'Start new lesson' }).click();
+  await expect(page.getByTestId('course-lesson-title')).toHaveText('Arrivals, departures and room cleaning');
+  await expect(page.getByTestId('course-completed')).toHaveCount(0);
+});
+
+test('fictional scenario training is usable even when required-course lessons are unfinished', async ({ page }) => {
+  await mockLogin(page);
+  await page.goto('/training');
+  await expect(page.getByTestId('scenario-training')).toBeVisible();
+  await expect(page.getByTestId('required-training-course')).toHaveCount(0);
+  await page.getByTestId('scenario-priority').selectOption('High');
+  await expect(page.getByTestId('scenario-priority')).toHaveValue('High');
+  await page.goto('/');
+  await expect(page.getByTestId('required-training-course')).toBeVisible();
+  await expect(page.getByTestId('course-lesson-title')).toHaveText('Getting around Operations');
+});
+
 test('first sign-in forces Lesson 1, quiz with correction, then actual-page practice', async ({ page }) => {
   await mockLogin(page);
   await page.goto('/');
