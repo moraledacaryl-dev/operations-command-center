@@ -119,7 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = getStoredUser();
     if (path === '/training' && trainingMode && !stored) router.replace('/login?next=/training');
-    if (stored?.must_change_password && path !== '/change-password' && path !== '/login') router.replace('/change-password');
+    if (!trainingMode && stored?.must_change_password && path !== '/change-password' && path !== '/login') router.replace('/change-password');
     setUser(stored);
     setDeptId(getCurrentDepartmentId(stored));
     setMobileOpen(false);
@@ -134,7 +134,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [user?.id, canSeeAllDepartments]);
 
   useEffect(() => {
-    if (!user || user.must_change_password) { setUnreadCount(0); return; }
+    if (!user || (user.must_change_password && !trainingMode)) { setUnreadCount(0); return; }
     let cancelled = false;
     const refresh = () => { if (document.visibilityState !== 'visible') return; return api.notifications({ unread_only: true, limit: 1 }).then(page => { if (!cancelled) setUnreadCount(Number(page.unread_count || 0)); }).catch(() => undefined); };
     void refresh();
@@ -235,7 +235,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (isLogin) return <>{children}</>;
-  if (user?.must_change_password) return null;
+  if (user?.must_change_password && !trainingMode) return null;
   if (!isKnownRoute) return <>{children}</>;
   if (!user) return <SignInRequired />;
 
