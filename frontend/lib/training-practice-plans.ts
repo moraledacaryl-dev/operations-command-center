@@ -103,7 +103,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
   projects: {
     goal: 'Plan a team project without losing its separate tasks.',
     show: 'Open Projects and review the current status of a practice project.',
-    help: 'Create a fictional project with its target, owner, and date.',
+    help: 'Open the New project form and look at the target, owner, and date. Cancel the form when you are done.',
     self: 'Find Active projects, then switch back to All without arrows.',
     checks: 'This lesson checks project navigation. A trainer needs to review your planning skills.',
     safety: 'Project planning does not authorize spending.',

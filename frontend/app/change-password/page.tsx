@@ -12,10 +12,11 @@ export default function FirstPasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || signingOut) return;
     setError('');
     if (password !== confirm) { setError('The new passwords do not match.'); return; }
     setBusy(true);
@@ -26,6 +27,18 @@ export default function FirstPasswordPage() {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not change your password. Please try again.');
     } finally { setBusy(false); }
+  }
+
+  async function signOut() {
+    if (busy || signingOut) return;
+    setSigningOut(true); setError('');
+    try {
+      await api.logout();
+      clearStoredUser();
+      router.replace('/login');
+    } catch {
+      setError('Could not sign out. Check your connection and try again.');
+    } finally { setSigningOut(false); }
   }
 
   return <main className="auth-screen">
@@ -41,8 +54,9 @@ export default function FirstPasswordPage() {
         <label className="label">New password<input className="input" type="password" autoComplete="new-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>
         <label className="label">Confirm new password<input className="input" type="password" autoComplete="new-password" required value={confirm} onChange={e => setConfirm(e.target.value)} /></label>
         {error ? <p className="auth-error" role="alert">{error}</p> : null}
-        <button className="btn auth-submit" disabled={busy}>{busy ? 'Saving…' : 'Save password'}</button>
+        <button className="btn auth-submit" disabled={busy || signingOut}>{busy ? 'Saving…' : 'Save password'}</button>
       </form>
+      <button type="button" className="btn secondary" disabled={busy || signingOut} onClick={() => void signOut()}>{signingOut ? 'Signing out…' : 'Sign out and use another account'}</button>
       <small className="muted">Forgot your temporary password? Ask the owner or an administrator to reset it.</small>
     </section>
   </main>;

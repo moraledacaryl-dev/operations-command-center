@@ -2,9 +2,11 @@ import { test,expect } from '@playwright/test';
 import cases from '../lib/shift-challenge-cases.json';
 import { assessShiftNote,emptyShiftAnswers,readShiftAttempt,savedShiftBody,shiftCaseFor,shiftHandoverTitle,shiftNoticeTitle,shiftTaskTitle,verifyShiftEvidence } from '../lib/training-shift-challenge';
 import { modelShiftAnswers } from './shift-challenge-fixtures';
+import { DEPARTMENTS } from '../lib/practice-scenarios';
 import type { ShiftAttempt } from '../lib/training-shift-challenge';
 
 for(const c of cases)test(c.department+' shift: useful response passes; incomplete, unsafe and wrong decisions fail',()=>{
+ expect(DEPARTMENTS).toContain(c.team);
  const a=modelShiftAnswers(c);expect(assessShiftNote(c,a)).toEqual({});
  for(const field of ['priority','team','decision','owner','followUp','note'] as const){const errors=assessShiftNote(c,{...a,[field]:field==='note'?'ok':''});expect(errors[field],field).toBeTruthy();}
  expect(assessShiftNote(c,{...a,followUp:'The lead will check and report the result.'}).followUp).toContain('when');

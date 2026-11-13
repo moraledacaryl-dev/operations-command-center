@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, Entity } from '@/lib/api';
+import { DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, setCurrentDepartmentId } from '@/lib/session';
 import { COURSE_STORAGE_PREFIX } from '@/lib/training-course';
 import { TrainingSpotlight } from '@/components/TrainingSpotlight';
 import { SHIFT_MISSION_PREFIX, SHIFT_PRACTICE_FINISHED,
@@ -22,6 +23,7 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
   const [showArrow, setShowArrow] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
   const department = Array.isArray(user.departments)
     ? (user.departments.find((d: Entity) => Number(d.id) === Number(user.primary_department_id))
       || user.departments[0]) : undefined;
@@ -30,6 +32,15 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
   const stage = progress.stage;
   const guidedTitle = departmentShiftTitle(departmentName, 'guided');
   const soloTitle = departmentShiftTitle(departmentName, 'solo');
+  const wrongDepartment = selectedDepartmentId !== null && selectedDepartmentId !== departmentId;
+
+  useEffect(() => {
+    const sync = () => setSelectedDepartmentId(getCurrentDepartmentId(user));
+    sync();
+    window.addEventListener(DEPARTMENT_CHANGE_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => { window.removeEventListener(DEPARTMENT_CHANGE_EVENT, sync); window.removeEventListener('storage', sync); };
+  }, [user]);
 
   const refresh = useCallback(() => {
     try {
@@ -60,7 +71,7 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
   }, [key]);
 
   useEffect(() => {
-    if (!active || path !== '/shift') return;
+    if (!active || path !== '/shift' || wrongDepartment) return;
     let attached = true;
     const onClick = (event: MouseEvent) => {
       const target = event.target;
@@ -95,10 +106,10 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
     };
     document.addEventListener('click', onClick, true);
     return () => { attached = false; document.removeEventListener('click', onClick, true); };
-  }, [active, stage, path, guidedTitle, soloTitle, departmentId, progress, moveTo]);
+  }, [active, stage, path, guidedTitle, soloTitle, departmentId, progress, moveTo, wrongDepartment]);
 
   async function checkAnswer() {
-    if (!answer || busy) return;
+    if (!answer || busy || wrongDepartment) return;
     const id = stage === 'answer' ? progress.firstId : progress.secondId;
     if (!id || path !== '/shift') {
       setFeedback('Open the correct handover in Shift handover before checking your answer.');
@@ -166,11 +177,14 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
           <p>Open Shift handover → Urgent → find the Night handover for {departmentName} → read the status on the note.</p>
           <p>Read before acting. A handover tells the next shift what is still waiting.</p>
         </details>
+        <p>This practice uses {departmentName} handovers. We&apos;ll open that team for you.</p>
         <button type="button" className="room-mission-primary" onClick={() => {
+          setCurrentDepartmentId(departmentId);
           moveTo({ stage: 'filter' }); setShowArrow(true); setFeedback('');
           router.push('/shift');
         }}>Help me do it →</button>
       </> : <>
+        {wrongDepartment && <p role="status">This practice uses {departmentName} handovers. <button type="button" onClick={() => setCurrentDepartmentId(departmentId)}>Switch to {departmentName}</button></p>}
         {stage === 'answer' || stage === 'solo-answer' ? <div className="room-mission-question">
           <label htmlFor="shift-mission-status">What status is shown on this handover?</label>
           <select id="shift-mission-status" value={answer} onChange={event=>setAnswer(event.target.value)}>
@@ -178,7 +192,7 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
             <option value="New">New</option><option value="Seen">Seen</option>
             <option value="Follow">Needs follow-up (Follow)</option><option value="Done">Done</option>
           </select>
-          <button type="button" className="room-mission-primary" disabled={!answer || busy}
+          <button type="button" className="room-mission-primary" disabled={!answer || busy || wrongDepartment}
             onClick={() => void checkAnswer()}>{busy ? 'Checking…' : 'Check my answer'}</button>
         </div> : null}
         {path !== '/shift' && <button type="button" className="room-mission-primary"
@@ -192,7 +206,7 @@ export function DepartmentShiftPractice({ user, path }: { user: Entity; path: st
       {feedback && <p className="room-mission-feedback" role="status">{feedback}</p>}
       <small>Practice only. These handovers are fictional. Nothing here changes live resort records.</small>
     </section>
-    {showArrow && isGuided && targets.length > 0 && path === '/shift' && <TrainingSpotlight
+    {showArrow && isGuided && !wrongDepartment && targets.length > 0 && path === '/shift' && <TrainingSpotlight
       key={stage} title={titles[stage]} description={steps[stage]}
       stepLabel={'DO THIS NOW · STEP ' + number[stage] + ' OF 6'}
       targets={targets} onClose={() => setShowArrow(false)} />}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
+import { DEPARTMENTS } from '@/lib/practice-scenarios';
 import {
   assessShiftNote, emptyShiftAnswers, readShiftAttempt, savedShiftBody, shiftCaseFor,
   shiftChallengeKey, shiftHandoverTitle, shiftRecords, shiftTaskTitle,
@@ -129,13 +130,14 @@ export function IndependentShiftChallenge({user,path}:{user:Entity;path:string})
           <li><strong>Leave a follow-up.</strong><span>Return here. Say what still needs doing, who should handle it and what to check next. Save your note on your assigned job.</span></li>
         </ol>
         <details className="shift-challenge-help" onToggle={e=>setHelp(e.currentTarget.open)}><summary>Need help finding the screens?</summary><p>In the app menu, Shift Handover is under Property. Notifications is under Activity; you can also use the bell. On a phone, open More first. Close record details before returning here.</p><div className="toolbar"><Link href="/shift">Open Shift Handover</Link><Link href="/my-work">Open My Work</Link><Link href="/notifications">Open Notifications</Link></div><p>{c.help}</p></details>
+        <p>Use the form below for this practice. In the live app, My Work does not have this form. Tell your lead the update so they can record it in Shift Handover.</p>
         <form onSubmit={e=>{e.preventDefault();void saveNote();}} className="shift-challenge-form">
           <h2>Your shift follow-up</h2><p>Use made-up details. Describe actions still needed; do not claim an unconfirmed job is finished.</p>
           <div className="shift-challenge-fields">
             {([
               ['status','What status is saved on the handover?',['New','Seen','Follow','Done']],
               ['priority','How soon should staff act?',['Routine','High','Critical']],
-              ['team',c.department === 'Café' ? 'Which team should follow up with the guest?' : 'Which team should handle the problem?',['Front Desk','Housekeeping','Café','Kitchen','Maintenance','Marketing','Security']],
+              ['team',c.department === 'Café' ? 'Which team should follow up with the guest?' : 'Which team should handle the problem?', [...DEPARTMENTS]],
               ['decision','What should happen next?',['Document and monitor','Assign and follow up','Escalate immediately','Return for changes']],
             ] as [keyof ShiftAnswers,string,string[]][]).map(([field,label,options])=><label key={field} htmlFor={'shift-field-'+field}>{label}<select id={'shift-field-'+field} aria-label={label} value={attempt.answers[field]} onChange={e=>answer(field,e.target.value)} aria-invalid={Boolean(errors[field])} aria-describedby={errors[field]?'shift-error-'+field:undefined}><option value="">Choose…</option>{options.map(v=><option key={v} value={v}>{({Routine:'Routine — planned work',High:'High — help soon',Critical:'Critical — get help now','Escalate immediately':'Get the lead’s help now','Assign and follow up':'Ask the right team and follow up','Return for changes':'Ask for a correction','Document and monitor':'Write it down and keep checking'} as Record<string,string>)[v]||v}</option>)}</select>{errors[field]&&<span id={'shift-error-'+field} className="shift-challenge-error">{errors[field]}</span>}</label>)}
           </div>

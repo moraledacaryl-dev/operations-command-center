@@ -65,4 +65,12 @@ def test_temporary_password_restricts_cookie_and_bearer_sessions(monkeypatch):
         for path in ['/api/auth/me', '/api/auth/change-password']:
             start, _ = run(call(middleware, make_scope(path, headers=headers)))
             assert start['status'] == 200
+    headers = [(b'cookie', f'{lifecycle.COOKIE_NAME}={token}'.encode())]
+    start, _ = run(call(middleware, make_scope('/api/auth/logout', method='POST', headers=headers)))
+    assert start['status'] == 200
+    assert any(k.lower() == b'set-cookie' and b'Max-Age=0' in v for k, v in start['headers'])
+    start, _ = run(call(middleware, make_scope('/api/tasks', headers=headers)))
+    assert start['status'] == 401
+    with Session() as db:
+        assert db.get(models.User, user_id).must_change_password
     engine.dispose()
