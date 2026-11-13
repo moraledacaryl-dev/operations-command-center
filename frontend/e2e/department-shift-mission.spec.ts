@@ -81,3 +81,37 @@ for (const role of roles) {
     await expect(mission).toHaveCount(0);
   });
 }
+
+test('multi-team staff are shown the right handover and can recover after changing teams', async ({ page }) => {
+  const user = { id: 71048, name: 'Demo bartender', role: 'staff', email: 'bartender@training.invalid',
+    departments: [{ id: 48, name: 'Bar', is_primary: true }, { id: 44, name: 'Kitchen' }],
+    primary_department_id: 48, department_id: 48, capabilities: { manage_department: false } };
+  const guided = { id: 4803, department_id: 48, title: departmentShiftTitle('Bar', 'guided'),
+    status: 'Follow', shift: 'Night', urgency: 'Urgent', note: 'Fictional Bar handover.' };
+  await page.addInitScript(account => {
+    localStorage.setItem('cc_user', JSON.stringify(account));
+    localStorage.setItem('cc_department_id', '44');
+    localStorage.setItem('ho-ops-structured-course-v2:' + account.id, JSON.stringify({
+      lessonId: 'staff-handover', stage: 'shift-practice', question: 0, passed: ['orientation'],
+    }));
+  }, user);
+  await page.route('**/api/**', route => {
+    const url = new URL(route.request().url());
+    let result: unknown = { counts: {}, items: [], next_cursor: null, has_more: false };
+    if (url.pathname === '/api/shift-notes') result = { items: url.searchParams.get('department_id') === '48' ? [guided] : [], next_cursor: null, has_more: false };
+    if (url.pathname === '/api/shift-notes/4803') result = guided;
+    return route.fulfill({ status: 200, json: result });
+  });
+  await page.goto('/shift');
+  const mission = page.getByTestId('department-shift-practice');
+  await expect(mission).toContainText('This practice uses Bar handovers');
+  await mission.getByRole('button', { name: 'Help me do it' }).click();
+  await expect(page.locator('.ops-workspace-picker select')).toHaveValue('48');
+  await page.getByRole('tab', { name: 'Urgent', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Bar Night handover #3/ })).toBeVisible();
+  await page.locator('.ops-workspace-picker select').selectOption('44');
+  await expect(mission).toContainText('This practice uses Bar handovers');
+  await mission.getByRole('button', { name: 'Switch to Bar' }).click();
+  await expect(page.locator('.ops-workspace-picker select')).toHaveValue('48');
+  await expect(page.getByRole('button', { name: /Bar Night handover #3/ })).toBeVisible();
+});

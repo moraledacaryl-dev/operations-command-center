@@ -129,6 +129,7 @@ export function IndependentShiftChallenge({user,path}:{user:Entity;path:string})
           <li><strong>Leave a follow-up.</strong><span>Return here. Say what still needs doing, who should handle it and what to check next. Save your note on your assigned job.</span></li>
         </ol>
         <details className="shift-challenge-help" onToggle={e=>setHelp(e.currentTarget.open)}><summary>Need help finding the screens?</summary><p>In the app menu, Shift Handover is under Property. Notifications is under Activity; you can also use the bell. On a phone, open More first. Close record details before returning here.</p><div className="toolbar"><Link href="/shift">Open Shift Handover</Link><Link href="/my-work">Open My Work</Link><Link href="/notifications">Open Notifications</Link></div><p>{c.help}</p></details>
+        <p>Use the form below for this practice. In the live app, My Work does not have this form. Tell your lead the update so they can record it in Shift Handover.</p>
         <form onSubmit={e=>{e.preventDefault();void saveNote();}} className="shift-challenge-form">
           <h2>Your shift follow-up</h2><p>Use made-up details. Describe actions still needed; do not claim an unconfirmed job is finished.</p>
           <div className="shift-challenge-fields">

@@ -55,12 +55,12 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'staff-rooms': {
-    explanation: 'The Rooms screen helps you find a guest room or shared area. Check the correct room number and any existing issues before reporting a new problem.',
+    explanation: 'The Rooms screen helps you find a guest room or shared area. Check the room name and any existing issues before reporting a new problem.',
     example: 'A guest calls from Solace. Search for Solace and check whether somebody has already reported the issue.',
-    remember: 'Confirm the room number. Never use one guest’s room information for another guest.',
+    remember: 'Confirm the room name. Never use one guest’s room information for another guest.',
     questions: [
       q('Before reporting another problem for Solace, what should you check?', ['Whether the issue is already recorded','Whether the room is listed as occupied','Whether a different room has an open issue'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
-      q('Why should you confirm the room number?', ['To send the right team to the correct place','To choose the order in which rooms appear','To decide who works the next shift'], 0, 'The correct room number prevents wasted trips and mistaken guest updates.'),
+      q('Why should you confirm the room name?', ['To send the right team to the correct place','To choose the order in which rooms appear','To decide who works the next shift'], 0, 'The correct room name prevents wasted trips and mistaken guest updates.'),
     ],
   },
   'room-arrivals': {
