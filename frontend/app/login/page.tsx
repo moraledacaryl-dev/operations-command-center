@@ -31,7 +31,10 @@ export default function LoginPage() {
       setStoredUser(user);
       // In the desktop training build, begin on the *actual* fictional Operations dashboard.
       // The in-context training coach introduces controls on their real pages.
-      router.replace(user.must_change_password ? '/change-password' : process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? '/' : landingPathForUser(user));
+      const isTraining = process.env.NEXT_PUBLIC_TRAINING_MODE === 'true';
+      // Fictional training passwords are assigned by the trainer. Old cached
+      // flags must never force a password change in the isolated desktop app.
+      router.replace(isTraining ? '/' : user.must_change_password ? '/change-password' : landingPathForUser(user));
     } catch (err: unknown) {
       setError(loginErrorMessage(err));
     } finally {

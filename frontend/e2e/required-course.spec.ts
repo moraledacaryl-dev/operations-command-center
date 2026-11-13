@@ -61,7 +61,7 @@ test('lesson progress parser rejects invalid lesson ids and incomplete practice 
   expect(readCourseProgress(JSON.stringify({ lessonId: 'orientation', stage: 'done', passed: [] }), lessons).stage).toBe('learn');
 });
 
-async function mockLogin(page: import('@playwright/test').Page, loginUser = staff) {
+async function mockLogin(page: import('@playwright/test').Page, loginUser: typeof staff & { must_change_password?: boolean } = staff) {
   await page.addInitScript(user => {
     localStorage.setItem('cc_user', JSON.stringify(user));
     localStorage.setItem('cc_department_id', '41');
@@ -71,6 +71,33 @@ async function mockLogin(page: import('@playwright/test').Page, loginUser = staf
     body: JSON.stringify({ items: [], groups: {}, counts: {}, unread_count: 0 }),
   }));
 }
+
+test('training ignores an old cached change-password flag and opens the lesson', async ({ page }) => {
+  await mockLogin(page, { ...staff, must_change_password: true });
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId('required-training-course')).toBeVisible();
+  await expect(page.getByTestId('course-lesson-title')).toHaveText('Getting around Operations');
+  await expect(page.getByText('Change your temporary password')).toHaveCount(0);
+});
+
+test('a training account signs in without a forced password change even with a stale server flag', async ({ page }) => {
+  await page.route('**/api/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    return route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify(pathname.endsWith('/auth/login')
+        ? { ...staff, must_change_password: true, token: 'fictional-test-token' }
+        : { items: [], groups: {}, counts: {}, unread_count: 0 }),
+    });
+  });
+  await page.goto('/login');
+  await page.getByLabel('Username or email').fill(staff.email);
+  await page.getByLabel('Password', { exact: true }).fill('fictional-training-password');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId('required-training-course')).toBeVisible();
+  await expect(page.getByTestId('course-lesson-title')).toHaveText('Getting around Operations');
+});
 
 test('an incomplete stored finished marker resumes at the first incomplete lesson', async ({ page }) => {
   const lessons = availableTrainingLessons({ manage_department: false, make_decisions: false, manage_accounts: false });
