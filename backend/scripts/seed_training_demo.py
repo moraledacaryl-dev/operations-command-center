@@ -135,7 +135,8 @@ def seed(db_path: Path, private_dir: Path) -> dict[str, int]:
             password = secrets.token_urlsafe(18) + "Aa1!"
             u = add(models.User(name=name, email=slug+"@training.invalid",
                 role=role, department_id=departments[primary].id, is_active=True,
-                password_hash=hash_password(password), password_set_at=now), "users")
+                password_hash=hash_password(password), password_set_at=now,
+                must_change_password=False), "users")
             users[slug] = u
             memberships = list(DEPARTMENTS) if role in {"owner", "manager"} else [primary]
             if slug == "administrator": memberships = ["Admin", "Management"]
