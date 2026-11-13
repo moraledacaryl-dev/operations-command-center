@@ -20,6 +20,7 @@ This is an evidence log for work performed, not a claim that every course has be
 - The real local API smoke exercised all 22 fictional identities, department-scoped task access and denied cross-department access for scoped roles. With fictional data it created and re-read guest, repair, task, handover and approval records, tested status transitions and verified an employee's notification acknowledgement. The script's console says “packaged” and “20” in a legacy label; this run used source code and 22 accounts, not a packaged app.
 - Backend password, progress/upgrade and practical-mission tests: 12 passed. These are automated checks against test data, not proof that the installed app upgrades successfully.
 - Rebuilt frontend: typecheck and lint passed (four existing lint warnings); ten mocked handover browser regressions and two sign-out browser checks passed. Sign-out UI tests mock the logout response; the backend session invalidation is checked separately.
+- In the actual local challenge, the Bar employee could not select the required Bar team. After fixing the options, eight staff roles each opened their challenge and selected the correct team; nine shift-assessment regression checks passed. These checks did not finish the challenges.
 
 ## Training-to-Operations mapping (initial inventory)
 
@@ -69,6 +70,7 @@ All rows are **partial**, not a certification of competence. Assigned course con
 | High | Password-change screen had no visible sign-out. | Added a sign-out button that calls server logout before clearing local state and navigates to sign-in; errors remain visible and retryable. Backend test confirms session invalidation and that the password-change requirement remains. Not deployed. |
 | High | Multi-department handover lesson could hide its required example behind the last-used department. | Reproduced and fixed; tested switching and mid-lesson recovery. Other lessons and modified/deleted example records require further testing. |
 | High | Practice challenge includes a task-update form absent from live My Work. | Added explicit disclosure and practical live-app instruction. Real-app execution of an equivalent direct update remains unsupported and must not be marked passed. |
+| High | Bar was missing from the required team choices in the Bar independent shift challenge, so the correct answer could not be selected. | Reproduced using a fictional Bar login; now uses the shared department choices. All eight role-specific correct teams were selectable in the isolated running app. |
 | Medium | Project help claimed creating a project although the guided example is cancelled. | Corrected help to match the form inspection and cancellation. Independent planning ability is still not verified. |
 | Low | Room lesson referred to room numbers although named rooms are used. | Changed to room names. |
 | High / unresolved | Course completion and lesson counts cannot establish readiness or independent competence. | Complete each assigned course from a fresh account, verify saved-record evidence, test variations and mistakes, then have real employees attempt representative work. |
