@@ -61,7 +61,7 @@ test('lesson progress parser rejects invalid lesson ids and incomplete practice 
   expect(readCourseProgress(JSON.stringify({ lessonId: 'orientation', stage: 'done', passed: [] }), lessons).stage).toBe('learn');
 });
 
-async function mockLogin(page: import('@playwright/test').Page, loginUser = staff) {
+async function mockLogin(page: import('@playwright/test').Page, loginUser: typeof staff & { must_change_password?: boolean } = staff) {
   await page.addInitScript(user => {
     localStorage.setItem('cc_user', JSON.stringify(user));
     localStorage.setItem('cc_department_id', '41');
