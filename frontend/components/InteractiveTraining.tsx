@@ -14,6 +14,7 @@ import { PRACTICE_PLANS } from '@/lib/training-practice-plans';
 import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
 import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
+import { parseWorkflowResults } from '@/lib/training-progress';
 import { TrainerReports } from '@/components/TrainerReports';
 import { useTrainingDialogFocus } from '@/lib/training-dialog-focus';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
@@ -133,7 +134,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     ? { ...basePlan, goal: 'Record a practice arrival and departure, then try another room yourself.',
         show: 'Use Record check-in when a fictional guest arrives. Record checkout when the guest leaves the same room.',
         self: 'Complete check-in and checkout in two rooms. The first has an arrow; the second starts without one.',
-        checks: 'Both saved stays and the recording login are checked in the isolated training database.' }
+        checks: 'The app checks both saved stays and who recorded them.' }
     : basePlan && courseLesson?.id === 'staff-rooms' && !isFrontDeskStaff
     ? { ...basePlan, goal: 'Find guest rooms and shared areas without changing guest records.',
         self: 'Switch between Guest rooms and Shared areas without arrows.',
@@ -141,7 +142,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     : basePlan && courseLesson?.id === 'staff-handover' && String(user.role).toLowerCase() === 'staff'
     ? { ...basePlan, goal: 'Read two actual fictional handovers, then identify the saved status.',
         self: 'Find a second handover without arrows and confirm its saved status.',
-        checks: 'Your answer is checked against the record in the isolated training database.' }
+        checks: 'The app checks your answer against the saved handover.' }
     : basePlan;
   const repeatVariant = courseGuide?.repeatVariant && (course?.metrics?.[course?.lessonId || '']?.repeats || 0) % 2 === 1
     ? courseGuide.repeatVariant : undefined;
@@ -194,7 +195,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   function exportTrainingProgress() {
     if (!course) return;
     let workflows: TrainingWorkflowResults = {};
-    try { workflows = JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}') as TrainingWorkflowResults; }
+    try { workflows = parseWorkflowResults(JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}')); }
     catch { /* Export without unparseable workflow data. */ }
     const report = buildTrainingReport(course, { id:user.id, name:user.name, role:user.role }, workflows, new Date().toISOString());
     const blob = new Blob([JSON.stringify(report,null,2)], { type:'application/json' });
@@ -280,7 +281,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     if (!course || course.stage !== 'work' || !course.reference || !courseGuide?.handsOn) return;
     const check = () => {
       try {
-        const saved = JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}') as TrainingWorkflowResults;
+        const saved = parseWorkflowResults(JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}'));
         const evidence = saved[courseGuide.handsOn!];
         if (evidence?.reference !== course.reference || !evidence.recordId) return;
         setCourse(current => current && current.stage === 'work' && current.reference === evidence.reference

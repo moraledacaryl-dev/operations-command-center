@@ -113,7 +113,7 @@ export const PRACTICE_PLANS: Record<string, PracticePlan> = {
     show: 'Open Bar, choose Report a problem, and describe a fictional low-stock issue.',
     help: 'Use the highlighted controls. Explain which syrup is low, who should check it, and what the next shift should do.',
     self: 'Practise opening the Bar report form and writing a fictional issue without arrows. Do not submit during the short independent check.',
-    checks: 'A saved practice Bar report is checked against the isolated training database before it can count as completed.',
+    checks: 'The app checks that your practice Bar report was saved before marking it complete.',
     safety: 'The report does not adjust POS stock or authorize purchases.',
   },
   marketing: {

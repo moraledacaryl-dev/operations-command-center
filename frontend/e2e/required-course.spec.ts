@@ -296,3 +296,27 @@ test('a learner can pause a question, open the guide, and resume without earning
   const progress = await page.evaluate(id => JSON.parse(localStorage.getItem('ho-ops-structured-course-v2:' + id) || '{}'), staff.id);
   expect(progress.passed).toEqual([]);
 });
+
+test('an incomplete saved-work marker does not advance a practical', async ({ page }) => {
+  const manager = { ...staff, id: 92814, role: 'manager',
+    capabilities: { manage_department: true, make_decisions: true, view_all_operations: true } };
+  await page.addInitScript(user => {
+    const reference = 'TRN-TASK-ABC12345';
+    localStorage.setItem('cc_user', JSON.stringify(user));
+    localStorage.setItem('cc_department_id', '41');
+    localStorage.setItem('ho-ops-structured-course-v2:' + user.id, JSON.stringify({
+      lessonId: 'team-tasks', stage: 'work', question: 0, reference,
+      passed: ['orientation', 'staff-handover', 'staff-rooms', 'room-arrivals', 'staff-my-work'],
+    }));
+    localStorage.setItem('ho-ops-workflow-results-v1:' + user.id, JSON.stringify({
+      'shared-no-owner': { reference, recordId: 42 },
+    }));
+  }, manager);
+  await page.route('**/api/**', route => route.fulfill({ status: 200,
+    json: { items: [], groups: {}, counts: {}, users: [], unread_count: 0 } }));
+  await page.goto('/tasks');
+  await expect(page.getByTestId('course-await-work')).toBeVisible();
+  await expect(page.getByTestId('course-independent-challenge')).toHaveCount(0);
+  const stage = await page.evaluate(id => JSON.parse(localStorage.getItem('ho-ops-structured-course-v2:' + id) || '{}').stage, manager.id);
+  expect(stage).toBe('work');
+});

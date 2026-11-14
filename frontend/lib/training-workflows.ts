@@ -28,6 +28,12 @@ export const WORKFLOW_CHANGED = 'ho-ops-training-workflow-updated';
 export const WORKFLOW_PREFIX = 'ho-ops-verified-workflow-v1:';
 export const WORKFLOW_RESULTS_PREFIX = 'ho-ops-workflow-results-v1:';
 
+export const WORKFLOW_REFERENCE_PREFIXES: Record<TrainingWorkflowKind, string> = {
+  'guest-ac': 'TRN-GUEST-', 'shared-no-owner': 'TRN-TASK-',
+  'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-',
+  'manager-evidence': 'TRN-REQ-', 'fd-broken-shower': 'TRN-LINK-', 'bar-report': 'TRN-BAR-',
+};
+
 export const WORKFLOW_DEFINITIONS = {
   'bar-report': { name: 'Save a Bar handover', path: '/bar', resource: 'shift-notes', stages: ['Report a Bar stock problem'] },
   'guest-ac': {
@@ -91,11 +97,7 @@ export function makeTrainingReference(kind: TrainingWorkflowKind): string {
   const suffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID().slice(0, 8).toUpperCase()
     : (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
-  const prefix = {
-    'guest-ac': 'TRN-GUEST-', 'shared-no-owner': 'TRN-TASK-',
-    'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-', 'manager-evidence': 'TRN-REQ-', 'fd-broken-shower': 'TRN-LINK-', 'bar-report': 'TRN-BAR-',
-  }[kind];
-  return prefix + suffix;
+  return WORKFLOW_REFERENCE_PREFIXES[kind] + suffix;
 }
 
 export function parseWorkflowSession(raw: string | null, ownerId: string): TrainingWorkflowSession | null {
@@ -107,6 +109,7 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
     if (!isTrainingWorkflowKind(value.kind) || value.ownerId !== ownerId ||
       typeof value.reference !== 'string' ||
       !/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR)-[A-Z0-9]{8,20}$/.test(value.reference) ||
+      !value.reference.startsWith(WORKFLOW_REFERENCE_PREFIXES[value.kind]) ||
       typeof value.step !== 'number' || !Number.isInteger(value.step) || value.step < 0 ||
       value.step > WORKFLOW_DEFINITIONS[value.kind].stages.length ||
       typeof value.createdAt !== 'string') return null;
@@ -311,12 +314,12 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
     'Open Bar and select Report a problem.',
     'Choose Low stock. Put your unique practice number in What happened?',
     'In What should the next shift know?, say the mocktail syrup is low, who will count or check the remaining stock and what the next bartender needs to do.',
-    'Select Save Bar report. Then select Check saved work to confirm the record exists in the practice database.',
+    'Select Save Bar report. Then select Check saved work to confirm it was saved.',
   ];
   if (session.kind === 'fd-broken-shower') {
     if (session.step === 0) return [
       'Open Guest Matters. Select New guest matter and place the unique training reference in Matter title.',
-      'Choose Room or Complaint and set the priority. In the note, describe the lack of hot water, the Maintenance inspection and when Front Desk will call the guest.',
+      'Choose Room or Complaint and set Urgency to High for this practice. In the note, describe the lack of hot water, the Maintenance inspection and when Front Desk will call the guest.',
       'Click Save matter. Close any details drawer, then Check saved work.',
     ];
     if (session.step === 1) return [
@@ -341,13 +344,13 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
   }
   if (session.kind === 'guest-ac') {
     return session.step === 0
-      ? ['Open Guest Matters and click New guest matter.', 'Include the exact training reference in the Matter title.', 'Choose Room or Complaint. Set the priority based on how the problem affects the guest. Use Solace if it appears in the practice room list.', 'In the context note, describe the AC blowing warm air, the Maintenance inspection request, and when Front Desk will update the guest.', 'Click Save matter. Only then click Check saved work.']
+      ? ['Open Guest Matters and click New guest matter.', 'Include the exact training reference in the Matter title.', 'Choose Room or Complaint. Set Urgency to High for this practice. Use Solace if it appears in the practice room list.', 'In the context note, describe the AC blowing warm air, the Maintenance inspection request, and when Front Desk will update the guest.', 'Click Save matter. Only then click Check saved work.']
       : ['Find the saved matter with your reference in the Active list.', 'Open it, choose Needs follow-up, and confirm the updated record.', 'Click Check saved work to verify the saved status. Do not resolve an uninspected AC fault.'];
   }
   if (session.kind === 'manager-evidence') {
     return session.step === 0
       ? ['Open Requests and click New request.', 'Include the unique training reference in Request title.',
-        'Choose Equipment and set the priority based on how soon it is needed.', 'In Business reason, explain the fictional estimated amount, quotation status (if missing, say so), and why the item is operationally needed.',
+        'Choose Equipment and set Priority to Urgent for this practice.', 'In Business reason, explain the fictional estimated amount, quotation status (if missing, say so), and why the item is operationally needed.',
         'Click Create draft, then Check saved work. This is not an authorized purchase or approval.']
       : ['Locate the same saved Draft request and open it.', 'Check that the reason is accurate and does not claim a quotation is attached when it is not.',
         'Choose Send for review.', 'If the details stay open, close them. Choose Check saved work. Your request should be Pending in Approvals. Leave the decision to the reviewer.'];
@@ -355,14 +358,14 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
   if (session.kind === 'shift-unresolved') {
     return session.step === 0
       ? ['Open Shift Handover and click New handover.', 'Add the unique reference to the Title.',
-        'Choose Guest category and decide urgency from the unresolved guest update during this shift change.', 'In Handover detail, describe the unresolved guest concern, the responsible owner, and the guest update or follow-up needed.',
+        'Choose Guest category and set Priority to Urgent for this practice.', 'In Handover detail, describe the unresolved guest concern, the responsible owner, and the guest update or follow-up needed.',
         'Publish handover, then Check saved work.']
       : ['Open the original unresolved handover in the list.', 'Choose Carry forward to leave an actionable follow-up for the next shift.',
         'Choose Check saved work to confirm the note shows Follow.'];
   }
   if (session.kind === 'mt-light-fault') {
     if (session.step === 0) return ['Choose Maintenance in Workspace, then open Maintenance and click Report issue.',
-      'Put your practice number in Work item.', 'Choose a priority for the broken light and assign a made-up technician.',
+      'Put your practice number in Work item.', 'Set Urgency to High for this practice and assign a made-up technician.',
       'Describe the nonfunctioning corridor light and its impact in Problem / scope.', 'Click Create work item, then Check saved work.'];
     if (session.step === 1) return ['Find and open the saved lighting work item.', 'Click Start work; wait for its status to become Working.', 'Click Check saved work.'];
     if (session.step === 2) return ['For this practice repair, choose Mark done after the inspection.', 'Choose Check saved work to check the repair status.'];
@@ -379,7 +382,7 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
   if (session.step === 1) return [
     'Locate the same task in To Do and click to open it.',
     'Click Start work. Verify that it moved to Doing.',
-    'Click Check saved work to validate this saved transition.',
+    'Click Check saved work to check the new status.',
   ];
   return [
     'Open the same Doing task.',

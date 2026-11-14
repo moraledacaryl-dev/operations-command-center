@@ -31,6 +31,7 @@ test('Bar verified practical requires a saved, department-matched incident with 
 test('Bar practice refuses unscoped or mismatched training sessions', () => {
   const missing = { ...session, departmentId: undefined };
   expect(parseWorkflowSession(JSON.stringify(missing), session.ownerId)).toBeNull();
+  expect(parseWorkflowSession(JSON.stringify({ ...session, reference: 'TRN-TASK-ABC12345' }), session.ownerId)).toBeNull();
   expect(parseWorkflowSession(JSON.stringify(session), 'different-user')).toBeNull();
   expect(parseWorkflowSession(JSON.stringify(session), session.ownerId)).toMatchObject({
     kind: 'bar-report', departmentId: 8, reference: session.reference,
@@ -55,7 +56,11 @@ for (const isBarMember of [true, false]) test(`saved Bar practice guide is ${isB
     return route.fulfill({ status: 200, json: value });
   });
   await page.goto('/training');
-  if (isBarMember) await expect(page.getByTestId('training-workflow-coach')).toBeVisible();
+  if (isBarMember) {
+    await expect(page.getByTestId('training-workflow-coach')).toBeVisible();
+    await expect(page.getByTestId('training-open-module')).toHaveText('Open Bar');
+    await expect(page.getByTestId('training-open-module')).toHaveAttribute('href', '/bar');
+  }
   else await expect(page.getByTestId('training-workflow-coach')).toHaveCount(0);
 });
 

@@ -208,7 +208,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         <span className="training-workflow-kicker">PRACTICE ONLY · MADE-UP RECORDS</span>
         <h2>{definition.name}</h2>
         <p>{finished
-          ? 'All required record changes were verified in the local training database.'
+          ? 'The app checked your saved practice work.'
           : `Stage ${session.step + 1} of ${definition.stages.length}: ${currentStage}`}</p>
       </div>
       <div className="training-workflow-header-actions">
@@ -243,8 +243,8 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       </p>
       <div className="training-workflow-buttons">
         {!onModule ? <Link className="btn" data-testid="training-open-module" href={expectedPath}>
-          Open {session.kind === 'fd-broken-shower' && session.step >= 2
-            ? 'Maintenance'
+          Open {session.kind === 'bar-report' ? 'Bar'
+            : session.kind === 'fd-broken-shower' && session.step >= 2 ? 'Maintenance'
             : ({ guests: 'Guest Matters', tasks: 'Tasks', 'shift-notes': 'Shift Handover',
                 fixes: 'Maintenance', requests: 'Requests' } as const)[definition.resource]}</Link> : null}
         <button type="button" className="btn" data-testid="training-check-work" disabled={busy}

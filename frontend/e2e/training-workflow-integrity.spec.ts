@@ -68,3 +68,14 @@ test('task requires a saved real assignee, not merely High priority and title', 
   expect(verifyWorkflowStep(session, [orphan]).passed).toBe(false);
   expect(verifyWorkflowStep(session, [{ ...orphan, assigned_to_id: 77 }]).passed).toBe(true);
 });
+
+test('saved-work exercises tell learners the urgency their practice requires', async () => {
+  const { workflowInstructions } = await import('../lib/training-workflows');
+  for (const [kind, expected] of [
+    ['guest-ac', 'Urgency to High'], ['fd-broken-shower', 'Urgency to High'],
+    ['mt-light-fault', 'Urgency to High'], ['manager-evidence', 'Priority to Urgent'],
+    ['shift-unresolved', 'Priority to Urgent'], ['shared-no-owner', 'High priority'],
+  ] as const) {
+    expect(workflowInstructions(state(kind, 0)).join(' '), kind).toContain(expected);
+  }
+});

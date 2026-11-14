@@ -55,8 +55,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'staff-rooms': {
-    explanation: 'The Rooms screen helps you find a guest room or shared area. Check the room name and any existing issues before reporting a new problem.',
-    example: 'A guest calls from Solace. Search for Solace and check whether somebody has already reported the issue.',
+    explanation: 'The Rooms screen helps you find a guest room or shared area. Open the room to see its guest matters and maintenance history. Check for an existing report before making another.',
+    example: 'A guest calls from Solace. In Rooms, search for Solace and open it. Check Guest matters and Maintenance for an existing report.',
     remember: 'Confirm the room name. Never use one guest’s room information for another guest.',
     questions: [
       q('Before reporting another problem for Solace, what should you check?', ['Whether the issue is already recorded','Whether the room is listed as occupied','Whether a different room has an open issue'], 0, 'Checking existing records helps staff avoid duplicate reports.'),
@@ -215,8 +215,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   },
   'management-review': {
     explanation: 'A manager reviews the underlying evidence before approving, rejecting or asking for changes. A request that lacks proof should not be approved just to clear the queue.',
-    example: 'A purchase request has no reliable price quotation. Ask for the missing information instead of guessing.',
-    remember: 'Only the person allowed to approve a request can make that decision.',
+    example: 'A purchase request has no reliable price quotation. Ask the requester for the missing information and leave the decision pending until you can review it.',
+    remember: 'Only the person allowed to approve a request can make that decision. The app has Approve and Reject buttons; rejecting requires a reason.',
     questions: [
       q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Approve without looking','Ignore the missing details'], 0, 'Authorized reviewers need adequate evidence.'),
       q('A request is approved. Does this prove the item was delivered?', ['No, delivery or implementation must be checked separately','Yes, because approval starts delivery','Only when the request included a quotation'], 0, 'The approval decision is not proof that the work was carried out.'),

@@ -84,7 +84,7 @@ function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPr
     help: 'Explain what needs doing, who will handle it and when to check again.', minimum: 35,
   });
   if (type === 'task') return [
-    title, choice(3, 'High', 'Decide the task priority', 'Think about how soon this task needs doing and what could happen if it is delayed.'),
+    title, choice(3, 'High', 'Choose High priority', 'Choose High for this practice task.'),
     { selector: field(4, 'select'), label: 'Assign a practice teammate',
       help: 'Choose a fictional teammate from Assigned to. Do not leave this as Unassigned.', expected: '!empty' },
   ];
@@ -93,11 +93,11 @@ function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPr
     { ...note('Write the shift note'), help: 'Name the guest issue, the responsible person and the next action. Example: "The guest is waiting for a repair update. The Front Desk lead is responsible and will call the guest before the next shift."' },
   ];
   if (type === 'request') return [
-    title, choice(2, 'Equipment', 'Choose Equipment type'), choice(3, 'Urgent', 'Decide the request urgency', 'Think about how soon the equipment is needed. The reviewer still needs to check the cost and quote.'),
+    title, choice(2, 'Equipment', 'Choose Equipment type'), choice(3, 'Urgent', 'Choose Urgent priority', 'Choose Urgent for this practice request. The reviewer still needs to check the cost and quote.'),
     note('Explain the cost, quote and reason for the request'),
   ];
   if (type === 'fix') return [
-    title, choice(3, 'High', 'Assess the failed light', 'Think about how this fault could affect people using the corridor and how soon it requires a qualified inspection. Do not assume a repair is complete.'),
+    title, choice(3, 'High', 'Choose High urgency', 'Choose High for this practice repair. Do not assume the repair is complete.'),
     { selector: field(4, 'select'), label: 'Assign a fictional technician',
       help: 'Select the technician responsible for this practice fault.', expected: '!empty' },
     note('Describe the failed corridor light and impact'),
@@ -106,7 +106,7 @@ function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPr
     title,
     { selector: field(4, 'select'), label: 'Choose Room or Complaint type',
       help: 'Choose Room or Complaint for this issue.', expected: 'Room|Complaint' },
-    choice(5, 'High', 'Assess the guest matter', 'Think about how the room problem affects the guest and how soon it needs checking.'),
+    choice(5, 'High', 'Choose High urgency', 'Choose High for this practice guest matter.'),
     note('Describe the fault, required inspection and guest callback'),
   ];
 }
