@@ -65,7 +65,7 @@ export default function RoomsPage() {
       { label: 'Shared areas', value: loading || error ? null : rooms.filter(r => r.kind !== 'room').length, icon: 'leaf' },
     ]} />
     <div className="spaces-toolbar">
-      <div className="spaces-filters" aria-label="Space type">{kinds.map(value => <button type="button" key={value} aria-pressed={kind === value} onClick={() => { setKind(value); sendRoomPracticeAction({ kind: 'filter', value }); }}>{value === 'All' ? 'All spaces' : value === 'room' ? 'Guest rooms' : value === 'area' ? 'Shared areas' : value}</button>)}</div>
+      <div className="spaces-filters" aria-label="Space type">{kinds.map(value => <button type="button" key={value} data-space-kind={value} aria-pressed={kind === value} onClick={() => { setKind(value); sendRoomPracticeAction({ kind: 'filter', value }); }}>{value === 'All' ? 'All spaces' : value === 'room' ? 'Guest rooms' : value === 'area' ? 'Shared areas' : value}</button>)}</div>
       <input className="input" aria-label="Search rooms and areas" placeholder="Find a room or space…" value={query} onChange={event => { setQuery(event.target.value); sendRoomPracticeAction({ kind: 'search', value: event.target.value }); }} />
     </div>
     <div className="spaces-results"><span>{visible.length} {visible.length === 1 ? 'space' : 'spaces'}{nextCursor ? ' loaded' : ''}</span><span>Details · Guest matters · Maintenance</span></div>

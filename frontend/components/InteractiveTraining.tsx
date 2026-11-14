@@ -97,6 +97,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [menuOpen, setMenuOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [active, setActive] = useState<Active | null>(null);
+  const activeRef = useRef<Active | null>(null);
+  activeRef.current = active;
   const [position, setPosition] = useState<Position | null>(null);
   const [targetFound, setTargetFound] = useState(false);
   const [complete, setComplete] = useState<string[]>([]);
@@ -544,7 +546,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     if (!step?.advanceOnClick || path !== step.path || !active) return;
     const node = targetFor(step.selector);
     if (!node) return;
-    const click = () => { window.setTimeout(() => { if (document.body.contains(node) || step.advanceOnClick) next(true); }, 100); };
+    const click = () => { window.setTimeout(() => {
+      // Navigation can advance the tour before this delayed click handler runs.
+      // A handler from the previous step must never move the learner backwards.
+      if (activeRef.current?.id !== active.id || activeRef.current?.index !== active.index) return;
+      if (document.body.contains(node) || step.advanceOnClick) next(true);
+    }, 100); };
     node.addEventListener('click', click, { once: true });
     return () => node.removeEventListener('click', click);
   }, [active, path, step, targetFound, next]);

@@ -78,8 +78,11 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
     };
   }, [path, session?.kind, session?.reference, session?.step, session?.ownerId]);
 
+  const canPracticeBarReport = session?.kind === 'bar-report' &&
+    Array.isArray(user.departments) && user.departments.some((department: Entity) =>
+      department.name === 'Bar' && Number(department.id) === session.departmentId);
   if (process.env.NEXT_PUBLIC_TRAINING_MODE !== 'true' ||
-    !session || !hasCapability(user, 'manage_department') ||
+    !session || (!hasCapability(user, 'manage_department') && !canPracticeBarReport) ||
     (['mt-light-fault', 'fd-broken-shower'].includes(session.kind) &&
       !hasCapability(user, 'make_decisions'))) return null;
 

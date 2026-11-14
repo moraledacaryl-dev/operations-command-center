@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { hasCapability } from '@/lib/capabilities';
 import { DEPARTMENTS } from '@/lib/practice-scenarios';
+import { DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, setCurrentDepartmentId } from '@/lib/session';
 import {
   assessShiftNote, emptyShiftAnswers, readShiftAttempt, savedShiftBody, shiftCaseFor,
   shiftChallengeKey, shiftHandoverTitle, shiftRecords, shiftTaskTitle,
@@ -23,11 +24,14 @@ export function IndependentShiftChallenge({user,path}:{user:Entity;path:string})
   const [checks,setChecks]=useState<string[]>([]);
   const [help,setHelp]=useState(false);
   const [storageError,setStorageError]=useState(false);
+  const [selectedDepartmentId,setSelectedDepartmentId]=useState<number|null>(null);
   const current=useRef(attempt); current.current=attempt;
   const heading=useRef<HTMLHeadingElement>(null);
   const key=shiftChallengeKey(user);
   const isPage=path===SHIFT_CHALLENGE_PATH;
   const observing=Boolean(attempt&&!attempt.completedAt);
+  const departmentId=Number(user.primary_department_id || user.departments?.[0]?.id);
+  const wrongDepartment=Boolean(attempt && !attempt.completedAt && selectedDepartmentId !== null && selectedDepartmentId !== departmentId);
   const save=useCallback((value:ShiftAttempt)=>{
     current.current=value;setAttempt(value);
     try {localStorage.setItem(key,JSON.stringify(value));window.dispatchEvent(new Event(SHIFT_CHALLENGE_EVENT));}
@@ -38,6 +42,11 @@ export function IndependentShiftChallenge({user,path}:{user:Entity;path:string})
     try {setAttempt(c?readShiftAttempt(localStorage.getItem(key),c):null);} catch {setStorageError(true);}
     setReady(true);
   },[key,c]);
+  useEffect(()=>{
+    const sync=()=>setSelectedDepartmentId(getCurrentDepartmentId(user));
+    sync();window.addEventListener(DEPARTMENT_CHANGE_EVENT,sync);window.addEventListener('storage',sync);
+    return()=>{window.removeEventListener(DEPARTMENT_CHANGE_EVENT,sync);window.removeEventListener('storage',sync);};
+  },[user]);
 
   useEffect(()=>{
     if(!c || !observing) return;
@@ -60,6 +69,7 @@ export function IndependentShiftChallenge({user,path}:{user:Entity;path:string})
     if(!c || busy)return;setBusy(true);setMessage('');
     try {
       const r=await shiftRecords(user,c);
+      if(departmentId) setCurrentDepartmentId(departmentId);
       save({reference:c.reference,taskId:Number(r.task.id),handoverId:Number(r.handover.id),noticeId:Number(r.notice.id),startedAt:new Date().toISOString(),openedTask:false,openedHandover:false,answers:emptyShiftAnswers()});
     }catch(err){setMessage(err instanceof Error?err.message:'Could not open your challenge. Try again.');}
     finally{setBusy(false);}
@@ -109,7 +119,7 @@ export function IndependentShiftChallenge({user,path}:{user:Entity;path:string})
       <Link className="btn" href={SHIFT_CHALLENGE_PATH}>{attempt?.completedAt?'View your shift result':attempt?'Continue shift challenge':'Open your shift challenge'}</Link>
     </section>;
     if(!attempt||attempt.completedAt)return null;
-    return <aside className="shift-challenge-return" aria-label="Your shift challenge"><span><strong>Shift challenge</strong> · {c.reference}</span><Link href={SHIFT_CHALLENGE_PATH}>Return to your challenge</Link></aside>;
+    return <aside className="shift-challenge-return" aria-label="Your shift challenge"><span><strong>Shift challenge</strong> · {c.reference}</span>{wrongDepartment&&<span>For this practice, <button type="button" onClick={()=>setCurrentDepartmentId(departmentId)}>switch to {c.department}</button>.</span>}<Link href={SHIFT_CHALLENGE_PATH}>Return to your challenge</Link></aside>;
   }
   return <section className="shift-challenge" aria-label="Independent shift challenge" data-testid="independent-shift-challenge">
     <p className="practice-eyebrow">{c.department.toUpperCase()} · YOUR TURN</p>
@@ -123,7 +133,8 @@ export function IndependentShiftChallenge({user,path}:{user:Entity;path:string})
     </>:<>
       <p>Use what you learned to handle one shift problem. There are no arrows. You can open help if you need it.</p>
       <div className="shift-challenge-brief"><h2>{c.title}</h2><p>{c.situation}</p><span className="muted">Practice number: {c.reference} · All details are made up.</span></div>
-      {!attempt?<><p>Read the handover and your assigned job in the app. Check your shift notice, then come back here to leave a follow-up.</p><button className="btn" disabled={busy} onClick={()=>void start()}>{busy?'Opening…':'Start shift challenge'}</button></>:<>
+      {!attempt?<><p>Read the handover and your assigned job in the app. Check your shift notice, then come back here to leave a follow-up. We&apos;ll open the {c.department} team for this practice.</p><button className="btn" disabled={busy} onClick={()=>void start()}>{busy?'Opening…':'Start shift challenge'}</button></>:<>
+        {wrongDepartment&&<p role="status">This practice uses {c.department}. <button type="button" onClick={()=>setCurrentDepartmentId(departmentId)}>Switch to {c.department}</button> to find the handover.</p>}
         <ol className="shift-challenge-tasks">
           <li><strong>Read the unfinished work.</strong><span>In Shift Handover, read the note with practice number {c.reference}. Then read your job with the same number in My Work.</span></li>
           <li><strong>Check your notice.</strong><span>In Notifications, read the shift notice with this number. Choose Mark read if it is unread.</span></li>
