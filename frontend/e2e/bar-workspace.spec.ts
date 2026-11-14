@@ -117,3 +117,13 @@ test('Bar lead assigns a report to a Bar teammate and sees the linked task', asy
   await page.getByRole('button', { name: /Mango syrup is low/ }).click();
   await expect(page.getByTestId('bar-report-details')).toContainText('This report has a linked task');
 });
+
+test('a report explains when its linked task is no longer in the active list', async ({ page }) => {
+  const { notes } = await serveBar(page, lead);
+  Object.assign(notes[0], { linked_task_id: 900 });
+  await page.goto('/bar');
+  await page.getByRole('button', { name: /Mango syrup is low/ }).click();
+  const details = page.getByTestId('bar-report-details');
+  await expect(details).toContainText('This task is not in the active Bar list. Ask a manager to check it.');
+  await expect(details.getByRole('button', { name: 'Assign task' })).toHaveCount(0);
+});

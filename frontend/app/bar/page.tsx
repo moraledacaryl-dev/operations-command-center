@@ -148,7 +148,8 @@ export default function BarPage() {
       {selected.linked_task_id ? <div role="status"><p>This report has a linked task. <Link href="/tasks" onClick={() => setCurrentDepartmentId(departmentId)}>See Bar tasks</Link></p>
         {tasks.filter(task => Number(task.id) === Number(selected.linked_task_id)).map(task => <p key={task.id}>
           {task.status || 'To Do'} · Assigned to {people.find(person => Number(person.id) === Number(task.assigned_to_id))?.name || 'team member'}
-        </p>)}</div>
+        </p>)}
+        {!tasks.some(task => Number(task.id) === Number(selected.linked_task_id)) ? <p>This task is not in the active Bar list. Ask a manager to check it.</p> : null}</div>
         : canManage && selected.status !== 'Done' ? <div className="form" data-testid="bar-assign-task">
           <label className="label">Who should handle this?<select className="select" value={assignee} onChange={e => setAssignee(e.target.value)}>
             <option value="">Choose a team member</option>{people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
