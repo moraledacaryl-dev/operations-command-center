@@ -192,8 +192,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   },
   bar: {
     handsOn: 'bar-report',
-    explanation: 'Bar handles cocktails, alcoholic drinks and mocktails. Kitchen prepares food. Café handles café drinks and café service. Open Bar to read reports, check handovers, and report a problem. Report a problem is available to Bar staff; a lead handles assignment and status changes. The report does not change POS stock or orders.',
-    example: 'The mocktail blender stops working. In this fictional exercise, open Bar, choose Report a problem, select Equipment, explain where the blender is and tell the next shift not to use it until checked.',
+    explanation: 'Bar handles cocktails, alcoholic drinks and mocktails. Kitchen prepares food. Café handles café drinks and café service. Open Bar to read reports, check handovers, and report a problem. Bar staff can report a problem; a lead can assign a task from the report and update its status. The report does not change POS stock or orders.',
+    example: 'The mocktail blender stops working. Choose Report a problem, select Equipment, and tell the next shift not to use it until checked. In the saved practice that follows, you will report low mocktail syrup instead.',
     repeatVariant: { example: 'A fictional bottle of syrup is nearly empty at shift change. Record the low stock in Bar so the next bartender can check it.', questions: [
       q('Which department should get a mocktail stock report?', ['Bar','Kitchen','Housekeeping'], 0, 'Mocktails are handled by Bar.'),
       q('Does saving a Bar report change POS stock?', ['Yes, it updates the stock count','No, it is a handover/report only','It changes stock after the next shift reads it'], 1, 'Operations reports do not adjust POS inventory.'),
@@ -207,16 +207,22 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   marketing: {
     explanation: 'Marketing posts move from an idea to a draft, review, changes and publication. Use Areas covered to choose Rooms, Pool, Café, Kitchen or Bar. Tick one area for a Pool-only offer, or several for a Café and Bar event. Use the area filter to find each promotion; older work may say Areas not set. A reviewed design is not automatically approved to publish.',
     example: 'For a fictional Pool-only offer, select Pool and find it with the Pool filter. For a Café and Bar drinks event, select both Café and Bar and check that it appears under either filter. If a poster has a spelling mistake, request a correction before approval.',
+    branches: [{ question: 'A drinks event includes both Café and Bar. Which areas should you choose?',
+      choices: ['Café and Bar', 'Only the area that appears first', 'Pool because it is a resort event'],
+      correct: 0, response: 'Choose both Café and Bar so each team can find the promotion. Check the event details before sending it for review.' }],
     remember: 'Do not publish a real poster while using the fictional training app.',
     questions: [
       q('A poster has a spelling mistake before approval. What should happen?', ['Request a correction','Send it for publication with a note','Leave it in review without telling the designer'], 0, 'The problem should be corrected before authorized publication.'),
-      q('Does a post being in Review mean it is already published?', ['Yes, review publishes the post','No, it is awaiting a decision','Only when the draft has an image'], 1, 'Review and Posted are distinct stages.'),
+      q('A drinks event covers Café and Bar. Which areas should you select?', ['Only Café','Café and Bar','Pool and Rooms'], 1, 'Select both areas so the promotion can be found under either one.'),
     ],
   },
   'management-review': {
     explanation: 'A manager reviews the underlying evidence before approving, rejecting or asking for changes. A request that lacks proof should not be approved just to clear the queue.',
     example: 'A purchase request has no reliable price quotation. Ask the requester for the missing information and leave the decision pending until you can review it.',
     remember: 'Only the person allowed to approve a request can make that decision. The app has Approve and Reject buttons; rejecting requires a reason.',
+    branches: [{ question: 'A request is missing the price. What should you do before deciding?',
+      choices: ['Approve and estimate the cost later', 'Ask the requester for the price and leave it pending', 'Reject without explaining why'],
+      correct: 1, response: 'Ask for the missing price and leave the decision pending. If you reject a request, explain the reason in the decision note.' }],
     questions: [
       q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Approve without looking','Ignore the missing details'], 0, 'Authorized reviewers need adequate evidence.'),
       q('A request is approved. Does this prove the item was delivered?', ['No, delivery or implementation must be checked separately','Yes, because approval starts delivery','Only when the request included a quotation'], 0, 'The approval decision is not proof that the work was carried out.'),

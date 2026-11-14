@@ -19,6 +19,7 @@ async function setup(page: Page, holdMutation = false) {
   let refreshing = false;
   let mutationStarted = false;
   let released = false;
+  const tasks: { id: number; title: string; project_id: number; department_id: number; note: string; status: string; priority: string }[] = [];
   const waiting: (() => void)[] = [];
   const project = () => ({ id: 711, title: 'Pool deck restoration', department_id: 1,
     priority: 'Normal', status: moved ? 'Active' : 'Planned', allowed_actions: moved ? ['pause'] : ['start'] });
@@ -35,12 +36,18 @@ async function setup(page: Page, holdMutation = false) {
       if (holdMutation) await new Promise<void>(resolve => waiting.push(resolve));
       moved = true;
       data = project();
+    } else if (path === '/api/workflow/projects/711/create-task') {
+      const input = route.request().postDataJSON();
+      const task = { id: 901, title: 'Pool deck restoration', project_id: 711, department_id: 1,
+        note: input.note, status: 'To Do', priority: 'Normal' };
+      tasks.push(task);
+      data = { task };
     } else if (path === '/api/projects' || path === '/api/tasks') {
       if (moved && !holdMutation && !released) {
         refreshing = true;
         await new Promise<void>(resolve => waiting.push(resolve));
       }
-      data = path === '/api/projects' ? [project()] : [];
+      data = path === '/api/projects' ? [project()] : tasks;
     }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) });
   });
@@ -87,4 +94,14 @@ test('closing a project during a pending mutation does not reopen it', async ({ 
   control.release();
   await expect(page.getByRole('link', { name: /Pool deck restoration/ })).toContainText('Active');
   await expect(dialog).toHaveCount(0);
+});
+
+test('a new project task shows the action that was entered', async ({ page }) => {
+  await setup(page);
+  await page.goto('/projects?project=711');
+  const dialog = page.getByRole('dialog');
+  await dialog.getByPlaceholder('Describe the next project action').fill('Check the deck lighting');
+  await dialog.getByRole('button', { name: 'Create task', exact: true }).click();
+  await expect(dialog).toContainText('Check the deck lighting');
+  await expect(dialog.getByText('1 task', { exact: true })).toBeVisible();
 });
