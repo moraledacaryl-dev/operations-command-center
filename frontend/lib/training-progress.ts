@@ -52,7 +52,7 @@ export function parseScenarioProgress(raw: unknown, allowedScenarioIds: readonly
   return safe;
 }
 
-import { WORKFLOW_DEFINITIONS, isTrainingWorkflowKind } from './training-workflows';
+import { WORKFLOW_DEFINITIONS, WORKFLOW_REFERENCE_PREFIXES, isTrainingWorkflowKind } from './training-workflows';
 import type { TrainingWorkflowResults } from './training-workflows';
 
 /** Ignore malformed device-local workflow summaries in progress totals/CSV.
@@ -68,11 +68,7 @@ export function parseWorkflowResults(raw: unknown): TrainingWorkflowResults {
         !value || typeof value !== 'object' || Array.isArray(value)) continue;
     const item = value as Record<string, unknown>;
     const stages = WORKFLOW_DEFINITIONS[key].stages;
-    const prefix = ({
-      'guest-ac': 'TRN-GUEST-', 'shared-no-owner': 'TRN-TASK-',
-      'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-',
-      'manager-evidence': 'TRN-REQ-', 'fd-broken-shower': 'TRN-LINK-',
-    })[key];
+    const prefix = WORKFLOW_REFERENCE_PREFIXES[key];
     if (typeof item.reference !== 'string' || !item.reference.startsWith(prefix) ||
         typeof item.completedAt !== 'string' || !Number.isFinite(Date.parse(item.completedAt)) ||
         typeof item.recordId !== 'number' || !Number.isSafeInteger(item.recordId) || item.recordId <= 0 ||

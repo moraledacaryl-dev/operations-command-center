@@ -55,8 +55,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'staff-rooms': {
-    explanation: 'The Rooms screen helps you find a guest room or shared area. Check the room name and any existing issues before reporting a new problem.',
-    example: 'A guest calls from Solace. Search for Solace and check whether somebody has already reported the issue.',
+    explanation: 'The Rooms screen helps you find a guest room or shared area. Open the room to see its guest matters and maintenance history. Check for an existing report before making another.',
+    example: 'A guest calls from Solace. In Rooms, search for Solace and open it. Check Guest matters and Maintenance for an existing report.',
     remember: 'Confirm the room name. Never use one guest’s room information for another guest.',
     questions: [
       q('Before reporting another problem for Solace, what should you check?', ['Whether the issue is already recorded','Whether the room is listed as occupied','Whether a different room has an open issue'], 0, 'Checking existing records helps staff avoid duplicate reports.'),

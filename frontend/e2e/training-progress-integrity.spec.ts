@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { parseScenarioProgress, parseWorkflowResults } from '../lib/training-progress';
+import { makeTrainingReference, WORKFLOW_DEFINITIONS } from '../lib/training-workflows';
+import type { TrainingWorkflowKind } from '../lib/training-workflows';
+import { buildTrainingReport } from '../lib/training-progress-report';
 
 const ids = ['shift-unresolved', 'guest-ac'];
 const valid = { attempts: 4, mistakes: 1, hints: 1, firstTry: false,
@@ -70,4 +73,23 @@ test('workflow summary rejects missing stages, fake ids and wrong training refer
     expect(parseWorkflowResults({ 'shared-no-owner': item })['shared-no-owner']).toBeUndefined();
   }
   expect(parseWorkflowResults({ 'fake-certification': good })).toEqual({});
+});
+
+test('a saved Bar practice appears in progress without accepting a different reference', () => {
+  const bar = { reference: 'TRN-BAR-ABC12345', recordId: 80,
+    completedAt: valid.completedAt, steps: ['Report a Bar stock problem'] };
+  expect(parseWorkflowResults({ 'bar-report': bar })['bar-report']).toMatchObject(bar);
+  const report = buildTrainingReport({ lessonId: 'bar', stage: 'finished', question: 0, passed: ['bar'] },
+    { id: 5, name: 'Fictional bartender', role: 'staff' }, parseWorkflowResults({ 'bar-report': bar }), valid.completedAt);
+  expect(report.verifiedPractice).toContainEqual({ kind: 'bar-report', reference: bar.reference,
+    completedAt: bar.completedAt, stages: 1 });
+  expect(parseWorkflowResults({ 'bar-report': { ...bar, reference: 'TRN-TASK-ABC12345' } })['bar-report']).toBeUndefined();
+});
+
+test('each kind of saved practice remains visible in progress', () => {
+  for (const kind of Object.keys(WORKFLOW_DEFINITIONS) as TrainingWorkflowKind[]) {
+    const result = { reference: makeTrainingReference(kind), recordId: 42,
+      completedAt: valid.completedAt, steps: [...WORKFLOW_DEFINITIONS[kind].stages] };
+    expect(parseWorkflowResults({ [kind]: result })[kind], kind).toMatchObject(result);
+  }
 });
