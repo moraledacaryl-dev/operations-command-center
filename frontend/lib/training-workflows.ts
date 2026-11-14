@@ -350,7 +350,7 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
         'Choose Equipment and set the priority based on how soon it is needed.', 'In Business reason, explain the fictional estimated amount, quotation status (if missing, say so), and why the item is operationally needed.',
         'Click Create draft, then Check saved work. This is not an authorized purchase or approval.']
       : ['Locate the same saved Draft request and open it.', 'Check that the reason is accurate and does not claim a quotation is attached when it is not.',
-        'Choose Send for review.', 'Close the details and choose Check saved work. Your request should be Pending in Approvals. Leave the decision to the reviewer.'];
+        'Choose Send for review.', 'If the details stay open, close them. Choose Check saved work. Your request should be Pending in Approvals. Leave the decision to the reviewer.'];
   }
   if (session.kind === 'shift-unresolved') {
     return session.step === 0
@@ -361,7 +361,7 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
         'Choose Check saved work to confirm the note shows Follow.'];
   }
   if (session.kind === 'mt-light-fault') {
-    if (session.step === 0) return ['Open Maintenance and click Report issue.',
+    if (session.step === 0) return ['Choose Maintenance in Workspace, then open Maintenance and click Report issue.',
       'Put your practice number in Work item.', 'Choose a priority for the broken light and assign a made-up technician.',
       'Describe the nonfunctioning corridor light and its impact in Problem / scope.', 'Click Create work item, then Check saved work.'];
     if (session.step === 1) return ['Find and open the saved lighting work item.', 'Click Start work; wait for its status to become Working.', 'Click Check saved work.'];
@@ -372,7 +372,8 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
   if (session.step === 0) return [
     'Open Tasks and click New task.',
     'Include your exact training reference in the Task title.',
-    'Choose a priority and a made-up employee in Assigned to.',
+    'Choose High priority and a made-up employee in Assigned to.',
+    'If you see Areas covered, select the areas this task is for.',
     'Click Create task. Verify that it appears in your Tasks workspace, then click Check saved work.',
   ];
   if (session.step === 1) return [

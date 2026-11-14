@@ -61,21 +61,23 @@ function popupStyle(position: Position | null, measuredTipHeight?: number): Reac
   const height = Math.max(190, measuredTipHeight || 290);
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
+  const clampTop = (value: number) => Math.max(margin, Math.min(Math.max(margin, viewportHeight - height - margin), value));
+  const clampLeft = (value: number) => Math.max(margin, Math.min(Math.max(margin, viewportWidth - width - margin), value));
   const centeredLeft = Math.max(margin, Math.min(viewportWidth - width - margin, position.left + position.width / 2 - width / 2));
   const spaceAbove = position.top - margin;
   const spaceBelow = viewportHeight - (position.top + position.height) - margin;
 
   // Prefer above/below without obscuring the highlighted element. Measure the
   // actual popup height: a fixed estimate caused long instructions to cover forms.
-  if (spaceBelow >= height + gap) return { left: centeredLeft, top: position.top + position.height + gap, width };
-  if (spaceAbove >= height + gap) return { left: centeredLeft, top: position.top - height - gap, width };
+  if (spaceBelow >= height + gap) return { left: centeredLeft, top: clampTop(position.top + position.height + gap), width };
+  if (spaceAbove >= height + gap) return { left: centeredLeft, top: clampTop(position.top - height - gap), width };
 
   // If the focused element is tall, first try an adjacent side.
   const right = viewportWidth - (position.left + position.width) - margin;
   const left = position.left - margin;
   const centeredTop = Math.max(margin, Math.min(viewportHeight - height - margin, position.top + position.height / 2 - height / 2));
-  if (right >= width + gap) return { left: position.left + position.width + gap, top: centeredTop, width };
-  if (left >= width + gap) return { left: position.left - width - gap, top: centeredTop, width };
+  if (right >= width + gap) return { left: clampLeft(position.left + position.width + gap), top: centeredTop, width };
+  if (left >= width + gap) return { left: clampLeft(position.left - width - gap), top: centeredTop, width };
 
   // In a constrained viewport, minimize rather than conceal overlap.
   if (spaceAbove >= spaceBelow) return { left: centeredLeft, top: Math.max(margin, position.top - height - gap), width };
@@ -97,6 +99,8 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [menuOpen, setMenuOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [active, setActive] = useState<Active | null>(null);
+  const activeRef = useRef<Active | null>(null);
+  activeRef.current = active;
   const [position, setPosition] = useState<Position | null>(null);
   const [targetFound, setTargetFound] = useState(false);
   const [complete, setComplete] = useState<string[]>([]);
@@ -544,7 +548,12 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     if (!step?.advanceOnClick || path !== step.path || !active) return;
     const node = targetFor(step.selector);
     if (!node) return;
-    const click = () => { window.setTimeout(() => { if (document.body.contains(node) || step.advanceOnClick) next(true); }, 100); };
+    const click = () => { window.setTimeout(() => {
+      // Navigation can advance the tour before this delayed click handler runs.
+      // A handler from the previous step must never move the learner backwards.
+      if (activeRef.current?.id !== active.id || activeRef.current?.index !== active.index) return;
+      if (document.body.contains(node) || step.advanceOnClick) next(true);
+    }, 100); };
     node.addEventListener('click', click, { once: true });
     return () => node.removeEventListener('click', click);
   }, [active, path, step, targetFound, next]);

@@ -50,7 +50,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
   {
     id: 'staff-rooms', title: 'Rooms and guest information', summary: "Find a room and its reported problems.",
     steps: [
-      { path: '/rooms', selector: '[aria-label="Space type"] button', title: "Choose rooms or shared areas", advanceOnClick: true, requiresAction: true, body: "Select Guest rooms or Shared areas." },
+      { path: '/rooms', selector: '[aria-label="Space type"] button[data-space-kind="room"]', title: "Choose guest rooms", advanceOnClick: true, requiresAction: true, body: "Select Guest rooms." },
       { path: '/rooms', selector: '[aria-label="Search rooms and areas"]', title: "Find a room", body: "Enter the room name, then open its card." },
       { path: '/rooms', selector: '.space-card, .ops-module', title: "Check existing reports", body: "Read any open guest issues or repairs before reporting the same problem again." },
     ],
