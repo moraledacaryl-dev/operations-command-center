@@ -59,3 +59,38 @@ test('the Rooms lesson points to Guest rooms and advances when that filter is se
   await page.getByRole('button', { name: 'Guest rooms', exact: true }).click();
   await expect(coach).toContainText('Find a room');
 });
+
+test('the lesson controls remain in the viewport when the highlighted control is far below the screen', async ({ page }) => {
+  const user = { id: 92813, name: 'Fictional manager', role: 'manager', email: 'manager@training.invalid',
+    primary_department_id: 46, departments: [{ id: 46, name: 'Marketing', is_primary: true }],
+    capabilities: { manage_department: true, make_decisions: true, view_all_operations: true } };
+  await page.addInitScript(account => {
+    localStorage.setItem('cc_user', JSON.stringify(account));
+    localStorage.setItem('cc_department_id', '46');
+    localStorage.setItem('ho-ops-structured-course-v2:' + account.id, JSON.stringify({
+      lessonId: 'marketing', stage: 'tour', question: 0, tourStep: 1,
+      passed: ['orientation', 'staff-handover', 'staff-rooms', 'room-arrivals', 'staff-my-work',
+        'team-tasks', 'guest-matters', 'maintenance', 'requests', 'shift-writing', 'projects'],
+    }));
+    // Simulate a target that the browser could not scroll into view.
+    HTMLElement.prototype.scrollIntoView = () => {};
+  }, user);
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    const body = path === '/api/meta' ? { users: [user], departments: user.departments }
+      : path.startsWith('/api/marketing/') ? []
+      : { items: [], groups: {}, counts: {}, unread_count: 0, has_more: false };
+    return route.fulfill({ status: 200, json: body });
+  });
+  await page.goto('/posts');
+  await page.addStyleTag({ content: '[aria-label="Marketing status"] { margin-top: 2000px !important; }' });
+  await page.getByRole('button', { name: 'Resume step 2' }).click();
+  const coach = page.locator('.ops-guide-tip');
+  await expect(coach).toContainText('Find posts that need work');
+  await expect.poll(async () => {
+    const box = await coach.boundingBox();
+    return Boolean(box && box.y >= 0 && box.y + box.height <= 900);
+  }).toBe(true);
+  await coach.getByRole('button', { name: /Next/ }).click();
+  await expect(coach).toContainText('Try single and combined promotions');
+});

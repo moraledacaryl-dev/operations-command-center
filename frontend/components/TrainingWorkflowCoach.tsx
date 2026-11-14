@@ -33,7 +33,11 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const [liveFocus, setLiveFocus] = useState<WorkflowFocus | null>(null);
 
   const refresh = useCallback(() => {
-    try { setSession(parseWorkflowSession(localStorage.getItem(storageKey), identity)); }
+    try {
+      const saved = parseWorkflowSession(localStorage.getItem(storageKey), identity);
+      setSession(saved);
+      if (saved && saved.step >= WORKFLOW_DEFINITIONS[saved.kind].stages.length) setShowArrows(false);
+    }
     catch { setSession(null); }
   }, [storageKey, identity]);
 
@@ -234,8 +238,8 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
         {instructions.map(item => <li key={item}>{item}</li>)}
       </ol>
       <p className="training-workflow-modal-help">
-        After you save or change a record, click <strong>Close</strong> on its details.
-        Then click <strong>Check saved work</strong> here. Your saved changes will stay.
+        If the details are still open, choose <strong>Close</strong>.
+        Then choose <strong>Check saved work</strong> here. Your saved changes will stay.
       </p>
       <div className="training-workflow-buttons">
         {!onModule ? <Link className="btn" data-testid="training-open-module" href={expectedPath}>

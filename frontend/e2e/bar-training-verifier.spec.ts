@@ -58,3 +58,19 @@ for (const isBarMember of [true, false]) test(`saved Bar practice guide is ${isB
   if (isBarMember) await expect(page.getByTestId('training-workflow-coach')).toBeVisible();
   else await expect(page.getByTestId('training-workflow-coach')).toHaveCount(0);
 });
+
+test('a completed practice does not reopen its spotlight over the next lesson', async ({ page }) => {
+  const user = { id: 99, name: 'Fictional bartender', role: 'staff', primary_department_id: 8,
+    departments: [{ id: 8, name: 'Bar', is_primary: true }], capabilities: { manage_department: false } };
+  await page.addInitScript(({account, storageKey, practice}) => {
+    localStorage.setItem('cc_user', JSON.stringify(account));
+    localStorage.setItem('cc_department_id', '8');
+    localStorage.setItem(storageKey, JSON.stringify(practice));
+  }, {account: user, storageKey: workflowSessionKey(user), practice: { ...session, step: 1, recordId: 123 }});
+  await page.route('**/api/**', route => route.fulfill({ status: 200, json: { items: [], counts: {}, groups: {}, unread_count: 0 } }));
+  await page.goto('/training');
+  await expect(page.getByTestId('training-workflow-coach')).toContainText('Practice finished');
+  await expect(page.getByTestId('training-spotlight').filter({ hasText: 'You finished this practice' })).toHaveCount(0);
+  await page.getByTestId('show-workflow-arrows').click();
+  await expect(page.getByTestId('training-spotlight').filter({ hasText: 'You finished this practice' })).toBeVisible();
+});

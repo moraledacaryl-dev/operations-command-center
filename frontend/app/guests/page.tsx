@@ -95,14 +95,16 @@ export default function GuestMattersPage() {
 
   async function move(action: string) {
     if (!selected || busy) return; setBusy(true);
-    try { const updated = await api.workflowAction('guests', selected.id, action, { note: actionNote.trim() || null }); setSelected({ ...selected, ...updated }); setActionNote(''); await load(); }
+    const selectedId = selected.id;
+    try { const updated = await api.workflowAction('guests', selectedId, action, { note: actionNote.trim() || null }); setSelected(current => current?.id === selectedId ? { ...current, ...updated } : current); setActionNote(''); await load(); }
     catch (err: any) { setError(err.message || 'Guest matter could not be updated.'); }
     finally { setBusy(false); }
   }
 
   async function createFix() {
     if (!selected || busy) return; setBusy(true);
-    try { await api.guestCreateFix(selected.id, { department_id: selected.department_id || departmentId, note: selected.note || selected.title }); setSelected(await api.get('guests', selected.id)); await load(); }
+    const selectedId = selected.id;
+    try { await api.guestCreateFix(selectedId, { department_id: selected.department_id || departmentId, note: selected.note || selected.title }); const updated = await api.get('guests', selectedId); setSelected(current => current?.id === selectedId ? updated : current); await load(); }
     catch (err: any) { setError(err.message || 'Maintenance work could not be created.'); }
     finally { setBusy(false); }
   }

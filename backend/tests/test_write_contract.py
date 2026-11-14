@@ -16,6 +16,14 @@ def make_client() -> TestClient:
     def update_task(item_id: int, payload: dict):
         return {'id': item_id, **payload}
 
+    @app.post('/api/posts')
+    def create_post(payload: dict):
+        return payload
+
+    @app.patch('/api/posts/{item_id}')
+    def update_post(item_id: int, payload: dict):
+        return {'id': item_id, **payload}
+
     @app.post('/api/tasks/{item_id}/status')
     def task_status(item_id: int, payload: dict):
         return {'id': item_id, **payload}
@@ -57,6 +65,17 @@ def test_valid_task_write_passes_contract():
     response = make_client().post('/api/tasks', json={'title': 'Check room', 'status': 'To Do'})
     assert response.status_code == 200
     assert response.json()['title'] == 'Check room'
+
+
+def test_marketing_areas_pass_contract_for_tasks_and_posts():
+    client = make_client()
+    for resource in ('tasks', 'posts'):
+        created = client.post(f'/api/{resource}', json={'title': 'Café and Bar', 'marketing_areas': ['Café', 'Bar']})
+        assert created.status_code == 200
+        assert created.json()['marketing_areas'] == ['Café', 'Bar']
+        updated = client.patch(f'/api/{resource}/1', json={'marketing_areas': ['Pool']})
+        assert updated.status_code == 200
+        assert updated.json()['marketing_areas'] == ['Pool']
 
 
 def test_fix_workflow_status_requires_canonical_route():

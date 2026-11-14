@@ -13,7 +13,7 @@ WRITE_FIELDS: dict[str, frozenset[str]] = {
     "tasks": frozenset({
         "title", "department_id", "assigned_to_id", "owner_id", "project_id",
         "linked_guest_note_id", "linked_fix_id", "linked_post_id", "due_date",
-        "status", "priority", "note",
+        "status", "priority", "note", "marketing_areas",
     }),
     "projects": frozenset({
         "title", "department_id", "owner_id", "start_date", "due_date",
@@ -41,7 +41,7 @@ WRITE_FIELDS: dict[str, frozenset[str]] = {
     }),
     "posts": frozenset({
         "title", "department_id", "platform", "post_date", "content_type", "assigned_to_id",
-        "project_id", "campaign", "status", "caption", "final_url", "results_json", "note",
+        "project_id", "campaign", "status", "caption", "final_url", "results_json", "note", "marketing_areas",
     }),
 }
 
