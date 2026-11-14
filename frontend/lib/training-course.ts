@@ -215,8 +215,8 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
   },
   'management-review': {
     explanation: 'A manager reviews the underlying evidence before approving, rejecting or asking for changes. A request that lacks proof should not be approved just to clear the queue.',
-    example: 'A purchase request has no reliable price quotation. Ask for the missing information instead of guessing.',
-    remember: 'Only the person allowed to approve a request can make that decision.',
+    example: 'A purchase request has no reliable price quotation. Ask the requester for the missing information and leave the decision pending until you can review it.',
+    remember: 'Only the person allowed to approve a request can make that decision. The app has Approve and Reject buttons; rejecting requires a reason.',
     questions: [
       q('A request has missing evidence. What should the reviewer do?', ['Request clarification or supporting information','Approve without looking','Ignore the missing details'], 0, 'Authorized reviewers need adequate evidence.'),
       q('A request is approved. Does this prove the item was delivered?', ['No, delivery or implementation must be checked separately','Yes, because approval starts delivery','Only when the request included a quotation'], 0, 'The approval decision is not proof that the work was carried out.'),
