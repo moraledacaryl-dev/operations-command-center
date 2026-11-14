@@ -64,7 +64,7 @@ def assign_bar_report(report_id: int, payload: BarTaskAssignment, user: models.U
         raise HTTPException(status_code=409, detail="This report is finished or archived. Reopen it before assigning work.")
     _require_assignee_visibility(db, "tasks", payload.assigned_to_id, department.id)
     if report.linked_task_id is not None:
-        existing = db.get(models.Task, report.linked_task_id)
+        existing = db.query(models.Task).filter(models.Task.id == report.linked_task_id).with_for_update().one_or_none()
         if existing is None or existing.department_id != department.id or existing.hidden_from_active:
             raise HTTPException(status_code=409, detail="The linked task needs a manager's attention.")
         authorize_action(db, user, "tasks", Action.VIEW, obj=existing)

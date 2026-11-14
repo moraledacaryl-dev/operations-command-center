@@ -232,7 +232,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       <strong>How urgent is it?</strong> What is at stake if no one acts? How soon could someone be affected? Routine can wait for planned work. High needs help soon. Critical means someone may be in danger: keep people safe and call a supervisor immediately. The form may say Normal or Urgent instead.
     </p>}
     {finished ? <p className="training-workflow-finished" role="status">
-      Practice finished. Your trainer can now review your work.
+      Practice finished. Check your work is clear and accurate; the app cannot judge every detail. Your trainer can review it.
     </p> : <>
       <ol className="training-workflow-instructions">
         {instructions.map(item => <li key={item}>{item}</li>)}

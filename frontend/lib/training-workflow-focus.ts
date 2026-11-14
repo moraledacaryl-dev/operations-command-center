@@ -69,44 +69,43 @@ type FieldPrompt = { selector: string; label: string; help: string; expected?: s
 
 function getFormPrompts(session: TrainingWorkflowSession, type: string): FieldPrompt[] {
   const root = '[data-testid="create-' + type + '-form"]';
-  const first = root + ' .form-grid > label:nth-child(1) input';
+  const first = root + ' [data-training-field="title"]';
   const reference = 'Write a clear title that includes ' + session.reference + '.';
   const title = { selector: first, label: 'Write a title',
     help: type === 'shift'
       ? 'Describe the pending guest problem and include the full practice number. Example: "Guest callback needed ' + session.reference + '".'
       : reference, minimum: session.reference.length + 8 };
-  const field = (number: number, element: 'select' | 'input') =>
-    root + ' .form-grid > label:nth-child(' + number + ') ' + element;
-  const choice = (number: number, expected: string, label: string, guidance?: string): FieldPrompt =>
-    ({ selector: field(number, 'select'), label, help: guidance || 'Choose ' + expected + ' from the menu.', expected });
+  const field = (name: string) => root + ' [data-training-field="' + name + '"]';
+  const choice = (name: string, expected: string, label: string, guidance?: string): FieldPrompt =>
+    ({ selector: field(name), label, help: guidance || 'Choose ' + expected + ' from the menu.', expected });
   const note = (label: string): FieldPrompt => ({
-    selector: root + ' label textarea', label,
+    selector: field('note'), label,
     help: 'Explain what needs doing, who will handle it and when to check again.', minimum: 35,
   });
   if (type === 'task') return [
-    title, choice(3, 'High', 'Choose High priority', 'Choose High for this practice task.'),
-    { selector: field(4, 'select'), label: 'Assign a practice teammate',
+    title, choice('urgency', 'High', 'Choose High priority', 'Choose High for this practice task.'),
+    { selector: field('assignee'), label: 'Assign a practice teammate',
       help: 'Choose a fictional teammate from Assigned to. Do not leave this as Unassigned.', expected: '!empty' },
   ];
   if (type === 'shift') return [
-    title, choice(3, 'Guest', 'Choose Guest category'), choice(4, 'Urgent', 'Decide how urgent the handover is', 'Choose Urgent for this guest still waiting on a repair update.'),
+    title, choice('category', 'Guest', 'Choose Guest category'), choice('urgency', 'Urgent', 'Decide how urgent the handover is', 'Choose Urgent for this guest still waiting on a repair update.'),
     { ...note('Write the shift note'), help: 'Name the guest issue, the responsible person and the next action. Example: "The guest is waiting for a repair update. The Front Desk lead is responsible and will call the guest before the next shift."' },
   ];
   if (type === 'request') return [
-    title, choice(2, 'Equipment', 'Choose Equipment type'), choice(3, 'Urgent', 'Choose Urgent priority', 'Choose Urgent for this practice request. The reviewer still needs to check the cost and quote.'),
+    title, choice('type', 'Equipment', 'Choose Equipment type'), choice('urgency', 'Urgent', 'Choose Urgent priority', 'Choose Urgent for this practice request. The reviewer still needs to check the cost and quote.'),
     note('Explain the cost, quote and reason for the request'),
   ];
   if (type === 'fix') return [
-    title, choice(3, 'High', 'Choose High urgency', 'Choose High for this practice repair. Do not assume the repair is complete.'),
-    { selector: field(4, 'select'), label: 'Assign a fictional technician',
+    title, choice('urgency', 'High', 'Choose High urgency', 'Choose High for this practice repair. Do not assume the repair is complete.'),
+    { selector: field('assignee'), label: 'Assign a fictional technician',
       help: 'Select the technician responsible for this practice fault.', expected: '!empty' },
     note('Describe the failed corridor light and impact'),
   ];
   return [
     title,
-    { selector: field(4, 'select'), label: 'Choose Room or Complaint type',
+    { selector: field('type'), label: 'Choose Room or Complaint type',
       help: 'Choose Room or Complaint for this issue.', expected: 'Room|Complaint' },
-    choice(5, 'High', 'Choose High urgency', 'Choose High for this practice guest matter.'),
+    choice('urgency', 'High', 'Choose High urgency', 'Choose High for this practice guest matter.'),
     note('Describe the fault, required inspection and guest callback'),
   ];
 }
@@ -141,25 +140,25 @@ export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule:
         targets: [{ selector: '[data-testid="bar-open-report"]' }],
       };
     }
-    const title = form.querySelector<HTMLInputElement>('input[placeholder="Example: Mocktail blender stopped working"]');
+    const title = form.querySelector<HTMLInputElement>('[data-training-field="title"]');
     if (!title?.value.includes(session.reference)) return {
       title: 'Write what happened',
       text: 'Include your practice number ' + session.reference + ' and a clear title such as "Mocktail syrup low".',
-      targets: [{ selector: '[data-testid="bar-report-form"] input[placeholder="Example: Mocktail blender stopped working"]' }],
+      targets: [{ selector: '[data-testid="bar-report-form"] [data-training-field="title"]' }],
     };
-    const kind = form.querySelector<HTMLSelectElement>('select');
+    const kind = form.querySelector<HTMLSelectElement>('[data-training-field="type"]');
     if (kind?.value !== 'Low stock') return {
       title: 'Choose the report type',
       text: 'This exercise is about nearly empty mocktail syrup. Select Low stock, not Equipment or Other.',
-      targets: [{ selector: '[data-testid="bar-report-form"] select' }],
+      targets: [{ selector: '[data-testid="bar-report-form"] [data-training-field="type"]' }],
     };
-    const details = form.querySelector<HTMLTextAreaElement>('textarea');
+    const details = form.querySelector<HTMLTextAreaElement>('[data-training-field="note"]');
     const words = (details?.value || '').toLowerCase();
     if (!/syrup|mocktail/.test(words) || !/count|check/.test(words) ||
         !/next shift|next bartender/.test(words)) return {
       title: 'Explain what the next bartender should do',
       text: 'Mention the low mocktail syrup, counting or checking the stock, and the next shift. Write your own sentence.',
-      targets: [{ selector: '[data-testid="bar-report-form"] textarea' }],
+      targets: [{ selector: '[data-testid="bar-report-form"] [data-training-field="note"]' }],
     };
     return {
       title: 'Save the Bar report',
@@ -193,7 +192,7 @@ export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule:
     const passed = prompt.expected === '!empty' ? value.length > 0
       : prompt.expected?.includes('|') ? prompt.expected.split('|').includes(value)
       : prompt.expected ? value === prompt.expected
-      : prompt.selector === root + ' .form-grid > label:nth-child(1) input'
+      : prompt.selector === root + ' [data-training-field="title"]'
         ? value.includes(session.reference) && value.length >= (prompt.minimum || 0)
         : value.length >= (prompt.minimum || 0);
     if (!passed) return { title: prompt.label,

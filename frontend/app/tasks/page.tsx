@@ -30,7 +30,7 @@ function assigneesFor(people: Entity[], departmentId: number | null | undefined)
 }
 
 function AssigneeSelect({ people, value, onChange }: { people: Entity[]; value: string; onChange: (value: string) => void }) {
-  return <label className="label">Assigned to<select className="select" value={value} onChange={event => onChange(event.target.value)}>
+  return <label className="label">Assigned to<select data-training-field="assignee" className="select" value={value} onChange={event => onChange(event.target.value)}>
     <option value="">Unassigned</option>
     {value && !people.some(person => String(person.id) === value) ? <option value={value}>Current assignee (unavailable)</option> : null}
     {people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
@@ -54,9 +54,9 @@ function TaskEditor({ item, people, busy, marketing, onSave, onCancel }: {
       due_date: date === propertyDateInput(original.due_date) ? original.due_date || null : date || null,
       note: note.trim() || null, ...(marketing ? { marketing_areas: taskAreas.length ? taskAreas : null } : {}), expected_updated_at: original.updated_at });
   }}>
-    <label className="label">Task title<input className="input" required maxLength={180} value={title} onChange={event => setTitle(event.target.value)} /></label>
+    <label className="label">Task title<input data-training-field="title" className="input" required maxLength={180} value={title} onChange={event => setTitle(event.target.value)} /></label>
     <AssigneeSelect people={people} value={assigned} onChange={setAssigned} />
-    <label className="label">Priority<select className="select" value={priority} onChange={event => setPriority(event.target.value)}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label>
+    <label className="label">Priority<select data-training-field="urgency" className="select" value={priority} onChange={event => setPriority(event.target.value)}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label>
     <label className="label">Due date<input className="input" type="date" value={date} onChange={event => setDate(event.target.value)} /></label>
     <label className="label">Notes<textarea className="textarea" value={note} onChange={event => setNote(event.target.value)} /></label>
     {marketing ? <MarketingAreas value={taskAreas} onChange={setTaskAreas} /> : null}
@@ -186,9 +186,9 @@ export default function TeamTasksPage() {
     {canManageWork && showAdd ? <section data-testid="create-task-form" className="panel" style={{ marginBottom: 16 }}>
       <h2>Create team task</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
-        <label className="label">Task title<input className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
+        <label className="label">Task title<input data-training-field="title" className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
         <label className="label">Due date<input className="input" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></label>
-        <label className="label">Priority<select className="select" value={priority} onChange={e => setPriority(e.target.value)}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label>
+        <label className="label">Priority<select data-training-field="urgency" className="select" value={priority} onChange={e => setPriority(e.target.value)}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label>
         <AssigneeSelect people={assigneesFor(people, departmentId ? Number(departmentId) : null)} value={assignee} onChange={setAssignee} />
       </div>
       {isMarketing ? <MarketingAreas value={newTaskAreas} onChange={setNewTaskAreas} /> : null}

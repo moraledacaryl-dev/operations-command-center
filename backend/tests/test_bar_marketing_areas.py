@@ -172,6 +172,10 @@ def test_project_task_route_reaches_creation_and_checks_permissions(context):
         task = db.get(models.Task, created.json()["task"]["id"])
         assert task.project_id == project.id and task.department_id == bar.id
         assert task.note == "Prepare the bar"
+        another = client.post(f"/api/workflow/projects/{project.id}/create-task", json={"note": "Check the stock"})
+        assert another.status_code == 200
+        assert another.json()["task"]["id"] != task.id
+        assert db.query(models.Task).filter_by(project_id=project.id).count() == 2
 
 
 def test_generic_fix_followup_route_denies_staff_but_allows_lead(context):
@@ -191,6 +195,22 @@ def test_generic_fix_followup_route_denies_staff_but_allows_lead(context):
         created = client.post(f"/api/workflow/fixes/{fix.id}/create-task", json={})
         assert created.status_code == 200
         assert db.get(models.Fix, fix.id).linked_task_id == created.json()["task"]["id"]
+
+
+def test_shift_followup_route_is_not_shadowed_by_status_actions(context):
+    db, cafe, kitchen, bar, marketing, housekeeping, bartender, cafe_staff, lead, *_ = context
+    note = models.ShiftNote(title="Fictional handover", department_id=bar.id, status="New")
+    db.add(note); db.commit()
+    app = FastAPI(); app.include_router(workflow_router)
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[require_user] = lambda: bartender
+    with TestClient(app) as client:
+        denied = client.post(f"/api/workflow/shift-notes/{note.id}/create-task", json={})
+        assert denied.status_code == 403
+        app.dependency_overrides[require_user] = lambda: lead
+        created = client.post(f"/api/workflow/shift-notes/{note.id}/create-task", json={})
+        assert created.status_code == 200
+        assert db.get(models.ShiftNote, note.id).linked_task_id == created.json()["task"]["id"]
 
 
 def test_marketing_tags_preserve_old_records_and_can_be_edited(context):
@@ -233,3 +253,24 @@ def test_invalid_or_duplicate_areas_and_unrelated_department_tags_are_rejected(c
     updated = update_resource_authorized("tasks", item["id"], {
         "marketing_areas": ["Café", "Bar"]}, marketer, db)
     assert updated["marketing_areas"] == ["Café", "Bar"]
+
+
+def test_generic_fix_followup_retry_reuses_original_task(context):
+    db, cafe, kitchen, bar, marketing, housekeeping, bartender, cafe_staff, lead, *_ = context
+    fix = models.Fix(title='Fictional repair', department_id=bar.id, status='Open')
+    db.add(fix); db.commit()
+    first = workflow_create_task('fixes', fix.id, WorkflowPayload(), lead, db)
+    second = workflow_create_task('fixes', fix.id, WorkflowPayload(), lead, db)
+    assert first['task']['id'] == second['task']['id']
+    assert db.query(models.Task).filter_by(linked_fix_id=fix.id).count() == 1
+    assert db.get(models.Fix, fix.id).linked_task_id == first['task']['id']
+
+
+def test_generic_fix_followup_never_replaces_an_archived_task(context):
+    db, cafe, kitchen, bar, marketing, housekeeping, bartender, cafe_staff, lead, *_ = context
+    fix = models.Fix(title='Fictional repair', department_id=bar.id, status='Open')
+    db.add(fix); db.commit()
+    first = workflow_create_task('fixes', fix.id, WorkflowPayload(), lead, db)
+    task = db.get(models.Task, first['task']['id']); task.hidden_from_active = True; db.commit()
+    expect_denied(lambda: workflow_create_task('fixes', fix.id, WorkflowPayload(), lead, db), 409)
+    assert db.query(models.Task).filter_by(linked_fix_id=fix.id).count() == 1

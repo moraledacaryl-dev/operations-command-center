@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.write_contract import WriteContractMiddleware
+from app.write_contract import WRITE_FIELDS, WriteContractMiddleware
+from app.schemas.resources import RESOURCE_CREATE_SCHEMAS
 
 
 def make_client() -> TestClient:
@@ -53,6 +54,11 @@ def test_unknown_task_field_is_rejected():
     response = make_client().post('/api/tasks', json={'title': 'Check room', 'titel': 'typo'})
     assert response.status_code == 422
     assert 'titel' in response.json()['detail']
+
+
+def test_contract_accepts_all_declared_create_fields():
+    for resource, allowed in WRITE_FIELDS.items():
+        assert set(RESOURCE_CREATE_SCHEMAS[resource].model_fields).issubset(allowed)
 
 
 def test_invalid_status_is_rejected():

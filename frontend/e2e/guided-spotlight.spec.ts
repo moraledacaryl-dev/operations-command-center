@@ -104,3 +104,24 @@ test('actual Tasks module highlights New, then the real form, and Repeat creates
   await expect(page.getByTestId('training-workflow-reference')).not.toHaveText(first);
   await expect(page.getByTestId('training-workflow-coach')).toContainText('Stage 1 of 3');
 });
+
+test('task guidance still finds the right fields if the form order changes', async ({ page }) => {
+  await startDemo(page, true);
+  await page.goto('/tasks');
+  await page.getByTestId('create-task').click();
+  const form = page.getByTestId('create-task-form');
+  const moved = await form.locator('.form-grid').evaluate(grid => {
+    const title = grid.querySelector('input')?.closest('label');
+    if (!title || title === grid.lastElementChild) return false;
+    grid.appendChild(title);
+    return grid.lastElementChild === title;
+  });
+  expect(moved).toBe(true);
+  const reference = await page.getByTestId('training-workflow-reference').innerText();
+  const title = form.getByLabel('Task title');
+  await expect(title).toHaveAttribute('data-training-spotlight-target', 'true');
+  await title.fill('Check fictional stock ' + reference);
+  await expect(form.getByLabel('Priority')).toHaveAttribute('data-training-spotlight-target', 'true');
+  await form.getByLabel('Priority').selectOption('High');
+  await expect(form.getByLabel('Assigned to')).toHaveAttribute('data-training-spotlight-target', 'true');
+});

@@ -19,3 +19,13 @@ Work started from `2de34900d8012112324a8d6ca59c4ced867478ef`, verified as both l
 - Real-screen tests against the isolated backend passed for the Bar report-to-assignment-to-My Work journey and project task creation. Some other browser tests use mocked API data.
 
 These checks do not prove all workflows are correct or that employees have learned the material. Marketing and management still lack full independently verified saved-work exercises, and the full lesson-to-production matrix and broader recovery testing are unfinished. No 10/10 rating is claimed.
+
+## Architecture follow-up
+
+- Generic linked-task creation locks the source record and returns its existing task on a retry; it refuses to silently replace a missing or archived task. It still checks source and task permissions. The Bar-specific path also locks the linked task while checking it. The tests demonstrate sequential retries and authorization, not a PostgreSQL concurrency stress test.
+- A single early follow-up route prevents resource action routes from intercepting requests such as a shift-note follow-up. The write-contract allowlist now derives its ordinary fields from the existing create schemas while retaining the historical protected-field behavior.
+- Guided form targets use explicit field identifiers instead of form position or placeholder text. A browser test reorders the task form and checks that the guidance still identifies each field.
+- Guest practice rejects the reproduced example that explicitly withholds the required follow-up. This is a narrow text safeguard, not reliable comprehension: other contradictory or misleading sentences may still pass, and valid sentences with a negated action may be rejected. Completion feedback says the app cannot judge every detail; a trainer must assess the meaning.
+- The follow-up passed 887 backend tests (three skipped), seven workflow integrity checks, and 51 desktop browser checks. The training build and lint passed with four existing warnings. Some browser checks use mocked data. Against a separate fictional database, three further checks passed: Bar report to assigned task and My Work, the full Bar course, and project task creation. The first attempt at those three was blocked by the isolated server's origin policy; after allowing the new local test port, all three passed.
+
+Progress is stored locally. Moving fully evidenced saved work to another computer remains a design decision; the existing progress export does not transfer the underlying database evidence. No production data, existing progress, or security policy was reset for these changes.

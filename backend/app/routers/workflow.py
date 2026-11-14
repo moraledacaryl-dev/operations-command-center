@@ -49,9 +49,9 @@ def task_transition(item_id: int, action: Literal["start", "submit-review", "req
     return _operational_result(db, user, "tasks", item_id, action, payload.note)
 
 
-@router.post("/workflow/projects/{item_id}/create-task")
-def project_create_task(item_id: int, payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
-    return workflow_create_task("projects", item_id, WorkflowPayload(**payload.model_dump()), user, db)
+@router.post("/workflow/{resource}/{item_id}/create-task")
+def create_linked_task(resource: str, item_id: int, payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    return workflow_create_task(resource, item_id, WorkflowPayload(**payload.model_dump()), user, db)
 
 
 @router.post("/workflow/projects/{item_id}/{action}")
