@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { api, Entity } from '@/lib/api';
 import { getStoredUser, setCurrentDepartmentId } from '@/lib/session';
-import { hasCapability } from '@/lib/capabilities';
+import { hasCapability, normalizeRole } from '@/lib/capabilities';
 import { Top } from '@/components/Top';
 
 const kinds = ['Low stock', 'Equipment', 'Drink complaint', 'Handover', 'Other'] as const;
@@ -21,6 +21,8 @@ export default function BarPage() {
   const [checked, setChecked] = useState(false);
   const [reports, setReports] = useState<Entity[]>([]);
   const [tasks, setTasks] = useState<Entity[]>([]);
+  const [people, setPeople] = useState<Entity[]>([]);
+  const [assignee, setAssignee] = useState('');
   const [selected, setSelected] = useState<Entity | null>(null);
   const [report, setReport] = useState<Report>(empty);
   const [showForm, setShowForm] = useState(false);
@@ -48,6 +50,10 @@ export default function BarPage() {
       const bar = (meta.departments || []).find((item: Entity) => item.name === 'Bar');
       const id = bar ? Number(bar.id) : null;
       setDepartmentId(id); setChecked(true);
+      setPeople((meta.users || []).filter((person: Entity) => hasCapability(person, 'view_all_operations')
+        || ['owner', 'admin', 'manager'].includes(normalizeRole(person.role))
+        || id && (Number(person.primary_department_id) === id
+          || (person.departments || []).some((dept: Entity) => Number(dept.id) === id))));
       if (id && getStoredUser()?.departments?.some((dept: Entity) => Number(dept.id) === id)) setCurrentDepartmentId(id);
       if (id) void load(id);
     }).catch(err => { if (active) { setError(err.message || 'Could not open Bar.'); setChecked(true); } });
@@ -67,8 +73,22 @@ export default function BarPage() {
   }
 
   async function openNote(id: number) {
-    try { setSelected(await api.get('shift-notes', id)); setComment(''); }
+    try { setSelected(await api.get('shift-notes', id)); setComment(''); setAssignee(''); setSuccess(''); }
     catch (err: any) { setError(err.message || 'Could not open this report.'); }
+  }
+
+  async function assignTask() {
+    if (!selected || !departmentId || !assignee || busy) return;
+    const reportId = Number(selected.id);
+    setBusy(true); setError(''); setSuccess('');
+    try {
+      const result = await api.assignBarReport(reportId, Number(assignee));
+      setSelected(current => Number(current?.id) === reportId ? { ...current, linked_task_id: result.task.id } : current);
+      setAssignee('');
+      setSuccess(result.created ? 'Task assigned. The team member can find it in My Work.' : 'This report already has that task.');
+      await load(departmentId);
+    } catch (err: any) { setError(err.message || 'Task not assigned. Try again.'); }
+    finally { setBusy(false); }
   }
 
   async function followUp(action?: string) {
@@ -125,7 +145,17 @@ export default function BarPage() {
         {canManage && (selected.allowed_actions || []).map((action: string) => <button className="btn secondary" disabled={busy || (action === "reopen" && !comment.trim())} key={action} onClick={() => void followUp(action)}>{actionNames[action] || action}</button>)}
         <button className="btn secondary" onClick={() => setSelected(null)}>Close report</button>
       </div>
-      {canManage ? <p className="muted">Need someone to handle this? Create and assign a Bar task in <Link href="/tasks">Tasks</Link>.</p> : <p className="muted">Tell your lead if the problem is urgent or needs an assignment.</p>}
+      {selected.linked_task_id ? <div role="status"><p>This report has a linked task. <Link href="/tasks" onClick={() => setCurrentDepartmentId(departmentId)}>See Bar tasks</Link></p>
+        {tasks.filter(task => Number(task.id) === Number(selected.linked_task_id)).map(task => <p key={task.id}>
+          {task.status || 'To Do'} · Assigned to {people.find(person => Number(person.id) === Number(task.assigned_to_id))?.name || 'team member'}
+        </p>)}</div>
+        : canManage && selected.status !== 'Done' ? <div className="form" data-testid="bar-assign-task">
+          <label className="label">Who should handle this?<select className="select" value={assignee} onChange={e => setAssignee(e.target.value)}>
+            <option value="">Choose a team member</option>{people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
+          </select></label>
+          {!people.length ? <p>No team members are available. Ask a manager to check Bar access.</p> : null}
+          <div><button className="btn secondary" disabled={busy || !assignee} onClick={() => void assignTask()}>Assign task</button></div>
+        </div> : !canManage ? <p className="muted">Tell your lead if the problem is urgent or needs an assignment.</p> : null}
     </section> : null}
   </div>;
 }

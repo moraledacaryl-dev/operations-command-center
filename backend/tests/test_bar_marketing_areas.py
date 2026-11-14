@@ -3,11 +3,18 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app import models, foundation_models as fm
 from app.authorization_policy import Action, authorize_action, scope_query
 from app.marketing_areas import validate_marketing_areas
-from app.routers.bar import BarReport, report_bar_problem
+from app.routers.bar import BarReport, BarTaskAssignment, report_bar_problem, assign_bar_report
+from app.routers.api import WorkflowPayload, workflow_create_task, router as api_router
+from app.routers.api import require_user
+from app.database import get_db
+from app.routers.workflow import router as workflow_router
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from app.routers.authorized_crud import create_resource_authorized, update_resource_authorized
 from app.routers.marketing import (
     CampaignCreate, ConceptCreate, MarketingAreasUpdate, create_campaign,
@@ -18,7 +25,7 @@ from app.domain_values import ContentFormat, Platform, MarketingArea
 
 @pytest.fixture
 def context():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     models.Base.metadata.create_all(engine)
     db = sessionmaker(bind=engine, autoflush=False)()
     cafe = models.Department(name="Café")
@@ -91,6 +98,99 @@ def test_bar_membership_is_independent_from_kitchen_cafe_and_housekeeping(contex
     lead_task = create_resource_authorized("tasks", {"title": "Check Bar blender", "department_id": bar.id}, lead, db)
     assert lead_task["department_id"] == bar.id
     expect_denied(lambda: create_resource_authorized("tasks", {"title": "Wrong department", "department_id": cafe.id}, lead, db))
+
+
+def test_bar_report_assignment_is_linked_visible_and_idempotent(context):
+    db, cafe, kitchen, bar, marketing, housekeeping, bartender, cafe_staff, lead, *_ = context
+    report = report_bar_problem(BarReport(title="Blender stopped", kind="Equipment",
+        details="Do not use the blender until it is checked.", urgency="High"), bartender, db)
+    assignment = BarTaskAssignment(assigned_to_id=bartender.id)
+    result = assign_bar_report(report["id"], assignment, lead, db)
+    task = db.get(models.Task, result["task"]["id"])
+    assert result["created"] is True
+    assert db.get(models.ShiftNote, report["id"]).linked_task_id == task.id
+    assert (task.department_id, task.assigned_to_id, task.status, task.priority) == (bar.id, bartender.id, "To Do", "High")
+    assert "blender" in task.note
+    assert scope_query(db, bartender, models.Task, db.query(models.Task)).filter_by(id=task.id).one().id == task.id
+    again = assign_bar_report(report["id"], assignment, lead, db)
+    assert again["created"] is False and again["task"]["id"] == task.id
+    assert db.query(models.Task).filter_by(title="Blender stopped").count() == 1
+    assert db.query(fm.Notification).filter_by(user_id=bartender.id, source_type="tasks", source_id=str(task.id)).count() == 1
+    expect_denied(lambda: assign_bar_report(report["id"], BarTaskAssignment(assigned_to_id=lead.id), lead, db), 409)
+
+
+def test_bar_report_assignment_rejects_wrong_permissions_and_department(context):
+    db, cafe, kitchen, bar, marketing, housekeeping, bartender, cafe_staff, lead, *_ = context
+    report = report_bar_problem(BarReport(title="Broken bottle", kind="Other", details="Keep the area clear for cleaning."), bartender, db)
+    expect_denied(lambda: assign_bar_report(report["id"], BarTaskAssignment(assigned_to_id=bartender.id), bartender, db))
+    expect_denied(lambda: assign_bar_report(report["id"], BarTaskAssignment(assigned_to_id=cafe_staff.id), lead, db))
+    expect_denied(lambda: assign_bar_report(report["id"], BarTaskAssignment(assigned_to_id=bartender.id), cafe_staff, db))
+    bartender.is_active = False; db.flush()
+    expect_denied(lambda: assign_bar_report(report["id"], BarTaskAssignment(assigned_to_id=bartender.id), lead, db), 422)
+    assert db.get(models.ShiftNote, report["id"]).linked_task_id is None
+    assert db.query(models.Task).filter_by(title="Broken bottle").count() == 0
+    other = models.ShiftNote(title="Café note", department_id=cafe.id, status="New")
+    db.add(other); db.commit()
+    expect_denied(lambda: assign_bar_report(other.id, BarTaskAssignment(assigned_to_id=bartender.id), lead, db), 404)
+
+
+def test_bar_report_assignment_rejects_finished_or_archived_reports(context):
+    db, cafe, kitchen, bar, marketing, housekeeping, bartender, cafe_staff, lead, *_ = context
+    report = models.ShiftNote(title="Finished report", department_id=bar.id, status="Done")
+    db.add(report); db.commit()
+    expect_denied(lambda: assign_bar_report(report.id, BarTaskAssignment(assigned_to_id=bartender.id), lead, db), 409)
+    report.status = "New"; report.hidden_from_active = True; db.commit()
+    expect_denied(lambda: assign_bar_report(report.id, BarTaskAssignment(assigned_to_id=bartender.id), lead, db), 409)
+
+
+def test_existing_followup_endpoint_requires_task_creation_permission(context):
+    db, cafe, kitchen, bar, marketing, housekeeping, bartender, cafe_staff, lead, *_ = context
+    note = models.ShiftNote(title="Follow up blender", department_id=bar.id, status="New")
+    db.add(note); db.commit()
+    expect_denied(lambda: workflow_create_task("shift-notes", note.id, WorkflowPayload(), bartender, db))
+    assert db.get(models.ShiftNote, note.id).linked_task_id is None
+    assert db.query(models.Task).filter_by(title="Follow up blender").count() == 0
+    result = workflow_create_task("shift-notes", note.id, WorkflowPayload(), lead, db)
+    assert db.get(models.ShiftNote, note.id).linked_task_id == result["task"]["id"]
+
+
+def test_project_task_route_reaches_creation_and_checks_permissions(context):
+    db, cafe, kitchen, bar, marketing, housekeeping, bartender, cafe_staff, lead, *_ = context
+    project = models.Project(title="Fictional Bar event", department_id=bar.id, status="Planned")
+    db.add(project); db.commit()
+    app = FastAPI()
+    app.include_router(workflow_router)
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[require_user] = lambda: bartender
+    with TestClient(app) as client:
+        denied = client.post(f"/api/workflow/projects/{project.id}/create-task", json={"note": "Prepare the bar"})
+        assert denied.status_code == 403
+        assert db.query(models.Task).filter_by(project_id=project.id).count() == 0
+        app.dependency_overrides[require_user] = lambda: lead
+        created = client.post(f"/api/workflow/projects/{project.id}/create-task", json={"note": "Prepare the bar"})
+        assert created.status_code == 200
+        task = db.get(models.Task, created.json()["task"]["id"])
+        assert task.project_id == project.id and task.department_id == bar.id
+        assert task.note == "Prepare the bar"
+
+
+def test_generic_fix_followup_route_denies_staff_but_allows_lead(context):
+    db, cafe, kitchen, bar, marketing, housekeeping, bartender, cafe_staff, lead, *_ = context
+    fix = models.Fix(title="Fictional Bar repair", department_id=bar.id, status="Open")
+    db.add(fix); db.commit()
+    app = FastAPI()
+    app.include_router(workflow_router)
+    app.include_router(api_router)
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[require_user] = lambda: bartender
+    with TestClient(app) as client:
+        denied = client.post(f"/api/workflow/fixes/{fix.id}/create-task", json={})
+        assert denied.status_code == 403
+        assert db.get(models.Fix, fix.id).linked_task_id is None
+        app.dependency_overrides[require_user] = lambda: lead
+        created = client.post(f"/api/workflow/fixes/{fix.id}/create-task", json={})
+        assert created.status_code == 200
+        assert db.get(models.Fix, fix.id).linked_task_id == created.json()["task"]["id"]
 
 
 def test_marketing_tags_preserve_old_records_and_can_be_edited(context):

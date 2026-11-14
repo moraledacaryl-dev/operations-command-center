@@ -16,7 +16,7 @@ from ..services.request_workflow import complete_request, plan_request, submit_r
 from ..services.submission_workflow import decide_submission
 from ..services.operational_workflow import allowed_actions_for, transition_operational
 from ..utils import model_to_dict
-from .api import require_user
+from .api import WorkflowPayload, require_user, workflow_create_task
 
 router = APIRouter(prefix="/api", tags=["workflow"])
 
@@ -47,6 +47,11 @@ def _operational_result(db: Session, user: models.User, resource: str, item_id: 
 @router.post("/workflow/tasks/{item_id}/{action}")
 def task_transition(item_id: int, action: Literal["start", "submit-review", "request-changes", "complete", "reopen"], payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
     return _operational_result(db, user, "tasks", item_id, action, payload.note)
+
+
+@router.post("/workflow/projects/{item_id}/create-task")
+def project_create_task(item_id: int, payload: WorkflowCommand, user: models.User = Depends(require_user), db: Session = Depends(get_db)):
+    return workflow_create_task("projects", item_id, WorkflowPayload(**payload.model_dump()), user, db)
 
 
 @router.post("/workflow/projects/{item_id}/{action}")

@@ -228,7 +228,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       }}>Copy</button>
     </p>
     {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>Next step:</strong> {focus?.text}</p>}
-    {!finished && session.step === 0 && <p className="training-workflow-safe" data-testid="workflow-risk-explanation">
+    {!finished && session.step === 0 && session.kind !== 'bar-report' && <p className="training-workflow-safe" data-testid="workflow-risk-explanation">
       <strong>How urgent is it?</strong> What is at stake if no one acts? How soon could someone be affected? Routine can wait for planned work. High needs help soon. Critical means someone may be in danger: keep people safe and call a supervisor immediately. The form may say Normal or Urgent instead.
     </p>}
     {finished ? <p className="training-workflow-finished" role="status">
@@ -237,10 +237,10 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       <ol className="training-workflow-instructions">
         {instructions.map(item => <li key={item}>{item}</li>)}
       </ol>
-      <p className="training-workflow-modal-help">
+      {session.kind !== 'bar-report' && <p className="training-workflow-modal-help">
         If the details are still open, choose <strong>Close</strong>.
         Then choose <strong>Check saved work</strong> here. Your saved changes will stay.
-      </p>
+      </p>}
       <div className="training-workflow-buttons">
         {!onModule ? <Link className="btn" data-testid="training-open-module" href={expectedPath}>
           Open {session.kind === 'bar-report' ? 'Bar'

@@ -163,7 +163,7 @@ export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule:
     };
     return {
       title: 'Save the Bar report',
-      text: 'Select Save Bar report. Then use Check saved work; the system will verify the saved fictional record.',
+      text: 'Select Save Bar report. Then choose Check saved work to confirm it was saved.',
       targets: [{ selector: '[data-testid="bar-save-report"]' }],
     };
   }

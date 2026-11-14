@@ -900,9 +900,11 @@ def workflow_create_task(
 ):
     model = get_model(resource)
     obj = fetch_or_404(db, model, item_id)
-    assert_resource_access(db, user, obj)
+    authorize_action(db, user, resource, Action.VIEW, obj=obj)
     department_id = payload.department_id or getattr(obj, "department_id", None)
-    assert_department_access(db, user, department_id)
+    authorize_action(db, user, "tasks", Action.CREATE, department_id=department_id)
+    if hasattr(obj, "linked_task_id"):
+        authorize_action(db, user, resource, Action.EDIT, obj=obj)
     priority = getattr(obj, "priority", None) or getattr(obj, "urgency", None) or "Normal"
     link_fields = {
         "projects": {"project_id": item_id},

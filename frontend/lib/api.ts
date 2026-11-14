@@ -242,6 +242,7 @@ export const api = {
   externalReject: (id: number, data: Entity = {}) => request<Entity>(`/integrations/review-items/${id}/reject`, { method: 'POST', body: JSON.stringify(data) }),
   verifyFix: (id: number, data: Entity) => request<Entity>(`/workflow/fixes/${id}/verify`, { method: 'POST', body: JSON.stringify(data) }),
   reportBarProblem: (data: Entity) => request<Entity>('/bar/reports', { method: 'POST', body: JSON.stringify(data) }),
+  assignBarReport: (id: number, assignedToId: number) => request<Entity>(`/bar/reports/${id}/task`, { method: 'POST', body: JSON.stringify({ assigned_to_id: assignedToId }) }),
   updateMarketingCampaignAreas: (id: number, marketing_areas: string[] | null) => request<Entity>(`/marketing/campaigns/${id}/areas`, { method: 'PATCH', body: JSON.stringify({ marketing_areas }) }),
   updateMarketingConceptAreas: (id: number, marketing_areas: string[] | null) => request<Entity>(`/marketing/concepts/${id}/areas`, { method: 'PATCH', body: JSON.stringify({ marketing_areas }) }),
   marketingCampaigns: () => allCursorPages('/marketing/campaigns'),
