@@ -361,7 +361,7 @@ export function workflowInstructions(session: TrainingWorkflowSession): string[]
         'Choose Check saved work to confirm the note shows Follow.'];
   }
   if (session.kind === 'mt-light-fault') {
-    if (session.step === 0) return ['Open Maintenance and click Report issue.',
+    if (session.step === 0) return ['Choose Maintenance in Workspace, then open Maintenance and click Report issue.',
       'Put your practice number in Work item.', 'Choose a priority for the broken light and assign a made-up technician.',
       'Describe the nonfunctioning corridor light and its impact in Problem / scope.', 'Click Create work item, then Check saved work.'];
     if (session.step === 1) return ['Find and open the saved lighting work item.', 'Click Start work; wait for its status to become Working.', 'Click Check saved work.'];
