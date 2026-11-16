@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { COURSE_GUIDES } from '../lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '../lib/training-independent';
-import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '../lib/training-progress-report';
+import { buildTrainingReport, mergePortableLearning, parseTrainingReport, portableLearningCredit } from '../lib/training-progress-report';
+import { decryptTrainingReport, encryptTrainingReport } from '../lib/training-encrypted-report';
+import { readFile } from 'node:fs/promises';
 
 const trainee = {
   id: 8401, name: 'Fictional Practice Staff', email: 'offline-training@training.invalid',
@@ -54,6 +56,61 @@ test('portable reports reject malformed data and never restore saved-record less
   expect(portableLearningCredit(barReport, ['orientation','bar'])).toEqual(['orientation']);
   expect(parseTrainingReport({...report,schema:'other'})).toBeNull();
   expect(parseTrainingReport({...report,trainee:{id:'x'}})).toBeNull();
+});
+
+test('encrypted lesson backups reject wrong passwords, changed files and other logins', async () => {
+  const report = reportFor();
+  const backup = await encryptTrainingReport(report, trainee.email, 'hidden oasis practice 123');
+  expect(backup).not.toContain(trainee.email);
+  expect(backup).not.toContain('Fictional Practice Staff');
+  expect(await decryptTrainingReport(backup, trainee.email, 'hidden oasis practice 123')).toEqual(report);
+  await expect(decryptTrainingReport(backup, trainee.email, 'incorrect password')).rejects.toThrow();
+  await expect(decryptTrainingReport(backup, 'other@training.invalid', 'hidden oasis practice 123')).rejects.toThrow();
+  const modified = JSON.parse(backup); modified.data = modified.data.slice(0, -8) + 'AAAAAAAA';
+  await expect(decryptTrainingReport(JSON.stringify(modified), trainee.email, 'hidden oasis practice 123')).rejects.toThrow();
+});
+
+test('restoring an older report preserves saved practice and the current lesson', () => {
+  const current = {lessonId:'staff-rooms', stage:'quiz' as const, question:1, passed:['orientation','staff-handover'],
+    metrics:{'staff-handover':{incorrectAnswers:2}}};
+  const merged = mergePortableLearning(current, reportFor(), ['orientation','staff-handover','staff-rooms','staff-my-work','team-tasks']);
+  expect(merged.passed).toEqual(['orientation','staff-handover','staff-my-work']);
+  expect(merged.lessonId).toBe('staff-rooms');
+  expect(merged.stage).toBe('quiz');
+  expect(merged.metrics?.['staff-handover']?.incorrectAnswers).toBe(2);
+  expect(merged.passed).not.toContain('team-tasks');
+});
+
+test('staff can move encrypted lesson history without erasing local progress', async ({page}) => {
+  await init(page, trainee, {lessonId:'staff-handover', stage:'learn', question:0, passed:['orientation','staff-my-work']});
+  await page.goto('/');
+  const source = page.getByTestId('encrypted-learning-backup');
+  await source.locator('summary').click();
+  await source.getByLabel('Backup password (at least 12 characters)').fill('practice password 123');
+  await source.getByLabel('Enter it again when saving').fill('practice password 123');
+  const downloading = page.waitForEvent('download');
+  await source.getByRole('button', {name:'Save encrypted lesson backup'}).click();
+  const download = await downloading;
+  const content = await readFile((await download.path())!);
+  expect(content.toString()).not.toContain(trainee.email);
+
+  const target = await page.context().newPage();
+  const otherDeviceUser = {...trainee, id: 99841};
+  await init(target, otherDeviceUser, {lessonId:'orientation', stage:'learn', question:0, passed:['staff-handover']});
+  await target.goto('/');
+  const backup = target.getByTestId('encrypted-learning-backup');
+  await backup.locator('summary').click();
+  await backup.getByLabel('Backup password (at least 12 characters)').fill('wrong password 123');
+  await backup.getByLabel('Open an encrypted lesson backup').setInputFiles({name:'backup.json', mimeType:'application/json', buffer:content});
+  await expect(backup).toContainText('No progress changed');
+  await backup.getByLabel('Backup password (at least 12 characters)').fill('practice password 123');
+  await backup.getByLabel('Open an encrypted lesson backup').setInputFiles({name:'backup.json', mimeType:'application/json', buffer:content});
+  await expect(backup).toContainText('Lesson history added');
+  const restored = await target.evaluate(id=>JSON.parse(localStorage.getItem('ho-ops-structured-course-v2:'+id)||'null'), otherDeviceUser.id);
+  expect(restored.passed).toContain('staff-handover');
+  expect(restored.passed).toContain('orientation');
+  expect(restored.passed).toContain('staff-my-work');
+  await target.close();
 });
 
 test('two independent actual page clicks are required before course can complete', async ({page})=>{

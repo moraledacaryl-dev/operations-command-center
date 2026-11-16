@@ -101,3 +101,21 @@ export function portableLearningCredit(report: TrainingProgressReport, available
   const known = new Set(available);
   return report.completedLessons.filter(id => known.has(id) && !recordEditing.has(id));
 }
+
+/** Import only portable lessons, without discarding work already on this device. */
+export function mergePortableLearning(current: CourseProgress, report: TrainingProgressReport, available: readonly string[]): CourseProgress {
+  const imported = portableLearningCredit(report, available);
+  const passed = Array.from(new Set([...current.passed, ...imported]));
+  const metrics = { ...current.metrics };
+  for (const id of imported) {
+    if (metrics[id]) continue;
+    if (report.metrics[id]) metrics[id] = report.metrics[id];
+  }
+  // Do not interrupt a lesson that is already in progress on this device.
+  if (!imported.includes(current.lessonId) || current.passed.includes(current.lessonId)) {
+    return { ...current, passed, metrics };
+  }
+  const next = available.find(id => !passed.includes(id));
+  return { ...current, lessonId: next || current.lessonId, stage: next ? 'learn' : 'finished',
+    question: 0, independentStep: 0, tourStep: 0, reference: undefined, passed, metrics };
+}
