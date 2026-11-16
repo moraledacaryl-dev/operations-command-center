@@ -201,13 +201,13 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
     title: 'Approval request without supporting evidence',
     situation: 'A fictional repair purchase DEMO-REQ-088 requires approval, but it lacks a quotation and clear justification.',
     goal: 'Check the request and say what information is missing before making a decision.',
-    context: ['Reference: DEMO-REQ-088', 'No quotation is attached', 'Amount and necessity are not confirmed'],
+    context: ['Reference: DEMO-REQ-088', 'No quotation is attached', 'Amount and necessity are not confirmed', 'Approvals offers Approve and Reject; ask the requester for missing details and leave the decision pending.'],
     priority: 'High', route: 'Management', decision: 'Return for changes', reference: 'DEMO-REQ-088',
     noteChecks: [
-      { label: "returning the request for supporting evidence", alternatives: ["return", "quotation", "quote", "evidence", "request changes"] },
+      { label: "asking for supporting evidence", alternatives: ["ask", "return", "quotation", "quote", "evidence", "request changes"] },
       { label: "the missing amount or justification", alternatives: ["amount", "cost", "justification", "necessary", "requester"] },
     ],
-    example: 'DEMO-REQ-088: return the request for a quotation, itemized amount, urgency justification and responsible requester before approval.',
+    example: 'DEMO-REQ-088: ask the requester for a quotation, amount and reason. Leave the decision pending until you can review the information.',
     why: 'The reviewer needs the missing price and reason before deciding whether to approve.',
   },
   {
@@ -257,7 +257,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
     id: 'marketing-pool-only', level: 2, department: 'Marketing', title: 'Pool-only promotion',
     situation: 'Marketing is making a fictional pool-day poster. It does not include rooms, food or drinks.',
-    goal: 'Choose Pool only under Areas covered, then find it using the Pool filter.',
+    goal: 'Decide which area to choose and how to find the promotion later.',
     context: ['Reference: DEMO-MKT-301', 'Area: Pool only', 'No other area is advertised'],
     priority: 'Routine', route: 'Marketing', decision: 'Document and monitor', reference: 'DEMO-MKT-301',
     noteChecks: [{ label: 'area chosen', alternatives: ['pool'] }, { label: 'find by area', alternatives: ['filter', 'find', 'search', 'pool'] }],
@@ -267,7 +267,7 @@ export const PRACTICE_SCENARIOS: readonly PracticeScenario[] = [
   {
     id: 'marketing-cafe-bar', level: 3, department: 'Marketing', title: 'Café and Bar event promotion',
     situation: 'Marketing is preparing a fictional poster for a drinks event featuring café coffee, cocktails and mocktails.',
-    goal: 'Select both Café and Bar, save the practice work, and check it appears under either area filter.',
+    goal: 'Decide which areas to choose and how to find the promotion later.',
     context: ['Reference: DEMO-MKT-302', 'Areas: Café and Bar', 'This is a combined offer, not a Kitchen food promotion'],
     priority: 'Routine', route: 'Marketing', decision: 'Document and monitor', reference: 'DEMO-MKT-302',
     noteChecks: [{ label: 'two areas', alternatives: ['café', 'cafe'] }, { label: 'Bar included', alternatives: ['bar'] }],

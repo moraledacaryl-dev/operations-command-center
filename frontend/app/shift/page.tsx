@@ -105,12 +105,12 @@ export default function ShiftPage() {
     {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-shift-form">
       <h2>New handover note</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
-        <label className="label">Title<input className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
+        <label className="label">Title<input data-training-field="title" className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
         <label className="label">Shift<select className="select" value={shift} onChange={e => setShift(e.target.value)}><option>AM</option><option>PM</option><option>Night</option></select></label>
-        <label className="label">Category<select className="select" value={category} onChange={e => setCategory(e.target.value)}>{['Guest','Room','Fix','Supply','Payment','Event','Staff','Other'].map(value => <option key={value}>{value}</option>)}</select></label>
-        <label className="label">Priority<select className="select" value={urgency} onChange={e => setUrgency(e.target.value)}><option>Low</option><option>Normal</option><option>Urgent</option></select></label>
+        <label className="label">Category<select data-training-field="category" className="select" value={category} onChange={e => setCategory(e.target.value)}>{['Guest','Room','Fix','Supply','Payment','Event','Staff','Other'].map(value => <option key={value}>{value}</option>)}</select></label>
+        <label className="label">Priority<select data-training-field="urgency" className="select" value={urgency} onChange={e => setUrgency(e.target.value)}><option>Low</option><option>Normal</option><option>Urgent</option></select></label>
       </div>
-      <label className="label">Handover detail<textarea className="textarea" value={note} onChange={e => setNote(e.target.value)} /></label>
+      <label className="label">Handover detail<textarea data-training-field="note" className="textarea" value={note} onChange={e => setNote(e.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim() || !note.trim()} onClick={createNote}>{busy ? 'Saving…' : 'Publish handover'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
     <Tabs values={['Unresolved','Urgent','AM','PM','Night','All']} active={filter} onChange={setFilter} label="Shift note filters" />

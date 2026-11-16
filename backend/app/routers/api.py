@@ -890,7 +890,6 @@ def workflow_guest_create_fix(
     return {"guest": model_to_dict(guest), "fix": model_to_dict(fix)}
 
 
-@router.post("/workflow/{resource}/{item_id}/create-task")
 def workflow_create_task(
     resource: str,
     item_id: int,
@@ -899,10 +898,22 @@ def workflow_create_task(
     db: Session = Depends(get_db),
 ):
     model = get_model(resource)
-    obj = fetch_or_404(db, model, item_id)
-    assert_resource_access(db, user, obj)
+    obj = db.query(model).filter(model.id == item_id).with_for_update().one_or_none()
+    if obj is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    authorize_action(db, user, resource, Action.VIEW, obj=obj)
     department_id = payload.department_id or getattr(obj, "department_id", None)
-    assert_department_access(db, user, department_id)
+    authorize_action(db, user, "tasks", Action.CREATE, department_id=department_id)
+    if hasattr(obj, "linked_task_id"):
+        authorize_action(db, user, resource, Action.EDIT, obj=obj)
+        if obj.linked_task_id is not None:
+            existing = db.query(models.Task).filter(models.Task.id == obj.linked_task_id).with_for_update().one_or_none()
+            if existing is None or existing.hidden_from_active:
+                raise HTTPException(status_code=409, detail="The existing task needs a manager's attention before creating another.")
+            authorize_action(db, user, "tasks", Action.VIEW, obj=existing)
+            if existing.department_id != department_id:
+                raise HTTPException(status_code=409, detail="The existing task belongs to another department.")
+            return {"task": model_to_dict(existing)}
     priority = getattr(obj, "priority", None) or getattr(obj, "urgency", None) or "Normal"
     link_fields = {
         "projects": {"project_id": item_id},

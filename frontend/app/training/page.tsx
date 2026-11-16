@@ -587,6 +587,7 @@ export default function PracticeTrainingPage() {
           <p className="practice-instruction">You chose the right urgency and team. Here is why:</p>
           <p className="practice-judgment-explanation" data-testid="priority-debrief">{reasoningDebrief(selected.priority)}</p>
           <p className="practice-instruction"><strong>Your turn — Step 2:</strong> Choose the next action. Then write a note the next employee can follow.</p>
+          <p className="practice-instruction">These choices describe what to do. The buttons on the work page may have different names.</p>
           <label>Choose the next action
             <select value={answers.decision} required onChange={e => update('decision', e.target.value as PracticeAnswers['decision'])} data-testid="scenario-decision">
               <option value="">Select action…</option>{DECISIONS.map(option => <option key={option} value={option}>{option}</option>)}

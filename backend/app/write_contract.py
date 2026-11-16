@@ -7,42 +7,21 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from .domain_values import ALLOWED_STATUSES, WORKFLOW_RESOURCES
+from .schemas.resources import RESOURCE_CREATE_SCHEMAS
 
 
+# Keep historical protected fields at the boundary so downstream authorization
+# continues to reject them with the same behavior as existing installations.
+_PROTECTED_COMPATIBILITY_FIELDS: dict[str, frozenset[str]] = {
+    "requests": frozenset({"decision", "requested_by_id"}),
+    "shift-notes": frozenset({"seen_at", "seen_by_id", "submitted_by_id"}),
+    "fixes": frozenset({"reported_by_id", "verified_at", "verified_by_id"}),
+}
+_CONTRACT_RESOURCES = ("tasks", "projects", "requests", "shift-notes", "guests", "fixes", "posts")
 WRITE_FIELDS: dict[str, frozenset[str]] = {
-    "tasks": frozenset({
-        "title", "department_id", "assigned_to_id", "owner_id", "project_id",
-        "linked_guest_note_id", "linked_fix_id", "linked_post_id", "due_date",
-        "status", "priority", "note", "marketing_areas",
-    }),
-    "projects": frozenset({
-        "title", "department_id", "owner_id", "start_date", "due_date",
-        "status", "priority", "note",
-    }),
-    "requests": frozenset({
-        "title", "department_id", "requested_by_id", "assigned_to_id", "request_type",
-        "urgency", "status", "reason", "decision", "linked_task_id", "linked_project_id",
-        "external_accounting_ref", "note",
-    }),
-    "shift-notes": frozenset({
-        "title", "shift", "category", "department_id", "submitted_by_id", "urgency",
-        "status", "note", "linked_task_id", "linked_guest_note_id", "linked_fix_id",
-        "seen_by_id", "seen_at",
-    }),
-    "guests": frozenset({
-        "title", "department_id", "room_area_id", "guest_name", "issue_type", "urgency",
-        "status", "assigned_to_id", "action_taken", "follow_up_date", "note",
-        "linked_task_id", "linked_fix_id",
-    }),
-    "fixes": frozenset({
-        "title", "department_id", "room_area_id", "problem", "urgency", "status",
-        "assigned_to_id", "reported_by_id", "verified_by_id", "verified_at", "note",
-        "linked_guest_note_id", "linked_task_id",
-    }),
-    "posts": frozenset({
-        "title", "department_id", "platform", "post_date", "content_type", "assigned_to_id",
-        "project_id", "campaign", "status", "caption", "final_url", "results_json", "note", "marketing_areas",
-    }),
+    resource: frozenset(RESOURCE_CREATE_SCHEMAS[resource].model_fields)
+        | _PROTECTED_COMPATIBILITY_FIELDS.get(resource, frozenset())
+    for resource in _CONTRACT_RESOURCES
 }
 
 REQUIRED_CREATE_FIELDS: dict[str, tuple[str, ...]] = {

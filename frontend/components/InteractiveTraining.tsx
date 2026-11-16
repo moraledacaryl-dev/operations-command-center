@@ -13,7 +13,8 @@ import { ROOM_ARRIVAL_FINISHED } from '@/components/RoomArrivalPractice';
 import { PRACTICE_PLANS } from '@/lib/training-practice-plans';
 import type { CourseProgress } from '@/lib/training-course';
 import { INDEPENDENT_CHECKS, independentActionMatches } from '@/lib/training-independent';
-import { buildTrainingReport, parseTrainingReport, portableLearningCredit } from '@/lib/training-progress-report';
+import { buildTrainingReport, mergePortableLearning, parseTrainingReport } from '@/lib/training-progress-report';
+import { decryptTrainingReport, encryptTrainingReport } from '@/lib/training-encrypted-report';
 import { parseWorkflowResults } from '@/lib/training-progress';
 import { TrainerReports } from '@/components/TrainerReports';
 import { useTrainingDialogFocus } from '@/lib/training-dialog-focus';
@@ -109,6 +110,10 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [quizFeedback, setQuizFeedback] = useState('');
   const [restoreMessage, setRestoreMessage] = useState('');
+  const [backupPassword, setBackupPassword] = useState('');
+  const [confirmBackupPassword, setConfirmBackupPassword] = useState('');
+  const [backupMessage, setBackupMessage] = useState('');
+  const [backupBusy, setBackupBusy] = useState(false);
   const [quizErrors, setQuizErrors] = useState(0);
   const [branchAnswer, setBranchAnswer] = useState<number | null>(null);
   const [branchExplained, setBranchExplained] = useState(false);
@@ -166,18 +171,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
       if (!report || report.trainee.id !== identity) {
         setRestoreMessage('The report is invalid or belongs to a different practice account. No progress changed.'); return;
       }
-      const credits = portableLearningCredit(report, lessons.map(item=>item.id));
-      const missing = lessons.filter(item=>!credits.includes(item.id));
-      const catchupIds: readonly string[] = TRAINING_CATCHUP_LESSONS;
-      const wasCompleteBeforeNewLessons = credits.includes('orientation') &&
-        credits.some(id=>id!=='orientation' && !catchupIds.includes(id)) &&
-        missing.length > 0 && missing.every(item=>catchupIds.includes(item.id));
-      setCourse(current=>current ? {
-        ...current, lessonId:missing[0]?.id || lessons[0].id,
-        stage:!missing.length || wasCompleteBeforeNewLessons?'finished':'learn',
-        question:0, independentStep:0, tourStep:0,
-        reference:undefined, passed:credits, metrics:report.metrics,
-      }:current);
+      setCourse(current=>current ? mergePortableLearning(current, report, lessons.map(item=>item.id)) : current);
       setRestoreMessage('Lessons restored. Repeat any hands-on practice that needs saved work on this device.');
     } catch { setRestoreMessage('This file could not be read. Export a fresh training report and try again.'); }
   }
@@ -207,6 +201,39 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function saveEncryptedLearning() {
+    if (!course || backupBusy) return;
+    if (backupPassword.length < 12 || backupPassword.length > 256 || backupPassword !== confirmBackupPassword) {
+      setBackupMessage('Choose a password of at least 12 characters and enter it twice.'); return;
+    }
+    setBackupBusy(true);
+    try {
+      let workflows: TrainingWorkflowResults = {};
+      try { workflows = parseWorkflowResults(JSON.parse(localStorage.getItem(workflowResultsKey(user)) || '{}')); } catch { /* no saved summary */ }
+      const report = buildTrainingReport(course, { id:user.id, name:user.name, role:user.role }, workflows, new Date().toISOString());
+      const encrypted = await encryptTrainingReport(report, user.email, backupPassword);
+      const url = URL.createObjectURL(new Blob([encrypted], { type:'application/json' }));
+      const anchor = document.createElement('a'); anchor.href = url;
+      anchor.download = 'hidden-oasis-lesson-backup.json'; document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+      setBackupMessage('Lesson backup saved. Keep the password safe; it cannot be recovered.');
+      setBackupPassword(''); setConfirmBackupPassword('');
+    } catch { setBackupMessage('Could not save the backup. Use a fictional training login and try again.'); }
+    finally { setBackupBusy(false); }
+  }
+
+  async function openEncryptedLearning(file: File | undefined) {
+    if (!file || !course || backupBusy) return;
+    if (file.size > 200000) { setBackupMessage('This backup is too large. No progress changed.'); return; }
+    setBackupBusy(true);
+    try {
+      const report = await decryptTrainingReport(await file.text(), user.email, backupPassword);
+      setCourse(current => current ? mergePortableLearning(current, report, lessons.map(item => item.id)) : current);
+      setBackupMessage('Lesson history added. Saved-work practice still needs to be repeated on this computer.');
+      setBackupPassword(''); setConfirmBackupPassword('');
+    } catch { setBackupMessage('Could not open this backup. Check the password and use the same practice login. No progress changed.'); }
+    finally { setBackupBusy(false); }
   }
   const independentActions = course ? INDEPENDENT_CHECKS[course.lessonId] : null;
   const independentAction = course && independentActions?.[course.independentStep || 0];
@@ -642,6 +669,22 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   // It cannot award required-course credit without the verified mission.
   if (onPracticeHome) return null;
 
+  const encryptedLearningControls = <details className="ops-course-help" data-testid="encrypted-learning-backup">
+    <summary>Move lesson history to another computer</summary>
+    <p>This encrypted file transfers lessons you read. It does not transfer saved practice records; repeat those exercises on the other computer. Use the same practice login there.</p>
+    <label>Backup password (at least 12 characters)
+      <input type="password" autoComplete="new-password" value={backupPassword} onChange={event => setBackupPassword(event.target.value)} />
+    </label>
+    <label>Enter it again when saving
+      <input type="password" autoComplete="new-password" value={confirmBackupPassword} onChange={event => setConfirmBackupPassword(event.target.value)} />
+    </label>
+    <button type="button" disabled={backupBusy} onClick={() => void saveEncryptedLearning()}>Save encrypted lesson backup</button>
+    <label>Open an encrypted lesson backup
+      <input type="file" accept=".json,application/json" disabled={backupBusy} onChange={event => { void openEncryptedLearning(event.target.files?.[0]); event.target.value = ''; }} />
+    </label>
+    {backupMessage && <p role="status">{backupMessage}</p>}
+  </details>;
+
   return <>
     {course?.stage === 'finished' && catchupLessons.length > 0 && !paused &&
       <div className="ops-course-catchup" role="note" data-testid="training-update-available">
@@ -710,6 +753,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
             </label>
             {restoreMessage && <p role="status">{restoreMessage}</p>}
           </details>
+          {encryptedLearningControls}
           <button type="button" className="ops-course-primary" data-testid="course-start-quiz"
             onClick={() => { setCourse({ ...course, stage: 'quiz', question: 0 }); setQuizFeedback(''); }}>Answer two questions →</button>
         </>}
@@ -800,6 +844,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           <span>You can show the report to your trainer. It only brings back lessons you read; you must repeat saved-work practice on this computer. The report is not an approval to work on live records.</span>
           {restoreMessage && <p role="status" data-testid="restore-progress-feedback">{restoreMessage}</p>}
         </div>
+        {encryptedLearningControls}
         {capabilities.manage_department && <TrainerReports manager={user} />}
         <div className="ops-guide-lesson-grid">
           {lessons.map(item => <div key={item.id} className="ops-guide-lesson-wrap">

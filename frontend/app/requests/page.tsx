@@ -118,11 +118,11 @@ export default function RequestsPage() {
     {canManageWork && showAdd ? <section data-testid="create-request-form" className="panel" style={{ marginBottom: 16 }}>
       <h2>New request</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
-        <label className="label">Request<input className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
-        <label className="label">Type<select className="select" value={requestType} onChange={e => setRequestType(e.target.value)}>{['General','Equipment','Policy','Process','Staffing','Supply','Marketing','Maintenance','Event','Other'].map(value => <option key={value}>{value}</option>)}</select></label>
-        <label className="label">Priority<select className="select" value={urgency} onChange={e => setUrgency(e.target.value)}><option>Low</option><option>Normal</option><option>Urgent</option></select></label>
+        <label className="label">Request<input data-training-field="title" className="input" value={title} onChange={e => setTitle(e.target.value)} /></label>
+        <label className="label">Type<select data-training-field="type" className="select" value={requestType} onChange={e => setRequestType(e.target.value)}>{['General','Equipment','Policy','Process','Staffing','Supply','Marketing','Maintenance','Event','Other'].map(value => <option key={value}>{value}</option>)}</select></label>
+        <label className="label">Priority<select data-training-field="urgency" className="select" value={urgency} onChange={e => setUrgency(e.target.value)}><option>Low</option><option>Normal</option><option>Urgent</option></select></label>
       </div>
-      <label className="label">Business reason<textarea className="textarea" value={reason} onChange={e => setReason(e.target.value)} /></label>
+      <label className="label">Business reason<textarea data-training-field="note" className="textarea" value={reason} onChange={e => setReason(e.target.value)} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !title.trim() || !reason.trim()} onClick={createRequest}>{busy ? 'Saving…' : 'Create draft'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
     <section>

@@ -214,7 +214,7 @@ export default function ProjectsPage() {
         <section className="panel" style={{ marginBottom: 16 }}>
 
           <h2>{selected.overdue_tasks ? 'At risk' : selected.status === 'Paused' ? 'Paused' : 'On track'}</h2>
-          <div className="card-line"><Pill value={`${selected.progress}% complete`} /><Pill value={`${selected.linked_tasks.length} tasks`} />{selected.overdue_tasks ? <Pill value={`${selected.overdue_tasks} overdue`} /> : null}</div>
+          <div className="card-line"><Pill value={`${selected.progress}% complete`} /><Pill value={`${selected.linked_tasks.length} ${selected.linked_tasks.length === 1 ? 'task' : 'tasks'}`} />{selected.overdue_tasks ? <Pill value={`${selected.overdue_tasks} overdue`} /> : null}</div>
           {(selected.allowed_actions || []).length ? <>
             <label className="label" style={{ marginTop: 14 }}>Action note<textarea className="textarea" value={actionNote} onChange={event => setActionNote(event.target.value)} placeholder="Required to pause or reopen" /></label>
             <div className="toolbar">
@@ -226,7 +226,7 @@ export default function ProjectsPage() {
           <h2>Project tasks</h2>
           {canManage ? <div className="form" style={{ marginTop: 12 }}><textarea className="textarea" placeholder="Describe the next project action" value={taskNote} onChange={event => setTaskNote(event.target.value)} /><button className="btn secondary" disabled={busy} onClick={createLinkedTask}>Create task</button></div> : null}
           <div className="grid" style={{ marginTop: 12 }}>
-            {selected.linked_tasks.map((task: Entity) => <div className="card" key={task.id}><strong>{task.title}</strong><div className="card-line"><Pill value={task.status} />{task.hidden_from_active ? <Pill value="Archived" /> : null}<Pill value={task.priority || 'Normal'} /></div><span className="muted">Due {formatDate(task.due_date)}</span></div>)}
+            {selected.linked_tasks.map((task: Entity) => <div className="card" key={task.id}><strong>{task.title}</strong>{task.note ? <p>{task.note}</p> : null}<div className="card-line"><Pill value={task.status} />{task.hidden_from_active ? <Pill value="Archived" /> : null}<Pill value={task.priority || 'Normal'} /></div><span className="muted">Due {formatDate(task.due_date)}</span></div>)}
             {!selected.linked_tasks.length ? <div className="empty">No tasks yet.</div> : null}
           </div>
         </section>

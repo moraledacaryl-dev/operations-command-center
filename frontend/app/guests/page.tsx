@@ -126,14 +126,14 @@ export default function GuestMattersPage() {
     {canManageWork && showAdd ? <section className="panel" style={{ marginBottom: 16 }} data-testid="create-guest-form">
       <h2>Log guest matter</h2>
       <div className="form-grid" style={{ marginTop: 12 }}>
-        <label className="label">Matter<input className="input" value={String(form.title || '')} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
+        <label className="label">Matter<input data-training-field="title" className="input" value={String(form.title || '')} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
         <label className="label">Guest<input className="input" value={String(form.guest_name || '')} onChange={e => setForm({ ...form, guest_name: e.target.value })} /></label>
         <label className="label">Room / area<select className="select" value={String(form.room_area_id || '')} onChange={e => setForm({ ...form, room_area_id: e.target.value })}><option value="">Not assigned</option>{rooms.filter(room => room.status !== 'inactive').map(room => <option key={room.id} value={room.id}>{room.name}</option>)}</select></label>
-        <label className="label">Type<select className="select" value={String(form.issue_type)} onChange={e => setForm({ ...form, issue_type: e.target.value })}><option>Request</option><option>Complaint</option><option>Room</option><option>Food</option><option>Payment</option><option>Checkout</option><option>Other</option></select></label>
-        <label className="label">Urgency<select className="select" value={String(form.urgency)} onChange={e => setForm({ ...form, urgency: e.target.value })}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label>
+        <label className="label">Type<select data-training-field="type" className="select" value={String(form.issue_type)} onChange={e => setForm({ ...form, issue_type: e.target.value })}><option>Request</option><option>Complaint</option><option>Room</option><option>Food</option><option>Payment</option><option>Checkout</option><option>Other</option></select></label>
+        <label className="label">Urgency<select data-training-field="urgency" className="select" value={String(form.urgency)} onChange={e => setForm({ ...form, urgency: e.target.value })}><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></label>
         <label className="label">Follow-up<input className="input" type="datetime-local" value={String(form.follow_up_date || '')} onChange={e => setForm({ ...form, follow_up_date: e.target.value })} /></label>
       </div>
-      <label className="label">Recovery action / context<textarea className="textarea" value={String(form.note || '')} onChange={e => setForm({ ...form, note: e.target.value })} /></label>
+      <label className="label">Recovery action / context<textarea data-training-field="note" className="textarea" value={String(form.note || '')} onChange={e => setForm({ ...form, note: e.target.value })} /></label>
       <div className="toolbar"><button className="btn" disabled={busy || !String(form.title || '').trim()} onClick={createMatter}>{busy ? 'Saving…' : 'Save matter'}</button><button className="btn secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
     </section> : null}
     <Tabs values={['Active', 'Urgent', 'Open', 'Follow', 'Done', 'All']} active={filter} onChange={setFilter} label="Guest matter filters" />

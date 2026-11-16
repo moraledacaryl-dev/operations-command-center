@@ -79,3 +79,12 @@ test('saved-work exercises tell learners the urgency their practice requires', a
     expect(workflowInstructions(state(kind, 0)).join(' '), kind).toContain(expected);
   }
 });
+
+test('guest exercise does not accept instructions to withhold inspection and guest updates', () => {
+  const session = state('guest-ac', 0);
+  const row = { id: 501, title: 'Fictional AC TRN-GUEST-ABC12345', urgency: 'High', issue_type: 'Room',
+    note: 'The AC is not broken. Do not ask Maintenance to inspect and do not update the guest.' };
+  expect(verifyWorkflowStep(session, [row]).passed).toBe(false);
+  expect(verifyWorkflowStep(session, [{ ...row,
+    note: 'The AC is not cooling. Ask Maintenance to inspect and update the guest.' }]).passed).toBe(true);
+});

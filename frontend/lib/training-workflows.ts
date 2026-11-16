@@ -142,6 +142,12 @@ export function workflowStagePath(session: TrainingWorkflowSession): string {
 type OperationalRecord = Record<string, unknown>;
 
 function readable(value: unknown) { return String(value || '').trim().toLowerCase(); }
+
+// Catch explicit instructions to withhold the follow-up the exercise requires.
+// This is a narrow safeguard, not a general understanding of free text.
+function withholdsGuestFollowUp(note: string): boolean {
+  return /\b(?:do not|don't|dont|never|should not|shouldn't|must not|mustn't|no need to)\s+(?:ask|call|contact|notify|tell|inform|request|arrange|send|update|follow[ -]?up)\b/i.test(note);
+}
 function positiveId(value: unknown): number | undefined {
   const id = Number(value);
   return Number.isSafeInteger(id) && id > 0 ? id : undefined;
@@ -170,6 +176,7 @@ export function verifyWorkflowStep(
         const note = readable(item.note);
         return readable(item.urgency) === 'high' &&
           ['room', 'complaint'].includes(readable(item.issue_type)) &&
+          !withholdsGuestFollowUp(note) &&
           /shower|hot water/.test(note) &&
           /maintenance|inspect|repair/.test(note) &&
           /guest|call|update|callback/.test(note);
@@ -178,6 +185,7 @@ export function verifyWorkflowStep(
         const note = readable(item.note);
         return readable(item.urgency) === 'high' &&
           ['room', 'complaint'].includes(readable(item.issue_type)) &&
+          !withholdsGuestFollowUp(note) &&
           /\b(ac|air.condition|aircon|cooling|warm air)\b/.test(note) &&
           /\b(maintenance|inspect|technician|repair)\b/.test(note) &&
           /\b(update|call|follow.up|notify)\b/.test(note);

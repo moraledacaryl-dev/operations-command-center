@@ -5,6 +5,7 @@ export type IndependentAction = {
   instruction: string;
   containsText?: string;
   type?: 'click' | 'input';
+  expectedValue?: string;
 };
 const tab = (path: string, group: string, button: string, title: string): IndependentAction =>
   ({ path, selector: '[aria-label="' + group + '"] button', containsText: button,
@@ -46,7 +47,7 @@ export const INDEPENDENT_CHECKS: Record<string, readonly [IndependentAction,Inde
     tab('/projects','Project status','All','See every project')],
   bar: [{path:'/bar',selector:'[data-testid="bar-open-report"]',title:'Open a Bar report',instruction:'Find Report a problem without an arrow.'},
     {path:'/bar',selector:'[data-testid="bar-report-form"] textarea',type:'input',title:'Write a clear Bar handover',instruction:'Type a made-up problem with at least three characters. Do not save it during this short lesson.'}],
-  marketing: [{path:'/posts',selector:'[aria-label="Filter Marketing by area"]',type:'input',title:'Choose a Marketing area',instruction:'Choose Pool to find pool promotions.'},
+  marketing: [{path:'/posts',selector:'[aria-label="Filter Marketing by area"]',type:'input',expectedValue:'Pool',title:'Choose a Marketing area',instruction:'Choose Pool to find pool promotions.'},
     {path:'/posts',selector:'[aria-label="Filter Marketing by area"]',title:'See Marketing area choices',instruction:'Open the area filter and find the listed areas.'}],
   'management-review': [{path:'/review',selector:'input[placeholder="Search decisions"]',type:'input',
     title:'Search for a decision',instruction:'Type a fictional keyword such as repair in Search decisions. Do not enter guest information.'},
@@ -66,6 +67,9 @@ export function independentActionMatches(
   try { node = target.closest<HTMLElement>(action.selector); } catch { return false; }
   if (!node) return false;
   if (action.containsText && !node.textContent?.toLowerCase().includes(action.containsText.toLowerCase())) return false;
-  if (eventType === 'input') return (target as HTMLInputElement).value?.trim().length >= 3;
+  if (eventType === 'input') {
+    const value = (target as HTMLInputElement).value?.trim() || '';
+    return action.expectedValue ? value === action.expectedValue : value.length >= 3;
+  }
   return true;
 }
