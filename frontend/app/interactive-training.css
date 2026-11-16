@@ -152,6 +152,7 @@
 .ops-course-progress > span { flex: 1; padding: 9px 5px; border-radius: 8px; background: #ebf2ed;
   text-align: center; font-size: 11px; font-weight: 700; line-height: 1.25; }
 .ops-course-progress > span.current { color: #fff; background: #176b4d; }
+.ops-course-scroll-cue { margin: -8px 0 12px; color: #235a40; font-size: 13px; font-weight: 750; }
 .ops-course-panel h2 { font-size: clamp(22px, 4vw, 29px); line-height: 1.2; margin: 8px 0 13px; }
 .ops-course-panel h3 { font-size: 16px; margin: 18px 0 9px; }
 .ops-course-explanation { margin: 12px 0; font-size: 16px; line-height: 1.7; }

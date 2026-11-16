@@ -1,6 +1,8 @@
 import { DECISIONS, DEPARTMENTS, PRIORITIES } from './practice-scenarios';
 import type { PracticeAnswers } from './practice-scenarios';
 
+export const SCENARIO_PROGRESS_PREFIX = 'ho-ops-scenario-practice-v1:';
+
 /** Validate untrusted device-local progress before counting completed cases.
  * This protects against storage corruption, not intentional result forgery;
  * scenario drills are not a signed certification.

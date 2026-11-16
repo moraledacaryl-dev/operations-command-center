@@ -4,6 +4,8 @@ import { INDEPENDENT_CHECKS, independentActionMatches } from '../lib/training-in
 import { buildTrainingReport, mergePortableLearning, parseTrainingReport, portableLearningCredit } from '../lib/training-progress-report';
 import { decryptTrainingReport, encryptTrainingReport } from '../lib/training-encrypted-report';
 import { readFile } from 'node:fs/promises';
+import { practiceScenariosFor } from '../lib/practice-scenarios';
+import { mergeScenarioBackup, readScenarioBackup } from '../lib/training-scenario-backup';
 
 const trainee = {
   id: 8401, name: 'Fictional Practice Staff', email: 'offline-training@training.invalid',
@@ -61,6 +63,7 @@ test('portable reports reject malformed data and never restore saved-record less
 test('encrypted lesson backups reject wrong passwords, changed files and other logins', async () => {
   const report = reportFor();
   const backup = await encryptTrainingReport(report, trainee.email, 'hidden oasis practice 123');
+  expect(JSON.parse(backup).format).toBe('hidden-oasis-encrypted-report-v1');
   expect(backup).not.toContain(trainee.email);
   expect(backup).not.toContain('Fictional Practice Staff');
   expect(await decryptTrainingReport(backup, trainee.email, 'hidden oasis practice 123')).toEqual(report);
@@ -81,8 +84,68 @@ test('restoring an older report preserves saved practice and the current lesson'
   expect(merged.passed).not.toContain('team-tasks');
 });
 
+test('scenario transfer preserves destination attempts and imports unfinished drafts', () => {
+  const scenarios = practiceScenariosFor(trainee), first = scenarios[0], second = scenarios[1];
+  const data = new Map<string,string>();
+  const storage = {
+    getItem: (key:string) => data.get(key) ?? null,
+    setItem: (key:string, value:string) => {data.set(key,value);},
+    removeItem: (key:string) => {data.delete(key);},
+  } as Storage;
+  storage.setItem('ho-ops-scenario-practice-v1:9', JSON.stringify({
+    [first.id]: {attempts:5, mistakes:1, hints:0, completedAt:'2026-11-02T01:00:00Z'},
+  }));
+  mergeScenarioBackup(storage, '9', scenarios, {
+    completed: {[first.id]: {attempts:1, mistakes:0, hints:0, completedAt:'2026-11-01T01:00:00Z'}, unknown: {attempts:1}},
+    drafts: {[second.id]: {answers:{priority:'', department:'', decision:'', note:'Started', owner:'', followUp:''},
+      phase:'assess', attempts:0, hintsUsed:0, mistakesMade:0, reasoning:{consequence:'',timing:''}}},
+  });
+  const saved = readScenarioBackup(storage, '9', scenarios);
+  expect(saved.completed[first.id].attempts).toBe(5);
+  expect(saved.drafts[second.id].answers.note).toBe('Started');
+  expect(saved.completed.unknown).toBeUndefined();
+});
+
+test('scenario transfer rolls back if saving the second section fails', () => {
+  const scenarios = practiceScenariosFor(trainee), first = scenarios[0];
+  const data = new Map<string,string>();
+  const progressKey = 'ho-ops-scenario-practice-v1:9', draftKey = 'ho-ops-scenario-drafts-v1:9';
+  data.set(progressKey, '{"older":true}');
+  let failOnce = true;
+  const storage = {
+    getItem: (key:string) => data.get(key) ?? null,
+    setItem: (key:string, value:string) => {
+      if (key === draftKey && failOnce) { failOnce = false; throw Error('storage full'); }
+      data.set(key,value);
+    },
+    removeItem: (key:string) => {data.delete(key);},
+  } as Storage;
+  expect(() => mergeScenarioBackup(storage, '9', scenarios, {
+    completed: {[first.id]:{attempts:1, mistakes:0, hints:0, completedAt:'2026-11-01T01:00:00Z'}}, drafts:{},
+  })).toThrow('storage full');
+  expect(data.get(progressKey)).toBe('{"older":true}');
+  expect(data.has(draftKey)).toBe(false);
+});
+
+test('a malformed known scenario does not get silently dropped from a backup', () => {
+  const scenarios = practiceScenariosFor(trainee), first = scenarios[0];
+  const data = new Map<string,string>([['ho-ops-scenario-practice-v1:9','{}']]);
+  const storage = {getItem:(key:string)=>data.get(key) ?? null,
+    setItem:(key:string,value:string)=>{data.set(key,value);}, removeItem:(key:string)=>{data.delete(key);}} as Storage;
+  expect(() => mergeScenarioBackup(storage, '9', scenarios,
+    {completed:{[first.id]:{attempts:-1}}, drafts:{}})).toThrow('Invalid scenario history');
+  expect(data.get('ho-ops-scenario-practice-v1:9')).toBe('{}');
+  expect(data.has('ho-ops-scenario-drafts-v1:9')).toBe(false);
+});
+
 test('staff can move encrypted lesson history without erasing local progress', async ({page}) => {
   await init(page, trainee, {lessonId:'staff-handover', stage:'learn', question:0, passed:['orientation','staff-my-work']});
+  const scenario = practiceScenariosFor(trainee)[0];
+  await page.addInitScript(({id, scenarioId}) => {
+    localStorage.setItem('ho-ops-scenario-practice-v1:'+id, JSON.stringify({
+      [scenarioId]: {attempts:2, mistakes:1, hints:0, completedAt:'2026-11-02T01:00:00Z'},
+    }));
+  }, {id:trainee.id,scenarioId:scenario.id});
   await page.goto('/');
   const source = page.getByTestId('encrypted-learning-backup');
   await source.locator('summary').click();
@@ -92,6 +155,7 @@ test('staff can move encrypted lesson history without erasing local progress', a
   await source.getByRole('button', {name:'Save encrypted lesson backup'}).click();
   const download = await downloading;
   const content = await readFile((await download.path())!);
+  expect(JSON.parse(content.toString()).format).toBe('hidden-oasis-encrypted-report-v2');
   expect(content.toString()).not.toContain(trainee.email);
 
   const target = await page.context().newPage();
@@ -102,14 +166,16 @@ test('staff can move encrypted lesson history without erasing local progress', a
   await backup.locator('summary').click();
   await backup.getByLabel('Backup password (at least 12 characters)').fill('wrong password 123');
   await backup.getByLabel('Open an encrypted lesson backup').setInputFiles({name:'backup.json', mimeType:'application/json', buffer:content});
-  await expect(backup).toContainText('No progress changed');
+  await expect(backup).toContainText('Could not open this backup');
   await backup.getByLabel('Backup password (at least 12 characters)').fill('practice password 123');
   await backup.getByLabel('Open an encrypted lesson backup').setInputFiles({name:'backup.json', mimeType:'application/json', buffer:content});
-  await expect(backup).toContainText('Lesson history added');
+  await expect(backup).toContainText('Lesson and scenario history added');
   const restored = await target.evaluate(id=>JSON.parse(localStorage.getItem('ho-ops-structured-course-v2:'+id)||'null'), otherDeviceUser.id);
   expect(restored.passed).toContain('staff-handover');
   expect(restored.passed).toContain('orientation');
   expect(restored.passed).toContain('staff-my-work');
+  const scenarios = await target.evaluate(id=>JSON.parse(localStorage.getItem('ho-ops-scenario-practice-v1:'+id)||'{}'), otherDeviceUser.id);
+  expect(scenarios[scenario.id]).toMatchObject({attempts:2, mistakes:1});
   await target.close();
 });
 

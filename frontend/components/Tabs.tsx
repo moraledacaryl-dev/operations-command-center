@@ -63,6 +63,7 @@ export function Tabs({ values, active, onChange, label = 'View filters', classNa
       {values.map((value, index) => <button
         type="button"
         role="tab"
+        data-tab-value={value}
         aria-selected={active === value}
         tabIndex={active === value ? 0 : -1}
         key={value}
