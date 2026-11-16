@@ -28,7 +28,7 @@ These checks do not prove all workflows are correct or that employees have learn
 - Guest practice rejects the reproduced example that explicitly withholds the required follow-up. This is a narrow text safeguard, not reliable comprehension: other contradictory or misleading sentences may still pass, and valid sentences with a negated action may be rejected. Completion feedback says the app cannot judge every detail; a trainer must assess the meaning.
 - The follow-up passed 887 backend tests (three skipped), seven workflow integrity checks, and 51 desktop browser checks. The training build and lint passed with four existing warnings. Some browser checks use mocked data. Against a separate fictional database, three further checks passed: Bar report to assigned task and My Work, the full Bar course, and project task creation. The first attempt at those three was blocked by the isolated server's origin policy; after allowing the new local test port, all three passed.
 
-Progress is stored locally. Moving fully evidenced saved work to another computer remains a design decision; the existing progress export does not transfer the underlying database evidence. No production data, existing progress, or security policy was reset for these changes.
+Progress is stored locally. The earlier report export does not transfer the underlying database evidence. No production data, existing progress, or security policy was reset for these changes.
 
 ## Offline lesson-history transfer
 
