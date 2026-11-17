@@ -42,7 +42,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
   {
     id: 'staff-handover', title: 'Reading a shift handover', summary: "Read what the previous shift left for you.",
     steps: [
-      { path: '/shift', selector: '[aria-label="Shift note filters"] button:nth-child(2)', title: "Find urgent handovers", advanceOnClick: true, requiresAction: true, body: "Select Urgent to see handovers needing attention. The lesson advances after you click the highlighted Urgent tab." },
+      { path: '/shift', selector: '[aria-label="Shift note filters"] [data-tab-value="Urgent"]', title: "Find urgent handovers", advanceOnClick: true, requiresAction: true, body: "Select Urgent to see handovers needing attention. The lesson advances after you click the highlighted Urgent tab." },
       { path: '/shift', selector: '.ops-handover-card, .ops-module', title: "Read the note", body: "Check the problem, who is handling it and what needs to happen next. Reading a note does not finish the work." },
       { path: '/shift', selector: '.ops-module', title: "Ask for help", body: "Tell your lead if you cannot finish the work or change its status. Use your own login." },
     ],
@@ -78,7 +78,7 @@ export const TRAINING_LESSONS: readonly TrainingLesson[] = [
     id: 'maintenance-status', title: 'Reading repair status', summary: 'See what is waiting, being repaired, or awaiting verification.',
     maintenanceStaffOnly: true,
     steps: [
-      { path: '/fixes', selector: '[aria-label="Maintenance filters"] button:nth-child(2)', title: 'Find urgent repair work', body: 'Choose Urgent to see repairs needing attention.', advanceOnClick: true, requiresAction: true },
+      { path: '/fixes', selector: '[aria-label="Maintenance filters"] [data-tab-value="Urgent"]', title: 'Find urgent repair work', body: 'Choose Urgent to see repairs needing attention.', advanceOnClick: true, requiresAction: true },
       { path: '/fixes', selector: '[aria-label="Maintenance work orders"], .ops-module', title: 'Read the saved repair status', body: 'Open means not started. Working appears as In progress. Done appears as To verify. Verified means an authorized person checked the work.' },
     ],
   },

@@ -25,7 +25,7 @@ import {
   practiceScenariosFor,
 } from '@/lib/practice-scenarios';
 import type { PracticeAnswers, PracticeAssessment, PracticeField } from '@/lib/practice-scenarios';
-import { parseScenarioProgress, parseWorkflowResults } from '@/lib/training-progress';
+import { parseScenarioProgress, parseWorkflowResults, SCENARIO_PROGRESS_PREFIX } from '@/lib/training-progress';
 import { DRAFT_PREFIX, parseScenarioDrafts } from '@/lib/training-scenario-drafts';
 import type { ScenarioDrafts } from '@/lib/training-scenario-drafts';
 import type { ScenarioProgress } from '@/lib/training-progress';
@@ -59,7 +59,7 @@ function reasoningDebrief(priority: string): string {
   if (priority === 'High') return 'High: This problem should not be left until later. Ask the right person to handle it soon, then check that it is being handled.';
   return 'Routine: From what we know, this is not dangerous and staff can handle it during normal planned work. If new information shows danger, treat it as more urgent.';
 }
-const STORAGE_PREFIX = 'ho-ops-scenario-practice-v1:';
+const STORAGE_PREFIX = SCENARIO_PROGRESS_PREFIX;
 const emptyAnswers: PracticeAnswers = { priority: '', department: '', decision: '', note: '', owner: '', followUp: '' };
 
 export default function PracticeTrainingPage() {
@@ -465,7 +465,7 @@ export default function PracticeTrainingPage() {
       </aside>
 
       <section className="practice-workspace" aria-live="polite" aria-label="Active training exercise">
-        <div className="practice-topline"><span className="practice-department">{selected.department} · Level {selected.level || 1}</span><span>Fictional case · {selected.reference}</span></div>
+        <div className="practice-topline"><span className="practice-department">{selected.department} · Level {selected.level || 1}</span><span>Practice code · {selected.reference}</span></div>
         <div className="practice-help">
           <details>
             <summary>How to complete this practice</summary>
@@ -613,7 +613,7 @@ export default function PracticeTrainingPage() {
             <textarea data-testid="scenario-note" value={answers.note} rows={5} required minLength={45}
               placeholder={'Include ' + selected.reference + ', what happened, what staff should do next, and who should do it.'}
               onChange={e => update('note', e.target.value)} />
-            <small>Include practice number <strong>{selected.reference}</strong>, what happened, the next action, and who will check it. Use made-up details.</small>
+            <small>Include practice code <strong>{selected.reference}</strong>, what happened, the next action, and who will check it. {selected.reference.startsWith('DEMO-ROOM-') ? 'This code is not a room number. ' : ''}Use made-up details.</small>
             {selected.noteChecks && <small>Make sure your note explains {selected.noteChecks.map(rule => rule.label).join(' and ')}. Write what the person should actually do.</small>}
             {result?.errors.note && <small className="practice-error" role="alert">{result.errors.note}</small>}
           </label>

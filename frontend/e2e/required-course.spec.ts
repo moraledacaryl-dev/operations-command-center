@@ -8,6 +8,19 @@ const staff = {
   primary_department_id: 41, capabilities: {},
 };
 
+test('a long lesson tells the learner to scroll to the next step', async ({page}) => {
+  await mockLogin(page);
+  await page.goto('/');
+  const panel = page.getByRole('dialog', {name:'Required training lesson'});
+  await expect(page.getByTestId('course-scroll-cue')).toBeVisible();
+  await panel.evaluate(element => { element.scrollTop = element.scrollHeight; element.dispatchEvent(new Event('scroll')); });
+  await expect(page.getByTestId('course-scroll-cue')).toHaveCount(0);
+  await expect(page.getByTestId('course-start-quiz')).toBeInViewport();
+  await page.getByTestId('course-start-quiz').click();
+  await expect(page.getByTestId('course-quiz-question')).toBeInViewport();
+  expect(await panel.evaluate(element => element.scrollTop)).toBe(0);
+});
+
 test('every role-available lesson has two clear teaching checks and example before practice', () => {
   for (const lesson of TRAINING_LESSONS) {
     const guide = COURSE_GUIDES[lesson.id];
@@ -190,6 +203,14 @@ test('supervisor handover tour advances after selecting the highlighted Urgent t
   // keep the generic highlighted tour; test that path without downgrading staff.
   const supervisor = { ...staff, id: 92812, role: 'supervisor', capabilities: {manage_department:true} };
   await mockLogin(page, supervisor);
+  await page.addInitScript(() => {
+    const observer = new MutationObserver(() => {
+      const list = document.querySelector('[aria-label="Shift note filters"]');
+      const urgent = Array.from(list?.querySelectorAll('button') || []).find(button => button.textContent === 'Urgent');
+      if (list && urgent && list.firstElementChild !== urgent) { list.prepend(urgent); observer.disconnect(); }
+    });
+    observer.observe(document, { childList:true, subtree:true });
+  });
   await page.addInitScript(user => {
     localStorage.setItem('ho-ops-structured-course-v2:' + String(user.id), JSON.stringify({
       lessonId: 'staff-handover', stage: 'quiz', question: 1, passed: ['orientation'],
@@ -202,6 +223,7 @@ test('supervisor handover tour advances after selecting the highlighted Urgent t
   await expect(page).toHaveURL(/\/shift$/);
   const coach = page.locator('.ops-guide-tip');
   await expect(coach).toContainText('Find urgent handovers');
+  await expect(page.locator('[aria-label="Shift note filters"] button').first()).toHaveText('Urgent');
   await expect(coach.getByRole('button', { name: /Click highlighted link/ })).toBeDisabled();
   await page.getByRole('tab', { name: 'Urgent' }).click();
   await expect(coach).toContainText('Read the note');

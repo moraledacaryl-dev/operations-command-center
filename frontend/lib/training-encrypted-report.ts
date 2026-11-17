@@ -1,14 +1,16 @@
 import { parseTrainingReport } from './training-progress-report';
 import type { TrainingProgressReport } from './training-progress-report';
 
-// This file protects a portable learning report. It does not contain the
-// fictional database and therefore does not establish saved-work evidence.
+// The encrypted file is learning history, not authenticated saved-work evidence.
 const ITERATIONS = 310_000;
+const MAX_PLAINTEXT = 1_000_000;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
 function encoded(bytes: Uint8Array): string {
-  return btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''));
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 8192) binary += String.fromCharCode(...Array.from(bytes.subarray(i, i + 8192)));
+  return btoa(binary);
 }
 function decoded(value: unknown, maximum: number): Uint8Array {
   if (typeof value !== 'string' || value.length > maximum * 2 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) throw Error('Invalid file');
@@ -28,26 +30,35 @@ function trainingLogin(value: unknown): string {
   if (!/^[a-z0-9._+-]+@training\.invalid$/.test(result) || result.length > 150) throw Error('Practice login unavailable');
   return result;
 }
-export async function encryptTrainingReport(report: TrainingProgressReport, login: unknown, password: string): Promise<string> {
+export async function encryptTrainingReport(report: TrainingProgressReport, login: unknown, password: string,
+  scenarios?: { completed: unknown; drafts: unknown }): Promise<string> {
   const user = trainingLogin(login);
   if (!parseTrainingReport(report)) throw Error('Invalid report');
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await keyFor(password, salt);
-  const bytes = encoder.encode(JSON.stringify({ login: user, report }));
+  const bytes = encoder.encode(JSON.stringify({ login: user, report, ...(scenarios ? { scenarios } : {}) }));
+  if (bytes.length > MAX_PLAINTEXT) throw Error('Backup is too large');
   const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes));
-  return JSON.stringify({ format: 'hidden-oasis-encrypted-report-v1', salt: encoded(salt), iv: encoded(iv), data: encoded(ciphertext) });
+  return JSON.stringify({ format: scenarios ? 'hidden-oasis-encrypted-report-v2' : 'hidden-oasis-encrypted-report-v1',
+    salt: encoded(salt), iv: encoded(iv), data: encoded(ciphertext) });
 }
-export async function decryptTrainingReport(raw: string, login: unknown, password: string): Promise<TrainingProgressReport> {
-  if (raw.length > 200_000) throw Error('Invalid file');
+export async function decryptTrainingBackup(raw: string, login: unknown, password: string): Promise<{report: TrainingProgressReport; scenarios?: {completed: unknown; drafts: unknown}}> {
+  if (raw.length > 1_400_000) throw Error('Invalid file');
   const envelope = JSON.parse(raw) as Record<string, unknown>;
-  if (!envelope || envelope.format !== 'hidden-oasis-encrypted-report-v1') throw Error('Invalid file');
-  const salt = decoded(envelope.salt, 16), iv = decoded(envelope.iv, 12), data = decoded(envelope.data, 120_000);
+  if (!envelope || !['hidden-oasis-encrypted-report-v1', 'hidden-oasis-encrypted-report-v2'].includes(String(envelope.format))) throw Error('Invalid file');
+  const salt = decoded(envelope.salt, 16), iv = decoded(envelope.iv, 12), data = decoded(envelope.data, MAX_PLAINTEXT + 16);
   if (salt.length !== 16 || iv.length !== 12 || data.length < 16) throw Error('Invalid file');
   const key = await keyFor(password, salt);
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(iv) }, key, new Uint8Array(data));
   const payload = JSON.parse(decoder.decode(plain)) as Record<string, unknown>;
   const report = parseTrainingReport(payload.report);
   if (!report || trainingLogin(payload.login) !== trainingLogin(login)) throw Error('Wrong practice login');
-  return report;
+  const s = payload.scenarios;
+  if (envelope.format === 'hidden-oasis-encrypted-report-v2' && s === undefined) throw Error('Invalid scenarios');
+  if (s !== undefined && (!s || typeof s !== 'object' || Array.isArray(s))) throw Error('Invalid scenarios');
+  return {report, ...(s ? {scenarios: s as {completed: unknown; drafts: unknown}} : {})};
+}
+export async function decryptTrainingReport(raw: string, login: unknown, password: string): Promise<TrainingProgressReport> {
+  return (await decryptTrainingBackup(raw, login, password)).report;
 }

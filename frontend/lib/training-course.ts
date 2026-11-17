@@ -27,10 +27,10 @@ const q = (prompt: string, choices: [string,string,string], correct: 0|1|2, expl
 export const COURSE_GUIDES: Record<string, CourseGuide> = {
   orientation: {
     explanation: 'This is the real Operations layout with pretend guest and employee information. My Work shows tasks assigned to you. Notifications tells you when something needs your attention. The Hidden Oasis logo returns you to the main page.',
-    example: 'You arrive for your shift. You need to see your assigned tasks, check any important new messages, then return to the dashboard.',
+    example: 'You arrive for your shift. You need to see your assigned tasks, check any important new messages, then return to Today.',
     repeatVariant: { example:'The next shift starts and you need to find one assigned task, read a new alert, and return home without changing anything.', questions:[
-      q('Which control normally takes you back to the dashboard?', ['The My Work link','The Hidden Oasis logo','The department menu'],1,'The Hidden Oasis logo returns to the main dashboard.'),
-      q('How do you find an alert about your assignments?', ['Use Notifications and read the related task','Check only the dashboard totals','Look at the previous shift note instead'],0,'Read the notification and related work with your own login.'),
+      q('Which control normally takes you back to Today?', ['The My Work link','The Hidden Oasis logo','The department menu'],1,'The Hidden Oasis logo returns to Today.'),
+      q('How do you find an alert about your assignments?', ['Use Notifications and read the related task','Check only the totals on Today','Look at the previous shift note instead'],0,'Read the notification and related work with your own login.'),
     ] },
     remember: 'You will click the real My Work link, Notifications link and logo yourself. Clicking Next cannot replace these actions.',
     incorrectExample: 'An employee sees a red notification number, assumes the task is already done, and ignores it.',
