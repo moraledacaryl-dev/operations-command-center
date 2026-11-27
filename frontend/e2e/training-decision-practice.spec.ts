@@ -14,7 +14,7 @@ for (const scenario of [
   await page.addInitScript(({ account, finished, lesson }) => {
     localStorage.setItem('cc_user', JSON.stringify(account));
     localStorage.setItem('cc_department_id', String(account.primary_department_id));
-    localStorage.setItem('ho-ops-structured-course-v2:' + account.id, JSON.stringify({ lessonId: lesson, stage: 'learn', question: 0, passed: finished }));
+    localStorage.setItem('ho-ops-structured-course-v2:' + account.id, JSON.stringify({ practiceRevision:2, lessonId: lesson, stage: 'learn', question: 0, passed: finished }));
   }, { account: user, finished: passed, lesson: scenario.lesson });
   await page.route('**/api/**', route => route.fulfill({ status: 200,
     json: { items: [], groups: {}, counts: {}, users: [], departments: [user.departments[0]], unread_count: 0 } }));
@@ -41,7 +41,7 @@ test('the independent Marketing check only advances when Pool is selected', asyn
     localStorage.setItem('cc_user', JSON.stringify(account));
     localStorage.setItem('cc_department_id', '46');
     localStorage.setItem('ho-ops-structured-course-v2:' + account.id, JSON.stringify({
-      lessonId: 'marketing', stage: 'independent', independentStep: 0, question: 0, passed: finished,
+      practiceRevision:2, lessonId: 'marketing', stage: 'independent', independentStep: 0, question: 0, passed: finished,
     }));
   }, { account: user, finished: passed });
   await page.route('**/api/**', route => {
