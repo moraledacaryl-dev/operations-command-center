@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'backend/app/**'
+      - 'backend/requirements.txt'
       - 'deployment/training-native/**'
       - '.github/workflows/build-native-training.yml'
       - 'backend/scripts/seed_training_demo.py'

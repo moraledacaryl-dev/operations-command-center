@@ -154,6 +154,7 @@ def export_copy(state:Path,database:Path,password:str,progress:dict):
     with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as archive:
         for name,data in files.items():archive.writestr(name,data)
         archive.writestr('manifest.json',json.dumps(manifest,separators=(',',':')))
+    if len(output.getvalue())>MAX_BYTES:_refuse('This training copy is too large. Ask your trainer for help.')
     salt=secrets.token_bytes(16);nonce=secrets.token_bytes(12);header=MAGIC+salt+nonce
     key=hashlib.pbkdf2_hmac('sha256',password.encode(),salt,600000,32)
     return header+AESGCM(key).encrypt(nonce,output.getvalue(),header)

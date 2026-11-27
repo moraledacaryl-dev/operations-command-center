@@ -3,6 +3,8 @@ name: Build Windows Standalone Training Installer
 on:
   pull_request:
     paths:
+      - 'backend/app/**'
+      - 'backend/requirements.txt'
       - "deployment/training-desktop-windows/**"
       - ".github/workflows/build-windows-training.yml"
       - "backend/scripts/seed_training_demo.py"
