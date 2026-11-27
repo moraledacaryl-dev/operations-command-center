@@ -3,6 +3,8 @@ name: Build Mac Standalone Operations Training
 on:
   pull_request:
     paths:
+      - 'backend/app/**'
+      - 'backend/requirements.txt'
       - "deployment/training-desktop-mac/**"
       - ".github/workflows/build-mac-training.yml"
       - "backend/scripts/seed_training_demo.py"

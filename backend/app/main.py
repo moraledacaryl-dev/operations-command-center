@@ -38,6 +38,8 @@ from .routers.property_media import router as property_media_router
 from .routers.review import router as review_router
 from .routers.uploads_hardened import router as uploads_hardened_router
 from .routers.workflow import router as workflow_router
+from .routers.training_practice import router as training_practice_router
+from .routers.training_transfer import router as training_transfer_router
 from .security import load_security_settings, validate_security_settings
 from .security_audit import SecurityAuditMiddleware
 from .seed import backfill_local_user_passwords, ensure_bootstrap_owner, seed_if_empty
@@ -141,6 +143,8 @@ app.include_router(observability_router)
 app.include_router(property_media_router)
 app.include_router(uploads_hardened_router)
 app.include_router(workflow_router)
+app.include_router(training_practice_router)
+app.include_router(training_transfer_router)
 app.include_router(housekeeping_router)
 app.include_router(router)
 app.include_router(authorized_crud_router)

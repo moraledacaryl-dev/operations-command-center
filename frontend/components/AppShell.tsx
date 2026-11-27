@@ -11,6 +11,7 @@ import { RoomArrivalPractice } from '@/components/RoomArrivalPractice';
 import { DepartmentShiftPractice } from '@/components/DepartmentShiftPractice';
 import { IndependentShiftChallenge } from '@/components/IndependentShiftChallenge';
 import { api, Entity } from '@/lib/api';
+import { TrainingStorageGate } from './TrainingStorageGate';
 import { Capability, hasCapability } from '@/lib/capabilities';
 import { clearStoredUser, DEPARTMENT_CHANGE_EVENT, getCurrentDepartmentId, getStoredUser, setCurrentDepartmentId } from '@/lib/session';
 
@@ -282,6 +283,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="ops-stage">
         <header className="ops-topbar"><div className="ops-breadcrumb"><button className="ops-icon-button ops-collapse" type="button" aria-label={compact ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!compact} aria-controls="mobile-sidebar" onClick={toggleCompact}><Icon name="panel" /></button><span>{workspaceName}</span><span aria-hidden="true">/</span><strong>{currentPage}</strong></div><Link className="ops-icon-button ops-notifications" href="/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}><Icon name="bell" />{unreadCount > 0 && <span className="ops-unread-dot" />}</Link></header>
         {process.env.NEXT_PUBLIC_TRAINING_MODE === 'true' ? <div className="ops-demo-banner" role="note" aria-label="Practice only"><strong>PRACTICE ONLY</strong> · Use made-up guest details</div> : process.env.NEXT_PUBLIC_DEMO_PREVIEW === 'true' ? <div className="ops-demo-banner"><span>Demo workspace</span> Sample data</div> : null}
+        <TrainingPracticeBoundary enabled={trainingMode} user={user}>
         {trainingMode ? <TrainingWorkflowCoach user={user} path={path} /> : null}
         {trainingMode ? <FrontDeskRoomPractice user={user} path={path} /> : null}
         {trainingMode ? <RoomArrivalPractice user={user} path={path} /> : null}
@@ -292,6 +294,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {trainingMode ? <IndependentShiftChallenge user={user} path={path} /> : null}
           {children}
         </main>
+        </TrainingPracticeBoundary>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Quick navigation">
         {[homeNavigationItems[0], homeNavigationItems[1], workItems[0], decisionItems[0]].map(item => <NavLink key={item.href} item={item} path={path} onNavigate={closeMobile} />)}
@@ -299,4 +302,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
     </div>
   );
+}
+
+function TrainingPracticeBoundary({enabled,user,children}:{enabled:boolean;user:Entity;children:React.ReactNode}) {
+  return enabled ? <TrainingStorageGate user={user}>{children}</TrainingStorageGate> : children;
 }

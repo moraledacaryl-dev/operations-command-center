@@ -1,0 +1,64 @@
+name: Saved Training Workflows
+on:
+  pull_request:
+    paths:
+      - 'backend/app/**'
+      - 'backend/requirements.txt'
+      - 'frontend/**'
+      - '.github/workflows/extended-training-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-training:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      ENVIRONMENT: local
+      ALLOW_DEMO_SEED: 'false'
+      ALLOW_DEFAULT_ADMIN_BOOTSTRAP: 'false'
+      DATABASE_URL: sqlite:////tmp/operations-training-live/data/operations_training_demo_ci.sqlite
+      TRAINING_STATE_DIR: /tmp/operations-training-live
+      TRAINING_TEST_ACCOUNTS: /tmp/operations-training-live/private/accounts/PRIVATE_training_accounts.json
+      SESSION_SECRET: ci-fictional-only-training-session-20261127-548123
+      ALLOWED_HOSTS: 127.0.0.1,localhost
+      ALLOWED_ORIGINS: http://127.0.0.1:3310
+      NEXT_PUBLIC_TRAINING_MODE: 'true'
+      OPERATIONS_API_ORIGIN: http://127.0.0.1:18401
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install -r backend/requirements-test.txt
+      - name: Initialize a new fictional training profile
+        working-directory: backend
+        run: |
+          umask 077
+          mkdir -p "$TRAINING_STATE_DIR/data" "$TRAINING_STATE_DIR/uploads" "$TRAINING_STATE_DIR/private"
+          alembic upgrade head
+          PYTHONPATH=. python scripts/seed_training_demo.py --confirm ISOLATED_TRAINING_DATABASE_ONLY --private-output "$TRAINING_STATE_DIR/private/accounts"
+          touch "$TRAINING_STATE_DIR/data/.initialized"
+      - run: npm ci
+        working-directory: frontend
+      - run: npm install --no-save --package-lock=false @playwright/test@1.55.0 @axe-core/playwright@4.10.2
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Verify actual saved work and trainer transfer
+        working-directory: frontend
+        run: |
+          PYTHONPATH=../backend python -m uvicorn app.main:app --host 127.0.0.1 --port 18401 > "$RUNNER_TEMP/training-api.log" 2>&1 &
+          training_api_pid=$!
+          trap 'kill "$training_api_pid" 2>/dev/null || true' EXIT
+          npx playwright test --config=playwright.config.ts e2e/extended-training-live.spec.ts --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: saved-training-workflow-failures
+          path: frontend/test-results/

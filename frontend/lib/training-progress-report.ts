@@ -10,6 +10,7 @@ export type TrainingProgressReport = {
   currentLesson: string;
   currentStage: string;
   completedLessons: string[];
+  earlierCompletedLessons?: string[];
   metrics: Record<string, LessonMetrics>;
   verifiedPractice: { kind: string; reference: string; completedAt: string; stages: number }[];
 };
@@ -34,7 +35,7 @@ export function buildTrainingReport(
     };
   }
   const verifiedPractice = Object.entries(workflows || {}).flatMap(([kind, data]) =>
-    data && typeof data.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR)-[A-Z0-9]{8,20}$/.test(data.reference)
+    data && typeof data.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR|PROJECT|POST|DECISION)-[A-Z0-9]{8,20}$/.test(data.reference)
       ? [{kind, reference:data.reference, completedAt:data.completedAt, stages:data.steps?.length || 0}]
       : []);
   return {
@@ -42,7 +43,7 @@ export function buildTrainingReport(
     trainee:{id:String(trainee.id || ''),name:String(trainee.name || 'Fictional trainee').slice(0,100),
       role:String(trainee.role || 'staff').slice(0,30)},
     currentLesson:course.lessonId,currentStage:course.stage,
-    completedLessons:Array.from(new Set(course.passed)).slice(0,50),metrics,
+    completedLessons:Array.from(new Set(course.passed)).slice(0,50),earlierCompletedLessons:Array.from(new Set(course.earlierPassed||[])).slice(0,50),metrics,
     verifiedPractice,
   };
 }
@@ -76,14 +77,14 @@ export function parseTrainingReport(input: unknown): TrainingProgressReport | nu
     if (!raw||typeof raw!=='object'||Array.isArray(raw)) return [];
     const v=raw as Record<string,unknown>;
     if (typeof v.kind!=='string'||v.kind.length>60||
-      typeof v.reference!=='string'||!/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR)-[A-Z0-9]{8,20}$/.test(v.reference)||
+      typeof v.reference!=='string'||!/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR|PROJECT|POST|DECISION)-[A-Z0-9]{8,20}$/.test(v.reference)||
       typeof v.completedAt!=='string'||v.completedAt.length>40) return [];
     return [{kind:v.kind,reference:v.reference,completedAt:v.completedAt,stages:Math.min(15,Math.max(0,Number(v.stages)||0))}];
   });
   return {schema:'hidden-oasis-course-report-v1',source:'isolated-training-device',
     exportedAt:obj.exportedAt.slice(0,40),trainee:{id:String(p.id),name:String(p.name),role:String(p.role).slice(0,30)},
     currentLesson:obj.currentLesson.slice(0,90),currentStage:obj.currentStage.slice(0,40),
-    completedLessons:obj.completedLessons as string[],metrics,verifiedPractice};
+    completedLessons:obj.completedLessons as string[],earlierCompletedLessons:Array.isArray(obj.earlierCompletedLessons)?obj.earlierCompletedLessons.filter((id):id is string=>typeof id==='string'&&id.length<=90).slice(0,50):[],metrics,verifiedPractice};
 }
 
 /** Restore only read-only training navigation/decision lessons as local learning history.
@@ -96,7 +97,7 @@ export function portableLearningCredit(report: TrainingProgressReport, available
   // authenticated record evidence, even when it includes a completed marker.
   const recordEditing = new Set([
     'staff-handover','staff-rooms','room-arrivals',
-    'team-tasks','guest-matters','maintenance','requests','shift-writing','bar',
+    'team-tasks','guest-matters','maintenance','requests','shift-writing','bar','projects','marketing','management-review',
   ]);
   const known = new Set(available);
   return report.completedLessons.filter(id => known.has(id) && !recordEditing.has(id));

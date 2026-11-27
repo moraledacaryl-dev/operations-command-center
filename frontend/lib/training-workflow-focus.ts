@@ -1,3 +1,5 @@
+import {isExtendedTrainingKind} from './training-extended-workflows';
+import {extendedWorkflowFocus} from './training-extended-focus';
 import type { TrainingWorkflowSession } from './training-workflows';
 import type { FocusTarget } from '@/components/TrainingSpotlight';
 
@@ -11,6 +13,7 @@ export type WorkflowFocus = {
  * Only the real backend verifier, never the spotlight, advances a stage.
  */
 export function workflowFocus(session: TrainingWorkflowSession, onModule: boolean): WorkflowFocus {
+  if(isExtendedTrainingKind(session.kind))return extendedWorkflowFocus(session,onModule);
   if (session.kind === 'bar-report') return onModule ? {
     title: 'Save a practice Bar report',
     text: 'Select Report a problem. Put the practice number in the title, explain the low mocktail syrup, and save. Then choose Check saved work.',
@@ -122,6 +125,7 @@ function savedTrainingCard(session: TrainingWorkflowSession): boolean {
  */
 export function currentWorkflowFocus(session: TrainingWorkflowSession, onModule: boolean): WorkflowFocus {
   const basic = workflowFocus(session, onModule);
+  if(isExtendedTrainingKind(session.kind))return basic;
   if (session.kind === 'bar-report') {
     if (!onModule || session.step !== 0) return basic;
     const form = document.querySelector('[data-testid="bar-report-form"]');

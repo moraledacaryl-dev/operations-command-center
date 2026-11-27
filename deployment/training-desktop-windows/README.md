@@ -48,3 +48,11 @@ The entire app is synthetic-data-only; it does not modify the online production 
 If the **first** startup is cancelled or interrupted during initial migration or fictional account creation, click **Start training** again. A new installation journal allows only an incomplete first launch to be retried. It preserves partial databases and randomized private account files under `%LOCALAPPDATA%\\HiddenOasis\\OperationsTraining\\recovery\\interrupted-first-launch-*`, then creates a new fictional set. Trainer passwords can change after recovering an incomplete first launch; read them through **Trainer accounts** after successful setup.
 
 Existing fully initialized training data is never reset. Unexpected files, uploads, or an installation without a valid first-launch journal block automatic recovery. Use **Training logs** and contact the owner; do not delete or rename training folders. This feature does not fix hardware failures, corrupted completed databases, SmartScreen warnings, or unsigned distribution.
+
+## Move a complete training copy (trainer only)
+
+Sign in as the training owner. In **Training → Staff training results**, open **Move training to another computer**. Save the complete copy with a password of at least 12 characters. Keep its password separately. The encrypted file includes fictional accounts, saved work, uploads and learning progress from that browser; sign-in sessions are excluded.
+
+On the destination computer, use the same or a newer Operations Training version. Open the file in the same trainer section, then close and reopen the app. Sign in with the copied training accounts. Each participant’s copied progress opens after sign-in. The previous complete profile stays in a sibling `OperationsTraining-previous-*` folder, with its earlier browser progress retained privately. This moves one complete class profile; it does not combine different classes. Keep the saved file until the copied work has been checked.
+
+Trusted distribution signing still requires the owner's Apple Developer membership and Windows signing credentials. The protected signing scripts are ready; ordinary test packages remain unsigned.

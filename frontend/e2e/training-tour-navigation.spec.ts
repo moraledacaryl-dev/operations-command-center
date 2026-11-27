@@ -68,7 +68,7 @@ test('the lesson controls remain in the viewport when the highlighted control is
     localStorage.setItem('cc_user', JSON.stringify(account));
     localStorage.setItem('cc_department_id', '46');
     localStorage.setItem('ho-ops-structured-course-v2:' + account.id, JSON.stringify({
-      lessonId: 'marketing', stage: 'tour', question: 0, tourStep: 1,
+      practiceRevision:2, lessonId: 'marketing', stage: 'tour', question: 0, tourStep: 1,
       passed: ['orientation', 'staff-handover', 'staff-rooms', 'room-arrivals', 'staff-my-work',
         'team-tasks', 'guest-matters', 'maintenance', 'requests', 'shift-writing', 'projects'],
     }));

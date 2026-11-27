@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { hasCapability } from '@/lib/capabilities';
+import { TrainingCopyTransfer } from './TrainingCopyTransfer';
 import type { Entity } from '@/lib/api';
 import { parseTrainingReport } from '@/lib/training-progress-report';
 import type { TrainingProgressReport } from '@/lib/training-progress-report';
@@ -9,7 +11,7 @@ import { TRAINING_LESSONS } from '@/lib/interactive-training';
 type Reviewed = { id: string; staffName: string; report: TrainingProgressReport; supervisorNote: string; reviewedAt?: string };
 const PREFIX = 'ho-ops-local-trainer-reports-v1:';
 const lessonTitle = (id: string) => TRAINING_LESSONS.find(lesson => lesson.id === id)?.title || id;
-const practiceTitle: Record<string,string> = { 'bar-report': 'Bar report', 'guest-ac': 'Guest concern', 'shared-no-owner': 'Assign a task', 'shift-unresolved': 'Shift handover', 'mt-light-fault': 'Maintenance report', 'manager-evidence': 'Work request', 'fd-broken-shower': 'Guest and maintenance follow-up' };
+const practiceTitle: Record<string,string> = { 'project-plan':'Project plan and discussion','marketing-review':'Marketing post review','decision-review':'Colleague request decisions', 'bar-report': 'Bar report', 'guest-ac': 'Guest concern', 'shared-no-owner': 'Assign a task', 'shift-unresolved': 'Shift handover', 'mt-light-fault': 'Maintenance report', 'manager-evidence': 'Work request', 'fd-broken-shower': 'Guest and maintenance follow-up' };
 const stageTitle: Record<string,string> = { learn:'Reading', quiz:'Answering questions', tour:'Guided practice', work:'Practising', independent:'Trying without arrows', done:'Lesson finished', finished:'Lessons finished' };
 
 /** Reports are imported by a supervisor and remain on this device. Practice
@@ -88,6 +90,7 @@ export function TrainerReports({manager}: {manager: Entity}) {
       <span>{records.length} report{records.length===1?'':'s'} · {active?'Hide':'Open'} →</span>
     </button>
     {active && <>
+      {hasCapability(manager,'manage_accounts') && <TrainingCopyTransfer />}
       <p>Ask each staff member to save their training report and give you the file. Enter their name, then open their report here. Results stay on this computer.</p>
       <p>Training logins are shared practice identities. Check whose file it is; the practice name is not the staff member&apos;s name.</p>
       <label className="ops-trainer-import">Staff member&apos;s name

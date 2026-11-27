@@ -302,3 +302,11 @@
   .ops-course-catchup { margin: 8px 10px; padding: 12px; }
   .ops-course-catchup button { width: 100%; }
 }
+
+.ops-trainer-transfer { border-bottom: 1px solid var(--line, #d8dedb); padding-bottom: 20px; margin-bottom: 20px; }
+.ops-trainer-transfer form { display: grid; gap: 12px; margin: 12px 0; max-width: 38rem; }
+.ops-trainer-transfer label { display: grid; gap: 5px; font-weight: 600; }
+.ops-trainer-transfer input { width: 100%; min-width: 0; padding: 10px; border: 1px solid #becbc5; border-radius: 8px; }
+.ops-trainer-transfer button { min-height: 42px; padding: 10px 16px; border: 1px solid #becbc5; border-radius: 8px; cursor: pointer; }
+.ops-trainer-transfer button:disabled { cursor: wait; opacity: .6; }
+.ops-trainer-transfer summary { cursor: pointer; font-weight: 600; }
