@@ -35,7 +35,7 @@ test('actual Pool post reaches Review through its real actions',async({page})=>{
  await form.getByLabel('Caption for all platforms').fill('Enjoy a fictional Pool afternoon offer with friends. Ask our team for the practice details.');
  await form.getByRole('button',{name:'Create 1 post',exact:true}).click();await expect(form).toHaveCount(0);await page.getByRole('button',{name:'Close details',exact:true}).click();await check(page,1,user);
  for(const [index,action] of ['Start draft','Submit review'].entries()){
-  await page.locator('.marketing-workspace button').filter({hasText:ref}).click();const drawer=page.locator('.drawer-backdrop');await drawer.getByRole('button',{name:action,exact:true}).click();await drawer.getByRole('button',{name:'Close details',exact:true}).click();await check(page,index+2,user);
+  await page.locator('.marketing-workspace button').filter({hasText:ref}).click();const drawer=page.locator('.drawer-backdrop');await drawer.getByRole('button',{name:action,exact:true}).click();await expect(drawer.getByRole('button',{name:index===0?'Submit review':'Approve',exact:true})).toBeVisible();await drawer.getByRole('button',{name:'Close details',exact:true}).click();await expect(drawer).toHaveCount(0);await check(page,index+2,user);
  }
  await expect(page.locator('.training-workflow-finished')).toContainText('Practice finished');
 });

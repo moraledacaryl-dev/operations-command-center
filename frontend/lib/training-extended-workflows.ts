@@ -54,8 +54,8 @@ export function extendedWorkflowInstructions(session:TrainingWorkflowSession):st
     ['Open that same project. In Discussion, describe the next preparation action and include your practice number.','Select Post, then Check saved work.'];
   if(session.kind==='marketing-review')return session.step===0?
     ['Open Marketing and select New content. Choose an existing practice campaign.','Include your practice number in Post title. Choose Static, a date shown on this month’s calendar, Pool only and Facebook only.','Write a caption for a made-up Pool offer. Select Create 1 post, then Check saved work.']:
-    session.step===1?['Find the same post on its calendar date. Open it and select Start draft. Close the details, then Check saved work.']:
-    ['Check the date, caption and Pool area on the same draft. Select Submit review, close the details, then Check saved work.','Leave publication to the authorized reviewer.'];
+    session.step===1?['Find the same post on its calendar date. Open it and select Start draft. Wait for Draft, then close the details and Check saved work.']:
+    ['Check the date, caption and Pool area on the same draft. Select Submit review. Wait for Review, then close the details and Check saved work.','Leave publication to the authorized reviewer.'];
   return session.step===0?
     ['Select Open practice requests to prepare two requests from a colleague.','In Approvals, find Missing supplier quote with this practice number and read its details.','Reject it with a note explaining that the supplier quote is missing. Then Check saved work.']:
     ['Find Checked supplier quote with this practice number in Approvals.','Its practice quote and amount have been checked. Read the details, approve it and write a note about the checked quote.','Then Check saved work. Approval does not mean the goods were delivered.'];
