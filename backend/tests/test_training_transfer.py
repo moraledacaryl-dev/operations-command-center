@@ -16,9 +16,11 @@ PASSWORD='private-training-password'
 @pytest.fixture
 def copies(old_training):
     state,database,_=old_training
+    (state/'private/desktop-settings.json').write_text('{"local_key":"source-only-settings"}')
     (state/'uploads/saved-note.txt').write_text('Saved fictional attachment')
     (state/'private/accounts/PRIVATE_TRAINER_ACCOUNTS.txt').write_text('Original private credentials')
     target=state.parent/'destination';shutil.copytree(state,target)
+    (target/'private/desktop-settings.json').write_text('{"local_key":"destination-only-settings"}')
     target_db=target/'data/operations_training_demo_windesktop.sqlite'
     (target/'data'/database.name).rename(target_db)
     with closing(sqlite3.connect(target_db)) as db:
@@ -39,6 +41,7 @@ def test_roundtrip_keeps_records_accounts_uploads_and_original_destination(copie
     proposal=json.loads((target/'private/pending-training-transfer.json').read_text())
     assert apply_pending_copy(target,target_db)
     assert contents(target_db)=='keep this'
+    assert json.loads((target/'private/desktop-settings.json').read_text())=={'local_key':'destination-only-settings'}
     archive=target.parent/proposal['archive']
     assert contents(archive/'data'/target_db.name)=='destination earlier work'
     assert json.loads((archive/'private/before-transfer-learning-state.json').read_text())==previous
@@ -149,3 +152,22 @@ def test_profile_uses_native_canonical_parent_without_following_a_linked_profile
             monkeypatch.setenv('TRAINING_STATE_DIR',str(linked))
             with pytest.raises(HTTPException):active_state(session)
     finally:engine.dispose()
+
+
+def test_import_invalidates_prior_destination_sessions_without_changing_copied_accounts(old_training,monkeypatch):
+    from app.training_transfer import restored_session_secret
+    from app import session_lifecycle
+    state,db,roster=old_training;before=roster.read_bytes()
+    base='only-a-private-native-test-base-secret-20261128'
+    assert restored_session_secret(state,base)==base
+    identity=profile_identity(state);identity['restore_id']='1'*32
+    (state/'private/training-profile.json').write_text(json.dumps(identity))
+    first=restored_session_secret(state,base)
+    assert first!=base and first==restored_session_secret(state,base)
+    monkeypatch.setattr(session_lifecycle,'SESSION_SECRET',base)
+    token=session_lifecycle._sign({'sub':1,'exp':9999999999})
+    monkeypatch.setattr(session_lifecycle,'SESSION_SECRET',first)
+    assert session_lifecycle._verify(token) is None
+    identity['restore_id']='2'*32;(state/'private/training-profile.json').write_text(json.dumps(identity))
+    assert restored_session_secret(state,base)!=first
+    assert roster.read_bytes()==before

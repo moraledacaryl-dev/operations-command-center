@@ -292,7 +292,7 @@ def exercise_real_local_workflows(base: str, roster: dict) -> None:
     print("PASS: packaged local HTTP, all 20 scoped roles, staff 403, real Task/Shift transitions, Guest↔Fix, auto-close and linked Pending Approval")
 
 
-def exercise_complete_training_copy(base: str, roster: dict) -> None:
+def exercise_complete_training_copy(base: str, roster: dict, session_file: Path | None = None) -> str:
     """Exercise authenticated encryption and staged import in the frozen API."""
     account = next(row for row in roster['accounts'] if row['email']=='owner@training.invalid')
     user,cookie=login_with_cookie(base,account['email'],account['password'])
@@ -316,6 +316,10 @@ def exercise_complete_training_copy(base: str, roster: dict) -> None:
     assert upload(password)['ready'] is True
     assert not actual_api(base,'/training-transfer/profile',cookie).get('restore_id'), 'Import replaced the active profile before shutdown'
     print('PASS: frozen training API encrypted copy and safe staged import')
+    if session_file is not None:
+        fd=os.open(session_file,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        with os.fdopen(fd,'w') as stream:stream.write(cookie)
+    return cookie
 
 
 def verify_restored_training_copy(state: Path, database_name: str) -> None:
@@ -333,6 +337,20 @@ def verify_restored_training_copy(state: Path, database_name: str) -> None:
             assert current.execute(f'SELECT * FROM {table} ORDER BY id').fetchall()==earlier.execute(f'SELECT * FROM {table} ORDER BY id').fetchall(),table
         assert current.execute('PRAGMA foreign_key_check').fetchone() is None
     print('PASS: frozen initializer restored saved work, original accounts and browser progress; earlier profile retained')
+
+
+def verify_restored_training_sign_in(base: str, roster: dict, old_cookie: str) -> None:
+    request=urllib.request.Request(base+'/api/auth/me',headers={'Cookie':old_cookie,'Origin':'http://127.0.0.1:3401'})
+    try:urllib.request.urlopen(request,timeout=10)
+    except urllib.error.HTTPError as error:assert error.code==401
+    else:raise AssertionError('The previous destination sign-in survived opening a copied profile')
+    account=next(row for row in roster['accounts'] if row['email']=='owner@training.invalid')
+    user,new_cookie=login_with_cookie(base,account['email'],account['password'])
+    request=urllib.request.Request(base+'/api/training-transfer/profile',headers={'Cookie':new_cookie,'Origin':'http://127.0.0.1:3401'})
+    with urllib.request.urlopen(request,timeout=10) as response:copied=json.load(response)
+    assert copied['restore_id'] and copied['storage']
+    assert all(key.endswith(':'+str(user['id'])) or ':'+str(user['id'])+':' in key for key in copied['storage'])
+    print('PASS: old destination cookie refused; copied credentials reopen only their own restored learning state')
 
 
 def main() -> None:
@@ -456,7 +474,7 @@ def main() -> None:
                         result = login("http://127.0.0.1:3401", email, account["password"])
                         assert result["role"] == role, (email, result.get("role"))
                     exercise_real_local_workflows("http://127.0.0.1:3401", roster)
-                    exercise_complete_training_copy("http://127.0.0.1:3401", roster)
+                    before_copy_cookie=exercise_complete_training_copy("http://127.0.0.1:3401", roster)
                     print("PASS: native Mac app bundle, synthetic SQLite + 22 demo accounts, real manager/staff logins")
                 finally:
                     for p in (ui, api):
@@ -468,6 +486,15 @@ def main() -> None:
                     ulog.flush()
             subprocess.run([str(backend), "init"], env=env, cwd=backend.parent, check=True, timeout=80)
             verify_restored_training_copy(state, db.name)
+            with (Path(temp)/'restored-api.log').open('w') as restored_log:
+                restored_api=subprocess.Popen([str(backend),'serve'],env=env,cwd=backend.parent,stdout=restored_log,stderr=subprocess.STDOUT)
+                try:
+                    wait_ready('http://127.0.0.1:8401/api/readyz')
+                    verify_restored_training_sign_in('http://127.0.0.1:8401',roster,before_copy_cookie)
+                finally:
+                    restored_api.terminate()
+                    try:restored_api.wait(timeout=8)
+                    except subprocess.TimeoutExpired:restored_api.kill()
         except Exception:
             for name in ("api.log", "ui.log"):
                 logfile = Path(temp) / name

@@ -4,6 +4,7 @@ from datetime import datetime,timezone
 from contextlib import closing
 import ast
 import hashlib
+import hmac
 import io
 import json
 import os
@@ -199,6 +200,15 @@ def stage_copy(state:Path,database:Path,password:str,encrypted:bytes,previous_le
         (incoming/'uploads').mkdir(mode=0o700,exist_ok=True)
         revisions=validate_state(incoming,incoming/'data'/database.name)
         if sorted(revisions)!=sorted(manifest['revisions']):_refuse()
+        # Preserve this computer's launcher settings; never import another
+        # computer's signing keys. The restore identifier rotates sign-ins.
+        local_settings=state/'private/desktop-settings.json'
+        if local_settings.is_symlink():_refuse()
+        if local_settings.is_file():
+            if local_settings.stat().st_size>8192:_refuse()
+            destination=incoming/'private/desktop-settings.json'
+            fd=os.open(destination,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+            with os.fdopen(fd,'wb') as out:out.write(local_settings.read_bytes())
         _private_json(incoming/'private/training-profile.json',{'id':manifest['profile_id'],'restore_id':token})
         _private_json(incoming/'private/restored-learning-state.json',{'profile_id':manifest['profile_id'],'restore_id':token,'storage':progress})
         _private_json(state/'private/before-transfer-learning-state.json',previous_learning)
@@ -241,3 +251,19 @@ def apply_pending_copy(state:Path,database:Path):
     if (archive/'private/pending-training-transfer.json').exists():os.replace(archive/'private/pending-training-transfer.json',archive/'private/applied-training-transfer.json')
     journal.unlink(missing_ok=True)
     return True
+
+
+def restored_session_secret(state:Path,original:str):
+    """Bind native sign-ins to this import, retaining stable ordinary restarts.
+
+    The launcher's private base key stays local. A fresh restore identifier
+    invalidates old destination cookies without changing copied user records.
+    Call before importing any authentication or application settings module.
+    """
+    if not (state/'private/training-profile.json').exists():return original
+    identity=profile_identity(state)
+    token=identity.get('restore_id')
+    if not token:return original
+    if not original or not re.fullmatch(r'[0-9a-f]{32}',str(token)):_refuse()
+    context=('hidden-oasis-restored-training-v1:'+identity['id']+':'+token).encode()
+    return hmac.new(original.encode(),context,hashlib.sha256).hexdigest()

@@ -127,6 +127,8 @@ def serve() -> None:
     # as the working directory for readiness migration-head validation.
     os.chdir(resources())
     print("TRAINING API: loading command center modules", flush=True)
+    from app.training_transfer import restored_session_secret
+    os.environ['SESSION_SECRET']=restored_session_secret(state,os.environ.get('SESSION_SECRET',''))
     from app.main import app
     print("TRAINING API: loading local ASGI server", flush=True)
     import uvicorn

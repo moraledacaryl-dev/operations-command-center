@@ -121,6 +121,8 @@ def serve() -> None:
     if not path.is_file() or not (state / "data" / ".initialized").is_file():
         refuse("Training DB must be initialized before server startup")
     os.chdir(bundled_backend())
+    from app.training_transfer import restored_session_secret
+    os.environ['SESSION_SECRET']=restored_session_secret(state,os.environ.get('SESSION_SECRET',''))
     from app.main import app
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8401, workers=1, access_log=False, log_level="warning")
