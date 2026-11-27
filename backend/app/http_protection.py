@@ -22,7 +22,10 @@ async def enforce_request_boundary(request: Request):
         raw_length = request.headers.get("content-length")
         if raw_length:
             try:
-                if int(raw_length) > MAX_REQUEST_BYTES:
+                limit = MAX_REQUEST_BYTES
+                if request.url.path == '/api/training-transfer/import' and os.getenv('TRAINING_STATE_DIR') and os.getenv('ENVIRONMENT') in {'local', 'test'}:
+                    limit = 129 * 1024 * 1024
+                if int(raw_length) > limit:
                     return JSONResponse(status_code=413, content={"detail": "Request body is too large."})
             except ValueError:
                 return JSONResponse(status_code=400, content={"detail": "Invalid Content-Length header."})

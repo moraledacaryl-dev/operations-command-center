@@ -124,6 +124,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
   const tipRef = useRef<HTMLElement | null>(null);
   const libraryRef = useRef<HTMLElement | null>(null);
   const courseDialogRef = useRef<HTMLElement>(null);
+  useEffect(()=>{const changed=(event:Event)=>{const detail=(event as CustomEvent<{previous:string;reference:string}>).detail;if(detail)setCourse(current=>current?.stage==='work'&&current.reference===detail.previous?{...current,reference:detail.reference}:current)};window.addEventListener('training-practice-restarted',changed);return()=>window.removeEventListener('training-practice-restarted',changed)},[]);
   const [tipPosition, setTipPosition] = useState<Position | null>(null);
   const [helpMessage, setHelpMessage] = useState('');
   const identity = String(user.id || user.email || 'signed-in-user');

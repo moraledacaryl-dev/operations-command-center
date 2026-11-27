@@ -98,30 +98,39 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
   const instructions = finished ? [] : workflowInstructions(session);
   const focus = !finished ? liveFocus || workflowFocus(session, onModule) : null;
 
+  async function prepareReview() {
+    if (!session || busy) return;
+    const department=Number(getCurrentDepartmentId(user));
+    if (!department) {setMessage("Choose a department in Workspace first.");return;}
+    setBusy(true);setMessage('');
+    try {const prepared=await api.prepareTrainingReview(session.reference,department);const next={...session,recordId:prepared.record_id,relatedRecordId:prepared.related_record_id,departmentId:department};localStorage.setItem(storageKey,JSON.stringify(next));setSession(next);window.dispatchEvent(new Event(WORKFLOW_CHANGED));}
+    catch(error){setMessage(error instanceof Error?error.message:"Practice could not be prepared. Try again.")}finally{setBusy(false)}
+  }
+
   async function checkSavedWork() {
     if (!session || busy || finished) return;
     setBusy(true);
     setMessage('');
     try {
+      if (session.kind === 'decision-review') {
+        const approvalId=session.step===0?session.recordId:session.relatedRecordId;
+        if(!approvalId){setMessage("Select Open practice requests first.");return;}
+      }
       const departmentId = session.kind === 'bar-report' ? session.departmentId : getCurrentDepartmentId(user);
-      const records = session.step === 0
+      const records = session.kind==='marketing-review' ? await api.marketingConcepts() : session.step === 0
         ? await api.listAll(definition.resource, {
-            active: definition.resource === 'requests' ? false : true,
+            active: ['requests','projects','posts','approvals'].includes(definition.resource) ? false : true,
             department_id: departmentId || '',
           })
         : [];
-      const detail = session.step > 0 && session.recordId
-        ? await api.get(definition.resource, session.recordId)
+      const detail = session.kind==='marketing-review' ? records.find(row=>Number(row.id)===session.recordId)||null : (session.step > 0 || session.kind === 'decision-review') && session.recordId
+        ? await api.get(definition.resource, session.kind === 'decision-review' && session.step > 0 ? session.relatedRecordId! : session.recordId)
         : null;
       const linkedId = session.kind === 'fd-broken-shower' && detail
         ? Number(detail.linked_fix_id)
         : 0;
-      const relatedDetail = Number.isSafeInteger(linkedId) && linkedId > 0
-        ? await api.get('fixes', linkedId)
-        : null;
-      const linkedApprovals = session.kind === 'manager-evidence' && session.step > 0
-        ? await api.listAll('approvals', { active: false, department_id: departmentId || '' })
-        : [];
+      const relatedDetail = session.kind === 'decision-review' && detail?.source_type === 'ops_need' && Number(detail.source_id)>0 ? await api.get('requests',Number(detail.source_id)) : Number.isSafeInteger(linkedId) && linkedId > 0 ? await api.get('fixes',linkedId) : null;
+      const linkedApprovals = session.kind === 'project-plan' && session.step > 0 && session.recordId ? (await api.projectWorkspace(session.recordId)).comments : session.kind === 'manager-evidence' && session.step > 0 ? await api.listAll('approvals',{active:false,department_id:departmentId||''}) : [];
       const outcome = verifyWorkflowStep(session, records, detail, relatedDetail, linkedApprovals);
       if (!outcome.passed) {
         setMessage(outcome.error);
@@ -171,7 +180,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
 
   function repeatWorkflow() {
     if (!session || busy) return;
-    if (requiredCoursePractice()) {
+    if (requiredCoursePractice() && session.kind !== 'decision-review') {
       setMessage('Finish this practice before starting again. Your earlier results will be kept.');
       return;
     }
@@ -183,6 +192,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
     };
     try {
       localStorage.setItem(storageKey, JSON.stringify(next));
+      if(requiredCoursePractice()){const raw=localStorage.getItem(COURSE_STORAGE_PREFIX+identity);if(raw){const course=JSON.parse(raw);localStorage.setItem(COURSE_STORAGE_PREFIX+identity,JSON.stringify({...course,reference:next.reference}));window.dispatchEvent(new CustomEvent('training-practice-restarted',{detail:{previous:session.reference,reference:next.reference}}));}}
       setSession(next);
       setShowArrows(true);
       setMessage('New practice started. Use the new practice number shown below. Your earlier results are saved.');
@@ -203,6 +213,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
 
   return <section className="training-workflow-coach" data-testid="training-workflow-coach"
     aria-label="Practice step guide">
+    {session.kind==='decision-review'&&!session.recordId&&<button type="button" className="btn" data-testid="training-prepare-review" disabled={busy} onClick={()=>void prepareReview()}>Open practice requests</button>}
     <div className="training-workflow-header">
       <div>
         <span className="training-workflow-kicker">PRACTICE ONLY · MADE-UP RECORDS</span>
@@ -228,7 +239,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       }}>Copy</button>
     </p>
     {!finished && <p className="training-workflow-action-now" data-testid="training-workflow-action-now"><strong>Next step:</strong> {focus?.text}</p>}
-    {!finished && session.step === 0 && session.kind !== 'bar-report' && <p className="training-workflow-safe" data-testid="workflow-risk-explanation">
+    {!finished && session.step === 0 && !['bar-report','project-plan','marketing-review','decision-review'].includes(session.kind) && <p className="training-workflow-safe" data-testid="workflow-risk-explanation">
       <strong>How urgent is it?</strong> What is at stake if no one acts? How soon could someone be affected? Routine can wait for planned work. High needs help soon. Critical means someone may be in danger: keep people safe and call a supervisor immediately. The form may say Normal or Urgent instead.
     </p>}
     {finished ? <p className="training-workflow-finished" role="status">
@@ -237,7 +248,7 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
       <ol className="training-workflow-instructions">
         {instructions.map(item => <li key={item}>{item}</li>)}
       </ol>
-      {session.kind !== 'bar-report' && <p className="training-workflow-modal-help">
+      {!['bar-report','project-plan'].includes(session.kind) && <p className="training-workflow-modal-help">
         If the details are still open, choose <strong>Close</strong>.
         Then choose <strong>Check saved work</strong> here. Your saved changes will stay.
       </p>}
@@ -246,9 +257,9 @@ export function TrainingWorkflowCoach({ user, path }: Props) {
           Open {session.kind === 'bar-report' ? 'Bar'
             : session.kind === 'fd-broken-shower' && session.step >= 2 ? 'Maintenance'
             : ({ guests: 'Guest Matters', tasks: 'Tasks', 'shift-notes': 'Shift Handover',
-                fixes: 'Maintenance', requests: 'Requests' } as const)[definition.resource]}</Link> : null}
+                fixes: 'Maintenance', requests: 'Requests', projects:'Projects', posts:'Marketing', approvals:'Approvals' } as const)[definition.resource]}</Link> : null}
         <button type="button" className="btn" data-testid="training-check-work" disabled={busy}
-          onClick={() => void checkSavedWork()}>{busy ? 'Checking saved records…' : 'Check saved work'}</button>
+          onClick={() => void checkSavedWork()}>{busy ? 'Checking…' : 'Check saved work'}</button>
       </div>
     </>}
     {message && <p className="training-workflow-message" role="status" data-testid="training-workflow-message">{message}</p>}

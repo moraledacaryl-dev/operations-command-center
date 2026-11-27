@@ -61,7 +61,7 @@ async function normalizedError(res: Response, path: string) {
   return new ApiError(safeMessage, res.status, requestId, detail);
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, responseType: 'json' | 'blob' = 'json'): Promise<T> {
   const headers = init?.body instanceof FormData
     ? { ...(init.headers || {}) }
     : { 'Content-Type': 'application/json', ...(init?.headers || {}) };
@@ -84,7 +84,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw await normalizedError(res, path);
   }
   if (res.status === 204) return undefined as T;
-  return res.json();
+  return responseType === 'blob' ? res.blob() : res.json();
 }
 
 async function download(path: string, filename: string) {
@@ -125,6 +125,10 @@ async function allCursorPages(path: string, params: Record<string, any> = {}): P
 }
 
 export const api = {
+  trainingProfile: () => request<{profile_id:string;restore_id?:string;storage:Record<string,string>}>('/training-transfer/profile'),
+  exportTrainingCopy: (password:string,learning_state:Record<string,string>) => request<Blob>('/training-transfer/export',{method:'POST',body:JSON.stringify({password,learning_state})},'blob'),
+  importTrainingCopy: (form:FormData) => request<{ready:boolean;message:string}>('/training-transfer/import',{method:'POST',body:form}),
+  prepareTrainingReview: (reference:string,department_id:number) => request<{reference:string;record_id:number;related_record_id:number}>('/training-practice/review-case',{method:'POST',body:JSON.stringify({reference,department_id})}),
   staffGuideImportHandbook: (file: File) => {
     const body = new FormData();
     body.append('file', file);

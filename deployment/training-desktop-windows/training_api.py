@@ -77,6 +77,8 @@ def _first_launch():
 
 def init() -> None:
     path, state = validate()
+    from app.training_transfer import apply_pending_copy
+    apply_pending_copy(state, path)
     marker = state / "data" / ".initialized"
     roster = state / "private" / "accounts" / "PRIVATE_training_accounts.json"
     first_launch = _first_launch()

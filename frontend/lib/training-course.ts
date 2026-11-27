@@ -182,6 +182,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   projects: {
+    handsOn: 'project-plan',
     explanation: 'A project is a larger goal made up of smaller steps, such as preparing an event. Use a clear objective, deadline and responsible team. Read existing projects before adding a new one.',
     example: 'The resort is preparing a holiday event. Find its project first, then inspect the tasks and the people responsible.',
     remember: 'A project marked complete needs the actual agreed work finished, not just a good description.',
@@ -205,6 +206,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   marketing: {
+    handsOn: 'marketing-review',
     explanation: 'Marketing posts move from an idea to a draft, review, changes and publication. Use Areas covered to choose Rooms, Pool, Café, Kitchen or Bar. Tick one area for a Pool-only offer, or several for a Café and Bar event. Use the area filter to find each promotion; older work may say Areas not set. A reviewed design is not automatically approved to publish.',
     example: 'For a fictional Pool-only offer, select Pool and find it with the Pool filter. For a Café and Bar drinks event, select both Café and Bar and check that it appears under either filter. If a poster has a spelling mistake, request a correction before approval.',
     branches: [{ question: 'A drinks event includes both Café and Bar. Which areas should you choose?',
@@ -217,6 +219,7 @@ export const COURSE_GUIDES: Record<string, CourseGuide> = {
     ],
   },
   'management-review': {
+    handsOn: 'decision-review',
     explanation: 'A manager reviews the underlying evidence before approving, rejecting or asking for changes. A request that lacks proof should not be approved just to clear the queue.',
     example: 'A purchase request has no reliable price quotation. Ask the requester for the missing information and leave the decision pending until you can review it.',
     remember: 'Only the person allowed to approve a request can make that decision. The app has Approve and Reject buttons; rejecting requires a reason.',
@@ -249,6 +252,8 @@ export type CourseProgress = {
   tourStep?: number;
   reference?: string;
   passed: string[];
+  practiceRevision?: 2;
+  earlierPassed?: string[];
   metrics?: Record<string, { incorrectAnswers?: number; repeats?: number; completedAt?: string; hintsViewed?: number }>;
 };
 
@@ -286,7 +291,7 @@ export function courseGuideFor(id: string, department: string, isFrontDesk: bool
  */
 export function readCourseProgress(raw: string | null, lessons: readonly TrainingLesson[]): CourseProgress {
   const first = lessons[0]?.id || 'orientation';
-  const fallback: CourseProgress = { lessonId: first, stage: 'learn', question: 0, passed: [] };
+  const fallback: CourseProgress = { lessonId: first, stage: 'learn', question: 0, passed: [], practiceRevision: 2, earlierPassed: [] };
   if (!raw) return fallback;
   try {
     const data: unknown = JSON.parse(raw);
@@ -294,7 +299,7 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     const v = data as Record<string, unknown>;
     const allowed = new Set(lessons.map(lesson => lesson.id));
     const lessonId = typeof v.lessonId === 'string' && allowed.has(v.lessonId) ? v.lessonId : first;
-    const stage = ['learn','quiz','tour','room-practice','shift-practice','work','independent','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
+    let stage = ['learn','quiz','tour','room-practice','shift-practice','work','independent','done','finished'].includes(String(v.stage)) ? v.stage as CourseStage : 'learn';
     const question = typeof v.question === 'number' && Number.isInteger(v.question) && v.question >= 0 && v.question <= 1 ? v.question : 0;
     const independentStep = v.independentStep === 1 ? 1 : 0;
     const rawTourStep = Number(v.tourStep);
@@ -302,6 +307,13 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
     const tourStep = v.tourStep !== undefined && Number.isSafeInteger(rawTourStep)
       ? Math.min(maxTourStep, Math.max(0, rawTourStep)) : 0;
     const passed = Array.isArray(v.passed) ? v.passed.filter((id): id is string => typeof id === 'string' && allowed.has(id)).slice(0, lessons.length) : [];
+    const refreshed = new Set(['projects','marketing','management-review']);
+    const earlierPassed = Array.isArray(v.earlierPassed) ? v.earlierPassed.filter((id):id is string=>typeof id==='string'&&allowed.has(id)) : [];
+    if(v.practiceRevision!==2){
+      for(let i=passed.length-1;i>=0;i--)if(refreshed.has(passed[i])){earlierPassed.push(passed[i]);passed.splice(i,1)}
+      if(refreshed.has(lessonId)&&['independent','done'].includes(stage))stage='learn';
+    }
+    const revision={practiceRevision:2 as const,earlierPassed:Array.from(new Set(earlierPassed))};
     const metrics: NonNullable<CourseProgress['metrics']> = {};
     if (v.metrics && typeof v.metrics === 'object' && !Array.isArray(v.metrics)) {
       for (const [id, val] of Object.entries(v.metrics as Record<string,unknown>).slice(0,50)) {
@@ -330,31 +342,32 @@ export function readCourseProgress(raw: string | null, lessons: readonly Trainin
         if (passed.includes('orientation') && priorCurriculumPassed &&
             missing.every(lesson => catchup.has(lesson.id))) {
           return { lessonId: missing[0].id, stage: 'finished', question: 0,
-            independentStep: 0, tourStep: 0, passed, metrics };
+            independentStep: 0, tourStep: 0, passed, metrics, ...revision };
         }
         return {
           lessonId: missing[0].id, stage: 'learn', question: 0, independentStep: 0,
-          passed, metrics,
+          passed, metrics, ...revision,
         };
       }
     }
     // Keep the next unfinished lesson in sequence. Completed lessons may still be
     // opened for legitimate review; an incomplete later lesson is never unlocked.
-    const nextUnfinished = lessons.find(lesson => !passed.includes(lesson.id));
+    const nextUnfinished = lessons.find(lesson => !passed.includes(lesson.id) &&
+      !(stage!=='finished' && !refreshed.has(lessonId) && refreshed.has(lesson.id) && earlierPassed.includes(lesson.id)));
     if (nextUnfinished && lessonId !== nextUnfinished.id && !passed.includes(lessonId)) return {
       lessonId: nextUnfinished.id, stage: 'learn', question: 0, independentStep: 0,
-      passed, metrics,
+      passed, metrics, ...revision,
     };
     if (stage === 'done' && !passed.includes(lessonId)) return {
-      lessonId, stage: 'learn', question: 0, independentStep: 0, passed, metrics,
+      lessonId, stage: 'learn', question: 0, independentStep: 0, passed, metrics, ...revision,
     };
-    const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
+    const reference = typeof v.reference === 'string' && /^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR|PROJECT|POST|DECISION)-[A-Z0-9]{8,20}$/.test(v.reference) ? v.reference : undefined;
     return { lessonId, stage: stage === 'work' && !reference ? 'learn' : stage,
-      question, independentStep, tourStep, ...(reference ? { reference } : {}), passed, metrics };
+      question, independentStep, tourStep, ...(reference ? { reference } : {}), passed, metrics, ...revision };
   } catch { return fallback; }
 }
 /** Lessons added after the previous completed curriculum. They are offered as
  * catch-up training, never silently awarded or used to lock returning workers
  * out of already completed routines during a desktop app upgrade. */
-export const TRAINING_CATCHUP_LESSONS = ['room-arrivals', 'maintenance-status'] as const;
+export const TRAINING_CATCHUP_LESSONS = ['projects','marketing','management-review','room-arrivals', 'maintenance-status'] as const;
 export const COURSE_STORAGE_PREFIX = 'ho-ops-structured-course-v2:';

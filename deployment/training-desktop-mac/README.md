@@ -34,3 +34,11 @@ If startup fails, choose **Training logs** to open `~/Library/Application Suppor
 If the very first startup is cancelled or loses power during migration or fictional-account creation, opening the app again can safely retry. The new first-launch journal allows only an **uncompleted training installation** to be recovered: incomplete SQLite files and private trainee credentials are **moved, not deleted**, into `~/Library/Application Support/HiddenOasis/OperationsTraining/recovery/interrupted-first-launch-*` before generating a fresh fictional set. The recovery directory is private. This may generate a different set of passwords, so use the **Trainer accounts** guide from the successfully initialized installation.
 
 If the app detects an unrecognized database, real uploads, or missing/invalid recovery journal, it deliberately refuses to reset anything. Use **Training logs** and refer the issue to the owner; do not delete files or use terminal commands on staff devices. Recovery only covers interrupted first-time setup, not database corruption or existing completed training progress.
+
+## Move a complete training copy (trainer only)
+
+Sign in as the training owner. In **Training → Staff training results**, open **Move training to another computer**. Save the complete copy with a password of at least 12 characters. Keep its password separately. The encrypted file includes fictional accounts, saved work, uploads and learning progress from that browser; sign-in sessions are excluded.
+
+On the destination computer, use the same or a newer Operations Training version. Open the file in the same trainer section, then close and reopen the app. Sign in with the copied training accounts. Each participant’s copied progress opens after sign-in. The previous complete profile stays in a sibling `OperationsTraining-previous-*` folder, with its earlier browser progress retained privately. This moves one complete class profile; it does not combine different classes. Keep the saved file until the copied work has been checked.
+
+Trusted distribution signing still requires the owner's Apple Developer membership and Windows signing credentials. The protected signing scripts are ready; ordinary test packages remain unsigned.

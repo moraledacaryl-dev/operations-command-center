@@ -292,6 +292,49 @@ def exercise_real_local_workflows(base: str, roster: dict) -> None:
     print("PASS: packaged local HTTP, all 20 scoped roles, staff 403, real Task/Shift transitions, Guest↔Fix, auto-close and linked Pending Approval")
 
 
+def exercise_complete_training_copy(base: str, roster: dict) -> None:
+    """Exercise authenticated encryption and staged import in the frozen API."""
+    account = next(row for row in roster['accounts'] if row['email']=='owner@training.invalid')
+    user,cookie=login_with_cookie(base,account['email'],account['password'])
+    key='ho-ops-structured-course-v2:'+str(user['id'])
+    progress={key:json.dumps({'stage':'work','reference':'TRN-PROJECT-COPY12345'})}
+    password='native-smoke-private-copy-password'
+    request=urllib.request.Request(base+'/api/training-transfer/export',data=json.dumps({'password':password,'learning_state':progress}).encode(),headers={'Cookie':cookie,'Origin':base,'Content-Type':'application/json'},method='POST')
+    with urllib.request.urlopen(request,timeout=30) as response:encrypted=response.read()
+    assert encrypted.startswith(b'HIDDEN-OASIS-OPS-TRAINING-COPY\x00V1\x00') and b'COPY12345' not in encrypted
+    def upload(secret):
+        boundary='hidden-oasis-native-copy-smoke-20261127'
+        fields={'password':secret,'previous_learning':json.dumps(progress)}
+        body=b''
+        for name,value in fields.items():body+=f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode()
+        body+=f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="Practice.hotraining"\r\nContent-Type: application/octet-stream\r\n\r\n'.encode()+encrypted+f'\r\n--{boundary}--\r\n'.encode()
+        request=urllib.request.Request(base+'/api/training-transfer/import',data=body,headers={'Cookie':cookie,'Origin':base,'Content-Type':'multipart/form-data; boundary='+boundary},method='POST')
+        with urllib.request.urlopen(request,timeout=30) as response:return json.load(response)
+    try:upload('wrong-copy-password')
+    except urllib.error.HTTPError as error:assert error.code==400
+    else:raise AssertionError('A wrong copy password was accepted')
+    assert upload(password)['ready'] is True
+    assert not actual_api(base,'/training-transfer/profile',cookie).get('restore_id'), 'Import replaced the active profile before shutdown'
+    print('PASS: frozen training API encrypted copy and safe staged import')
+
+
+def verify_restored_training_copy(state: Path, database_name: str) -> None:
+    """After the frozen initializer restarts, both complete profiles must exist."""
+    from contextlib import closing
+    profile=json.loads((state/'private/training-profile.json').read_text())
+    restored=json.loads((state/'private/restored-learning-state.json').read_text())
+    assert profile['restore_id']==restored['restore_id'] and restored['storage']
+    archives=list(state.parent.glob(state.name+'-previous-*'));assert len(archives)==1
+    archive=archives[0]
+    assert (archive/'private/before-transfer-learning-state.json').is_file()
+    assert (state/'private/accounts/PRIVATE_training_accounts.json').read_bytes()==(archive/'private/accounts/PRIVATE_training_accounts.json').read_bytes()
+    with closing(sqlite3.connect(state/'data'/database_name)) as current,closing(sqlite3.connect(archive/'data'/database_name)) as earlier:
+        for table in ['users','tasks','guest_notes','fixes','projects','comments','requests','approvals']:
+            assert current.execute(f'SELECT * FROM {table} ORDER BY id').fetchall()==earlier.execute(f'SELECT * FROM {table} ORDER BY id').fetchall(),table
+        assert current.execute('PRAGMA foreign_key_check').fetchone() is None
+    print('PASS: frozen initializer restored saved work, original accounts and browser progress; earlier profile retained')
+
+
 def main() -> None:
     bundle = Path(sys.argv[1]).resolve()
     resources = bundle / "Contents" / "Resources"
@@ -413,6 +456,7 @@ def main() -> None:
                         result = login("http://127.0.0.1:3401", email, account["password"])
                         assert result["role"] == role, (email, result.get("role"))
                     exercise_real_local_workflows("http://127.0.0.1:3401", roster)
+                    exercise_complete_training_copy("http://127.0.0.1:3401", roster)
                     print("PASS: native Mac app bundle, synthetic SQLite + 22 demo accounts, real manager/staff logins")
                 finally:
                     for p in (ui, api):
@@ -422,6 +466,8 @@ def main() -> None:
                             except subprocess.TimeoutExpired: p.kill()
                     alog.flush()
                     ulog.flush()
+            subprocess.run([str(backend), "init"], env=env, cwd=backend.parent, check=True, timeout=80)
+            verify_restored_training_copy(state, db.name)
         except Exception:
             for name in ("api.log", "ui.log"):
                 logfile = Path(temp) / name

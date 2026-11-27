@@ -1,10 +1,12 @@
+import {EXTENDED_WORKFLOWS,EXTENDED_PREFIXES,isExtendedTrainingKind,verifyExtendedWorkflow,extendedWorkflowInstructions} from './training-extended-workflows';
+import type {ExtendedTrainingKind} from './training-extended-workflows';
 /**
  * Real Operations-workspace practice. Never enable this outside the isolated
  * NEXT_PUBLIC_TRAINING_MODE build. All checks read back persisted fictional
  * records; a click, a filled form, or a mock completion flag cannot pass.
  * Completion is learning evidence, NOT a credential or staff certification.
  */
-export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner' | 'shift-unresolved' | 'mt-light-fault' | 'manager-evidence' | 'fd-broken-shower' | 'bar-report';
+export type TrainingWorkflowKind = 'guest-ac' | 'shared-no-owner' | 'shift-unresolved' | 'mt-light-fault' | 'manager-evidence' | 'fd-broken-shower' | 'bar-report' | ExtendedTrainingKind;
 export type TrainingWorkflowSession = {
   kind: TrainingWorkflowKind;
   ownerId: string;
@@ -29,12 +31,14 @@ export const WORKFLOW_PREFIX = 'ho-ops-verified-workflow-v1:';
 export const WORKFLOW_RESULTS_PREFIX = 'ho-ops-workflow-results-v1:';
 
 export const WORKFLOW_REFERENCE_PREFIXES: Record<TrainingWorkflowKind, string> = {
+  ...EXTENDED_PREFIXES,
   'guest-ac': 'TRN-GUEST-', 'shared-no-owner': 'TRN-TASK-',
   'shift-unresolved': 'TRN-SHIFT-', 'mt-light-fault': 'TRN-FIX-',
   'manager-evidence': 'TRN-REQ-', 'fd-broken-shower': 'TRN-LINK-', 'bar-report': 'TRN-BAR-',
 };
 
 export const WORKFLOW_DEFINITIONS = {
+  ...EXTENDED_WORKFLOWS,
   'bar-report': { name: 'Save a Bar handover', path: '/bar', resource: 'shift-notes', stages: ['Report a Bar stock problem'] },
   'guest-ac': {
     name: 'Record a guest problem and follow up',
@@ -78,7 +82,7 @@ export const WORKFLOW_DEFINITIONS = {
 export const isTrainingWorkflowKind = (value: unknown): value is TrainingWorkflowKind =>
   value === 'guest-ac' || value === 'shared-no-owner' ||
     value === 'shift-unresolved' || value === 'mt-light-fault' ||
-    value === 'manager-evidence' || value === 'fd-broken-shower' || value === 'bar-report';
+    value === 'manager-evidence' || value === 'fd-broken-shower' || value === 'bar-report' || isExtendedTrainingKind(value);
 
 export function workflowOwnerId(user: { id?: string | number; email?: string }): string {
   return String(user.id || user.email || '');
@@ -108,7 +112,7 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
     const value = decoded as Record<string, unknown>;
     if (!isTrainingWorkflowKind(value.kind) || value.ownerId !== ownerId ||
       typeof value.reference !== 'string' ||
-      !/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR)-[A-Z0-9]{8,20}$/.test(value.reference) ||
+      !/^TRN-(GUEST|TASK|SHIFT|FIX|REQ|LINK|BAR|PROJECT|POST|DECISION)-[A-Z0-9]{8,20}$/.test(value.reference) ||
       !value.reference.startsWith(WORKFLOW_REFERENCE_PREFIXES[value.kind]) ||
       typeof value.step !== 'number' || !Number.isInteger(value.step) || value.step < 0 ||
       value.step > WORKFLOW_DEFINITIONS[value.kind].stages.length ||
@@ -136,6 +140,7 @@ export function parseWorkflowSession(raw: string | null, ownerId: string): Train
 export type WorkflowCheck = { passed: boolean; error: string; recordId?: number; relatedRecordId?: number; stepName?: string };
 /** Linked Guest↔Fix exercises move across actual Operations modules. */
 export function workflowStagePath(session: TrainingWorkflowSession): string {
+  if(session.kind==='project-plan'&&session.step>0&&session.recordId)return '/projects/'+session.recordId;
   return session.kind === 'fd-broken-shower' && session.step >= 2
     ? '/fixes' : WORKFLOW_DEFINITIONS[session.kind].path;
 }
@@ -161,6 +166,7 @@ export function verifyWorkflowStep(
   relatedDetail?: OperationalRecord | null,
   relatedApprovals: OperationalRecord[] = [],
 ): WorkflowCheck {
+  if (isExtendedTrainingKind(session.kind)) return verifyExtendedWorkflow(session,candidates,detail,relatedDetail,relatedApprovals);
   const definition = WORKFLOW_DEFINITIONS[session.kind];
   const matched = candidates.filter(item => readable(item.title).includes(session.reference.toLowerCase()));
   if (session.step === 0) {
@@ -318,6 +324,7 @@ export function verifyWorkflowStep(
 }
 
 export function workflowInstructions(session: TrainingWorkflowSession): string[] {
+  if (isExtendedTrainingKind(session.kind)) return extendedWorkflowInstructions(session);
   if (session.kind === 'bar-report') return [
     'Open Bar and select Report a problem.',
     'Choose Low stock. Put your unique practice number in What happened?',
