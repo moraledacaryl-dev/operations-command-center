@@ -19,7 +19,11 @@ router=APIRouter(prefix='/api/training-transfer',tags=['training'])
 def active_state(db):
     raw=os.environ.get('TRAINING_STATE_DIR')
     if not raw or not is_isolated_training(db):raise HTTPException(404,'Available only in the desktop training app.')
-    state=Path(raw);database=Path(db.get_bind().url.database)
+    configured=Path(raw)
+    if not configured.is_absolute() or configured.is_symlink():raise HTTPException(409,'Training needs trainer review before it can be copied.')
+    # Match the native initializer's canonical root (macOS /var aliases /private/var).
+    # Symlinked profile, private, upload and database entries remain refused.
+    state=configured.resolve();database=Path(db.get_bind().url.database)
     try:validate_state(state,database)
     except (TransferError,ValueError,OSError):raise HTTPException(409,'Training needs trainer review before it can be copied.')
     return state,database

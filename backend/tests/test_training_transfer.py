@@ -129,3 +129,23 @@ def test_profile_exposes_only_current_user_and_employees_cannot_move_the_copy(ol
         with pytest.raises(HTTPException) as refused:export(ExportRequest(password=PASSWORD,learning_state={}),user=user,db=session)
         assert refused.value.status_code==403
     engine.dispose()
+
+
+def test_profile_uses_native_canonical_parent_without_following_a_linked_profile(old_training,monkeypatch):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    from fastapi import HTTPException
+    from app.routers.training_transfer import active_state
+    source,database,_=old_training
+    alias=source.parent.parent/(source.parent.name+'-alias')
+    try:alias.symlink_to(source.parent,target_is_directory=True)
+    except OSError:pytest.skip('Creating a temporary parent alias is unavailable')
+    monkeypatch.setenv('TRAINING_STATE_DIR',str(alias/source.name))
+    engine=create_engine('sqlite:///'+str(database))
+    try:
+        with Session(engine) as session:
+            assert active_state(session)==(source.resolve(),database)
+            linked=source.parent/'linked-profile';linked.symlink_to(source,target_is_directory=True)
+            monkeypatch.setenv('TRAINING_STATE_DIR',str(linked))
+            with pytest.raises(HTTPException):active_state(session)
+    finally:engine.dispose()
