@@ -44,6 +44,7 @@ async function setup(page: Page, user: typeof manager, kind: QueueKind, item: It
   let action = '';
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
+    if(url.pathname === '/api/training-transfer/profile')return route.fulfill({status:404,contentType:'application/json',body:'{}'});
     if (url.pathname === '/api/review/queue') {
       await route.fulfill({
         status: 200, contentType: 'application/json',

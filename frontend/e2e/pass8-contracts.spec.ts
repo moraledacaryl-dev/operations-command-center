@@ -72,6 +72,7 @@ async function denyUnexpectedApi(page: Page) {
     contentType: 'application/json',
     body: JSON.stringify({ detail: `Unexpected API request: ${route.request().method()} ${route.request().url()}` }),
   }));
+  await page.route('**/api/training-transfer/profile', route => route.fulfill({status:404,contentType:'application/json',body:'{}'}));
 }
 
 test('staff operational views do not advertise generic mutation controls', async ({ page }) => {
