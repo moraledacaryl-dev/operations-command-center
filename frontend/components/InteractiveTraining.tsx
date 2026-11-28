@@ -19,6 +19,7 @@ import { readScenarioBackup, mergeScenarioBackup } from '@/lib/training-scenario
 import { practiceScenariosFor } from '@/lib/practice-scenarios';
 import { parseWorkflowResults } from '@/lib/training-progress';
 import { TrainerReports } from '@/components/TrainerReports';
+import { LessonText } from '@/components/LessonText';
 import { useTrainingDialogFocus } from '@/lib/training-dialog-focus';
 import { WORKFLOW_CHANGED, WORKFLOW_DEFINITIONS, makeTrainingReference, workflowOwnerId, workflowResultsKey, workflowSessionKey } from '@/lib/training-workflows';
 import type { TrainingWorkflowSession, TrainingWorkflowResults, TrainingWorkflowKind } from '@/lib/training-workflows';
@@ -746,14 +747,14 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
           {practicePlan && <div className="ops-practice-learning-goal" data-testid="training-practice-goal">
             <strong>Your goal: {practicePlan.goal}</strong>
             <p>First we will show you where to go. Then you will try it with the highlighted buttons. Last, you will do two short checks on your own.</p>
-            <p><strong>What you will see:</strong> {practicePlan.show}</p>
+            <p><strong>What you will see:</strong> <LessonText text={practicePlan.show} terms={courseGuide.keyTerms} /></p>
           </div>}
-          <p className="ops-course-explanation">{courseGuide.explanation}</p>
+          <p className="ops-course-explanation"><LessonText text={courseGuide.explanation} terms={courseGuide.keyTerms} /></p>
           <h3>Example at work</h3>
-          <p className="ops-course-example">{currentExample}</p>
+          <p className="ops-course-example"><LessonText text={currentExample || ''} terms={courseGuide.keyTerms} /></p>
           <h3>A mistake to avoid</h3>
-          <p className="ops-course-wrong-example">{courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'}</p>
-          <p><strong>Why it matters:</strong> {courseGuide.whyIncorrect || 'Check what happened before telling someone that the work is finished.'}</p>
+          <p className="ops-course-wrong-example"><LessonText text={courseGuide.incorrectExample || 'Do not guess, invent a completed action, or mark work done without checking the facts.'} terms={courseGuide.keyTerms} /></p>
+          <p><strong>Why it matters:</strong> <LessonText text={courseGuide.whyIncorrect || 'Check what happened before telling someone that the work is finished.'} terms={courseGuide.keyTerms} /></p>
           {courseGuide.branches?.[0] && <div className="ops-course-branch" data-testid="course-situation-branch">
             <h3>What would you do if this happened?</h3>
             <p>{courseGuide.branches[0].question}</p>
@@ -766,7 +767,7 @@ export function InteractiveTraining({ user, path }: { user: Entity; path: string
             <button type="button" className="ops-course-quiet" disabled={branchAnswer===null}
               onClick={()=>setBranchExplained(true)}>Check this answer</button>
           </div>}
-          <p><strong>Remember:</strong> {courseGuide.remember}</p>
+          <p><strong>Remember:</strong> <LessonText text={courseGuide.remember} terms={courseGuide.keyTerms} /></p>
           <p className="ops-course-next-explainer">Next: Answer two questions. Then use the practice app yourself. Follow the arrows to find the right buttons.</p>
           <details className="ops-course-help">
             <summary>Need help with this lesson?</summary>
