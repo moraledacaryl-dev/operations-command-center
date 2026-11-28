@@ -113,6 +113,8 @@ test('an untouched scenario stays unstarted and a genuinely completed response s
   await expect(page.getByTestId('scenario-guest-ac')).toContainText('Not completed');
   await page.getByTestId('scenario-guest-ac').click();
   await expect(page.getByTestId('scenario-guest-ac')).toContainText('Not completed');
+  await page.getByTestId('judgment-consequence').getByLabel('A person could get hurt', { exact: true }).check();
+  await expect(page.getByTestId('scenario-guest-ac')).toContainText('In progress');
   await page.getByTestId('scenario-shift-unresolved').click();
   await page.getByTestId('scenario-decision').selectOption('Assign and follow up');
   await page.getByTestId('scenario-note').fill(example);

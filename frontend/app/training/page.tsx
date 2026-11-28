@@ -310,9 +310,10 @@ export default function PracticeTrainingPage() {
   }
 
   function scenarioStarted(id: string) {
-    const draft = id === selectedId ? { answers, attempts, phase } : drafts[id];
-    return Boolean(draft && (draft.attempts > 0 || draft.phase !== 'assess' ||
-      Object.values(draft.answers).some(value => Boolean(value))));
+    const draft = id === selectedId ? { answers, attempts, phase, reasoning, hintsUsed } : drafts[id];
+    return Boolean(draft && (draft.attempts > 0 || draft.hintsUsed > 0 || draft.phase !== 'assess' ||
+      Object.values(draft.answers).some(value => Boolean(value)) ||
+      Object.values(draft.reasoning).some(value => Boolean(value))));
   }
 
   function startWorkflow(kind: TrainingWorkflowKind) {
