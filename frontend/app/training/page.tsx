@@ -26,7 +26,7 @@ import {
 } from '@/lib/practice-scenarios';
 import type { PracticeAnswers, PracticeAssessment, PracticeField } from '@/lib/practice-scenarios';
 import { parseScenarioProgress, parseWorkflowResults, SCENARIO_PROGRESS_PREFIX } from '@/lib/training-progress';
-import { DRAFT_PREFIX, parseScenarioDrafts } from '@/lib/training-scenario-drafts';
+import { DRAFT_PREFIX, parseScenarioDrafts, SCENARIO_ANSWER_LIMITS, scenarioAnswerLengthErrors } from '@/lib/training-scenario-drafts';
 import type { ScenarioDrafts } from '@/lib/training-scenario-drafts';
 import type { ScenarioProgress } from '@/lib/training-progress';
 
@@ -255,7 +255,10 @@ export default function PracticeTrainingPage() {
     event.preventDefault();
     if (!selected) return;
     setAttempts(n => n + 1);
-    const report = assessPractice(selected, answers);
+    const lengthErrors = scenarioAnswerLengthErrors(answers);
+    const report = Object.keys(lengthErrors).length
+      ? { passed: false, errors: lengthErrors, score: 0 }
+      : assessPractice(selected, answers);
     setResult(report);
     if (!report.passed) {
       setMistakesMade(n => n + 1);
@@ -277,6 +280,42 @@ export default function PracticeTrainingPage() {
     moved.current = true;
     setPhase('complete');
   }
+  function saveNoteForTrainer() {
+    if (!selected || !result?.errors.note) return;
+    const contents = [
+      'PRACTICE ONLY — NEEDS TRAINER REVIEW',
+      'Situation: ' + selected.title,
+      'Practice code: ' + selected.reference,
+      '', 'Note for the next shift:', answers.note,
+      ...(answers.owner ? ['', 'Responsible person: ' + answers.owner] : []),
+      ...(answers.followUp ? ['', 'Next check: ' + answers.followUp] : []),
+      '', 'This practice has not been marked complete.',
+    ].join('\n');
+    const url = URL.createObjectURL(new Blob([contents], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'practice-note-for-trainer.txt';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function tryAnotherSituation() {
+    const index = scenarios.findIndex(s => s.id === selectedId);
+    const next = scenarios.find((s, i) => i > index && !progress[s.id]) ||
+      scenarios.find(s => s.id !== selectedId && !progress[s.id]) ||
+      scenarios.find(s => s.id !== selectedId);
+    if (next) switchScenario(next.id);
+  }
+
+  function scenarioStarted(id: string) {
+    const draft = id === selectedId ? { answers, attempts, phase, reasoning, hintsUsed } : drafts[id];
+    return Boolean(draft && (draft.attempts > 0 || draft.hintsUsed > 0 || draft.phase !== 'assess' ||
+      Object.values(draft.answers).some(value => Boolean(value)) ||
+      Object.values(draft.reasoning).some(value => Boolean(value))));
+  }
+
   function startWorkflow(kind: TrainingWorkflowKind) {
     // A normal staff identity must never get management privileges to satisfy a lesson.
     if (!user || !canRunWorkflow(kind) || selected?.id !== kind) return;
@@ -459,7 +498,7 @@ export default function PracticeTrainingPage() {
             className={'practice-scenario' + (scenario.id === selectedId ? ' selected' : '')}
             onClick={() => switchScenario(scenario.id)}>
             <span className="practice-scenario-number">{progress[scenario.id] ? '✓' : String(index + 1).padStart(2, '0')}</span>
-            <span><strong>{scenario.title}</strong><small>{scenario.department} · Level {scenario.level || 1} · {progress[scenario.id] ? 'Completed' : 'Not completed'}</small></span>
+            <span><strong>{scenario.title}</strong><small>{scenario.department} · Level {scenario.level || 1} · {progress[scenario.id] ? 'Completed' : scenarioStarted(scenario.id) ? 'In progress' : 'Not completed'}</small></span>
           </button>)}
         </div>
       </aside>
@@ -596,30 +635,36 @@ export default function PracticeTrainingPage() {
           </label>
           {(selected.level || 1) >= 3 && <>
             <label>Who is responsible for this job?
-              <input type="text" data-testid="scenario-owner" value={answers.owner || ''}
+              <input type="text" data-testid="scenario-owner" value={answers.owner || ''} maxLength={SCENARIO_ANSWER_LIMITS.owner}
                 placeholder="e.g., On-duty Maintenance lead"
                 onChange={event => update('owner', event.target.value)} />
               <small>Use a job title, not a real employee&apos;s name.</small>
               {result?.errors.owner && <small className="practice-error" role="alert">{result.errors.owner}</small>}
             </label>
             <label>What should be checked next? Who will confirm it is done?
-              <textarea data-testid="scenario-follow-up" value={answers.followUp || ''} rows={2}
+              <textarea data-testid="scenario-follow-up" value={answers.followUp || ''} rows={2} maxLength={SCENARIO_ANSWER_LIMITS.followUp}
                 placeholder="e.g., Maintenance lead will inspect the fault and report verified repair status to Front Desk before room release."
                 onChange={event => update('followUp', event.target.value)} />
               {result?.errors.followUp && <small className="practice-error" role="alert">{result.errors.followUp}</small>}
             </label>
           </>}
           <label>Write a note for the next shift
-            <textarea data-testid="scenario-note" value={answers.note} rows={5} required minLength={45}
+            <textarea data-testid="scenario-note" value={answers.note} rows={5} required minLength={45} maxLength={SCENARIO_ANSWER_LIMITS.note}
               placeholder={'Include ' + selected.reference + ', what happened, what staff should do next, and who should do it.'}
               onChange={e => update('note', e.target.value)} />
             <small>Include practice code <strong>{selected.reference}</strong>, what happened, the next action, and who will check it. {selected.reference.startsWith('DEMO-ROOM-') ? 'This code is not a room number. ' : ''}Use made-up details.</small>
             {selected.noteChecks && <small>Make sure your note explains {selected.noteChecks.map(rule => rule.label).join(' and ')}. Write what the person should actually do.</small>}
-            {result?.errors.note && <small className="practice-error" role="alert">{result.errors.note}</small>}
+            {result?.errors.note && <>
+              <small className="practice-error" role="alert">{result.errors.note}</small>
+              <small>If your note already covers this, ask your trainer to review it.</small>
+              <details><summary>See an example note</summary><p>{selected.example}</p></details>
+            </>}
           </label>
           {result && !result.passed && <p className="practice-notice" role="status">Check the highlighted answers, make the changes, and try again.</p>}
           <div className="practice-actions">
             <button type="submit" className="practice-primary" data-testid="scenario-submit">Check my note</button>
+            {result?.errors.note && <button type="button" className="practice-secondary" onClick={saveNoteForTrainer}>Save note for trainer</button>}
+            {scenarios.length > 1 && <button type="button" className="practice-secondary" onClick={tryAnotherSituation}>Try another situation</button>}
             <button type="button" className="practice-secondary" onClick={() => { setResult(null); setPhase('assess'); }}>← Back to first step</button>
           </div>
         </form>}
